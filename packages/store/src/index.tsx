@@ -1,4 +1,6 @@
 import { create } from "zustand"
+import { createStore } from "zustand/vanilla"
+import type { StoreApi } from "zustand/vanilla"
 export { createContextStore } from "./context-store"
 export type {
   ContextStore,
@@ -78,3 +80,5 @@ export function redoHistoryState<T>(history: HistoryState<T>): HistoryState<T> {
 }
 
 export { create }
+export { createStore }
+export type { StoreApi }

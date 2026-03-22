@@ -6,10 +6,12 @@ import type {
 } from "@xyflow/react"
 import { addEdge, applyEdgeChanges, applyNodeChanges } from "@xyflow/react"
 import {
-  create,
+  createContextStore,
+  createStore,
   createHistoryState,
   pushHistoryState,
   redoHistoryState,
+  type StoreApi,
   undoHistoryState,
 } from "@workspace/store"
 
@@ -56,6 +58,12 @@ export interface WorkflowStoreState {
   exportDomain: () => string
 }
 
+export interface WorkflowStoreInitialProps {
+  initialGraph?: WorkflowGraphState
+}
+
+type WorkflowStoreSetState = StoreApi<WorkflowStoreState>["setState"]
+
 function cloneGraphState(graph: WorkflowGraphState): WorkflowGraphState {
   return {
     nodes: graph.nodes.map((node) => ({
@@ -75,12 +83,7 @@ function cloneGraphState(graph: WorkflowGraphState): WorkflowGraphState {
 }
 
 function commitGraphState(
-  set: (
-    partial:
-      | WorkflowStoreState
-      | Partial<WorkflowStoreState>
-      | ((state: WorkflowStoreState) => Partial<WorkflowStoreState>)
-  ) => void,
+  set: WorkflowStoreSetState,
   nextGraph: WorkflowGraphState
 ): void {
   set((state) => ({
@@ -89,12 +92,7 @@ function commitGraphState(
 }
 
 function replacePresentGraphState(
-  set: (
-    partial:
-      | WorkflowStoreState
-      | Partial<WorkflowStoreState>
-      | ((state: WorkflowStoreState) => Partial<WorkflowStoreState>)
-  ) => void,
+  set: WorkflowStoreSetState,
   nextGraph: WorkflowGraphState
 ): void {
   set((state) => ({
@@ -125,186 +123,199 @@ function shouldCommitEdgeHistory(changes: EdgeChange<WorkflowEdge>[]): boolean {
   )
 }
 
-export const useWorkflowStore = create<WorkflowStoreState>((set, get) => ({
-  history: createHistoryState(cloneGraphState(initialWorkflowGraph)),
-  selectedNodeId: null,
-  lastError: null,
-  setLastError: (message) => set({ lastError: message }),
-  addNode: (kind, position) => {
-    const currentGraph = get().history.present
-    const nextNodes = [...currentGraph.nodes, createWorkflowNode(kind, position)]
+export function createWorkflowStore(
+  initialProps: WorkflowStoreInitialProps = {}
+): StoreApi<WorkflowStoreState> {
+  const initialGraph = cloneGraphState(initialProps.initialGraph ?? initialWorkflowGraph)
 
-    commitGraphState(set, {
-      ...currentGraph,
-      nodes: nextNodes,
-    })
-  },
-  setSelectedNode: (nodeId) => {
-    set({ selectedNodeId: nodeId })
-  },
-  updateNodeLabel: (nodeId, nextLabel) => {
-    const currentGraph = get().history.present
-    const nextNodes = currentGraph.nodes.map((node) =>
-      node.id === nodeId
-        ? {
-            ...node,
-            data: {
-              ...node.data,
-              label: nextLabel,
-            },
-          }
-        : node
-    )
+  return createStore<WorkflowStoreState>()((set, get) => ({
+    history: createHistoryState(initialGraph),
+    selectedNodeId: null,
+    lastError: null,
+    setLastError: (message) => set({ lastError: message }),
+    addNode: (kind, position) => {
+      const currentGraph = get().history.present
+      const nextNodes = [...currentGraph.nodes, createWorkflowNode(kind, position)]
 
-    commitGraphState(set, {
-      ...currentGraph,
-      nodes: nextNodes,
-    })
-  },
-  updateNodeConfigField: (nodeId, key, rawValue) => {
-    const currentGraph = get().history.present
-    const targetNode = currentGraph.nodes.find((node) => node.id === nodeId)
-    if (!targetNode) {
-      return
-    }
+      commitGraphState(set, {
+        ...currentGraph,
+        nodes: nextNodes,
+      })
+    },
+    setSelectedNode: (nodeId) => {
+      set({ selectedNodeId: nodeId })
+    },
+    updateNodeLabel: (nodeId, nextLabel) => {
+      const currentGraph = get().history.present
+      const nextNodes = currentGraph.nodes.map((node) =>
+        node.id === nodeId
+          ? {
+              ...node,
+              data: {
+                ...node.data,
+                label: nextLabel,
+              },
+            }
+          : node
+      )
 
-    const nextNodes = currentGraph.nodes.map((node) => {
-      if (node.id !== nodeId) {
-        return node
+      commitGraphState(set, {
+        ...currentGraph,
+        nodes: nextNodes,
+      })
+    },
+    updateNodeConfigField: (nodeId, key, rawValue) => {
+      const currentGraph = get().history.present
+      const targetNode = currentGraph.nodes.find((node) => node.id === nodeId)
+      if (!targetNode) {
+        return
       }
 
-      return {
-        ...node,
-        data: {
-          ...node.data,
-          config: {
-            ...node.data.config,
-            [key]: rawValue,
+      const nextNodes = currentGraph.nodes.map((node) => {
+        if (node.id !== nodeId) {
+          return node
+        }
+
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            config: {
+              ...node.data.config,
+              [key]: rawValue,
+            },
+          },
+        }
+      })
+
+      commitGraphState(set, {
+        ...currentGraph,
+        nodes: nextNodes,
+      })
+    },
+    onNodesChange: (changes) => {
+      const currentGraph = get().history.present
+      const nextNodes = applyNodeChanges(changes, currentGraph.nodes)
+      const nextGraph: WorkflowGraphState = {
+        ...currentGraph,
+        nodes: nextNodes,
+      }
+
+      if (shouldCommitNodeHistory(changes)) {
+        commitGraphState(set, nextGraph)
+        return
+      }
+
+      replacePresentGraphState(set, nextGraph)
+    },
+    onEdgesChange: (changes) => {
+      const currentGraph = get().history.present
+      const nextEdges = applyEdgeChanges(changes, currentGraph.edges)
+
+      const nextGraph: WorkflowGraphState = {
+        ...currentGraph,
+        edges: nextEdges,
+      }
+
+      if (shouldCommitEdgeHistory(changes)) {
+        commitGraphState(set, nextGraph)
+        return
+      }
+
+      replacePresentGraphState(set, nextGraph)
+    },
+    onConnect: (connection) => {
+      const currentGraph = get().history.present
+      const validation = validateConnection(
+        connection,
+        currentGraph.nodes,
+        currentGraph.edges
+      )
+      if (!validation.valid) {
+        set({ lastError: validation.reason ?? "Invalid connection." })
+        return
+      }
+
+      const kinds = getKindsFromConnection(connection, currentGraph.nodes)
+      if (!kinds) {
+        set({ lastError: "Failed to resolve node kinds for connection." })
+        return
+      }
+
+      const nextEdges = addEdge(
+        {
+          ...connection,
+          sourceHandle: connection.sourceHandle ?? null,
+          targetHandle: connection.targetHandle ?? null,
+          data: {
+            sourceKind: kinds.sourceKind,
+            targetKind: kinds.targetKind,
           },
         },
-      }
-    })
+        currentGraph.edges
+      ) as WorkflowEdge[]
 
-    commitGraphState(set, {
-      ...currentGraph,
-      nodes: nextNodes,
-    })
-  },
-  onNodesChange: (changes) => {
-    const currentGraph = get().history.present
-    const nextNodes = applyNodeChanges(changes, currentGraph.nodes)
-    const nextGraph: WorkflowGraphState = {
-      ...currentGraph,
-      nodes: nextNodes,
-    }
-
-    if (shouldCommitNodeHistory(changes)) {
-      commitGraphState(set, nextGraph)
-      return
-    }
-
-    replacePresentGraphState(set, nextGraph)
-  },
-  onEdgesChange: (changes) => {
-    const currentGraph = get().history.present
-    const nextEdges = applyEdgeChanges(changes, currentGraph.edges)
-
-    const nextGraph: WorkflowGraphState = {
-      ...currentGraph,
-      edges: nextEdges,
-    }
-
-    if (shouldCommitEdgeHistory(changes)) {
-      commitGraphState(set, nextGraph)
-      return
-    }
-
-    replacePresentGraphState(set, nextGraph)
-  },
-  onConnect: (connection) => {
-    const currentGraph = get().history.present
-    const validation = validateConnection(
-      connection,
-      currentGraph.nodes,
-      currentGraph.edges
-    )
-    if (!validation.valid) {
-      set({ lastError: validation.reason ?? "Invalid connection." })
-      return
-    }
-
-    const kinds = getKindsFromConnection(connection, currentGraph.nodes)
-    if (!kinds) {
-      set({ lastError: "Failed to resolve node kinds for connection." })
-      return
-    }
-
-    const nextEdges = addEdge(
-      {
-        ...connection,
-        sourceHandle: connection.sourceHandle ?? null,
-        targetHandle: connection.targetHandle ?? null,
-        data: {
-          sourceKind: kinds.sourceKind,
-          targetKind: kinds.targetKind,
-        },
-      },
-      currentGraph.edges
-    ) as WorkflowEdge[]
-
-    commitGraphState(set, {
-      ...currentGraph,
-      edges: nextEdges,
-    })
-    set({ lastError: null })
-  },
-  onMoveEnd: (_, viewport) => {
-    const currentGraph = get().history.present
-    replacePresentGraphState(set, {
-      ...currentGraph,
-      viewport: {
-        x: viewport.x,
-        y: viewport.y,
-        zoom: viewport.zoom,
-      },
-    })
-  },
-  undo: () => {
-    set((state) => ({
-      history: undoHistoryState(state.history),
-      lastError: null,
-    }))
-  },
-  redo: () => {
-    set((state) => ({
-      history: redoHistoryState(state.history),
-      lastError: null,
-    }))
-  },
-  importFromJson: (rawJson) => {
-    const parsed = parseInternalGraphJson(rawJson)
-    if (!parsed.success || !parsed.value) {
-      set({
-        lastError: parsed.error ?? "Import failed due to invalid schema.",
+      commitGraphState(set, {
+        ...currentGraph,
+        edges: nextEdges,
       })
-      return false
-    }
+      set({ lastError: null })
+    },
+    onMoveEnd: (_, viewport) => {
+      const currentGraph = get().history.present
+      replacePresentGraphState(set, {
+        ...currentGraph,
+        viewport: {
+          x: viewport.x,
+          y: viewport.y,
+          zoom: viewport.zoom,
+        },
+      })
+    },
+    undo: () => {
+      set((state) => ({
+        history: undoHistoryState(state.history),
+        lastError: null,
+      }))
+    },
+    redo: () => {
+      set((state) => ({
+        history: redoHistoryState(state.history),
+        lastError: null,
+      }))
+    },
+    importFromJson: (rawJson) => {
+      const parsed = parseInternalGraphJson(rawJson)
+      if (!parsed.success || !parsed.value) {
+        set({
+          lastError: parsed.error ?? "Import failed due to invalid schema.",
+        })
+        return false
+      }
 
-    const importedGraph = cloneGraphState(parsed.value)
-    set({
-      history: createHistoryState(importedGraph),
-      selectedNodeId: null,
-      lastError: null,
-    })
-    return true
-  },
-  exportInternal: () => {
-    return exportInternalJson(get().history.present)
-  },
-  exportDomain: () => {
-    return exportDomainJson(get().history.present)
-  },
-}))
+      const importedGraph = cloneGraphState(parsed.value)
+      set({
+        history: createHistoryState(importedGraph),
+        selectedNodeId: null,
+        lastError: null,
+      })
+      return true
+    },
+    exportInternal: () => {
+      return exportInternalJson(get().history.present)
+    },
+    exportDomain: () => {
+      return exportDomainJson(get().history.present)
+    },
+  }))
+}
+
+const workflowStore = createContextStore<WorkflowStoreState, WorkflowStoreInitialProps>(
+  createWorkflowStore
+)
+
+export const WorkflowStoreProvider = workflowStore.Provider
+export const useWorkflowStore = workflowStore.useStore
 
 export function useWorkflowGraph(): WorkflowGraphState {
   return useWorkflowStore((state) => state.history.present)
