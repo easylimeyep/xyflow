@@ -40,8 +40,8 @@ describe("ExpressionInput integration", () => {
     const onChange = vi.fn()
     const variables: ExpressionVariableOption[] = [
       {
-        value: '$("TriggerA").item.json.eventName',
-        label: '$("TriggerA").item.json.eventName',
+        value: '$node("trigger-a").item.json.eventName',
+        label: '$node("trigger-a").item.json.eventName',
         description: "Trigger event",
         group: "Upstream: TriggerA",
       },
@@ -57,10 +57,10 @@ describe("ExpressionInput integration", () => {
     )
 
     await user.click(screen.getByRole("button", { name: "Insert variable" }))
-    await user.click(screen.getByText('$("TriggerA").item.json.eventName'))
+    await user.click(screen.getByText('$node("trigger-a").item.json.eventName'))
 
     expect(onChange).toHaveBeenCalledWith(
-      expect.stringContaining('{{ $("TriggerA").item.json.eventName }}')
+      expect.stringContaining('{{ $node("trigger-a").item.json.eventName }}')
     )
   })
 })

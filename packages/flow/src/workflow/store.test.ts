@@ -43,7 +43,7 @@ describe("workflow store", () => {
     const imported = store.getState().importFromJson("{\"bad\":true}")
 
     expect(imported).toBe(false)
-    expect(store.getState().lastError).toContain("nodes")
+    expect(store.getState().lastError).toContain("domain workflow schema")
   })
 
   it("rejects invalid connections and keeps graph stable", () => {
@@ -64,5 +64,115 @@ describe("workflow store", () => {
 
     expect(nextState.history.present.edges.length).toBe(edgeCount)
     expect(nextState.lastError).toContain("cannot connect")
+  })
+
+  it("creates valid connections and clears previous errors", () => {
+    const state = store.getState()
+    state.addNode("code", { x: 480, y: 120 })
+    const trigger = state.history.present.nodes.find(
+      (node: WorkflowNode) => node.data.kind === "trigger"
+    )
+    const code = store
+      .getState()
+      .history.present.nodes.find((node: WorkflowNode) => node.data.kind === "code")
+    if (!trigger || !code) {
+      throw new Error("fixture nodes not found")
+    }
+
+    state.onConnect({ source: code.id, target: trigger.id })
+    expect(store.getState().lastError).toContain("cannot connect")
+
+    const beforeEdgeCount = store.getState().history.present.edges.length
+    store.getState().onConnect({ source: trigger.id, target: code.id })
+    const nextState = store.getState()
+
+    expect(nextState.history.present.edges.length).toBe(beforeEdgeCount + 1)
+    expect(nextState.lastError).toBeNull()
+  })
+
+  it("updates label and config fields as committed history changes", () => {
+    const state = store.getState()
+    const targetNode = state.history.present.nodes[0]
+    if (!targetNode) {
+      throw new Error("fixture node not found")
+    }
+
+    const initialPastLength = state.history.past.length
+    state.updateNodeLabel(targetNode.id, "Updated label")
+    state.updateNodeConfigField(targetNode.id, "eventName", "updated-event")
+
+    const nextState = store.getState()
+    const updatedNode = nextState.history.present.nodes.find((node) => node.id === targetNode.id)
+
+    expect(updatedNode?.data.label).toBe("Updated label")
+    expect(updatedNode?.data.config.eventName).toBe("updated-event")
+    expect(nextState.history.past.length).toBeGreaterThan(initialPastLength)
+  })
+
+  it("keeps node drag transient until drag end commit", () => {
+    const state = store.getState()
+    const targetNode = state.history.present.nodes[0]
+    if (!targetNode) {
+      throw new Error("fixture node not found")
+    }
+
+    const basePastLength = state.history.past.length
+    state.onNodesChange([
+      {
+        id: targetNode.id,
+        type: "position",
+        position: { x: 10, y: 20 },
+        dragging: true,
+      },
+    ])
+    expect(store.getState().history.past.length).toBe(basePastLength)
+
+    store.getState().onNodesChange([
+      {
+        id: targetNode.id,
+        type: "position",
+        position: { x: 40, y: 60 },
+        dragging: false,
+      },
+    ])
+    expect(store.getState().history.past.length).toBe(basePastLength + 1)
+  })
+
+  it("commits structural edge changes to history", () => {
+    const state = store.getState()
+    const basePastLength = state.history.past.length
+
+    state.onEdgesChange([
+      {
+        type: "remove",
+        id: state.history.present.edges[0]?.id ?? "",
+      },
+    ])
+
+    expect(store.getState().history.past.length).toBe(basePastLength + 1)
+  })
+
+  it("updates viewport without committing history entries", () => {
+    const state = store.getState()
+    const basePastLength = state.history.past.length
+
+    state.setViewport({ x: 111, y: 222, zoom: 1.5 })
+
+    const nextState = store.getState()
+    expect(nextState.history.present.viewport).toEqual({ x: 111, y: 222, zoom: 1.5 })
+    expect(nextState.history.past.length).toBe(basePastLength)
+  })
+
+  it("clears selected node when node gets removed", () => {
+    const state = store.getState()
+    const targetNode = state.history.present.nodes[0]
+    if (!targetNode) {
+      throw new Error("fixture node not found")
+    }
+
+    state.setSelectedNode(targetNode.id)
+    state.onNodesChange([{ id: targetNode.id, type: "remove" }])
+
+    expect(store.getState().selectedNodeId).toBeNull()
   })
 })

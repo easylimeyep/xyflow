@@ -371,3 +371,108 @@ Checked and kept:
    - add optional trigger on typing `{{` to open completion automatically
    - define backend/runtime contract for expression evaluation phase (currently intentionally UI-only validation)
 
+## Latest architecture updates (current source of truth)
+
+This section reflects the latest refactor state and supersedes older conflicting details above.
+
+### 1) Store/editor architecture hardening
+
+- `WorkflowEditor` was decomposed into container components:
+  - `ToolbarContainer`
+  - `PaletteContainer`
+  - `CanvasContainer`
+  - `ConfigPanelContainer`
+- Store access in editor now uses `useWorkflowShallowStore` for aggregated subscriptions and lower render churn.
+- `store.onMoveEnd` was replaced with `store.setViewport(viewport)` to make viewport updates explicit in app layer API.
+- Selection consistency improved: when selected node is removed via `onNodesChange`, `selectedNodeId` is cleared.
+
+Files:
+
+- `packages/flow/src/workflow/components/workflow-editor.tsx`
+- `packages/flow/src/workflow/store.ts`
+
+### 2) Viewport synchronization model
+
+- Canvas now uses controlled viewport:
+  - `ReactFlow` uses `viewport={...}` (not `defaultViewport`)
+  - `onMoveEnd` forwards to `onViewportChange`
+- This keeps store and canvas viewport state aligned.
+
+Files:
+
+- `packages/flow/src/workflow/components/workflow-canvas.tsx`
+- `packages/flow/src/workflow/store.ts`
+
+### 3) Expression contract changes
+
+- Expression node references are now stable-id based:
+  - `$node("<nodeId>").item.json...`
+- Built-in expression variables/completions are centralized in one module to avoid duplication.
+- Legacy label-based reference migration support was removed intentionally (development stage, no backward-compatibility requirement).
+
+Files:
+
+- `packages/flow/src/workflow/expression/variables.ts`
+- `packages/flow/src/workflow/expression/autocomplete.ts`
+- `packages/flow/src/workflow/expression/builtins.ts`
+
+Removed:
+
+- `packages/flow/src/workflow/expression/migration.ts`
+- `packages/flow/src/workflow/expression/migration.test.ts`
+
+### 4) Mapper decomposition and import contract simplification
+
+`mappers.ts` was split into folder modules:
+
+- `packages/flow/src/workflow/mappers/index.ts` (public re-exports)
+- `packages/flow/src/workflow/mappers/constants.ts`
+- `packages/flow/src/workflow/mappers/utils.ts` (pure helpers like `isString`, `asRecord`, `toJsonConfig`, `sanitizeConfigValue`)
+- `packages/flow/src/workflow/mappers/domain-dto.ts` (DTO shape validation/parsing)
+- `packages/flow/src/workflow/mappers/converters.ts` (`internalToDomain`, `domainToInternal`, exports)
+- `packages/flow/src/workflow/mappers/parser.ts` (`parseInternalGraphJson`, `isValidDomainDto`)
+
+Contract change:
+
+- Import is now **domain DTO only**.
+- Internal graph JSON import support was removed.
+- Toolbar placeholder updated accordingly: `Paste domain workflow JSON`.
+
+Files:
+
+- `packages/flow/src/workflow/components/editor-toolbar.tsx`
+- `packages/flow/src/workflow/mappers/*`
+
+### 5) Workflow graph model updates
+
+- `WorkflowGraphState` now includes:
+  - `document.id`
+  - `document.name`
+  - `document.version`
+  - `document.metadata`
+- `DomainWorkflowDTO.metadata` is `JsonObject` (not a fixed literal type).
+
+Files:
+
+- `packages/flow/src/workflow/types.ts`
+- `packages/flow/src/workflow/default-graph.ts`
+- `packages/flow/src/workflow/store.ts`
+- `packages/flow/src/workflow/mappers/converters.ts`
+
+### 6) Test suite updates (Vitest only, no E2E)
+
+Added/expanded integration and architecture-critical tests:
+
+- `packages/flow/src/workflow/components/editor-toolbar.test.tsx`
+- `packages/flow/src/workflow/components/workflow-canvas.test.tsx`
+- `packages/flow/src/workflow/components/workflow-editor.test.tsx`
+- `packages/flow/src/workflow/store.test.ts` (more invariants)
+- `packages/flow/src/workflow/validation.test.ts` (kind resolution)
+- updated expression tests for `$node("<id>")` contract
+
+Current validation status (latest run):
+
+- `pnpm --filter @workspace/flow test` -> passed
+- `pnpm --filter @workspace/flow typecheck` -> passed
+- `pnpm --filter @workspace/flow lint` -> passed
+

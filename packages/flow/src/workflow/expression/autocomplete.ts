@@ -1,32 +1,15 @@
 import type { Completion, CompletionContext, CompletionResult } from "@codemirror/autocomplete"
 
+import { getBuiltinExpressionCompletions } from "./builtins"
 import type { ExpressionVariableOption } from "../types"
 
 const TOKEN_PATTERN = /[\w$.()[\]"']*/
-
-const BUILTIN_COMPLETIONS: Completion[] = [
-  {
-    label: "$input.item.json",
-    type: "variable",
-    info: "Current input item payload.",
-  },
-  {
-    label: "$input.first().json",
-    type: "function",
-    info: "First input item payload.",
-  },
-  {
-    label: "$input.all()",
-    type: "function",
-    info: "All input items for current node.",
-  },
-]
 
 export function buildExpressionCompletions(
   variables: ExpressionVariableOption[]
 ): Completion[] {
   return [
-    ...BUILTIN_COMPLETIONS,
+    ...getBuiltinExpressionCompletions(),
     ...variables.map((variable) => ({
       label: variable.value,
       type: "variable" as const,

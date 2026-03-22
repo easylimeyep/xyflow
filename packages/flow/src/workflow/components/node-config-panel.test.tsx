@@ -39,8 +39,8 @@ describe("NodeConfigPanel expression integration", () => {
     const onUpdateConfigField = vi.fn()
     const variables: ExpressionVariableOption[] = [
       {
-        value: '$("TriggerA").item.json.eventName',
-        label: '$("TriggerA").item.json.eventName',
+        value: '$node("trigger-a").item.json.eventName',
+        label: '$node("trigger-a").item.json.eventName',
         description: "Trigger field",
         group: "Upstream: TriggerA",
       },
@@ -60,7 +60,7 @@ describe("NodeConfigPanel expression integration", () => {
     expect(onUpdateConfigField).toHaveBeenCalledWith(
       node.id,
       "inputText",
-      expect.stringContaining('{{ $("TriggerA").item.json.eventName }}')
+      expect.stringContaining('{{ $node("trigger-a").item.json.eventName }}')
     )
   })
 })

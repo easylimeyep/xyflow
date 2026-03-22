@@ -1,0 +1,1 @@
+export const DOMAIN_WORKFLOW_VERSION = 2

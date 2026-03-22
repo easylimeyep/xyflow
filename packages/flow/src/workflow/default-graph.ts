@@ -24,4 +24,10 @@ export const initialWorkflowGraph: WorkflowGraphState = {
     },
   ],
   viewport: DEFAULT_VIEWPORT,
+  document: {
+    id: "workflow-local",
+    name: "Untitled Workflow",
+    version: 1,
+    metadata: { source: "ui" },
+  },
 }

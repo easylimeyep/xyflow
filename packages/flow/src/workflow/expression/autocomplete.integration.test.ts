@@ -9,21 +9,23 @@ describe("expression completion source integration", () => {
   it("resolves matching variable completions from typed prefix", () => {
     const variables: ExpressionVariableOption[] = [
       {
-        value: '$("TriggerA").item.json.eventName',
-        label: '$("TriggerA").item.json.eventName',
+        value: '$node("trigger-a").item.json.eventName',
+        label: '$node("trigger-a").item.json.eventName',
         description: "Trigger event",
         group: "Upstream: TriggerA",
       },
     ]
     const source = createExpressionCompletionSource(variables)
     const state = EditorState.create({
-      doc: '$("TriggerA").item',
+      doc: '$node("trigger-a").item',
     })
     const context = new CompletionContext(state, state.doc.length, true)
     const result = source(context)
 
     expect(result).not.toBeNull()
-    expect(result?.options.some((option) => option.label.includes("TriggerA"))).toBe(true)
+    expect(result?.options.some((option) => option.label.includes('$node("trigger-a")'))).toBe(
+      true
+    )
   })
 
   it("includes builtins when explicit completion is requested", () => {

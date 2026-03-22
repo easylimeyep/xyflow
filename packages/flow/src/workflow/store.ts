@@ -1,7 +1,7 @@
 import type {
   EdgeChange,
   NodeChange,
-  OnMove,
+  Viewport,
   XYPosition,
 } from "@xyflow/react"
 import { addEdge, applyEdgeChanges, applyNodeChanges } from "@xyflow/react"
@@ -50,7 +50,7 @@ export interface WorkflowStoreState {
   onNodesChange: (changes: NodeChange<WorkflowNode>[]) => void
   onEdgesChange: (changes: EdgeChange<WorkflowEdge>[]) => void
   onConnect: (connection: ConnectionLike) => void
-  onMoveEnd: OnMove
+  setViewport: (viewport: Viewport) => void
   undo: () => void
   redo: () => void
   importFromJson: (rawJson: string) => boolean
@@ -79,6 +79,10 @@ function cloneGraphState(graph: WorkflowGraphState): WorkflowGraphState {
       data: edge.data ? { ...edge.data } : undefined,
     })),
     viewport: { ...graph.viewport },
+    document: {
+      ...graph.document,
+      metadata: { ...graph.document.metadata },
+    },
   }
 }
 
@@ -196,17 +200,29 @@ export function createWorkflowStore(
     onNodesChange: (changes) => {
       const currentGraph = get().history.present
       const nextNodes = applyNodeChanges(changes, currentGraph.nodes)
+      const selectedNodeId = get().selectedNodeId
+      const selectedExists =
+        selectedNodeId === null || nextNodes.some((node) => node.id === selectedNodeId)
       const nextGraph: WorkflowGraphState = {
         ...currentGraph,
         nodes: nextNodes,
       }
 
       if (shouldCommitNodeHistory(changes)) {
-        commitGraphState(set, nextGraph)
+        set((state) => ({
+          history: pushHistoryState(state.history, cloneGraphState(nextGraph)),
+          selectedNodeId: selectedExists ? state.selectedNodeId : null,
+        }))
         return
       }
 
-      replacePresentGraphState(set, nextGraph)
+      set((state) => ({
+        history: {
+          ...state.history,
+          present: cloneGraphState(nextGraph),
+        },
+        selectedNodeId: selectedExists ? state.selectedNodeId : null,
+      }))
     },
     onEdgesChange: (changes) => {
       const currentGraph = get().history.present
@@ -261,7 +277,7 @@ export function createWorkflowStore(
       })
       set({ lastError: null })
     },
-    onMoveEnd: (_, viewport) => {
+    setViewport: (viewport) => {
       const currentGraph = get().history.present
       replacePresentGraphState(set, {
         ...currentGraph,
@@ -316,6 +332,7 @@ const workflowStore = createContextStore<WorkflowStoreState, WorkflowStoreInitia
 
 export const WorkflowStoreProvider = workflowStore.Provider
 export const useWorkflowStore = workflowStore.useStore
+export const useWorkflowShallowStore = workflowStore.useShallowStore
 
 export function useWorkflowGraph(): WorkflowGraphState {
   return useWorkflowStore((state) => state.history.present)

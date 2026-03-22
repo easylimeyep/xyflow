@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 
 import { initialWorkflowGraph } from "./default-graph"
 import { createWorkflowNode } from "./node-registry"
-import { validateConnection } from "./validation"
+import { getKindsFromConnection, validateConnection } from "./validation"
 
 describe("validateConnection", () => {
   it("allows valid source/target combination", () => {
@@ -78,5 +78,20 @@ describe("validateConnection", () => {
 
     expect(result.valid).toBe(false)
     expect(result.reason).toContain("cycle")
+  })
+
+  it("resolves source and target kinds from valid connection", () => {
+    const trigger = createWorkflowNode("trigger", { x: 0, y: 0 })
+    const transform = createWorkflowNode("transform", { x: 200, y: 0 })
+
+    const result = getKindsFromConnection(
+      { source: trigger.id, target: transform.id },
+      [trigger, transform]
+    )
+
+    expect(result).toEqual({
+      sourceKind: "trigger",
+      targetKind: "transform",
+    })
   })
 })

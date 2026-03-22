@@ -1,4 +1,5 @@
 import { workflowNodeRegistry } from "../node-registry"
+import { getBuiltinExpressionVariables } from "./builtins"
 import type { ExpressionVariableOption, WorkflowEdge, WorkflowNode } from "../types"
 
 export function buildExpressionVariableCatalog(
@@ -6,26 +7,7 @@ export function buildExpressionVariableCatalog(
   edges: WorkflowEdge[],
   selectedNodeId: string | null
 ): ExpressionVariableOption[] {
-  const options: ExpressionVariableOption[] = [
-    {
-      group: "Current input",
-      label: "$input.item.json",
-      value: "$input.item.json",
-      description: "Current item payload.",
-    },
-    {
-      group: "Current input",
-      label: "$input.first().json",
-      value: "$input.first().json",
-      description: "First input item payload.",
-    },
-    {
-      group: "Current input",
-      label: "$input.all()",
-      value: "$input.all()",
-      description: "All input items for this node.",
-    },
-  ]
+  const options: ExpressionVariableOption[] = getBuiltinExpressionVariables()
 
   if (!selectedNodeId) {
     return options
@@ -33,7 +15,7 @@ export function buildExpressionVariableCatalog(
 
   const upstreamNodes = getReachableUpstreamNodes(nodes, edges, selectedNodeId)
   upstreamNodes.forEach((node) => {
-    const nodeReference = `$("` + escapeNodeLabel(node.data.label) + `")`
+    const nodeReference = buildNodeReference(node.id)
     const definition = workflowNodeRegistry[node.data.kind]
     const group = `Upstream: ${node.data.label}`
     options.push({
@@ -56,8 +38,12 @@ export function buildExpressionVariableCatalog(
   return dedupeVariableOptions(options)
 }
 
-function escapeNodeLabel(label: string): string {
-  return label.replaceAll("\\", "\\\\").replaceAll('"', '\\"')
+export function buildNodeReference(nodeId: string): string {
+  return `$node("${escapeNodeId(nodeId)}")`
+}
+
+function escapeNodeId(nodeId: string): string {
+  return nodeId.replaceAll("\\", "\\\\").replaceAll('"', '\\"')
 }
 
 function dedupeVariableOptions(options: ExpressionVariableOption[]): ExpressionVariableOption[] {

@@ -12,7 +12,7 @@ import {
   type Connection,
   type EdgeChange,
   type NodeChange,
-  type OnMove,
+  type Viewport,
   type XYPosition,
 } from "@xyflow/react"
 
@@ -28,7 +28,7 @@ interface WorkflowCanvasProps {
   onNodesChange: (changes: NodeChange<WorkflowNode>[]) => void
   onEdgesChange: (changes: EdgeChange<WorkflowEdge>[]) => void
   onConnect: (connection: Connection) => void
-  onMoveEnd: OnMove
+  onViewportChange: (viewport: Viewport) => void
   onSelectNode: (nodeId: string | null) => void
   onAddNodeAt: (kind: NodeKind, position: XYPosition) => void
 }
@@ -40,7 +40,7 @@ function WorkflowCanvasInner({
   onNodesChange,
   onEdgesChange,
   onConnect,
-  onMoveEnd,
+  onViewportChange,
   onSelectNode,
   onAddNodeAt,
 }: WorkflowCanvasProps) {
@@ -73,8 +73,8 @@ function WorkflowCanvasInner({
       nodes={nodes}
       edges={edges}
       nodeTypes={workflowNodeTypes}
-      defaultViewport={viewport}
-      onMoveEnd={onMoveEnd}
+      viewport={viewport}
+      onMoveEnd={(_, nextViewport) => onViewportChange(nextViewport)}
       onNodesChange={onNodesChange}
       onEdgesChange={onEdgesChange}
       onConnect={onConnect}

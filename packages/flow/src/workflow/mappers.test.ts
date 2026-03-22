@@ -15,6 +15,8 @@ describe("workflow mappers", () => {
 
     expect(domain.id).toBe("wf-1")
     expect(domain.name).toBe("Workflow")
+    expect(domain.version).toBe(initialWorkflowGraph.document.version)
+    expect(domain.metadata.source).toBe("ui")
     expect(domain.nodes.length).toBe(initialWorkflowGraph.nodes.length)
     expect(domain.connections.length).toBe(initialWorkflowGraph.edges.length)
   })
@@ -28,12 +30,12 @@ describe("workflow mappers", () => {
     expect(restored.nodes[0]?.data.kind).toBe(initialWorkflowGraph.nodes[0]?.data.kind)
   })
 
-  it("parses internal graph json", () => {
+  it("rejects internal graph json (domain-only import contract)", () => {
     const rawJson = JSON.stringify(initialWorkflowGraph)
     const parsed = parseInternalGraphJson(rawJson)
 
-    expect(parsed.success).toBe(true)
-    expect(parsed.value?.nodes.length).toBe(initialWorkflowGraph.nodes.length)
+    expect(parsed.success).toBe(false)
+    expect(parsed.error).toContain("domain workflow schema")
   })
 
   it("parses domain dto json", () => {
@@ -47,7 +49,7 @@ describe("workflow mappers", () => {
   it("rejects invalid payload", () => {
     const parsed = parseInternalGraphJson('{"unexpected":true}')
     expect(parsed.success).toBe(false)
-    expect(parsed.error).toContain("nodes")
+    expect(parsed.error).toContain("domain workflow schema")
   })
 
   it("exports domain json", () => {
@@ -56,6 +58,7 @@ describe("workflow mappers", () => {
 
     expect(parsed.nodes.length).toBeGreaterThan(0)
     expect(parsed.connections.length).toBeGreaterThan(0)
+    expect(parsed.version).toBe(initialWorkflowGraph.document.version)
   })
 
   it("normalizes expression-like fields to defaults when import types are invalid", () => {
@@ -70,5 +73,21 @@ describe("workflow mappers", () => {
     const restoredTransform = restored.nodes.find((node) => node.data.kind === "transform")
 
     expect(restoredTransform?.data.config.expression).toBe("return input")
+  })
+
+  it("preserves metadata from imported domain dto", () => {
+    const domain = internalToDomain(initialWorkflowGraph)
+    domain.metadata = {
+      source: "api",
+      tenantId: "tenant-1",
+    }
+    const raw = JSON.stringify(domain)
+
+    const parsed = parseInternalGraphJson(raw)
+    expect(parsed.success).toBe(true)
+
+    const roundtrip = internalToDomain(parsed.value!, "wf-2", "Roundtrip")
+    expect(roundtrip.metadata.source).toBe("api")
+    expect(roundtrip.metadata.tenantId).toBe("tenant-1")
   })
 })

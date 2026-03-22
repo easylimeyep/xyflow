@@ -51,10 +51,16 @@ describe("expression variable catalog", () => {
       code.id
     )
 
-    expect(options.some((option) => option.value.includes('$("TriggerA").item.json'))).toBe(true)
-    expect(options.some((option) => option.value.includes('$("TransformA").item.json'))).toBe(
+    expect(options.some((option) => option.value.includes(`$node("${trigger.id}").item.json`))).toBe(
       true
     )
-    expect(options.some((option) => option.value.includes('$("Isolated").item.json'))).toBe(false)
+    expect(
+      options.some((option) => option.value.includes(`$node("${transform.id}").item.json`))
+    ).toBe(
+      true
+    )
+    expect(options.some((option) => option.value.includes(`$node("${isolated.id}").item.json`))).toBe(
+      false
+    )
   })
 })

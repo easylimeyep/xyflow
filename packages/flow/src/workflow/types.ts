@@ -101,6 +101,12 @@ export interface WorkflowGraphState {
   nodes: WorkflowNode[]
   edges: WorkflowEdge[]
   viewport: Viewport
+  document: {
+    id: string
+    name: string
+    version: number
+    metadata: JsonObject
+  }
 }
 
 export interface DomainWorkflowNodeDTO {
@@ -123,9 +129,7 @@ export interface DomainWorkflowDTO {
   id: string
   name: string
   version: number
-  metadata: {
-    source: "ui"
-  }
+  metadata: JsonObject
   nodes: DomainWorkflowNodeDTO[]
   connections: DomainWorkflowConnectionDTO[]
   viewport: Viewport

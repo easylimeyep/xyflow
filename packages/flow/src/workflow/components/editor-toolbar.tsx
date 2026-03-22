@@ -17,8 +17,17 @@ interface EditorToolbarProps {
   onImportJson: (rawJson: string) => boolean
 }
 
-async function copyToClipboard(text: string): Promise<void> {
-  await navigator.clipboard.writeText(text)
+async function copyToClipboard(text: string): Promise<boolean> {
+  if (!navigator.clipboard || typeof navigator.clipboard.writeText !== "function") {
+    return false
+  }
+
+  try {
+    await navigator.clipboard.writeText(text)
+    return true
+  } catch {
+    return false
+  }
 }
 
 export function EditorToolbar({
@@ -51,8 +60,8 @@ export function EditorToolbar({
           type="button"
           variant="outline"
           onClick={async () => {
-            await copyToClipboard(onExportInternal())
-            setStatusMessage("Internal JSON copied.")
+            const copied = await copyToClipboard(onExportInternal())
+            setStatusMessage(copied ? "Internal JSON copied." : "Failed to copy internal JSON.")
           }}
         >
           Export Internal
@@ -61,8 +70,8 @@ export function EditorToolbar({
           type="button"
           variant="outline"
           onClick={async () => {
-            await copyToClipboard(onExportDomain())
-            setStatusMessage("Domain JSON copied.")
+            const copied = await copyToClipboard(onExportDomain())
+            setStatusMessage(copied ? "Domain JSON copied." : "Failed to copy domain JSON.")
           }}
         >
           Export Domain
@@ -84,7 +93,7 @@ export function EditorToolbar({
             onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
               setImportText(event.target.value)
             }
-            placeholder="Paste internal or domain workflow JSON"
+            placeholder="Paste domain workflow JSON"
           />
           <Button
             type="button"

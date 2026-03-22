@@ -1,0 +1,76 @@
+// @vitest-environment jsdom
+
+import { cleanup, fireEvent, render, screen } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+
+import { EditorToolbar } from "./editor-toolbar"
+
+describe("EditorToolbar", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    Object.defineProperty(globalThis.navigator, "clipboard", {
+      value: { writeText: vi.fn().mockResolvedValue(undefined) },
+      configurable: true,
+    })
+  })
+
+  afterEach(() => {
+    cleanup()
+  })
+
+  it("exports json to clipboard and shows status", async () => {
+    const user = userEvent.setup()
+    render(
+      <EditorToolbar
+        canUndo
+        canRedo
+        lastError={null}
+        onUndo={vi.fn()}
+        onRedo={vi.fn()}
+        onClearError={vi.fn()}
+        onExportInternal={() => '{"type":"internal"}'}
+        onExportDomain={() => '{"type":"domain"}'}
+        onImportJson={vi.fn().mockReturnValue(true)}
+      />
+    )
+
+    await user.click(screen.getByRole("button", { name: "Export Internal" }))
+    expect(
+      screen.queryByText("Internal JSON copied.") ??
+        screen.queryByText("Failed to copy internal JSON.")
+    ).not.toBeNull()
+  })
+
+  it("applies import and renders success/failure statuses", async () => {
+    const user = userEvent.setup()
+    const onImportJson = vi
+      .fn<(rawJson: string) => boolean>()
+      .mockReturnValueOnce(true)
+      .mockReturnValueOnce(false)
+
+    render(
+      <EditorToolbar
+        canUndo
+        canRedo
+        lastError={null}
+        onUndo={vi.fn()}
+        onRedo={vi.fn()}
+        onClearError={vi.fn()}
+        onExportInternal={() => "{}"}
+        onExportDomain={() => "{}"}
+        onImportJson={onImportJson}
+      />
+    )
+
+    await user.click(screen.getAllByRole("button", { name: "Import JSON" })[0]!)
+    fireEvent.change(screen.getByPlaceholderText("Paste domain workflow JSON"), {
+      target: { value: '{"nodes":[],"edges":[]}' },
+    })
+    await user.click(screen.getByRole("button", { name: "Apply Import" }))
+    expect(screen.queryByText("Workflow imported.")).not.toBeNull()
+
+    await user.click(screen.getByRole("button", { name: "Apply Import" }))
+    expect(screen.queryByText("Import failed.")).not.toBeNull()
+  })
+})
