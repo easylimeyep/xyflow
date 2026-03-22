@@ -16,10 +16,10 @@ function asRecord(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>
 }
 
-export function TransformNode({ data }: NodeProps) {
+export function TransformNode({ data, selected }: NodeProps) {
   const dataRecord = asRecord(data)
   const label = asText(dataRecord.label)
   const config = asRecord(dataRecord.config)
 
-  return <NodeShell title={label} subtitle={asText(config.expression)} />
+  return <NodeShell title={label} subtitle={asText(config.expression)} selected={selected} />
 }

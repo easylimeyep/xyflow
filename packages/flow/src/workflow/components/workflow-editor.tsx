@@ -9,7 +9,6 @@ import { NodePalette } from "./node-palette"
 import { WorkflowCanvas } from "./workflow-canvas"
 import { buildExpressionVariableCatalog } from "../expression/variables"
 import {
-  useWorkflowGraph,
   useWorkflowShallowStore,
   useWorkflowStore,
   type WorkflowStoreState,
@@ -83,11 +82,11 @@ function ToolbarContainer() {
 }
 
 function PaletteContainer() {
-  const graph = useWorkflowGraph()
+  const nodeCount = useWorkflowStore((state: WorkflowStoreState) => state.history.present.nodes.length)
   const addNode = useWorkflowStore((state: WorkflowStoreState) => state.addNode)
 
   const addNodeAtDefaultPosition = (kind: NodeKind) => {
-    const offset = graph.nodes.length * 20
+    const offset = nodeCount * 20
     addNode(kind, { x: 80 + offset, y: 120 + offset })
   }
 
@@ -95,9 +94,14 @@ function PaletteContainer() {
 }
 
 function CanvasContainer() {
-  const graph = useWorkflowGraph()
-  const { onNodesChange, onEdgesChange, onConnect, setViewport, setSelectedNode, addNode } =
+  const initialViewport = useWorkflowStore(
+    (state: WorkflowStoreState) => state.history.present.viewport,
+    () => true
+  )
+  const { nodes, edges, onNodesChange, onEdgesChange, onConnect, setViewport, setSelectedNode, addNode } =
     useWorkflowShallowStore((state: WorkflowStoreState) => ({
+      nodes: state.history.present.nodes,
+      edges: state.history.present.edges,
       onNodesChange: state.onNodesChange,
       onEdgesChange: state.onEdgesChange,
       onConnect: state.onConnect,
@@ -108,9 +112,9 @@ function CanvasContainer() {
 
   return (
     <WorkflowCanvas
-      nodes={graph.nodes}
-      edges={graph.edges}
-      viewport={graph.viewport}
+      nodes={nodes}
+      edges={edges}
+      viewport={initialViewport}
       onNodesChange={onNodesChange}
       onEdgesChange={onEdgesChange}
       onConnect={onConnect}
@@ -122,7 +126,8 @@ function CanvasContainer() {
 }
 
 function ConfigPanelContainer() {
-  const graph = useWorkflowGraph()
+  const nodes = useWorkflowStore((state: WorkflowStoreState) => state.history.present.nodes)
+  const edges = useWorkflowStore((state: WorkflowStoreState) => state.history.present.edges)
   const selectedNodeId = useWorkflowStore((state: WorkflowStoreState) => state.selectedNodeId)
   const { updateNodeLabel, updateNodeConfigField } = useWorkflowShallowStore(
     (state: WorkflowStoreState) => ({
@@ -133,12 +138,12 @@ function ConfigPanelContainer() {
 
   const selectedNode = useMemo(
     () =>
-      graph.nodes.find((node: WorkflowNode) => node.id === selectedNodeId) ?? null,
-    [graph.nodes, selectedNodeId]
+      nodes.find((node: WorkflowNode) => node.id === selectedNodeId) ?? null,
+    [nodes, selectedNodeId]
   )
   const expressionVariables = useMemo(
-    () => buildExpressionVariableCatalog(graph.nodes, graph.edges, selectedNodeId),
-    [graph.edges, graph.nodes, selectedNodeId]
+    () => buildExpressionVariableCatalog(nodes, edges, selectedNodeId),
+    [edges, nodes, selectedNodeId]
   )
 
   return (

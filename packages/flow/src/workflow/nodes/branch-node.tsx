@@ -16,14 +16,19 @@ function asRecord(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>
 }
 
-export function BranchNode({ data }: NodeProps) {
+export function BranchNode({ data, selected }: NodeProps) {
   const dataRecord = asRecord(data)
   const label = asText(dataRecord.label)
   const config = asRecord(dataRecord.config)
 
   return (
     <div className="relative">
-      <NodeShell title={label} subtitle={asText(config.condition)} showSource={false} />
+      <NodeShell
+        title={label}
+        subtitle={asText(config.condition)}
+        selected={selected}
+        showSource={false}
+      />
       <Handle
         id="branch-true"
         type="source"

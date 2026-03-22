@@ -16,7 +16,7 @@ function asRecord(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>
 }
 
-export function CodeNode({ data }: NodeProps) {
+export function CodeNode({ data, selected }: NodeProps) {
   const dataRecord = asRecord(data)
   const label = asText(dataRecord.label)
   const config = asRecord(dataRecord.config)
@@ -27,6 +27,7 @@ export function CodeNode({ data }: NodeProps) {
     <NodeShell
       title={label}
       subtitle={`${runtime}: ${code.slice(0, 40)}`}
+      selected={selected}
     />
   )
 }

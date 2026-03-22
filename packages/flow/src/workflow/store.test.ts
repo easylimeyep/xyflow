@@ -155,12 +155,48 @@ describe("workflow store", () => {
   it("updates viewport without committing history entries", () => {
     const state = store.getState()
     const basePastLength = state.history.past.length
+    const previousNodesRef = state.history.present.nodes
+    const previousEdgesRef = state.history.present.edges
 
     state.setViewport({ x: 111, y: 222, zoom: 1.5 })
 
     const nextState = store.getState()
     expect(nextState.history.present.viewport).toEqual({ x: 111, y: 222, zoom: 1.5 })
     expect(nextState.history.past.length).toBe(basePastLength)
+    expect(nextState.history.present.nodes).toBe(previousNodesRef)
+    expect(nextState.history.present.edges).toBe(previousEdgesRef)
+  })
+
+  it("skips viewport writes when viewport does not change", () => {
+    const state = store.getState()
+    const previousHistoryRef = state.history
+    const previousPresentRef = state.history.present
+
+    state.setViewport({
+      x: previousPresentRef.viewport.x,
+      y: previousPresentRef.viewport.y,
+      zoom: previousPresentRef.viewport.zoom,
+    })
+
+    const nextState = store.getState()
+    expect(nextState.history).toBe(previousHistoryRef)
+    expect(nextState.history.present).toBe(previousPresentRef)
+  })
+
+  it("keeps nodes and edges stable across frequent viewport updates", () => {
+    const state = store.getState()
+    const basePastLength = state.history.past.length
+    const initialNodesRef = state.history.present.nodes
+    const initialEdgesRef = state.history.present.edges
+
+    for (let index = 0; index < 20; index += 1) {
+      state.setViewport({ x: index * 10, y: index * 5, zoom: 1 + index * 0.01 })
+    }
+
+    const nextState = store.getState()
+    expect(nextState.history.past.length).toBe(basePastLength)
+    expect(nextState.history.present.nodes).toBe(initialNodesRef)
+    expect(nextState.history.present.edges).toBe(initialEdgesRef)
   })
 
   it("clears selected node when node gets removed", () => {

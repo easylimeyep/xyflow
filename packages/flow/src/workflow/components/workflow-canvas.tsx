@@ -73,7 +73,7 @@ function WorkflowCanvasInner({
       nodes={nodes}
       edges={edges}
       nodeTypes={workflowNodeTypes}
-      viewport={viewport}
+      defaultViewport={viewport}
       onMoveEnd={(_, nextViewport) => onViewportChange(nextViewport)}
       onNodesChange={onNodesChange}
       onEdgesChange={onEdgesChange}

@@ -16,7 +16,7 @@ function asRecord(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>
 }
 
-export function TriggerNode({ data }: NodeProps) {
+export function TriggerNode({ data, selected }: NodeProps) {
   const dataRecord = asRecord(data)
   const label = asText(dataRecord.label)
   const config = asRecord(dataRecord.config)
@@ -25,6 +25,7 @@ export function TriggerNode({ data }: NodeProps) {
     <NodeShell
       title={label}
       subtitle={`event: ${eventName || "unset"}`}
+      selected={selected}
       showTarget={false}
     />
   )

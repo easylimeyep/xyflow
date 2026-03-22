@@ -20,7 +20,7 @@ function asRecord(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>
 }
 
-export function CustomInputNode({ data }: NodeProps) {
+export function CustomInputNode({ data, selected }: NodeProps) {
   const dataRecord = asRecord(data)
   const label = asText(dataRecord.label)
   const config = asRecord(dataRecord.config)
@@ -29,6 +29,7 @@ export function CustomInputNode({ data }: NodeProps) {
     <NodeShell
       title={label}
       subtitle={`${asText(config.inputKind)} | retries: ${asNumber(config.retryCount)}`}
+      selected={selected}
     />
   )
 }

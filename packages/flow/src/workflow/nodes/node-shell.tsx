@@ -5,6 +5,7 @@ import { Handle, Position } from "@xyflow/react"
 interface NodeShellProps {
   title: string
   subtitle: string
+  selected?: boolean
   showTarget?: boolean
   showSource?: boolean
   extraSourceHandles?: { id: string; top: number; label: string }[]
@@ -13,12 +14,17 @@ interface NodeShellProps {
 export function NodeShell({
   title,
   subtitle,
+  selected = false,
   showTarget = true,
   showSource = true,
   extraSourceHandles,
 }: NodeShellProps) {
   return (
-    <div className="w-[260px] rounded-md border bg-white px-3 py-2 shadow-sm dark:bg-neutral-900">
+    <div
+      className={`w-[260px] rounded-md border bg-white px-3 py-2 shadow-sm dark:bg-neutral-900 ${
+        selected ? "border-2 border-black ring-2 ring-black/40 shadow-md dark:border-white dark:ring-white/50" : ""
+      }`}
+    >
       {showTarget ? <Handle type="target" position={Position.Left} /> : null}
 
       <div className="mb-0.5 text-xs font-semibold">{title}</div>

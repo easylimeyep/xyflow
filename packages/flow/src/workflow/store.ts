@@ -219,7 +219,7 @@ export function createWorkflowStore(
       set((state) => ({
         history: {
           ...state.history,
-          present: cloneGraphState(nextGraph),
+          present: nextGraph,
         },
         selectedNodeId: selectedExists ? state.selectedNodeId : null,
       }))
@@ -278,14 +278,29 @@ export function createWorkflowStore(
       set({ lastError: null })
     },
     setViewport: (viewport) => {
-      const currentGraph = get().history.present
-      replacePresentGraphState(set, {
-        ...currentGraph,
-        viewport: {
-          x: viewport.x,
-          y: viewport.y,
-          zoom: viewport.zoom,
-        },
+      set((state) => {
+        const currentViewport = state.history.present.viewport
+        if (
+          currentViewport.x === viewport.x &&
+          currentViewport.y === viewport.y &&
+          currentViewport.zoom === viewport.zoom
+        ) {
+          return state
+        }
+
+        return {
+          history: {
+            ...state.history,
+            present: {
+              ...state.history.present,
+              viewport: {
+                x: viewport.x,
+                y: viewport.y,
+                zoom: viewport.zoom,
+              },
+            },
+          },
+        }
       })
     },
     undo: () => {

@@ -28,6 +28,8 @@ vi.mock("@xyflow/react", () => {
       onSelectionChange,
       onMoveEnd,
       isValidConnection,
+      defaultViewport,
+      viewport,
     }: {
       children: ReactNode
       onDrop: (event: React.DragEvent<HTMLDivElement>) => void
@@ -35,8 +37,12 @@ vi.mock("@xyflow/react", () => {
       onSelectionChange: (payload: { nodes: Array<{ id: string }> }) => void
       onMoveEnd: (event: unknown, viewport: { x: number; y: number; zoom: number }) => void
       isValidConnection: (connection: { source: string; target: string }) => boolean
+      defaultViewport?: { x: number; y: number; zoom: number }
+      viewport?: { x: number; y: number; zoom: number }
     }) => (
       <div data-testid="rf-root" onDrop={onDrop}>
+        <span data-testid="rf-has-default-viewport">{String(Boolean(defaultViewport))}</span>
+        <span data-testid="rf-has-viewport">{String(Boolean(viewport))}</span>
         <button
           type="button"
           data-testid="rf-select"
@@ -98,6 +104,8 @@ describe("WorkflowCanvas", () => {
 
     fireEvent.click(screen.getByTestId("rf-move"))
     expect(onViewportChange).toHaveBeenCalledWith({ x: 12, y: 34, zoom: 1.25 })
+    expect(screen.getByTestId("rf-has-default-viewport").textContent).toBe("true")
+    expect(screen.getByTestId("rf-has-viewport").textContent).toBe("false")
   })
 
   it("uses shared connection validation for preview checks", () => {
