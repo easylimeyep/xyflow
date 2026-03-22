@@ -1,1 +1,42 @@
 @import "@xyflow/react/dist/style.css";
+
+.cm-editor {
+  font-size: 12px;
+}
+
+.cm-content {
+  font-family: ui-monospace, SFMono-Regular, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+}
+
+.cm-tooltip.cm-shadcn-autocomplete {
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--popover));
+  color: hsl(var(--popover-foreground));
+  border-radius: 0.5rem;
+  box-shadow:
+    0 10px 15px -3px rgb(0 0 0 / 0.1),
+    0 4px 6px -4px rgb(0 0 0 / 0.1);
+  overflow: hidden;
+  min-width: 240px;
+}
+
+.cm-tooltip.cm-shadcn-autocomplete > ul {
+  font-size: 12px;
+  max-height: 240px;
+  padding: 0.25rem;
+}
+
+.cm-tooltip.cm-shadcn-autocomplete > ul > li {
+  display: flex;
+  align-items: center;
+  min-height: 1.75rem;
+  border-radius: 0.375rem;
+  padding: 0.25rem 0.5rem;
+  line-height: 1.2;
+}
+
+.cm-tooltip.cm-shadcn-autocomplete > ul > li[aria-selected="true"] {
+  background: hsl(var(--muted));
+  color: hsl(var(--foreground));
+}

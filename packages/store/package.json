@@ -7,7 +7,9 @@
   "scripts": {
     "lint": "eslint",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
   },
   "keywords": [],
   "author": "",
@@ -15,14 +17,23 @@
   "dependencies": {
     "zustand": "^5.0.12"
   },
+  "peerDependencies": {
+    "react": "^19.2.0"
+  },
   "devDependencies": {
+    "@testing-library/react": "^16.3.2",
     "@types/node": "^25.1.0",
     "@types/react": "^19.2.10",
     "@types/react-dom": "^19.2.3",
+    "@vitest/coverage-v8": "^4.1.0",
     "@workspace/eslint-config": "workspace:*",
     "@workspace/typescript-config": "workspace:*",
     "eslint": "^9.39.2",
-    "typescript": "^5.9.3"
+    "jsdom": "^29.0.1",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.0"
   },
   "exports": {
     ".": "./src/index.tsx"

@@ -1,0 +1,311 @@
+import type {
+  EdgeChange,
+  NodeChange,
+  OnMove,
+  XYPosition,
+} from "@xyflow/react"
+import { addEdge, applyEdgeChanges, applyNodeChanges } from "@xyflow/react"
+import {
+  create,
+  createHistoryState,
+  pushHistoryState,
+  redoHistoryState,
+  undoHistoryState,
+} from "@workspace/store"
+
+import { initialWorkflowGraph } from "./default-graph"
+import { createWorkflowNode } from "./node-registry"
+import {
+  exportDomainJson,
+  exportInternalJson,
+  parseInternalGraphJson,
+} from "./mappers"
+import type {
+  NodeKind,
+  WorkflowEdge,
+  WorkflowGraphState,
+  WorkflowNode,
+} from "./types"
+import {
+  getKindsFromConnection,
+  validateConnection,
+  type ConnectionLike,
+} from "./validation"
+
+export interface WorkflowStoreState {
+  history: ReturnType<typeof createHistoryState<WorkflowGraphState>>
+  selectedNodeId: string | null
+  lastError: string | null
+  setLastError: (message: string | null) => void
+  addNode: (kind: NodeKind, position: XYPosition) => void
+  setSelectedNode: (nodeId: string | null) => void
+  updateNodeLabel: (nodeId: string, nextLabel: string) => void
+  updateNodeConfigField: (
+    nodeId: string,
+    key: string,
+    rawValue: string | number | boolean
+  ) => void
+  onNodesChange: (changes: NodeChange<WorkflowNode>[]) => void
+  onEdgesChange: (changes: EdgeChange<WorkflowEdge>[]) => void
+  onConnect: (connection: ConnectionLike) => void
+  onMoveEnd: OnMove
+  undo: () => void
+  redo: () => void
+  importFromJson: (rawJson: string) => boolean
+  exportInternal: () => string
+  exportDomain: () => string
+}
+
+function cloneGraphState(graph: WorkflowGraphState): WorkflowGraphState {
+  return {
+    nodes: graph.nodes.map((node) => ({
+      ...node,
+      data: {
+        ...node.data,
+        config: { ...node.data.config },
+      },
+      position: { ...node.position },
+    })),
+    edges: graph.edges.map((edge) => ({
+      ...edge,
+      data: edge.data ? { ...edge.data } : undefined,
+    })),
+    viewport: { ...graph.viewport },
+  }
+}
+
+function commitGraphState(
+  set: (
+    partial:
+      | WorkflowStoreState
+      | Partial<WorkflowStoreState>
+      | ((state: WorkflowStoreState) => Partial<WorkflowStoreState>)
+  ) => void,
+  nextGraph: WorkflowGraphState
+): void {
+  set((state) => ({
+    history: pushHistoryState(state.history, cloneGraphState(nextGraph)),
+  }))
+}
+
+function replacePresentGraphState(
+  set: (
+    partial:
+      | WorkflowStoreState
+      | Partial<WorkflowStoreState>
+      | ((state: WorkflowStoreState) => Partial<WorkflowStoreState>)
+  ) => void,
+  nextGraph: WorkflowGraphState
+): void {
+  set((state) => ({
+    history: {
+      ...state.history,
+      present: cloneGraphState(nextGraph),
+    },
+  }))
+}
+
+function shouldCommitNodeHistory(changes: NodeChange<WorkflowNode>[]): boolean {
+  return changes.some((change) => {
+    if (change.type === "add" || change.type === "remove" || change.type === "replace") {
+      return true
+    }
+
+    if (change.type === "position") {
+      return change.dragging === false
+    }
+
+    return false
+  })
+}
+
+function shouldCommitEdgeHistory(changes: EdgeChange<WorkflowEdge>[]): boolean {
+  return changes.some(
+    (change) => change.type === "add" || change.type === "remove" || change.type === "replace"
+  )
+}
+
+export const useWorkflowStore = create<WorkflowStoreState>((set, get) => ({
+  history: createHistoryState(cloneGraphState(initialWorkflowGraph)),
+  selectedNodeId: null,
+  lastError: null,
+  setLastError: (message) => set({ lastError: message }),
+  addNode: (kind, position) => {
+    const currentGraph = get().history.present
+    const nextNodes = [...currentGraph.nodes, createWorkflowNode(kind, position)]
+
+    commitGraphState(set, {
+      ...currentGraph,
+      nodes: nextNodes,
+    })
+  },
+  setSelectedNode: (nodeId) => {
+    set({ selectedNodeId: nodeId })
+  },
+  updateNodeLabel: (nodeId, nextLabel) => {
+    const currentGraph = get().history.present
+    const nextNodes = currentGraph.nodes.map((node) =>
+      node.id === nodeId
+        ? {
+            ...node,
+            data: {
+              ...node.data,
+              label: nextLabel,
+            },
+          }
+        : node
+    )
+
+    commitGraphState(set, {
+      ...currentGraph,
+      nodes: nextNodes,
+    })
+  },
+  updateNodeConfigField: (nodeId, key, rawValue) => {
+    const currentGraph = get().history.present
+    const targetNode = currentGraph.nodes.find((node) => node.id === nodeId)
+    if (!targetNode) {
+      return
+    }
+
+    const nextNodes = currentGraph.nodes.map((node) => {
+      if (node.id !== nodeId) {
+        return node
+      }
+
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          config: {
+            ...node.data.config,
+            [key]: rawValue,
+          },
+        },
+      }
+    })
+
+    commitGraphState(set, {
+      ...currentGraph,
+      nodes: nextNodes,
+    })
+  },
+  onNodesChange: (changes) => {
+    const currentGraph = get().history.present
+    const nextNodes = applyNodeChanges(changes, currentGraph.nodes)
+    const nextGraph: WorkflowGraphState = {
+      ...currentGraph,
+      nodes: nextNodes,
+    }
+
+    if (shouldCommitNodeHistory(changes)) {
+      commitGraphState(set, nextGraph)
+      return
+    }
+
+    replacePresentGraphState(set, nextGraph)
+  },
+  onEdgesChange: (changes) => {
+    const currentGraph = get().history.present
+    const nextEdges = applyEdgeChanges(changes, currentGraph.edges)
+
+    const nextGraph: WorkflowGraphState = {
+      ...currentGraph,
+      edges: nextEdges,
+    }
+
+    if (shouldCommitEdgeHistory(changes)) {
+      commitGraphState(set, nextGraph)
+      return
+    }
+
+    replacePresentGraphState(set, nextGraph)
+  },
+  onConnect: (connection) => {
+    const currentGraph = get().history.present
+    const validation = validateConnection(
+      connection,
+      currentGraph.nodes,
+      currentGraph.edges
+    )
+    if (!validation.valid) {
+      set({ lastError: validation.reason ?? "Invalid connection." })
+      return
+    }
+
+    const kinds = getKindsFromConnection(connection, currentGraph.nodes)
+    if (!kinds) {
+      set({ lastError: "Failed to resolve node kinds for connection." })
+      return
+    }
+
+    const nextEdges = addEdge(
+      {
+        ...connection,
+        sourceHandle: connection.sourceHandle ?? null,
+        targetHandle: connection.targetHandle ?? null,
+        data: {
+          sourceKind: kinds.sourceKind,
+          targetKind: kinds.targetKind,
+        },
+      },
+      currentGraph.edges
+    ) as WorkflowEdge[]
+
+    commitGraphState(set, {
+      ...currentGraph,
+      edges: nextEdges,
+    })
+    set({ lastError: null })
+  },
+  onMoveEnd: (_, viewport) => {
+    const currentGraph = get().history.present
+    replacePresentGraphState(set, {
+      ...currentGraph,
+      viewport: {
+        x: viewport.x,
+        y: viewport.y,
+        zoom: viewport.zoom,
+      },
+    })
+  },
+  undo: () => {
+    set((state) => ({
+      history: undoHistoryState(state.history),
+      lastError: null,
+    }))
+  },
+  redo: () => {
+    set((state) => ({
+      history: redoHistoryState(state.history),
+      lastError: null,
+    }))
+  },
+  importFromJson: (rawJson) => {
+    const parsed = parseInternalGraphJson(rawJson)
+    if (!parsed.success || !parsed.value) {
+      set({
+        lastError: parsed.error ?? "Import failed due to invalid schema.",
+      })
+      return false
+    }
+
+    const importedGraph = cloneGraphState(parsed.value)
+    set({
+      history: createHistoryState(importedGraph),
+      selectedNodeId: null,
+      lastError: null,
+    })
+    return true
+  },
+  exportInternal: () => {
+    return exportInternalJson(get().history.present)
+  },
+  exportDomain: () => {
+    return exportDomainJson(get().history.present)
+  },
+}))
+
+export function useWorkflowGraph(): WorkflowGraphState {
+  return useWorkflowStore((state) => state.history.present)
+}
