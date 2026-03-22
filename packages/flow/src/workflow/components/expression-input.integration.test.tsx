@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 
-import { render, screen } from "@testing-library/react"
+import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { beforeAll, describe, expect, it, vi } from "vitest"
+import { useState } from "react"
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest"
 
 import type { ExpressionVariableOption } from "../types"
 import { ExpressionInput } from "./expression-input"
@@ -13,17 +14,31 @@ vi.mock("@uiw/react-codemirror", () => ({
     onChange,
   }: {
     value: string
-    onChange: (nextValue: string) => void
+    onChange: (nextValue: string, viewUpdate: { state: { selection: { main: { head: number } } } }) => void
   }) => (
     <textarea
       aria-label="expression-editor"
       value={value}
-      onChange={(event) => onChange(event.target.value)}
+      onChange={(event) =>
+        onChange(event.target.value, {
+          state: {
+            selection: {
+              main: {
+                head: event.target.selectionStart ?? event.target.value.length,
+              },
+            },
+          },
+        })
+      }
     />
   ),
 }))
 
 describe("ExpressionInput integration", () => {
+  afterEach(() => {
+    cleanup()
+  })
+
   beforeAll(() => {
     class ResizeObserverMock {
       observe(): void {}
@@ -35,7 +50,31 @@ describe("ExpressionInput integration", () => {
     HTMLElement.prototype.scrollIntoView = vi.fn()
   })
 
-  it("inserts selected variable in {{ ... }} format", async () => {
+  function ControlledExpressionInput({
+    initialValue,
+    variables,
+    onValueChange,
+  }: {
+    initialValue: string
+    variables: ExpressionVariableOption[]
+    onValueChange?: (nextValue: string) => void
+  }) {
+    const [value, setValue] = useState(initialValue)
+
+    return (
+      <ExpressionInput
+        value={value}
+        variables={variables}
+        onChange={(nextValue) => {
+          setValue(nextValue)
+          onValueChange?.(nextValue)
+        }}
+        placeholder="type..."
+      />
+    )
+  }
+
+  it("inserts selected variable in {{ ... }} format after typing trigger", async () => {
     const user = userEvent.setup()
     const onChange = vi.fn()
     const variables: ExpressionVariableOption[] = [
@@ -48,19 +87,46 @@ describe("ExpressionInput integration", () => {
     ]
 
     render(
-      <ExpressionInput
-        value="prefix "
-        variables={variables}
-        onChange={onChange}
-        placeholder="type..."
-      />
+      <ControlledExpressionInput initialValue="prefix " variables={variables} onValueChange={onChange} />
     )
 
-    await user.click(screen.getByRole("button", { name: "Insert variable" }))
+    const editor = screen.getByLabelText("expression-editor")
+    fireEvent.change(editor, {
+      target: {
+        value: "prefix {{",
+        selectionStart: "prefix {{".length,
+      },
+    })
     await user.click(screen.getByText('$node("trigger-a").item.json.eventName'))
 
-    expect(onChange).toHaveBeenCalledWith(
-      expect.stringContaining('{{ $node("trigger-a").item.json.eventName }}')
+    expect(onChange).toHaveBeenLastCalledWith('prefix {{ $node("trigger-a").item.json.eventName }}')
+  })
+
+  it("replaces {{}} placeholder without leaving extra braces", async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    const variables: ExpressionVariableOption[] = [
+      {
+        value: "$input.item.json",
+        label: "$input.item.json",
+        description: "Current input JSON",
+        group: "Execution",
+      },
+    ]
+
+    render(
+      <ControlledExpressionInput initialValue="" variables={variables} onValueChange={onChange} />
     )
+
+    const editor = screen.getByLabelText("expression-editor")
+    fireEvent.change(editor, {
+      target: {
+        value: "{{}}",
+        selectionStart: 2,
+      },
+    })
+    await user.click(screen.getByText("$input.item.json"))
+
+    expect(onChange).toHaveBeenLastCalledWith("{{ $input.item.json }}")
   })
 })
