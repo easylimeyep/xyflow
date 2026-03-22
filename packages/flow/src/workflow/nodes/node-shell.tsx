@@ -1,6 +1,7 @@
 "use client"
 
 import { Handle, Position } from "@xyflow/react"
+import type { ReactNode } from "react"
 
 interface NodeShellProps {
   title: string
@@ -9,6 +10,7 @@ interface NodeShellProps {
   showTarget?: boolean
   showSource?: boolean
   extraSourceHandles?: { id: string; top: number; label: string }[]
+  children?: ReactNode
 }
 
 export function NodeShell({
@@ -18,6 +20,7 @@ export function NodeShell({
   showTarget = true,
   showSource = true,
   extraSourceHandles,
+  children,
 }: NodeShellProps) {
   return (
     <div
@@ -29,6 +32,7 @@ export function NodeShell({
 
       <div className="mb-0.5 text-xs font-semibold">{title}</div>
       <div className="text-[11px] text-muted-foreground">{subtitle}</div>
+      {children}
 
       {extraSourceHandles?.map((handle) => (
         <div

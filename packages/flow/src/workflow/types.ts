@@ -5,7 +5,13 @@ export type JsonValue = JsonPrimitive | JsonObject | JsonArray
 export type JsonObject = { [key: string]: JsonValue }
 export type JsonArray = JsonValue[]
 
-export type NodeKind = "trigger" | "branch" | "transform" | "code" | "customInput"
+export type NodeKind =
+  | "trigger"
+  | "branch"
+  | "transform"
+  | "code"
+  | "customInput"
+  | "inlineExpression"
 
 export const WORKFLOW_NODE_KINDS: NodeKind[] = [
   "trigger",
@@ -13,6 +19,7 @@ export const WORKFLOW_NODE_KINDS: NodeKind[] = [
   "transform",
   "code",
   "customInput",
+  "inlineExpression",
 ]
 
 export function isNodeKind(value: unknown): value is NodeKind {
@@ -68,12 +75,17 @@ export type CustomInputNodeConfig = {
   inputKind: "config" | "policy" | "metadata"
 }
 
+export type InlineExpressionNodeConfig = {
+  template: string
+}
+
 export interface NodeConfigByKind {
   trigger: TriggerNodeConfig
   branch: BranchNodeConfig
   transform: TransformNodeConfig
   code: CodeNodeConfig
   customInput: CustomInputNodeConfig
+  inlineExpression: InlineExpressionNodeConfig
 }
 
 export type NodeConfig<K extends NodeKind> = NodeConfigByKind[K]

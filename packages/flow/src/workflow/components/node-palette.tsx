@@ -1,6 +1,7 @@
 "use client"
 
 import {
+  Braces,
   Code2,
   FileInput,
   GitBranch,
@@ -23,6 +24,7 @@ const iconByNodeKind: Record<NodeKind, LucideIcon> = {
   transform: WandSparkles,
   code: Code2,
   customInput: FileInput,
+  inlineExpression: Braces,
 }
 
 export function NodePalette({ onAddNode }: NodePaletteProps) {
@@ -32,6 +34,7 @@ export function NodePalette({ onAddNode }: NodePaletteProps) {
     workflowNodeRegistry.transform,
     workflowNodeRegistry.code,
     workflowNodeRegistry.customInput,
+    workflowNodeRegistry.inlineExpression,
   ]
 
   return (

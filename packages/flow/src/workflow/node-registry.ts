@@ -37,7 +37,7 @@ const nodeDefinitions: {
       },
     ],
     outputPaths: ["eventName"],
-    allowedTargets: ["transform", "branch", "code", "customInput"],
+    allowedTargets: ["transform", "branch", "code", "customInput", "inlineExpression"],
     buildDefaultConfig: () => ({
       eventName: "config-file-uploaded",
     }),
@@ -56,7 +56,7 @@ const nodeDefinitions: {
       },
     ],
     outputPaths: ["conditionMatched"],
-    allowedTargets: ["transform", "code", "customInput", "branch"],
+    allowedTargets: ["transform", "code", "customInput", "branch", "inlineExpression"],
     buildDefaultConfig: () => ({
       condition: "true",
     }),
@@ -75,7 +75,7 @@ const nodeDefinitions: {
       },
     ],
     outputPaths: ["result"],
-    allowedTargets: ["transform", "branch", "code", "customInput"],
+    allowedTargets: ["transform", "branch", "code", "customInput", "inlineExpression"],
     buildDefaultConfig: () => ({
       expression: "return input",
     }),
@@ -100,7 +100,7 @@ const nodeDefinitions: {
       },
     ],
     outputPaths: ["result"],
-    allowedTargets: ["transform", "branch", "customInput"],
+    allowedTargets: ["transform", "branch", "customInput", "inlineExpression"],
     buildDefaultConfig: () => ({
       runtime: "js",
       code: "return { ok: true }",
@@ -140,12 +140,31 @@ const nodeDefinitions: {
       },
     ],
     outputPaths: ["inputText", "inputKind", "retryCount", "required"],
-    allowedTargets: ["transform", "branch", "code"],
+    allowedTargets: ["transform", "branch", "code", "inlineExpression"],
     buildDefaultConfig: () => ({
       inputKind: "config",
       inputText: "",
       retryCount: 0,
       required: false,
+    }),
+  },
+  inlineExpression: {
+    kind: "inlineExpression",
+    title: "Inline Expression",
+    description: "Edit expression template directly on the node.",
+    fields: [
+      {
+        key: "template",
+        label: "Template",
+        type: "text",
+        ui: "expression",
+        placeholder: '{{ $input.item.json.value || "fallback" }}',
+      },
+    ],
+    outputPaths: ["template"],
+    allowedTargets: ["transform", "branch", "code", "customInput", "inlineExpression"],
+    buildDefaultConfig: () => ({
+      template: "{{ $input.item.json }}",
     }),
   },
 }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import { initialWorkflowGraph } from "./default-graph"
+import { createWorkflowNode } from "./node-registry"
 import {
   domainToInternal,
   exportDomainJson,
@@ -89,5 +90,21 @@ describe("workflow mappers", () => {
     const roundtrip = internalToDomain(parsed.value!, "wf-2", "Roundtrip")
     expect(roundtrip.metadata.source).toBe("api")
     expect(roundtrip.metadata.tenantId).toBe("tenant-1")
+  })
+
+  it("roundtrips inline expression node config", () => {
+    const inlineNode = createWorkflowNode("inlineExpression", { x: 500, y: 180 }, "Inline Expr")
+    inlineNode.data.config.template = "{{ $input.item.json.hostname }}"
+    const graph = {
+      ...initialWorkflowGraph,
+      nodes: [...initialWorkflowGraph.nodes, inlineNode],
+    }
+
+    const exported = internalToDomain(graph)
+    const restored = domainToInternal(exported)
+    const restoredInlineNode = restored.nodes.find((node) => node.id === inlineNode.id)
+
+    expect(restoredInlineNode?.data.kind).toBe("inlineExpression")
+    expect(restoredInlineNode?.data.config.template).toBe("{{ $input.item.json.hostname }}")
   })
 })
