@@ -53,11 +53,11 @@ vi.mock("./node-palette", () => ({
 vi.mock("./workflow-canvas", () => ({
   WorkflowCanvas: ({
     nodes,
-    onSelectNode,
+    onSelectNodes,
     onViewportChange,
   }: {
     nodes: Array<{ id: string }>
-    onSelectNode: (nodeId: string | null) => void
+    onSelectNodes: (nodeIds: string[]) => void
     onViewportChange: (viewport: { x: number; y: number; zoom: number }) => void
   }) => {
     canvasRenderSpy()
@@ -68,10 +68,19 @@ vi.mock("./workflow-canvas", () => ({
           type="button"
           onClick={() => {
             const firstId = nodes[0]?.id ?? null
-            onSelectNode(firstId)
+            onSelectNodes(firstId ? [firstId] : [])
           }}
         >
           canvas-select-first
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            const selectedIds = nodes.slice(0, 2).map((node) => node.id)
+            onSelectNodes(selectedIds)
+          }}
+        >
+          canvas-select-multiple
         </button>
         <button
           type="button"
@@ -164,6 +173,15 @@ describe("WorkflowEditor wiring", () => {
     expect(screen.getByTestId("selected-node-id").textContent).toBe("none")
     await user.click(screen.getByRole("button", { name: "canvas-select-first" }))
     expect(screen.getByTestId("selected-node-id").textContent).not.toBe("none")
+  })
+
+  it("hides selected node details when multiple nodes are selected", async () => {
+    const user = userEvent.setup()
+    renderWithStore(<WorkflowEditor />)
+
+    await user.click(screen.getByRole("button", { name: "canvas-select-multiple" }))
+    expect(screen.getByTestId("selected-node-id").textContent).toBe("none")
+    expect(screen.getByTestId("selected-node-label").textContent).toBe("none")
   })
 
   it("updates selected node label through panel callback", async () => {

@@ -36,7 +36,7 @@ import {
 
 export interface WorkflowStoreState {
   history: ReturnType<typeof createHistoryState<WorkflowGraphState>>
-  selectedNodeId: string | null
+  selectedNodeIds: string[]
   quickAddPending: PendingQuickAdd | null
   lastError: string | null
   setLastError: (message: string | null) => void
@@ -44,6 +44,7 @@ export interface WorkflowStoreState {
   startQuickAddFromOutput: (sourceNodeId: string, sourceHandle?: string | null) => void
   cancelQuickAdd: () => void
   confirmQuickAddNode: (kind: NodeKind) => void
+  setSelectedNodes: (nodeIds: string[]) => void
   setSelectedNode: (nodeId: string | null) => void
   updateNodeLabel: (nodeId: string, nextLabel: string) => void
   updateNodeConfigField: (
@@ -224,7 +225,7 @@ export function createWorkflowStore(
 
   return createStore<WorkflowStoreState>()((set, get) => ({
     history: createHistoryState(initialGraph),
-    selectedNodeId: null,
+    selectedNodeIds: [],
     quickAddPending: null,
     lastError: null,
     setLastError: (message) => set({ lastError: message }),
@@ -332,12 +333,15 @@ export function createWorkflowStore(
       })
       set({
         quickAddPending: null,
-        selectedNodeId: nextNode.id,
+        selectedNodeIds: [nextNode.id],
         lastError: null,
       })
     },
+    setSelectedNodes: (nodeIds) => {
+      set({ selectedNodeIds: [...nodeIds] })
+    },
     setSelectedNode: (nodeId) => {
-      set({ selectedNodeId: nodeId })
+      set({ selectedNodeIds: nodeId ? [nodeId] : [] })
     },
     updateNodeLabel: (nodeId, nextLabel) => {
       const currentGraph = get().history.present
@@ -390,9 +394,9 @@ export function createWorkflowStore(
     onNodesChange: (changes) => {
       const currentGraph = get().history.present
       const nextNodes = applyNodeChanges(changes, currentGraph.nodes)
-      const selectedNodeId = get().selectedNodeId
-      const selectedExists =
-        selectedNodeId === null || nextNodes.some((node) => node.id === selectedNodeId)
+      const selectedNodeIds = get().selectedNodeIds
+      const remainingNodeIds = new Set(nextNodes.map((node) => node.id))
+      const nextSelectedNodeIds = selectedNodeIds.filter((id) => remainingNodeIds.has(id))
       const nextGraph: WorkflowGraphState = {
         ...currentGraph,
         nodes: nextNodes,
@@ -401,7 +405,7 @@ export function createWorkflowStore(
       if (shouldCommitNodeHistory(changes)) {
         set((state) => ({
           history: pushHistoryState(state.history, cloneGraphState(nextGraph)),
-          selectedNodeId: selectedExists ? state.selectedNodeId : null,
+          selectedNodeIds: nextSelectedNodeIds,
         }))
         return
       }
@@ -411,7 +415,7 @@ export function createWorkflowStore(
           ...state.history,
           present: nextGraph,
         },
-        selectedNodeId: selectedExists ? state.selectedNodeId : null,
+        selectedNodeIds: nextSelectedNodeIds,
       }))
     },
     onEdgesChange: (changes) => {
@@ -517,7 +521,7 @@ export function createWorkflowStore(
       const importedGraph = cloneGraphState(parsed.value)
       set({
         history: createHistoryState(importedGraph),
-        selectedNodeId: null,
+        selectedNodeIds: [],
         lastError: null,
       })
       return true

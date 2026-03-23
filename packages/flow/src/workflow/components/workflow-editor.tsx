@@ -126,7 +126,17 @@ function CanvasContainer() {
     (state: WorkflowStoreState) => state.history.present.viewport,
     () => true
   )
-  const { nodes, edges, onNodesChange, onEdgesChange, onConnect, setViewport, setSelectedNode, addNode, cancelQuickAdd } =
+  const {
+    nodes,
+    edges,
+    onNodesChange,
+    onEdgesChange,
+    onConnect,
+    setViewport,
+    setSelectedNodes,
+    addNode,
+    cancelQuickAdd,
+  } =
     useWorkflowShallowStore((state: WorkflowStoreState) => ({
       nodes: state.history.present.nodes,
       edges: state.history.present.edges,
@@ -134,7 +144,7 @@ function CanvasContainer() {
       onEdgesChange: state.onEdgesChange,
       onConnect: state.onConnect,
       setViewport: state.setViewport,
-      setSelectedNode: state.setSelectedNode,
+      setSelectedNodes: state.setSelectedNodes,
       addNode: state.addNode,
       cancelQuickAdd: state.cancelQuickAdd,
     }))
@@ -148,9 +158,9 @@ function CanvasContainer() {
       onEdgesChange={onEdgesChange}
       onConnect={onConnect}
       onViewportChange={setViewport}
-      onSelectNode={setSelectedNode}
+      onSelectNodes={setSelectedNodes}
       onPaneClick={() => {
-        setSelectedNode(null)
+        setSelectedNodes([])
         cancelQuickAdd()
       }}
       onAddNodeAt={addNode}
@@ -161,13 +171,14 @@ function CanvasContainer() {
 function ConfigPanelContainer() {
   const nodes = useWorkflowStore((state: WorkflowStoreState) => state.history.present.nodes)
   const edges = useWorkflowStore((state: WorkflowStoreState) => state.history.present.edges)
-  const selectedNodeId = useWorkflowStore((state: WorkflowStoreState) => state.selectedNodeId)
+  const selectedNodeIds = useWorkflowStore((state: WorkflowStoreState) => state.selectedNodeIds)
   const { updateNodeLabel, updateNodeConfigField } = useWorkflowShallowStore(
     (state: WorkflowStoreState) => ({
       updateNodeLabel: state.updateNodeLabel,
       updateNodeConfigField: state.updateNodeConfigField,
     })
   )
+  const selectedNodeId = selectedNodeIds.length === 1 ? selectedNodeIds[0] : null
 
   const selectedNode = useMemo(
     () =>

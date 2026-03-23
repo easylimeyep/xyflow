@@ -199,17 +199,21 @@ describe("workflow store", () => {
     expect(nextState.history.present.edges).toBe(initialEdgesRef)
   })
 
-  it("clears selected node when node gets removed", () => {
+  it("keeps selectedNodeIds in sync when selected nodes get removed", () => {
     const state = store.getState()
-    const targetNode = state.history.present.nodes[0]
-    if (!targetNode) {
+    const firstNode = state.history.present.nodes[0]
+    const secondNode = state.history.present.nodes[1]
+    if (!firstNode || !secondNode) {
       throw new Error("fixture node not found")
     }
 
-    state.setSelectedNode(targetNode.id)
-    state.onNodesChange([{ id: targetNode.id, type: "remove" }])
+    state.setSelectedNodes([firstNode.id, secondNode.id])
+    state.onNodesChange([{ id: firstNode.id, type: "remove" }])
 
-    expect(store.getState().selectedNodeId).toBeNull()
+    expect(store.getState().selectedNodeIds).toEqual([secondNode.id])
+
+    store.getState().onNodesChange([{ id: secondNode.id, type: "remove" }])
+    expect(store.getState().selectedNodeIds).toEqual([])
   })
 
   it("creates node + connection in one history step through quick add", () => {

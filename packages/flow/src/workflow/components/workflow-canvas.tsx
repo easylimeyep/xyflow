@@ -29,7 +29,7 @@ interface WorkflowCanvasProps {
   onEdgesChange: (changes: EdgeChange<WorkflowEdge>[]) => void
   onConnect: (connection: Connection) => void
   onViewportChange: (viewport: Viewport) => void
-  onSelectNode: (nodeId: string | null) => void
+  onSelectNodes: (nodeIds: string[]) => void
   onPaneClick: () => void
   onAddNodeAt: (kind: NodeKind, position: XYPosition) => void
 }
@@ -42,7 +42,7 @@ function WorkflowCanvasInner({
   onEdgesChange,
   onConnect,
   onViewportChange,
-  onSelectNode,
+  onSelectNodes,
   onPaneClick,
   onAddNodeAt,
 }: WorkflowCanvasProps) {
@@ -80,11 +80,13 @@ function WorkflowCanvasInner({
       onNodesChange={onNodesChange}
       onEdgesChange={onEdgesChange}
       onConnect={onConnect}
+      selectionOnDrag
+      panOnDrag={false}
       isValidConnection={(connection) =>
         validateConnection(connection, nodes, edges).valid
       }
       onSelectionChange={({ nodes: selectedNodes }) =>
-        onSelectNode(selectedNodes[0]?.id ?? null)
+        onSelectNodes(selectedNodes.map((node) => node.id))
       }
       onPaneClick={onPaneClick}
       onDragOver={onDragOver}
