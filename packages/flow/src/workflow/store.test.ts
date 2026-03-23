@@ -211,4 +211,81 @@ describe("workflow store", () => {
 
     expect(store.getState().selectedNodeId).toBeNull()
   })
+
+  it("creates node + connection in one history step through quick add", () => {
+    const state = store.getState()
+    const sourceNode = state.history.present.nodes.find(
+      (node: WorkflowNode) => node.data.kind === "transform"
+    )
+    if (!sourceNode) {
+      throw new Error("source node not found")
+    }
+
+    const basePastLength = state.history.past.length
+    const baseNodeCount = state.history.present.nodes.length
+    const baseEdgeCount = state.history.present.edges.length
+
+    state.startQuickAddFromOutput(sourceNode.id, null)
+    expect(store.getState().quickAddPending).toEqual({
+      sourceNodeId: sourceNode.id,
+      sourceHandle: null,
+    })
+    expect(store.getState().history.past.length).toBe(basePastLength)
+
+    state.confirmQuickAddNode("branch")
+    const nextState = store.getState()
+    expect(nextState.quickAddPending).toBeNull()
+    expect(nextState.history.present.nodes.length).toBe(baseNodeCount + 1)
+    expect(nextState.history.present.edges.length).toBe(baseEdgeCount + 1)
+    expect(nextState.history.past.length).toBe(basePastLength + 1)
+  })
+
+  it("supports quick add from branch outputs with source handle", () => {
+    const state = store.getState()
+    state.addNode("branch", { x: 700, y: 160 })
+    const branchNode = store
+      .getState()
+      .history.present.nodes.find((node: WorkflowNode) => node.data.kind === "branch")
+    if (!branchNode) {
+      throw new Error("branch node not found")
+    }
+
+    state.startQuickAddFromOutput(branchNode.id, "branch-true")
+    store.getState().confirmQuickAddNode("code")
+    const edgeFromTrue = store.getState().history.present.edges.find(
+      (edge) => edge.source === branchNode.id && edge.sourceHandle === "branch-true"
+    )
+    expect(edgeFromTrue).toBeDefined()
+
+    store.getState().startQuickAddFromOutput(branchNode.id, "branch-false")
+    store.getState().confirmQuickAddNode("customInput")
+    const edgeFromFalse = store.getState().history.present.edges.find(
+      (edge) => edge.source === branchNode.id && edge.sourceHandle === "branch-false"
+    )
+    expect(edgeFromFalse).toBeDefined()
+  })
+
+  it("does not start quick add on occupied output and allows explicit cancel", () => {
+    const state = store.getState()
+    const triggerNode = state.history.present.nodes.find(
+      (node: WorkflowNode) => node.data.kind === "trigger"
+    )
+    const transformNode = state.history.present.nodes.find(
+      (node: WorkflowNode) => node.data.kind === "transform"
+    )
+    if (!triggerNode || !transformNode) {
+      throw new Error("fixture nodes not found")
+    }
+
+    state.startQuickAddFromOutput(triggerNode.id, null)
+    expect(store.getState().quickAddPending).toBeNull()
+
+    state.startQuickAddFromOutput(transformNode.id, null)
+    expect(store.getState().quickAddPending).toEqual({
+      sourceNodeId: transformNode.id,
+      sourceHandle: null,
+    })
+    state.cancelQuickAdd()
+    expect(store.getState().quickAddPending).toBeNull()
+  })
 })

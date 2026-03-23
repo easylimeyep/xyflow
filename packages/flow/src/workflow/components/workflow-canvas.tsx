@@ -30,6 +30,7 @@ interface WorkflowCanvasProps {
   onConnect: (connection: Connection) => void
   onViewportChange: (viewport: Viewport) => void
   onSelectNode: (nodeId: string | null) => void
+  onPaneClick: () => void
   onAddNodeAt: (kind: NodeKind, position: XYPosition) => void
 }
 
@@ -42,6 +43,7 @@ function WorkflowCanvasInner({
   onConnect,
   onViewportChange,
   onSelectNode,
+  onPaneClick,
   onAddNodeAt,
 }: WorkflowCanvasProps) {
   const reactFlow = useReactFlow<WorkflowNode, WorkflowEdge>()
@@ -84,7 +86,7 @@ function WorkflowCanvasInner({
       onSelectionChange={({ nodes: selectedNodes }) =>
         onSelectNode(selectedNodes[0]?.id ?? null)
       }
-      onPaneClick={() => onSelectNode(null)}
+      onPaneClick={onPaneClick}
       onDragOver={onDragOver}
       onDrop={onDrop}
     >

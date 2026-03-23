@@ -5,6 +5,7 @@ import userEvent from "@testing-library/user-event"
 import type { ReactNode } from "react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
+import { useWorkflowStore, type WorkflowStoreState } from "../store"
 import { WorkflowStoreProvider } from "../store"
 import { WorkflowEditor } from "./workflow-editor"
 
@@ -30,12 +31,21 @@ vi.mock("./editor-toolbar", () => ({
 }))
 
 vi.mock("./node-palette", () => ({
-  NodePalette: ({ onAddNode }: { onAddNode: (kind: string) => void }) => {
+  NodePalette: ({
+    onAddNode,
+    quickAddActive,
+  }: {
+    onAddNode: (kind: string) => void
+    quickAddActive?: boolean
+  }) => {
     paletteRenderSpy()
     return (
-      <button type="button" onClick={() => onAddNode("trigger")}>
-        palette-add-trigger
-      </button>
+      <div>
+        <span data-testid="palette-quick-add-active">{String(Boolean(quickAddActive))}</span>
+        <button type="button" onClick={() => onAddNode("code")}>
+          palette-add-node
+        </button>
+      </div>
     )
   },
 }))
@@ -106,6 +116,27 @@ function renderWithStore(children: ReactNode) {
   return render(<WorkflowStoreProvider>{children}</WorkflowStoreProvider>)
 }
 
+function QuickAddControls() {
+  const startQuickAddFromOutput = useWorkflowStore(
+    (state: WorkflowStoreState) => state.startQuickAddFromOutput
+  )
+  const nodes = useWorkflowStore((state: WorkflowStoreState) => state.history.present.nodes)
+
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        const transformNode = nodes.find((node) => node.data.kind === "transform")
+        if (transformNode) {
+          startQuickAddFromOutput(transformNode.id)
+        }
+      }}
+    >
+      test-start-quick-add
+    </button>
+  )
+}
+
 describe("WorkflowEditor wiring", () => {
   afterEach(() => {
     cleanup()
@@ -119,7 +150,7 @@ describe("WorkflowEditor wiring", () => {
     renderWithStore(<WorkflowEditor />)
 
     const beforeCount = Number(screen.getByTestId("canvas-node-count").textContent)
-    await user.click(screen.getByRole("button", { name: "palette-add-trigger" }))
+    await user.click(screen.getByRole("button", { name: "palette-add-node" }))
     const afterCount = Number(screen.getByTestId("canvas-node-count").textContent)
 
     expect(afterCount).toBe(beforeCount + 1)
@@ -159,5 +190,26 @@ describe("WorkflowEditor wiring", () => {
     expect(canvasRenderSpy).toHaveBeenCalledTimes(1)
     expect(configPanelRenderSpy).toHaveBeenCalledTimes(1)
     expect(paletteRenderSpy).toHaveBeenCalledTimes(1)
+  })
+
+  it("routes palette click to quick add confirmation when quick add is active", async () => {
+    const user = userEvent.setup()
+    renderWithStore(
+      <>
+        <QuickAddControls />
+        <WorkflowEditor />
+      </>
+    )
+
+    expect(screen.getByTestId("palette-quick-add-active").textContent).toBe("false")
+    await user.click(screen.getByRole("button", { name: "test-start-quick-add" }))
+    expect(screen.getByTestId("palette-quick-add-active").textContent).toBe("true")
+
+    const beforeCount = Number(screen.getByTestId("canvas-node-count").textContent)
+    await user.click(screen.getByRole("button", { name: "palette-add-node" }))
+    const afterCount = Number(screen.getByTestId("canvas-node-count").textContent)
+
+    expect(afterCount).toBe(beforeCount + 1)
+    expect(screen.getByTestId("palette-quick-add-active").textContent).toBe("false")
   })
 })

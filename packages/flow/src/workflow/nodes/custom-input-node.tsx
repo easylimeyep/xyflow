@@ -3,6 +3,7 @@
 import type { NodeProps } from "@xyflow/react"
 
 import { NodeShell } from "./node-shell"
+import { OutputQuickAddAffordance } from "./output-quick-add-affordance"
 
 function asText(value: unknown): string {
   return typeof value === "string" ? value : ""
@@ -20,16 +21,20 @@ function asRecord(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>
 }
 
-export function CustomInputNode({ data, selected }: NodeProps) {
+export function CustomInputNode({ id, data, selected }: NodeProps) {
   const dataRecord = asRecord(data)
   const label = asText(dataRecord.label)
   const config = asRecord(dataRecord.config)
 
   return (
-    <NodeShell
-      title={label}
-      subtitle={`${asText(config.inputKind)} | retries: ${asNumber(config.retryCount)}`}
-      selected={selected}
-    />
+    <div className="relative">
+      <NodeShell
+        title={label}
+        subtitle={`${asText(config.inputKind)} | retries: ${asNumber(config.retryCount)}`}
+        selected={selected}
+        showSource={false}
+      />
+      <OutputQuickAddAffordance nodeId={id} />
+    </div>
   )
 }

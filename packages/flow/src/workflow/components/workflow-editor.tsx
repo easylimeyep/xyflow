@@ -3,7 +3,7 @@
 import { useEffect, useMemo } from "react"
 
 import { EditorToolbar } from "./editor-toolbar"
-import { createHistoryHotkeyHandler } from "./hotkeys"
+import { createHistoryHotkeyHandler, isEscapeHotkey } from "./hotkeys"
 import { NodeConfigPanel } from "./node-config-panel"
 import { NodePalette } from "./node-palette"
 import { WorkflowCanvas } from "./workflow-canvas"
@@ -23,12 +23,29 @@ function useUndoRedoHotkeys(onUndo: () => void, onRedo: () => void): void {
   }, [onRedo, onUndo])
 }
 
+function useCancelQuickAddHotkey(onCancelQuickAdd: () => void): void {
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!isEscapeHotkey(event)) {
+        return
+      }
+
+      event.preventDefault()
+      onCancelQuickAdd()
+    }
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+  }, [onCancelQuickAdd])
+}
+
 export function WorkflowEditor() {
-  const { undo, redo } = useWorkflowShallowStore((state: WorkflowStoreState) => ({
+  const { undo, redo, cancelQuickAdd } = useWorkflowShallowStore((state: WorkflowStoreState) => ({
     undo: state.undo,
     redo: state.redo,
+    cancelQuickAdd: state.cancelQuickAdd,
   }))
   useUndoRedoHotkeys(undo, redo)
+  useCancelQuickAddHotkey(cancelQuickAdd)
 
   return (
     <div className="flex h-full w-full flex-col overflow-hidden">
@@ -83,14 +100,25 @@ function ToolbarContainer() {
 
 function PaletteContainer() {
   const nodeCount = useWorkflowStore((state: WorkflowStoreState) => state.history.present.nodes.length)
-  const addNode = useWorkflowStore((state: WorkflowStoreState) => state.addNode)
+  const quickAddPending = useWorkflowStore((state: WorkflowStoreState) => state.quickAddPending)
+  const { addNode, confirmQuickAddNode } = useWorkflowShallowStore(
+    (state: WorkflowStoreState) => ({
+      addNode: state.addNode,
+      confirmQuickAddNode: state.confirmQuickAddNode,
+    })
+  )
 
   const addNodeAtDefaultPosition = (kind: NodeKind) => {
+    if (quickAddPending) {
+      confirmQuickAddNode(kind)
+      return
+    }
+
     const offset = nodeCount * 20
     addNode(kind, { x: 80 + offset, y: 120 + offset })
   }
 
-  return <NodePalette onAddNode={addNodeAtDefaultPosition} />
+  return <NodePalette onAddNode={addNodeAtDefaultPosition} quickAddActive={Boolean(quickAddPending)} />
 }
 
 function CanvasContainer() {
@@ -98,7 +126,7 @@ function CanvasContainer() {
     (state: WorkflowStoreState) => state.history.present.viewport,
     () => true
   )
-  const { nodes, edges, onNodesChange, onEdgesChange, onConnect, setViewport, setSelectedNode, addNode } =
+  const { nodes, edges, onNodesChange, onEdgesChange, onConnect, setViewport, setSelectedNode, addNode, cancelQuickAdd } =
     useWorkflowShallowStore((state: WorkflowStoreState) => ({
       nodes: state.history.present.nodes,
       edges: state.history.present.edges,
@@ -108,6 +136,7 @@ function CanvasContainer() {
       setViewport: state.setViewport,
       setSelectedNode: state.setSelectedNode,
       addNode: state.addNode,
+      cancelQuickAdd: state.cancelQuickAdd,
     }))
 
   return (
@@ -120,6 +149,10 @@ function CanvasContainer() {
       onConnect={onConnect}
       onViewportChange={setViewport}
       onSelectNode={setSelectedNode}
+      onPaneClick={() => {
+        setSelectedNode(null)
+        cancelQuickAdd()
+      }}
       onAddNodeAt={addNode}
     />
   )

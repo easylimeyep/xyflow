@@ -16,7 +16,7 @@ import {
 } from "@workspace/store"
 
 import { initialWorkflowGraph } from "./default-graph"
-import { createWorkflowNode } from "./node-registry"
+import { DEFAULT_NODE_WIDTH, createWorkflowNode } from "./node-registry"
 import {
   exportDomainJson,
   exportInternalJson,
@@ -37,9 +37,13 @@ import {
 export interface WorkflowStoreState {
   history: ReturnType<typeof createHistoryState<WorkflowGraphState>>
   selectedNodeId: string | null
+  quickAddPending: PendingQuickAdd | null
   lastError: string | null
   setLastError: (message: string | null) => void
   addNode: (kind: NodeKind, position: XYPosition) => void
+  startQuickAddFromOutput: (sourceNodeId: string, sourceHandle?: string | null) => void
+  cancelQuickAdd: () => void
+  confirmQuickAddNode: (kind: NodeKind) => void
   setSelectedNode: (nodeId: string | null) => void
   updateNodeLabel: (nodeId: string, nextLabel: string) => void
   updateNodeConfigField: (
@@ -63,6 +67,10 @@ export interface WorkflowStoreInitialProps {
 }
 
 type WorkflowStoreSetState = StoreApi<WorkflowStoreState>["setState"]
+export interface PendingQuickAdd {
+  sourceNodeId: string
+  sourceHandle: string | null
+}
 
 function cloneGraphState(graph: WorkflowGraphState): WorkflowGraphState {
   return {
@@ -107,6 +115,88 @@ function replacePresentGraphState(
   }))
 }
 
+function hasOutgoingConnection(
+  edges: WorkflowEdge[],
+  sourceNodeId: string,
+  sourceHandle: string | null
+): boolean {
+  return edges.some(
+    (edge) =>
+      edge.source === sourceNodeId && (edge.sourceHandle ?? null) === (sourceHandle ?? null)
+  )
+}
+
+function getQuickAddSourceAnchorY(sourceNode: WorkflowNode, sourceHandle: string | null): number {
+  const nodeHeight = sourceNode.height ?? 80
+  const baseY = sourceNode.position.y
+
+  if (sourceHandle === "branch-true") {
+    return baseY + nodeHeight * 0.34
+  }
+
+  if (sourceHandle === "branch-false") {
+    return baseY + nodeHeight * 0.72
+  }
+
+  return baseY + nodeHeight / 2
+}
+
+function getNodeRect(node: WorkflowNode): { left: number; right: number; top: number; bottom: number } {
+  const width = node.width ?? DEFAULT_NODE_WIDTH
+  const height = node.height ?? 80
+  return {
+    left: node.position.x,
+    right: node.position.x + width,
+    top: node.position.y,
+    bottom: node.position.y + height,
+  }
+}
+
+function hasPlacementCollision(
+  existingNodes: WorkflowNode[],
+  candidatePosition: XYPosition,
+  margin = 24
+): boolean {
+  const candidateWidth = DEFAULT_NODE_WIDTH
+  const candidateHeight = 80
+  const candidateRect = {
+    left: candidatePosition.x,
+    right: candidatePosition.x + candidateWidth,
+    top: candidatePosition.y,
+    bottom: candidatePosition.y + candidateHeight,
+  }
+
+  return existingNodes.some((node) => {
+    const rect = getNodeRect(node)
+    return !(
+      candidateRect.right + margin < rect.left ||
+      candidateRect.left - margin > rect.right ||
+      candidateRect.bottom + margin < rect.top ||
+      candidateRect.top - margin > rect.bottom
+    )
+  })
+}
+
+function createSmartQuickAddPosition(
+  nodes: WorkflowNode[],
+  sourceNode: WorkflowNode,
+  sourceHandle: string | null
+): XYPosition {
+  const sourceWidth = sourceNode.width ?? DEFAULT_NODE_WIDTH
+  const sourceAnchorY = getQuickAddSourceAnchorY(sourceNode, sourceHandle)
+  const baseX = sourceNode.position.x + sourceWidth + 180
+  const candidateOffsets = [0, -140, 140, -280, 280, -420, 420]
+
+  for (const offsetY of candidateOffsets) {
+    const candidate = { x: baseX, y: sourceAnchorY - 40 + offsetY }
+    if (!hasPlacementCollision(nodes, candidate)) {
+      return candidate
+    }
+  }
+
+  return { x: baseX, y: sourceAnchorY + 480 }
+}
+
 function shouldCommitNodeHistory(changes: NodeChange<WorkflowNode>[]): boolean {
   return changes.some((change) => {
     if (change.type === "add" || change.type === "remove" || change.type === "replace") {
@@ -135,6 +225,7 @@ export function createWorkflowStore(
   return createStore<WorkflowStoreState>()((set, get) => ({
     history: createHistoryState(initialGraph),
     selectedNodeId: null,
+    quickAddPending: null,
     lastError: null,
     setLastError: (message) => set({ lastError: message }),
     addNode: (kind, position) => {
@@ -144,6 +235,105 @@ export function createWorkflowStore(
       commitGraphState(set, {
         ...currentGraph,
         nodes: nextNodes,
+      })
+    },
+    startQuickAddFromOutput: (sourceNodeId, sourceHandle = null) => {
+      const currentGraph = get().history.present
+      const sourceNode = currentGraph.nodes.find((node) => node.id === sourceNodeId)
+      if (!sourceNode) {
+        return
+      }
+
+      const normalizedHandle = sourceHandle ?? null
+      if (hasOutgoingConnection(currentGraph.edges, sourceNodeId, normalizedHandle)) {
+        return
+      }
+
+      set({
+        quickAddPending: {
+          sourceNodeId,
+          sourceHandle: normalizedHandle,
+        },
+      })
+    },
+    cancelQuickAdd: () => {
+      if (!get().quickAddPending) {
+        return
+      }
+
+      set({ quickAddPending: null })
+    },
+    confirmQuickAddNode: (kind) => {
+      const currentGraph = get().history.present
+      const pending = get().quickAddPending
+      if (!pending) {
+        return
+      }
+
+      const sourceNode = currentGraph.nodes.find((node) => node.id === pending.sourceNodeId)
+      if (!sourceNode) {
+        set({
+          quickAddPending: null,
+          lastError: "Failed to resolve source node for quick add.",
+        })
+        return
+      }
+
+      if (hasOutgoingConnection(currentGraph.edges, pending.sourceNodeId, pending.sourceHandle)) {
+        set({
+          quickAddPending: null,
+          lastError: "Selected output already has an outgoing connection.",
+        })
+        return
+      }
+
+      const nextNodePosition = createSmartQuickAddPosition(
+        currentGraph.nodes,
+        sourceNode,
+        pending.sourceHandle
+      )
+      const nextNode = createWorkflowNode(kind, nextNodePosition)
+      const nextNodes = [...currentGraph.nodes, nextNode]
+      const connection: ConnectionLike = {
+        source: pending.sourceNodeId,
+        target: nextNode.id,
+        sourceHandle: pending.sourceHandle,
+        targetHandle: null,
+      }
+      const validation = validateConnection(connection, nextNodes, currentGraph.edges)
+      if (!validation.valid) {
+        set({ lastError: validation.reason ?? "Invalid quick add connection." })
+        return
+      }
+
+      const kinds = getKindsFromConnection(connection, nextNodes)
+      if (!kinds) {
+        set({ lastError: "Failed to resolve node kinds for quick add connection." })
+        return
+      }
+
+      const nextEdges = addEdge(
+        {
+          ...connection,
+          sourceHandle: connection.sourceHandle ?? null,
+          targetHandle: connection.targetHandle ?? null,
+          data: {
+            sourceKind: kinds.sourceKind,
+            targetKind: kinds.targetKind,
+          },
+        },
+        currentGraph.edges
+      ) as WorkflowEdge[]
+
+      commitGraphState(set, {
+        ...currentGraph,
+        nodes: nextNodes,
+        edges: nextEdges,
+      })
+      set({
+        quickAddPending: null,
+        selectedNodeId: nextNode.id,
+        lastError: null,
       })
     },
     setSelectedNode: (nodeId) => {

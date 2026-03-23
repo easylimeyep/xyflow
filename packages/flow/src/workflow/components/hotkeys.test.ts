@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from "vitest"
 
-import { getHistoryHotkeyAction } from "./hotkeys"
+import { getHistoryHotkeyAction, isEscapeHotkey } from "./hotkeys"
 
 function createKeyboardEvent(
   type: string,
@@ -79,5 +79,28 @@ describe("getHistoryHotkeyAction", () => {
       defaultPrevented: true,
     })
     expect(getHistoryHotkeyAction(event)).toBeNull()
+  })
+})
+
+describe("isEscapeHotkey", () => {
+  it("returns true for escape on non-editable targets", () => {
+    const event = createKeyboardEvent("keydown", {
+      key: "Escape",
+      bubbles: true,
+    })
+
+    expect(isEscapeHotkey(event)).toBe(true)
+  })
+
+  it("returns false for escape inside editable elements", () => {
+    const textarea = document.createElement("textarea")
+    document.body.appendChild(textarea)
+    const event = createKeyboardEvent("keydown", {
+      key: "Escape",
+      bubbles: true,
+    })
+    textarea.dispatchEvent(event)
+
+    expect(isEscapeHotkey(event)).toBe(false)
   })
 })

@@ -1,8 +1,9 @@
 "use client"
 
-import { Handle, Position, type NodeProps } from "@xyflow/react"
+import type { NodeProps } from "@xyflow/react"
 
 import { NodeShell } from "./node-shell"
+import { OutputQuickAddAffordance } from "./output-quick-add-affordance"
 
 function asText(value: unknown): string {
   return typeof value === "string" ? value : ""
@@ -16,7 +17,7 @@ function asRecord(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>
 }
 
-export function BranchNode({ data, selected }: NodeProps) {
+export function BranchNode({ id, data, selected }: NodeProps) {
   const dataRecord = asRecord(data)
   const label = asText(dataRecord.label)
   const config = asRecord(dataRecord.config)
@@ -29,24 +30,20 @@ export function BranchNode({ data, selected }: NodeProps) {
         selected={selected}
         showSource={false}
       />
-      <Handle
-        id="branch-true"
-        type="source"
-        position={Position.Right}
-        style={{ top: "34%" }}
+      <OutputQuickAddAffordance
+        nodeId={id}
+        sourceHandle="branch-true"
+        top="34%"
+        label="true"
+        labelClassName="font-medium text-emerald-600"
       />
-      <div className="pointer-events-none absolute top-[30%] -right-12 text-[10px] font-medium text-emerald-600">
-        true
-      </div>
-      <Handle
-        id="branch-false"
-        type="source"
-        position={Position.Right}
-        style={{ top: "72%" }}
+      <OutputQuickAddAffordance
+        nodeId={id}
+        sourceHandle="branch-false"
+        top="72%"
+        label="false"
+        labelClassName="font-medium text-rose-600"
       />
-      <div className="pointer-events-none absolute top-[68%] -right-12 text-[10px] font-medium text-rose-600">
-        false
-      </div>
     </div>
   )
 }

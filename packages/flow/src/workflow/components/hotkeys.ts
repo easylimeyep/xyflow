@@ -45,6 +45,18 @@ export function createHistoryHotkeyHandler(
   }
 }
 
+export function isEscapeHotkey(event: KeyboardEvent): boolean {
+  if (event.defaultPrevented) {
+    return false
+  }
+
+  if (isEditableEventTarget(event.target)) {
+    return false
+  }
+
+  return event.key === "Escape"
+}
+
 function isEditableEventTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) {
     return false

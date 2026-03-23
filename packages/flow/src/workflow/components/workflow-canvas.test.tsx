@@ -72,6 +72,7 @@ describe("WorkflowCanvas", () => {
     const onAddNodeAt = vi.fn()
     const onSelectNode = vi.fn()
     const onViewportChange = vi.fn()
+    const onPaneClick = vi.fn()
 
     render(
       <WorkflowCanvas
@@ -83,6 +84,7 @@ describe("WorkflowCanvas", () => {
         onConnect={vi.fn()}
         onViewportChange={onViewportChange}
         onSelectNode={onSelectNode}
+        onPaneClick={onPaneClick}
         onAddNodeAt={onAddNodeAt}
       />
     )
@@ -100,7 +102,7 @@ describe("WorkflowCanvas", () => {
     expect(onSelectNode).toHaveBeenCalledWith("selected-node")
 
     fireEvent.click(screen.getByTestId("rf-pane"))
-    expect(onSelectNode).toHaveBeenCalledWith(null)
+    expect(onPaneClick).toHaveBeenCalledTimes(1)
 
     fireEvent.click(screen.getByTestId("rf-move"))
     expect(onViewportChange).toHaveBeenCalledWith({ x: 12, y: 34, zoom: 1.25 })
@@ -119,6 +121,7 @@ describe("WorkflowCanvas", () => {
         onConnect={vi.fn()}
         onViewportChange={vi.fn()}
         onSelectNode={vi.fn()}
+        onPaneClick={vi.fn()}
         onAddNodeAt={vi.fn()}
       />
     )

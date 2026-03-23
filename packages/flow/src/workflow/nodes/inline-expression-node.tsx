@@ -11,6 +11,7 @@ import {
   type WorkflowStoreState,
 } from "../store"
 import { NodeShell } from "./node-shell"
+import { OutputQuickAddAffordance } from "./output-quick-add-affordance"
 
 function asText(value: unknown): string {
   return typeof value === "string" ? value : ""
@@ -52,49 +53,53 @@ export function InlineExpressionNode({ id, data, selected }: NodeProps) {
   }, [draftTemplate, id, templateFromStore, updateNodeConfigField])
 
   return (
-    <NodeShell
-      title={label}
-      subtitle="Inline expression template"
-      selected={selected}
-    >
-      <div
-        className="nodrag nopan mt-2"
-        onFocusCapture={() => {
-          setDraftTemplate(templateFromStore)
-          setIsFocused(true)
-        }}
-        onBlurCapture={(event) => {
-          const nextTarget = event.relatedTarget
-          if (nextTarget instanceof HTMLElement && event.currentTarget.contains(nextTarget)) {
-            return
-          }
-
-          setIsFocused(false)
-          commitDraft()
-        }}
-        onKeyDownCapture={(event) => {
-          if (event.key !== "Enter" || event.shiftKey) {
-            return
-          }
-
-          event.preventDefault()
-          setIsFocused(false)
-          commitDraft()
-          if (event.currentTarget instanceof HTMLElement) {
-            event.currentTarget.blur()
-          }
-        }}
+    <div className="relative">
+      <NodeShell
+        title={label}
+        subtitle="Inline expression template"
+        selected={selected}
+        showSource={false}
       >
-        <ExpressionInput
-          value={displayedTemplate}
-          placeholder='{{ $node("trigger-1").item.json.eventName }}'
-          variables={expressionVariables}
-          onChange={setDraftTemplate}
-        />
-        <p className="mt-1 text-[10px] text-muted-foreground">
-          Press Enter or blur to commit one history step.
-        </p>
-      </div>
-    </NodeShell>
+        <div
+          className="nodrag nopan mt-2"
+          onFocusCapture={() => {
+            setDraftTemplate(templateFromStore)
+            setIsFocused(true)
+          }}
+          onBlurCapture={(event) => {
+            const nextTarget = event.relatedTarget
+            if (nextTarget instanceof HTMLElement && event.currentTarget.contains(nextTarget)) {
+              return
+            }
+
+            setIsFocused(false)
+            commitDraft()
+          }}
+          onKeyDownCapture={(event) => {
+            if (event.key !== "Enter" || event.shiftKey) {
+              return
+            }
+
+            event.preventDefault()
+            setIsFocused(false)
+            commitDraft()
+            if (event.currentTarget instanceof HTMLElement) {
+              event.currentTarget.blur()
+            }
+          }}
+        >
+          <ExpressionInput
+            value={displayedTemplate}
+            placeholder='{{ $node("trigger-1").item.json.eventName }}'
+            variables={expressionVariables}
+            onChange={setDraftTemplate}
+          />
+          <p className="mt-1 text-[10px] text-muted-foreground">
+            Press Enter or blur to commit one history step.
+          </p>
+        </div>
+      </NodeShell>
+      <OutputQuickAddAffordance nodeId={id} />
+    </div>
   )
 }

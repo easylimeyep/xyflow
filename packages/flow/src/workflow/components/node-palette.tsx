@@ -9,6 +9,7 @@ import {
   WandSparkles,
   type LucideIcon,
 } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
 
 import type { NodeKind } from "../types"
 import { WORKFLOW_NODE_KIND_MIME } from "../dnd"
@@ -16,6 +17,7 @@ import { workflowNodeRegistry } from "../node-registry"
 
 interface NodePaletteProps {
   onAddNode: (kind: NodeKind) => void
+  quickAddActive?: boolean
 }
 
 const iconByNodeKind: Record<NodeKind, LucideIcon> = {
@@ -27,7 +29,25 @@ const iconByNodeKind: Record<NodeKind, LucideIcon> = {
   inlineExpression: Braces,
 }
 
-export function NodePalette({ onAddNode }: NodePaletteProps) {
+export function NodePalette({ onAddNode, quickAddActive = false }: NodePaletteProps) {
+  const containerRef = useRef<HTMLElement | null>(null)
+  const [showQuickAddHint, setShowQuickAddHint] = useState(false)
+
+  useEffect(() => {
+    if (!quickAddActive) {
+      setShowQuickAddHint(false)
+      return
+    }
+
+    containerRef.current?.focus()
+    setShowQuickAddHint(true)
+    const timeoutId = window.setTimeout(() => {
+      setShowQuickAddHint(false)
+    }, 2200)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [quickAddActive])
+
   const entries: Array<(typeof workflowNodeRegistry)[NodeKind]> = [
     workflowNodeRegistry.trigger,
     workflowNodeRegistry.branch,
@@ -38,7 +58,18 @@ export function NodePalette({ onAddNode }: NodePaletteProps) {
   ]
 
   return (
-    <aside className="w-72 space-y-2 border-r bg-background p-3">
+    <aside
+      ref={containerRef}
+      tabIndex={-1}
+      className={`relative w-72 space-y-2 border-r bg-background p-3 outline-none ${
+        quickAddActive ? "ring-2 ring-primary/60 ring-inset" : ""
+      }`}
+    >
+      {showQuickAddHint ? (
+        <div className="rounded-md border border-primary/40 bg-primary/10 px-2 py-1 text-xs text-primary">
+          Select a node to connect from the active output.
+        </div>
+      ) : null}
       <h2 className="text-sm font-semibold">Node Palette</h2>
       {entries.map((definition) => {
         const Icon = iconByNodeKind[definition.kind]
