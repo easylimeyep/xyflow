@@ -82,6 +82,9 @@ function WorkflowCanvasInner({
       onConnect={onConnect}
       selectionOnDrag
       panOnDrag={false}
+      panOnScroll
+      zoomOnPinch
+      zoomOnScroll={false}
       isValidConnection={(connection) =>
         validateConnection(connection, nodes, edges).valid
       }

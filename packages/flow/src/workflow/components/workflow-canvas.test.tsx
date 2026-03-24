@@ -32,6 +32,9 @@ vi.mock("@xyflow/react", () => {
       viewport,
       selectionOnDrag,
       panOnDrag,
+      panOnScroll,
+      zoomOnPinch,
+      zoomOnScroll,
     }: {
       children: ReactNode
       onDrop: (event: React.DragEvent<HTMLDivElement>) => void
@@ -43,12 +46,18 @@ vi.mock("@xyflow/react", () => {
       viewport?: { x: number; y: number; zoom: number }
       selectionOnDrag?: boolean
       panOnDrag?: boolean
+      panOnScroll?: boolean
+      zoomOnPinch?: boolean
+      zoomOnScroll?: boolean
     }) => (
       <div data-testid="rf-root" onDrop={onDrop}>
         <span data-testid="rf-has-default-viewport">{String(Boolean(defaultViewport))}</span>
         <span data-testid="rf-has-viewport">{String(Boolean(viewport))}</span>
         <span data-testid="rf-selection-on-drag">{String(Boolean(selectionOnDrag))}</span>
         <span data-testid="rf-pan-on-drag">{String(panOnDrag)}</span>
+        <span data-testid="rf-pan-on-scroll">{String(Boolean(panOnScroll))}</span>
+        <span data-testid="rf-zoom-on-pinch">{String(Boolean(zoomOnPinch))}</span>
+        <span data-testid="rf-zoom-on-scroll">{String(zoomOnScroll)}</span>
         <button
           type="button"
           data-testid="rf-select"
@@ -116,6 +125,9 @@ describe("WorkflowCanvas", () => {
     expect(screen.getByTestId("rf-has-viewport").textContent).toBe("false")
     expect(screen.getByTestId("rf-selection-on-drag").textContent).toBe("true")
     expect(screen.getByTestId("rf-pan-on-drag").textContent).toBe("false")
+    expect(screen.getByTestId("rf-pan-on-scroll").textContent).toBe("true")
+    expect(screen.getByTestId("rf-zoom-on-pinch").textContent).toBe("true")
+    expect(screen.getByTestId("rf-zoom-on-scroll").textContent).toBe("false")
   })
 
   it("uses shared connection validation for preview checks", () => {
