@@ -25,6 +25,10 @@ function asRecord(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>
 }
 
+function isInsideExpressionPopover(target: EventTarget | null): boolean {
+  return target instanceof HTMLElement && Boolean(target.closest('[data-slot="popover-content"]'))
+}
+
 export function InlineExpressionNode({ id, data, selected }: NodeProps) {
   const dataRecord = asRecord(data)
   const label = asText(dataRecord.label)
@@ -84,7 +88,10 @@ export function InlineExpressionNode({ id, data, selected }: NodeProps) {
           }}
           onBlurCapture={(event) => {
             const nextTarget = event.relatedTarget
-            if (nextTarget instanceof HTMLElement && event.currentTarget.contains(nextTarget)) {
+            if (
+              (nextTarget instanceof HTMLElement && event.currentTarget.contains(nextTarget)) ||
+              isInsideExpressionPopover(nextTarget)
+            ) {
               return
             }
 

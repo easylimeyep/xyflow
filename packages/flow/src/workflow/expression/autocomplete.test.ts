@@ -36,4 +36,19 @@ describe("expression autocomplete helpers", () => {
     expect(filtered).toHaveLength(1)
     expect(filtered[0]?.label).toContain("TransformA")
   })
+
+  it("deduplicates completion labels when builtins are also present in variables", () => {
+    const completions = buildExpressionCompletions([
+      ...VARIABLES,
+      {
+        value: "$input.all()",
+        label: "$input.all()",
+        description: "Duplicate builtin",
+        group: "Current input",
+      },
+    ])
+
+    const inputAllCount = completions.filter((entry) => entry.label === "$input.all()").length
+    expect(inputAllCount).toBe(1)
+  })
 })

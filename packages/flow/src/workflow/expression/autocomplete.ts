@@ -3,12 +3,12 @@ import type { Completion, CompletionContext, CompletionResult } from "@codemirro
 import { getBuiltinExpressionCompletions } from "./builtins"
 import type { ExpressionVariableOption } from "../types"
 
-const TOKEN_PATTERN = /[\w$.()[\]"']*/
+const TOKEN_PATTERN = /[\w$.()[\]"']+/
 
 export function buildExpressionCompletions(
   variables: ExpressionVariableOption[]
 ): Completion[] {
-  return [
+  const baseCompletions = [
     ...getBuiltinExpressionCompletions(),
     ...variables.map((variable) => ({
       label: variable.value,
@@ -17,6 +17,15 @@ export function buildExpressionCompletions(
       detail: variable.group,
     })),
   ]
+
+  const seenLabels = new Set<string>()
+  return baseCompletions.filter((completion) => {
+    if (seenLabels.has(completion.label)) {
+      return false
+    }
+    seenLabels.add(completion.label)
+    return true
+  })
 }
 
 export function filterExpressionCompletions(

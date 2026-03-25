@@ -88,6 +88,7 @@ export function ExpressionInput({
       : hasTypedClosingBraces
         ? selection.to + 2
         : selection.to
+    const nextValue = `${docText.slice(0, replaceFrom)}${insertion}${docText.slice(replaceTo)}`
     editorView.dispatch({
       changes: {
         from: replaceFrom,
@@ -98,6 +99,7 @@ export function ExpressionInput({
         anchor: replaceFrom + insertion.length,
       },
     })
+    onChange(nextValue)
     editorView.focus()
     setPickerOpen(false)
   }
@@ -109,9 +111,17 @@ export function ExpressionInput({
       return
     }
 
-    const cursor = viewUpdate.state.selection.main.head
-    const justTypedTrigger = nextValue.slice(Math.max(0, cursor - 2), cursor) === "{{"
-    if (justTypedTrigger) {
+    const nextCursor = viewUpdate.state.selection.main.head
+    const prevCursor = viewUpdate.startState.selection.main.head
+    const previousValue = viewUpdate.startState.doc.toString()
+    const hasWrappedTriggerAtCursor = (source: string, cursor: number) =>
+      source.slice(Math.max(0, cursor - 2), cursor) === "{{" &&
+      source.slice(cursor, cursor + 2) === "}}"
+
+    const justTypedWrappedTrigger =
+      hasWrappedTriggerAtCursor(nextValue, nextCursor) &&
+      !hasWrappedTriggerAtCursor(previousValue, prevCursor)
+    if (justTypedWrappedTrigger) {
       setPickerOpen(true)
     }
   }

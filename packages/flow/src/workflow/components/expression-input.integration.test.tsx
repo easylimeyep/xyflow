@@ -14,7 +14,16 @@ vi.mock("@uiw/react-codemirror", () => ({
     onChange,
   }: {
     value: string
-    onChange: (nextValue: string, viewUpdate: { state: { selection: { main: { head: number } } } }) => void
+    onChange: (
+      nextValue: string,
+      viewUpdate: {
+        state: { selection: { main: { head: number } } }
+        startState: {
+          doc: { toString: () => string }
+          selection: { main: { head: number } }
+        }
+      }
+    ) => void
   }) => (
     <textarea
       aria-label="expression-editor"
@@ -22,6 +31,16 @@ vi.mock("@uiw/react-codemirror", () => ({
       onChange={(event) =>
         onChange(event.target.value, {
           state: {
+            selection: {
+              main: {
+                head: event.target.selectionStart ?? event.target.value.length,
+              },
+            },
+          },
+          startState: {
+            doc: {
+              toString: () => value,
+            },
             selection: {
               main: {
                 head: event.target.selectionStart ?? event.target.value.length,
@@ -74,7 +93,7 @@ describe("ExpressionInput integration", () => {
     )
   }
 
-  it("inserts selected variable in {{ ... }} format after typing trigger", async () => {
+  it("inserts selected variable in {{ ... }} format after typing {{}} trigger", async () => {
     const user = userEvent.setup()
     const onChange = vi.fn()
     const variables: ExpressionVariableOption[] = [
@@ -93,13 +112,41 @@ describe("ExpressionInput integration", () => {
     const editor = screen.getByLabelText("expression-editor")
     fireEvent.change(editor, {
       target: {
-        value: "prefix {{",
+        value: "prefix {{}}",
         selectionStart: "prefix {{".length,
       },
     })
     await user.click(screen.getByText('$node("trigger-a").item.json.eventName'))
 
     expect(onChange).toHaveBeenLastCalledWith('prefix {{ $node("trigger-a").item.json.eventName }}')
+  })
+
+  it("clears empty-expression error after selecting variable for {{}}", async () => {
+    const user = userEvent.setup()
+    const variables: ExpressionVariableOption[] = [
+      {
+        value: "$input.item.json",
+        label: "$input.item.json",
+        description: "Current input JSON",
+        group: "Execution",
+      },
+    ]
+
+    render(<ControlledExpressionInput initialValue="" variables={variables} />)
+
+    const editor = screen.getByLabelText("expression-editor")
+    fireEvent.change(editor, {
+      target: {
+        value: "{{}}",
+        selectionStart: 2,
+      },
+    })
+
+    expect(screen.getByText("Expression cannot be empty.")).toBeTruthy()
+
+    await user.click(screen.getByText("$input.item.json"))
+
+    expect(screen.queryByText("Expression cannot be empty.")).toBeNull()
   })
 
   it("replaces {{}} placeholder without leaving extra braces", async () => {
@@ -130,37 +177,4 @@ describe("ExpressionInput integration", () => {
     expect(onChange).toHaveBeenLastCalledWith("{{ $input.item.json }}")
   })
 
-  it("replaces trailing {{}} placeholder even when cursor is stale", async () => {
-    const user = userEvent.setup()
-    const onChange = vi.fn()
-    const variables: ExpressionVariableOption[] = [
-      {
-        value: "$input.item.json",
-        label: "$input.item.json",
-        description: "Current input JSON",
-        group: "Execution",
-      },
-    ]
-
-    render(
-      <ControlledExpressionInput initialValue="" variables={variables} onValueChange={onChange} />
-    )
-
-    const editor = screen.getByLabelText("expression-editor")
-    fireEvent.change(editor, {
-      target: {
-        value: "{{",
-        selectionStart: 2,
-      },
-    })
-    fireEvent.change(editor, {
-      target: {
-        value: "{{}}",
-        selectionStart: 0,
-      },
-    })
-    await user.click(screen.getByText("$input.item.json"))
-
-    expect(onChange).toHaveBeenLastCalledWith("{{ $input.item.json }}")
-  })
 })
