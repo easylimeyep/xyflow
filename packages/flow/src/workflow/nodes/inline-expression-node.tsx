@@ -1,7 +1,7 @@
 "use client"
 
 import type { NodeProps } from "@xyflow/react"
-import { useCallback, useMemo, useState } from "react"
+import { useCallback, useMemo, useRef, useState } from "react"
 
 import { ExpressionInput } from "../components/expression-input"
 import { buildExpressionVariableCatalog } from "../expression/variables"
@@ -42,15 +42,22 @@ export function InlineExpressionNode({ id, data, selected }: NodeProps) {
 
   const [draftTemplate, setDraftTemplate] = useState(templateFromStore)
   const [isFocused, setIsFocused] = useState(false)
+  const draftTemplateRef = useRef(draftTemplate)
   const displayedTemplate = isFocused ? draftTemplate : templateFromStore
 
+  const handleTemplateChange = useCallback((nextValue: string) => {
+    draftTemplateRef.current = nextValue
+    setDraftTemplate(nextValue)
+  }, [])
+
   const commitDraft = useCallback(() => {
-    if (draftTemplate === templateFromStore) {
+    const nextTemplate = draftTemplateRef.current
+    if (nextTemplate === templateFromStore) {
       return
     }
 
-    updateNodeConfigField(id, "template", draftTemplate)
-  }, [draftTemplate, id, templateFromStore, updateNodeConfigField])
+    updateNodeConfigField(id, "template", nextTemplate)
+  }, [id, templateFromStore, updateNodeConfigField])
 
   return (
     <div className="relative">
@@ -62,8 +69,17 @@ export function InlineExpressionNode({ id, data, selected }: NodeProps) {
       >
         <div
           className="nodrag nopan mt-2"
-          onFocusCapture={() => {
+          onFocusCapture={(event) => {
+            const previousTarget = event.relatedTarget
+            if (
+              previousTarget instanceof HTMLElement &&
+              event.currentTarget.contains(previousTarget)
+            ) {
+              return
+            }
+
             setDraftTemplate(templateFromStore)
+            draftTemplateRef.current = templateFromStore
             setIsFocused(true)
           }}
           onBlurCapture={(event) => {
@@ -72,8 +88,8 @@ export function InlineExpressionNode({ id, data, selected }: NodeProps) {
               return
             }
 
-            setIsFocused(false)
             commitDraft()
+            setIsFocused(false)
           }}
           onKeyDownCapture={(event) => {
             if (event.key !== "Enter" || event.shiftKey) {
@@ -81,8 +97,8 @@ export function InlineExpressionNode({ id, data, selected }: NodeProps) {
             }
 
             event.preventDefault()
-            setIsFocused(false)
             commitDraft()
+            setIsFocused(false)
             if (event.currentTarget instanceof HTMLElement) {
               event.currentTarget.blur()
             }
@@ -92,7 +108,7 @@ export function InlineExpressionNode({ id, data, selected }: NodeProps) {
             value={displayedTemplate}
             placeholder='{{ $node("trigger-1").item.json.eventName }}'
             variables={expressionVariables}
-            onChange={setDraftTemplate}
+            onChange={handleTemplateChange}
           />
           <p className="mt-1 text-[10px] text-muted-foreground">
             Press Enter or blur to commit one history step.

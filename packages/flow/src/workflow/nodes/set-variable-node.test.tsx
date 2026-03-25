@@ -116,6 +116,30 @@ describe("SetVariableNode", () => {
     )
   })
 
+  it("keeps empty expression braces on delayed blur commit", () => {
+    vi.useFakeTimers()
+    try {
+      render(<SetVariableNode {...createNodeProps("myVar", "{{ $input.item.json }}")} />)
+
+      const expressionInput = screen.getByTestId("set-variable-expression-input")
+      fireEvent.focus(expressionInput)
+      fireEvent.change(expressionInput, { target: { value: "{{}}" } })
+
+      setTimeout(() => {
+        fireEvent.blur(expressionInput)
+      }, 120)
+      vi.advanceTimersByTime(120)
+
+      expect(updateNodeConfigField).toHaveBeenCalledWith(
+        "set-variable-1",
+        "valueExpression",
+        "{{}}"
+      )
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it("rejects invalid identifier and shows inline error", () => {
     render(<SetVariableNode {...createNodeProps("myVar", "{{ $input.item.json }}")} />)
 

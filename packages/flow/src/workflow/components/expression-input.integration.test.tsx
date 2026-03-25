@@ -129,4 +129,38 @@ describe("ExpressionInput integration", () => {
 
     expect(onChange).toHaveBeenLastCalledWith("{{ $input.item.json }}")
   })
+
+  it("replaces trailing {{}} placeholder even when cursor is stale", async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    const variables: ExpressionVariableOption[] = [
+      {
+        value: "$input.item.json",
+        label: "$input.item.json",
+        description: "Current input JSON",
+        group: "Execution",
+      },
+    ]
+
+    render(
+      <ControlledExpressionInput initialValue="" variables={variables} onValueChange={onChange} />
+    )
+
+    const editor = screen.getByLabelText("expression-editor")
+    fireEvent.change(editor, {
+      target: {
+        value: "{{",
+        selectionStart: 2,
+      },
+    })
+    fireEvent.change(editor, {
+      target: {
+        value: "{{}}",
+        selectionStart: 0,
+      },
+    })
+    await user.click(screen.getByText("$input.item.json"))
+
+    expect(onChange).toHaveBeenLastCalledWith("{{ $input.item.json }}")
+  })
 })

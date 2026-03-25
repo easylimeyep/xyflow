@@ -123,6 +123,27 @@ describe("InlineExpressionNode", () => {
     )
   })
 
+  it("keeps empty expression braces on delayed blur commit", () => {
+    vi.useFakeTimers()
+    try {
+      render(<InlineExpressionNode {...createNodeProps("{{ $input.item.json }}")} />)
+
+      const input = screen.getByTestId("inline-expression-input")
+      fireEvent.focus(input)
+      fireEvent.change(input, { target: { value: "{{}}" } })
+
+      setTimeout(() => {
+        fireEvent.blur(input)
+      }, 120)
+      vi.advanceTimersByTime(120)
+
+      expect(updateNodeConfigField).toHaveBeenCalledTimes(1)
+      expect(updateNodeConfigField).toHaveBeenCalledWith("inline-node-1", "template", "{{}}")
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it("syncs draft from store when not focused", () => {
     const rendered = render(<InlineExpressionNode {...createNodeProps("{{ old }}")} />)
 

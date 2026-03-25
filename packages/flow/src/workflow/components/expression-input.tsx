@@ -65,6 +65,7 @@ export function ExpressionInput({
     }
 
     const selection = editorView.state.selection.main
+    const docText = editorView.state.doc.toString()
     const hasTypedTrigger =
       selection.empty &&
       selection.from >= 2 &&
@@ -72,8 +73,21 @@ export function ExpressionInput({
     const hasTypedClosingBraces =
       hasTypedTrigger &&
       editorView.state.doc.sliceString(selection.to, selection.to + 2) === "}}"
-    const replaceFrom = hasTypedTrigger ? selection.from - 2 : selection.from
-    const replaceTo = hasTypedClosingBraces ? selection.to + 2 : selection.to
+    const trailingWrappedPlaceholderStart = docText.endsWith("{{}}")
+      ? docText.length - "{{}}".length
+      : -1
+    const shouldReplaceTrailingWrappedPlaceholder =
+      !hasTypedTrigger && trailingWrappedPlaceholderStart >= 0
+    const replaceFrom = shouldReplaceTrailingWrappedPlaceholder
+      ? trailingWrappedPlaceholderStart
+      : hasTypedTrigger
+        ? selection.from - 2
+        : selection.from
+    const replaceTo = shouldReplaceTrailingWrappedPlaceholder
+      ? docText.length
+      : hasTypedClosingBraces
+        ? selection.to + 2
+        : selection.to
     editorView.dispatch({
       changes: {
         from: replaceFrom,
@@ -122,7 +136,13 @@ export function ExpressionInput({
             />
           </div>
         </PopoverAnchor>
-        <PopoverContent className="w-96 p-0" align="start">
+        <PopoverContent
+          className="w-96 p-0"
+          align="start"
+          onOpenAutoFocus={(event) => {
+            event.preventDefault()
+          }}
+        >
           <Command>
             <CommandInput placeholder="Search variables..." />
             <CommandList>

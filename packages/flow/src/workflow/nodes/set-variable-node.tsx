@@ -50,6 +50,7 @@ export function SetVariableNode({ id, data, selected }: NodeProps) {
   const [isValueExpressionFocused, setIsValueExpressionFocused] = useState(false)
   const [nameError, setNameError] = useState<string | null>(null)
   const variableInputRef = useRef<HTMLInputElement | null>(null)
+  const draftValueExpressionRef = useRef(draftValueExpression)
 
   const shownVariableName = isVariableNameFocused ? draftVariableName : variableNameFromStore
   const shownValueExpression = isValueExpressionFocused
@@ -87,11 +88,18 @@ export function SetVariableNode({ id, data, selected }: NodeProps) {
   }, [draftVariableName, id, nodes, updateNodeConfigField, variableNameFromStore])
 
   const commitValueExpression = useCallback(() => {
-    if (draftValueExpression === valueExpressionFromStore) {
+    const nextExpression = draftValueExpressionRef.current
+    if (nextExpression === valueExpressionFromStore) {
       return
     }
-    updateNodeConfigField(id, "valueExpression", draftValueExpression)
-  }, [draftValueExpression, id, updateNodeConfigField, valueExpressionFromStore])
+
+    updateNodeConfigField(id, "valueExpression", nextExpression)
+  }, [id, updateNodeConfigField, valueExpressionFromStore])
+
+  const handleValueExpressionChange = useCallback((nextValue: string) => {
+    draftValueExpressionRef.current = nextValue
+    setDraftValueExpression(nextValue)
+  }, [])
 
   return (
     <div className="relative">
@@ -144,8 +152,17 @@ export function SetVariableNode({ id, data, selected }: NodeProps) {
 
           <div
             className="space-y-1"
-            onFocusCapture={() => {
+            onFocusCapture={(event) => {
+              const previousTarget = event.relatedTarget
+              if (
+                previousTarget instanceof HTMLElement &&
+                event.currentTarget.contains(previousTarget)
+              ) {
+                return
+              }
+
               setDraftValueExpression(valueExpressionFromStore)
+              draftValueExpressionRef.current = valueExpressionFromStore
               setIsValueExpressionFocused(true)
             }}
             onBlurCapture={(event) => {
@@ -154,8 +171,8 @@ export function SetVariableNode({ id, data, selected }: NodeProps) {
                 return
               }
 
-              setIsValueExpressionFocused(false)
               commitValueExpression()
+              setIsValueExpressionFocused(false)
             }}
             onKeyDownCapture={(event) => {
               if (event.key !== "Enter" || event.shiftKey) {
@@ -163,8 +180,8 @@ export function SetVariableNode({ id, data, selected }: NodeProps) {
               }
 
               event.preventDefault()
-              setIsValueExpressionFocused(false)
               commitValueExpression()
+              setIsValueExpressionFocused(false)
               if (event.currentTarget instanceof HTMLElement) {
                 event.currentTarget.blur()
               }
@@ -175,7 +192,7 @@ export function SetVariableNode({ id, data, selected }: NodeProps) {
               value={shownValueExpression}
               placeholder='{{ $node("trigger-1").item.json.eventName }}'
               variables={expressionVariables}
-              onChange={setDraftValueExpression}
+              onChange={handleValueExpressionChange}
             />
           </div>
         </div>
