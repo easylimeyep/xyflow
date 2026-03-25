@@ -75,6 +75,7 @@ function WorkflowCanvasInner({
       nodes={nodes}
       edges={edges}
       nodeTypes={workflowNodeTypes}
+      proOptions={{ hideAttribution: true }}
       defaultViewport={viewport}
       onMoveEnd={(_, nextViewport) => onViewportChange(nextViewport)}
       onNodesChange={onNodesChange}
