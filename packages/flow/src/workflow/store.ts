@@ -17,6 +17,8 @@ import {
 
 import { initialWorkflowGraph } from "./default-graph"
 import { DEFAULT_NODE_WIDTH, createWorkflowNode } from "./node-registry"
+import { refactorVariableReferencesInGraph } from "./expression/refactor"
+import { isValidJsIdentifier } from "./expression/variable-name"
 import {
   exportDomainJson,
   exportInternalJson,
@@ -366,6 +368,68 @@ export function createWorkflowStore(
       const currentGraph = get().history.present
       const targetNode = currentGraph.nodes.find((node) => node.id === nodeId)
       if (!targetNode) {
+        return
+      }
+
+      if (targetNode.data.kind === "setVariable" && key === "variableName" && typeof rawValue === "string") {
+        const previousNameValue = targetNode.data.config.variableName
+        const previousName = typeof previousNameValue === "string" ? previousNameValue.trim() : ""
+        const nextName = rawValue.trim()
+        if (nextName === previousName) {
+          return
+        }
+
+        if (!isValidJsIdentifier(nextName)) {
+          set({ lastError: "Variable name must be a valid JavaScript identifier." })
+          return
+        }
+
+        const duplicateVariable = currentGraph.nodes.some((node) => {
+          if (node.id === nodeId || node.data.kind !== "setVariable") {
+            return false
+          }
+
+          const variableNameValue = node.data.config.variableName
+          if (typeof variableNameValue !== "string") {
+            return false
+          }
+
+          return variableNameValue.trim() === nextName
+        })
+
+        if (duplicateVariable) {
+          set({ lastError: "Variable name must be unique in this workflow." })
+          return
+        }
+
+        const nextNodesWithNewName = currentGraph.nodes.map((node) => {
+          if (node.id !== nodeId) {
+            return node
+          }
+
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              config: {
+                ...node.data.config,
+                variableName: nextName,
+              },
+            },
+          }
+        })
+
+        const nextNodes = refactorVariableReferencesInGraph(nextNodesWithNewName, {
+          sourceNodeId: nodeId,
+          oldName: previousName,
+          newName: nextName,
+        })
+
+        commitGraphState(set, {
+          ...currentGraph,
+          nodes: nextNodes,
+        })
+        set({ lastError: null })
         return
       }
 

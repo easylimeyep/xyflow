@@ -178,7 +178,7 @@ function ConfigPanelContainer() {
       updateNodeConfigField: state.updateNodeConfigField,
     })
   )
-  const selectedNodeId = selectedNodeIds.length === 1 ? selectedNodeIds[0] : null
+  const selectedNodeId = selectedNodeIds.length === 1 ? (selectedNodeIds[0] ?? null) : null
 
   const selectedNode = useMemo(
     () =>

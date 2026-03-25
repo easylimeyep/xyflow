@@ -292,4 +292,44 @@ describe("workflow store", () => {
     state.cancelQuickAdd()
     expect(store.getState().quickAddPending).toBeNull()
   })
+
+  it("renames set variable references across expression fields", () => {
+    const state = store.getState()
+    state.addNode("setVariable", { x: 600, y: 80 })
+    state.addNode("inlineExpression", { x: 900, y: 80 })
+
+    const setVariableNode = store
+      .getState()
+      .history.present.nodes.find((node: WorkflowNode) => node.data.kind === "setVariable")
+    const inlineExpressionNode = store
+      .getState()
+      .history.present.nodes.find((node: WorkflowNode) => node.data.kind === "inlineExpression")
+    if (!setVariableNode || !inlineExpressionNode) {
+      throw new Error("set variable fixture nodes not found")
+    }
+
+    state.updateNodeConfigField(setVariableNode.id, "variableName", "oldName")
+    state.updateNodeConfigField(setVariableNode.id, "valueExpression", "{{ $vars.oldName }}")
+    state.updateNodeConfigField(
+      inlineExpressionNode.id,
+      "template",
+      `{{ $node("${setVariableNode.id}").item.json.oldName }}`
+    )
+
+    state.updateNodeConfigField(setVariableNode.id, "variableName", "newName")
+
+    const nextState = store.getState()
+    const nextSetVariableNode = nextState.history.present.nodes.find(
+      (node) => node.id === setVariableNode.id
+    )
+    const nextInlineExpressionNode = nextState.history.present.nodes.find(
+      (node) => node.id === inlineExpressionNode.id
+    )
+
+    expect(nextSetVariableNode?.data.config.variableName).toBe("newName")
+    expect(nextSetVariableNode?.data.config.valueExpression).toBe("{{ $vars.newName }}")
+    expect(nextInlineExpressionNode?.data.config.template).toBe(
+      `{{ $node("${setVariableNode.id}").item.json.newName }}`
+    )
+  })
 })

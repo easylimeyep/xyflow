@@ -63,4 +63,45 @@ describe("expression variable catalog", () => {
       false
     )
   })
+
+  it("includes set variable outputs as $vars and node paths", () => {
+    const trigger = createWorkflowNode("trigger", { x: 0, y: 0 }, "TriggerA")
+    const setVariable = createWorkflowNode("setVariable", { x: 200, y: 0 }, "SetA")
+    const code = createWorkflowNode("code", { x: 400, y: 0 }, "CodeA")
+    setVariable.data.config.variableName = "regionName"
+
+    const edges: WorkflowEdge[] = [
+      {
+        id: "edge-1",
+        source: trigger.id,
+        target: setVariable.id,
+        sourceHandle: null,
+        targetHandle: null,
+        data: {
+          sourceKind: trigger.data.kind,
+          targetKind: setVariable.data.kind,
+        },
+      },
+      {
+        id: "edge-2",
+        source: setVariable.id,
+        target: code.id,
+        sourceHandle: null,
+        targetHandle: null,
+        data: {
+          sourceKind: setVariable.data.kind,
+          targetKind: code.data.kind,
+        },
+      },
+    ]
+
+    const options = buildExpressionVariableCatalog([trigger, setVariable, code], edges, code.id)
+
+    expect(options.some((option) => option.value === "$vars.regionName")).toBe(true)
+    expect(
+      options.some(
+        (option) => option.value === `$node("${setVariable.id}").item.json.regionName`
+      )
+    ).toBe(true)
+  })
 })

@@ -1,5 +1,6 @@
 import { workflowNodeRegistry } from "../node-registry"
 import { getBuiltinExpressionVariables } from "./builtins"
+import { isValidJsIdentifier } from "./variable-name"
 import type { ExpressionVariableOption, WorkflowEdge, WorkflowNode } from "../types"
 
 export function buildExpressionVariableCatalog(
@@ -33,9 +34,49 @@ export function buildExpressionVariableCatalog(
         description: `${definition.title} output field.`,
       })
     })
+
+    if (node.data.kind !== "setVariable") {
+      return
+    }
+
+    const variableName = getSetVariableName(node)
+    if (!variableName) {
+      return
+    }
+
+    options.push({
+      group,
+      label: `${nodeReference}.item.json.${variableName}`,
+      value: `${nodeReference}.item.json.${variableName}`,
+      description: "Variable value from this Set Variable node.",
+    })
+    options.push({
+      group: "Workflow variables",
+      label: `$vars.${variableName}`,
+      value: `$vars.${variableName}`,
+      description: `Variable from node "${node.data.label}".`,
+    })
   })
 
   return dedupeVariableOptions(options)
+}
+
+function getSetVariableName(node: WorkflowNode): string | null {
+  if (node.data.kind !== "setVariable") {
+    return null
+  }
+
+  const variableNameValue = node.data.config.variableName
+  if (typeof variableNameValue !== "string") {
+    return null
+  }
+
+  const variableName = variableNameValue.trim()
+  if (!variableName || !isValidJsIdentifier(variableName)) {
+    return null
+  }
+
+  return variableName
 }
 
 export function buildNodeReference(nodeId: string): string {

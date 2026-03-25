@@ -11,6 +11,7 @@ export type NodeKind =
   | "transform"
   | "code"
   | "customInput"
+  | "setVariable"
   | "inlineExpression"
 
 export const WORKFLOW_NODE_KINDS: NodeKind[] = [
@@ -19,6 +20,7 @@ export const WORKFLOW_NODE_KINDS: NodeKind[] = [
   "transform",
   "code",
   "customInput",
+  "setVariable",
   "inlineExpression",
 ]
 
@@ -79,12 +81,18 @@ export type InlineExpressionNodeConfig = {
   template: string
 }
 
+export type SetVariableNodeConfig = {
+  variableName: string
+  valueExpression: string
+}
+
 export interface NodeConfigByKind {
   trigger: TriggerNodeConfig
   branch: BranchNodeConfig
   transform: TransformNodeConfig
   code: CodeNodeConfig
   customInput: CustomInputNodeConfig
+  setVariable: SetVariableNodeConfig
   inlineExpression: InlineExpressionNodeConfig
 }
 

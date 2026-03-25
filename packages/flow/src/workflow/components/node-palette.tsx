@@ -26,6 +26,7 @@ const iconByNodeKind: Record<NodeKind, LucideIcon> = {
   transform: WandSparkles,
   code: Code2,
   customInput: FileInput,
+  setVariable: Braces,
   inlineExpression: Braces,
 }
 
@@ -54,6 +55,7 @@ export function NodePalette({ onAddNode, quickAddActive = false }: NodePalettePr
     workflowNodeRegistry.transform,
     workflowNodeRegistry.code,
     workflowNodeRegistry.customInput,
+    workflowNodeRegistry.setVariable,
     workflowNodeRegistry.inlineExpression,
   ]
 

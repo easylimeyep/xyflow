@@ -3,6 +3,21 @@ import { describe, expect, it } from "vitest"
 import { createWorkflowNode, workflowNodeRegistry } from "./node-registry"
 
 describe("workflow node registry", () => {
+  it("includes set variable definition", () => {
+    const definition = workflowNodeRegistry.setVariable
+
+    expect(definition.kind).toBe("setVariable")
+    expect(definition.buildDefaultConfig().variableName).toBe("myVar")
+  })
+
+  it("creates set variable node with default config", () => {
+    const node = createWorkflowNode("setVariable", { x: 0, y: 0 })
+
+    expect(node.type).toBe("setVariable")
+    expect(node.data.config.variableName).toBe("myVar")
+    expect(node.data.config.valueExpression).toBe("{{ $input.item.json }}")
+  })
+
   it("includes inline expression definition", () => {
     const definition = workflowNodeRegistry.inlineExpression
 

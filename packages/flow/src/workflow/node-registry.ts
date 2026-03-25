@@ -37,7 +37,14 @@ const nodeDefinitions: {
       },
     ],
     outputPaths: ["eventName"],
-    allowedTargets: ["transform", "branch", "code", "customInput", "inlineExpression"],
+    allowedTargets: [
+      "transform",
+      "branch",
+      "code",
+      "customInput",
+      "setVariable",
+      "inlineExpression",
+    ],
     buildDefaultConfig: () => ({
       eventName: "config-file-uploaded",
     }),
@@ -56,7 +63,7 @@ const nodeDefinitions: {
       },
     ],
     outputPaths: ["conditionMatched"],
-    allowedTargets: ["transform", "code", "customInput", "branch", "inlineExpression"],
+    allowedTargets: ["transform", "code", "customInput", "branch", "setVariable", "inlineExpression"],
     buildDefaultConfig: () => ({
       condition: "true",
     }),
@@ -75,7 +82,14 @@ const nodeDefinitions: {
       },
     ],
     outputPaths: ["result"],
-    allowedTargets: ["transform", "branch", "code", "customInput", "inlineExpression"],
+    allowedTargets: [
+      "transform",
+      "branch",
+      "code",
+      "customInput",
+      "setVariable",
+      "inlineExpression",
+    ],
     buildDefaultConfig: () => ({
       expression: "return input",
     }),
@@ -100,7 +114,7 @@ const nodeDefinitions: {
       },
     ],
     outputPaths: ["result"],
-    allowedTargets: ["transform", "branch", "customInput", "inlineExpression"],
+    allowedTargets: ["transform", "branch", "customInput", "setVariable", "inlineExpression"],
     buildDefaultConfig: () => ({
       runtime: "js",
       code: "return { ok: true }",
@@ -140,12 +154,24 @@ const nodeDefinitions: {
       },
     ],
     outputPaths: ["inputText", "inputKind", "retryCount", "required"],
-    allowedTargets: ["transform", "branch", "code", "inlineExpression"],
+    allowedTargets: ["transform", "branch", "code", "setVariable", "inlineExpression"],
     buildDefaultConfig: () => ({
       inputKind: "config",
       inputText: "",
       retryCount: 0,
       required: false,
+    }),
+  },
+  setVariable: {
+    kind: "setVariable",
+    title: "Set Variable",
+    description: "Create reusable variable value for downstream nodes.",
+    fields: [],
+    outputPaths: [],
+    allowedTargets: ["transform", "branch", "code", "customInput", "setVariable", "inlineExpression"],
+    buildDefaultConfig: () => ({
+      variableName: "myVar",
+      valueExpression: "{{ $input.item.json }}",
     }),
   },
   inlineExpression: {
@@ -162,7 +188,7 @@ const nodeDefinitions: {
       },
     ],
     outputPaths: ["template"],
-    allowedTargets: ["transform", "branch", "code", "customInput", "inlineExpression"],
+    allowedTargets: ["transform", "branch", "code", "customInput", "setVariable", "inlineExpression"],
     buildDefaultConfig: () => ({
       template: "{{ $input.item.json }}",
     }),
