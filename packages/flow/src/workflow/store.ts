@@ -220,6 +220,105 @@ function shouldCommitEdgeHistory(changes: EdgeChange<WorkflowEdge>[]): boolean {
   )
 }
 
+function getRemovedNodeIds(changes: NodeChange<WorkflowNode>[]): Set<string> {
+  return new Set(changes.filter((change) => change.type === "remove").map((change) => change.id))
+}
+
+function filterEdgesForRemovedNodes(edges: WorkflowEdge[], removedNodeIds: Set<string>): WorkflowEdge[] {
+  if (removedNodeIds.size === 0) {
+    return edges
+  }
+
+  return edges.filter(
+    (edge) => !removedNodeIds.has(edge.source) && !removedNodeIds.has(edge.target)
+  )
+}
+
+function hasEdgeCollectionChanged(previous: WorkflowEdge[], next: WorkflowEdge[]): boolean {
+  if (previous === next) {
+    return false
+  }
+
+  if (previous.length !== next.length) {
+    return true
+  }
+
+  for (let index = 0; index < previous.length; index += 1) {
+    if (previous[index] !== next[index]) {
+      return true
+    }
+  }
+
+  return false
+}
+
+function haveSameNodeIds(previous: WorkflowNode[], next: WorkflowNode[]): boolean {
+  if (previous.length !== next.length) {
+    return false
+  }
+
+  for (let index = 0; index < previous.length; index += 1) {
+    if (previous[index]?.id !== next[index]?.id) {
+      return false
+    }
+  }
+
+  return true
+}
+
+function getRemovedEdgeIdSet(previous: WorkflowEdge[], next: WorkflowEdge[]): Set<string> {
+  const nextEdgeIds = new Set(next.map((edge) => edge.id))
+  return new Set(previous.filter((edge) => !nextEdgeIds.has(edge.id)).map((edge) => edge.id))
+}
+
+function getIncidentEdgeIdSet(edges: WorkflowEdge[], nodeIds: Set<string>): Set<string> {
+  return new Set(
+    edges
+      .filter((edge) => nodeIds.has(edge.source) || nodeIds.has(edge.target))
+      .map((edge) => edge.id)
+  )
+}
+
+function areSetsEqual(left: Set<string>, right: Set<string>): boolean {
+  if (left.size !== right.size) {
+    return false
+  }
+
+  for (const value of left) {
+    if (!right.has(value)) {
+      return false
+    }
+  }
+
+  return true
+}
+
+function shouldSquashPreviousEdgeRemovalWithNodeRemoval(
+  history: ReturnType<typeof createHistoryState<WorkflowGraphState>>,
+  removedNodeIds: Set<string>
+): boolean {
+  if (removedNodeIds.size === 0) {
+    return false
+  }
+
+  const previousGraph = history.past[history.past.length - 1]
+  if (!previousGraph) {
+    return false
+  }
+
+  if (!haveSameNodeIds(previousGraph.nodes, history.present.nodes)) {
+    return false
+  }
+
+  const removedEdgeIds = getRemovedEdgeIdSet(previousGraph.edges, history.present.edges)
+  if (removedEdgeIds.size === 0) {
+    return false
+  }
+
+  const incidentEdgeIds = getIncidentEdgeIdSet(previousGraph.edges, removedNodeIds)
+  return areSetsEqual(removedEdgeIds, incidentEdgeIds)
+}
+
 export function createWorkflowStore(
   initialProps: WorkflowStoreInitialProps = {}
 ): StoreApi<WorkflowStoreState> {
@@ -456,17 +555,33 @@ export function createWorkflowStore(
       })
     },
     onNodesChange: (changes) => {
-      const currentGraph = get().history.present
+      const history = get().history
+      const currentGraph = history.present
       const nextNodes = applyNodeChanges(changes, currentGraph.nodes)
+      const removedNodeIds = getRemovedNodeIds(changes)
+      const nextEdges = filterEdgesForRemovedNodes(currentGraph.edges, removedNodeIds)
       const selectedNodeIds = get().selectedNodeIds
       const remainingNodeIds = new Set(nextNodes.map((node) => node.id))
       const nextSelectedNodeIds = selectedNodeIds.filter((id) => remainingNodeIds.has(id))
       const nextGraph: WorkflowGraphState = {
         ...currentGraph,
         nodes: nextNodes,
+        edges: nextEdges,
       }
 
       if (shouldCommitNodeHistory(changes)) {
+        if (shouldSquashPreviousEdgeRemovalWithNodeRemoval(history, removedNodeIds)) {
+          set((state) => ({
+            history: {
+              ...state.history,
+              present: cloneGraphState(nextGraph),
+              future: [],
+            },
+            selectedNodeIds: nextSelectedNodeIds,
+          }))
+          return
+        }
+
         set((state) => ({
           history: pushHistoryState(state.history, cloneGraphState(nextGraph)),
           selectedNodeIds: nextSelectedNodeIds,
@@ -485,6 +600,11 @@ export function createWorkflowStore(
     onEdgesChange: (changes) => {
       const currentGraph = get().history.present
       const nextEdges = applyEdgeChanges(changes, currentGraph.edges)
+      const edgeCollectionChanged = hasEdgeCollectionChanged(currentGraph.edges, nextEdges)
+
+      if (!edgeCollectionChanged) {
+        return
+      }
 
       const nextGraph: WorkflowGraphState = {
         ...currentGraph,

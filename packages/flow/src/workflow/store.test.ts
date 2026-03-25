@@ -269,6 +269,145 @@ describe("workflow store", () => {
     expect(edgeFromFalse).toBeDefined()
   })
 
+  it("restores quick-add node and edge in a single undo after node deletion", () => {
+    const state = store.getState()
+    const sourceNode = state.history.present.nodes.find(
+      (node: WorkflowNode) => node.data.kind === "transform"
+    )
+    if (!sourceNode) {
+      throw new Error("source node not found")
+    }
+
+    state.startQuickAddFromOutput(sourceNode.id, null)
+    state.confirmQuickAddNode("branch")
+
+    const beforeDeleteState = store.getState()
+    const quickAddedNodeId = beforeDeleteState.selectedNodeIds[0]
+    if (!quickAddedNodeId) {
+      throw new Error("quick-added node was not selected")
+    }
+    const quickAddEdge = beforeDeleteState.history.present.edges.find(
+      (edge) => edge.source === sourceNode.id && edge.target === quickAddedNodeId
+    )
+    if (!quickAddEdge) {
+      throw new Error("quick-add edge not found")
+    }
+
+    const pastBeforeDelete = beforeDeleteState.history.past.length
+    const nodesBeforeDelete = beforeDeleteState.history.present.nodes.length
+    const edgesBeforeDelete = beforeDeleteState.history.present.edges.length
+
+    store.getState().onNodesChange([{ id: quickAddedNodeId, type: "remove" }])
+    store.getState().onEdgesChange([{ id: quickAddEdge.id, type: "remove" }])
+
+    const deletedState = store.getState()
+    expect(deletedState.history.present.nodes.length).toBe(nodesBeforeDelete - 1)
+    expect(deletedState.history.present.edges.length).toBe(edgesBeforeDelete - 1)
+    expect(deletedState.history.past.length).toBe(pastBeforeDelete + 1)
+
+    store.getState().undo()
+    const undoState = store.getState()
+    expect(undoState.history.present.nodes.length).toBe(nodesBeforeDelete)
+    expect(undoState.history.present.edges.length).toBe(edgesBeforeDelete)
+
+    store.getState().redo()
+    const redoState = store.getState()
+    expect(redoState.history.present.nodes.length).toBe(nodesBeforeDelete - 1)
+    expect(redoState.history.present.edges.length).toBe(edgesBeforeDelete - 1)
+  })
+
+  it("restores node and edge in one undo when edge-remove arrives before node-remove", () => {
+    const state = store.getState()
+    const sourceNode = state.history.present.nodes.find(
+      (node: WorkflowNode) => node.data.kind === "transform"
+    )
+    if (!sourceNode) {
+      throw new Error("source node not found")
+    }
+
+    state.startQuickAddFromOutput(sourceNode.id, null)
+    state.confirmQuickAddNode("setVariable")
+
+    const beforeDeleteState = store.getState()
+    const quickAddedNodeId = beforeDeleteState.selectedNodeIds[0]
+    if (!quickAddedNodeId) {
+      throw new Error("quick-added node was not selected")
+    }
+    const quickAddEdge = beforeDeleteState.history.present.edges.find(
+      (edge) => edge.source === sourceNode.id && edge.target === quickAddedNodeId
+    )
+    if (!quickAddEdge) {
+      throw new Error("quick-add edge not found")
+    }
+
+    const pastBeforeDelete = beforeDeleteState.history.past.length
+    const nodesBeforeDelete = beforeDeleteState.history.present.nodes.length
+    const edgesBeforeDelete = beforeDeleteState.history.present.edges.length
+
+    store.getState().onEdgesChange([{ id: quickAddEdge.id, type: "remove" }])
+    store.getState().onNodesChange([{ id: quickAddedNodeId, type: "remove" }])
+
+    const deletedState = store.getState()
+    expect(deletedState.history.present.nodes.length).toBe(nodesBeforeDelete - 1)
+    expect(deletedState.history.present.edges.length).toBe(edgesBeforeDelete - 1)
+    expect(deletedState.history.past.length).toBe(pastBeforeDelete + 1)
+
+    store.getState().undo()
+    const undoState = store.getState()
+    expect(undoState.history.present.nodes.length).toBe(nodesBeforeDelete)
+    expect(undoState.history.present.edges.length).toBe(edgesBeforeDelete)
+  })
+
+  it("restores multi-node delete with connected edges in one undo step", () => {
+    const state = store.getState()
+    state.addNode("code", { x: 700, y: 120 })
+
+    const transformNode = store
+      .getState()
+      .history.present.nodes.find((node: WorkflowNode) => node.data.kind === "transform")
+    const addedCodeNode = store
+      .getState()
+      .history.present.nodes.find((node: WorkflowNode) => node.data.kind === "code")
+    if (!transformNode || !addedCodeNode) {
+      throw new Error("fixture nodes not found")
+    }
+
+    store.getState().onConnect({ source: transformNode.id, target: addedCodeNode.id })
+
+    const beforeDeleteState = store.getState()
+    const pastBeforeDelete = beforeDeleteState.history.past.length
+    const nodesBeforeDelete = beforeDeleteState.history.present.nodes.length
+    const edgesBeforeDelete = beforeDeleteState.history.present.edges.length
+
+    const removedNodeIds = new Set([transformNode.id, addedCodeNode.id])
+    const removedEdgeIds = beforeDeleteState.history.present.edges
+      .filter((edge) => removedNodeIds.has(edge.source) || removedNodeIds.has(edge.target))
+      .map((edge) => edge.id)
+
+    store.getState().onNodesChange([
+      { id: transformNode.id, type: "remove" },
+      { id: addedCodeNode.id, type: "remove" },
+    ])
+    store
+      .getState()
+      .onEdgesChange(removedEdgeIds.map((edgeId) => ({ id: edgeId, type: "remove" })))
+
+    const deletedState = store.getState()
+    expect(deletedState.history.past.length).toBe(pastBeforeDelete + 1)
+    expect(deletedState.history.present.nodes.length).toBe(nodesBeforeDelete - 2)
+    expect(deletedState.history.present.edges.length).toBe(edgesBeforeDelete - removedEdgeIds.length)
+
+    store.getState().undo()
+    const undoState = store.getState()
+    expect(undoState.history.present.nodes.length).toBe(nodesBeforeDelete)
+    expect(undoState.history.present.edges.length).toBe(edgesBeforeDelete)
+
+    store.getState().redo()
+    const redoState = store.getState()
+    expect(redoState.history.present.nodes.length).toBe(nodesBeforeDelete - 2)
+    expect(redoState.history.present.edges.length).toBe(edgesBeforeDelete - removedEdgeIds.length)
+  })
+
   it("does not start quick add on occupied output and allows explicit cancel", () => {
     const state = store.getState()
     const triggerNode = state.history.present.nodes.find(
