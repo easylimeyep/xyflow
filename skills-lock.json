@@ -1,6 +1,21 @@
 {
   "version": 1,
   "skills": {
+    "ai-regression-testing": {
+      "source": "affaan-m/everything-claude-code",
+      "sourceType": "github",
+      "computedHash": "04611b8902fa3597f58f3ae316e3717c9b513681cac94cf9a5373d5df8099fa1"
+    },
+    "architecture-decision-records": {
+      "source": "affaan-m/everything-claude-code",
+      "sourceType": "github",
+      "computedHash": "3108a62e2d812aad5f1d192281dc79d7c2891234ef179ca97cf79472286f5126"
+    },
+    "frontend-patterns": {
+      "source": "affaan-m/everything-claude-code",
+      "sourceType": "github",
+      "computedHash": "48c9438b32e62679de45e510b34f3e81b1341d4ba9aeae97b92bbd7e3e01986a"
+    },
     "shadcn": {
       "source": "shadcn/ui",
       "sourceType": "github",
