@@ -23,7 +23,7 @@ function useUndoRedoHotkeys(onUndo: () => void, onRedo: () => void): void {
   }, [onRedo, onUndo])
 }
 
-function useCancelQuickAddHotkey(onCancelQuickAdd: () => void): void {
+function useCancelInsertHotkey(onCancelInsert: () => void): void {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (!isEscapeHotkey(event)) {
@@ -31,21 +31,27 @@ function useCancelQuickAddHotkey(onCancelQuickAdd: () => void): void {
       }
 
       event.preventDefault()
-      onCancelQuickAdd()
+      onCancelInsert()
     }
     window.addEventListener("keydown", onKeyDown)
     return () => window.removeEventListener("keydown", onKeyDown)
-  }, [onCancelQuickAdd])
+  }, [onCancelInsert])
 }
 
 export function WorkflowEditor() {
-  const { undo, redo, cancelQuickAdd } = useWorkflowShallowStore((state: WorkflowStoreState) => ({
+  const { undo, redo, cancelQuickAdd, cancelEdgeInsert } = useWorkflowShallowStore(
+    (state: WorkflowStoreState) => ({
     undo: state.undo,
     redo: state.redo,
     cancelQuickAdd: state.cancelQuickAdd,
-  }))
+      cancelEdgeInsert: state.cancelEdgeInsert,
+    })
+  )
   useUndoRedoHotkeys(undo, redo)
-  useCancelQuickAddHotkey(cancelQuickAdd)
+  useCancelInsertHotkey(() => {
+    cancelQuickAdd()
+    cancelEdgeInsert()
+  })
 
   return (
     <div className="flex h-full w-full flex-col overflow-hidden">
@@ -101,10 +107,12 @@ function ToolbarContainer() {
 function PaletteContainer() {
   const nodeCount = useWorkflowStore((state: WorkflowStoreState) => state.history.present.nodes.length)
   const quickAddPending = useWorkflowStore((state: WorkflowStoreState) => state.quickAddPending)
-  const { addNode, confirmQuickAddNode } = useWorkflowShallowStore(
+  const edgeInsertPending = useWorkflowStore((state: WorkflowStoreState) => state.edgeInsertPending)
+  const { addNode, confirmQuickAddNode, confirmEdgeInsertNode } = useWorkflowShallowStore(
     (state: WorkflowStoreState) => ({
       addNode: state.addNode,
       confirmQuickAddNode: state.confirmQuickAddNode,
+      confirmEdgeInsertNode: state.confirmEdgeInsertNode,
     })
   )
 
@@ -113,12 +121,21 @@ function PaletteContainer() {
       confirmQuickAddNode(kind)
       return
     }
+    if (edgeInsertPending) {
+      confirmEdgeInsertNode(kind)
+      return
+    }
 
     const offset = nodeCount * 20
     addNode(kind, { x: 80 + offset, y: 120 + offset })
   }
 
-  return <NodePalette onAddNode={addNodeAtDefaultPosition} quickAddActive={Boolean(quickAddPending)} />
+  return (
+    <NodePalette
+      onAddNode={addNodeAtDefaultPosition}
+      quickAddActive={Boolean(quickAddPending || edgeInsertPending)}
+    />
+  )
 }
 
 function CanvasContainer() {
@@ -136,6 +153,9 @@ function CanvasContainer() {
     setSelectedNodes,
     addNode,
     cancelQuickAdd,
+    cancelEdgeInsert,
+    startEdgeInsertFromEdge,
+    edgeInsertPending,
   } =
     useWorkflowShallowStore((state: WorkflowStoreState) => ({
       nodes: state.history.present.nodes,
@@ -147,6 +167,9 @@ function CanvasContainer() {
       setSelectedNodes: state.setSelectedNodes,
       addNode: state.addNode,
       cancelQuickAdd: state.cancelQuickAdd,
+      cancelEdgeInsert: state.cancelEdgeInsert,
+      startEdgeInsertFromEdge: state.startEdgeInsertFromEdge,
+      edgeInsertPending: state.edgeInsertPending,
     }))
 
   return (
@@ -162,8 +185,12 @@ function CanvasContainer() {
       onPaneClick={() => {
         setSelectedNodes([])
         cancelQuickAdd()
+        cancelEdgeInsert()
       }}
       onAddNodeAt={addNode}
+      onStartInsertFromEdge={startEdgeInsertFromEdge}
+      onDeleteEdge={(edgeId) => onEdgesChange([{ id: edgeId, type: "remove" }])}
+      edgeInsertPendingId={edgeInsertPending?.edgeId ?? null}
     />
   )
 }

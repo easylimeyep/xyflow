@@ -8,6 +8,25 @@ import { WORKFLOW_NODE_KIND_MIME } from "../dnd"
 import { initialWorkflowGraph } from "../default-graph"
 import { WorkflowCanvas } from "./workflow-canvas"
 
+vi.mock("./workflow-edge", () => {
+  return {
+    WorkflowEdgeComponent: ({
+      id,
+      onStartInsert,
+      onDeleteEdge,
+    }: {
+      id: string
+      onStartInsert: (edgeId: string) => void
+      onDeleteEdge: (edgeId: string) => void
+    }) => (
+      <div data-testid={`mock-workflow-edge-${id}`}>
+        <button type="button" data-testid={`mock-edge-insert-${id}`} onClick={() => onStartInsert(id)} />
+        <button type="button" data-testid={`mock-edge-delete-${id}`} onClick={() => onDeleteEdge(id)} />
+      </div>
+    ),
+  }
+})
+
 vi.mock("@xyflow/react", () => {
   return {
     ReactFlowProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
@@ -30,6 +49,8 @@ vi.mock("@xyflow/react", () => {
       isValidConnection,
       defaultViewport,
       viewport,
+      edges,
+      edgeTypes,
       selectionOnDrag,
       panOnDrag,
       panOnScroll,
@@ -44,6 +65,16 @@ vi.mock("@xyflow/react", () => {
       isValidConnection: (connection: { source: string; target: string }) => boolean
       defaultViewport?: { x: number; y: number; zoom: number }
       viewport?: { x: number; y: number; zoom: number }
+      edges?: Array<{
+        id: string
+        source: string
+        target: string
+        type?: string
+        sourceHandle?: string | null
+        targetHandle?: string | null
+        data?: unknown
+      }>
+      edgeTypes?: Record<string, (props: Record<string, unknown>) => ReactNode>
       selectionOnDrag?: boolean
       panOnDrag?: boolean
       panOnScroll?: boolean
@@ -72,6 +103,30 @@ vi.mock("@xyflow/react", () => {
         <span data-testid="rf-valid">
           {String(isValidConnection({ source: "missing", target: "missing" }))}
         </span>
+        {edges?.map((edge) => {
+          const EdgeTypeComponent = edgeTypes?.[edge.type ?? "workflow"]
+          if (!EdgeTypeComponent) {
+            return null
+          }
+          return (
+            <EdgeTypeComponent
+              key={edge.id}
+              id={edge.id}
+              source={edge.source}
+              target={edge.target}
+              sourceX={10}
+              sourceY={10}
+              targetX={50}
+              targetY={10}
+              sourcePosition="right"
+              targetPosition="left"
+              sourceHandleId={edge.sourceHandle ?? undefined}
+              targetHandleId={edge.targetHandle ?? undefined}
+              selected={false}
+              data={edge.data}
+            />
+          )
+        })}
         {children}
       </div>
     ),
@@ -101,6 +156,9 @@ describe("WorkflowCanvas", () => {
         onSelectNodes={onSelectNodes}
         onPaneClick={onPaneClick}
         onAddNodeAt={onAddNodeAt}
+        onStartInsertFromEdge={vi.fn()}
+        onDeleteEdge={vi.fn()}
+        edgeInsertPendingId={null}
       />
     )
 
@@ -143,9 +201,45 @@ describe("WorkflowCanvas", () => {
         onSelectNodes={vi.fn()}
         onPaneClick={vi.fn()}
         onAddNodeAt={vi.fn()}
+        onStartInsertFromEdge={vi.fn()}
+        onDeleteEdge={vi.fn()}
+        edgeInsertPendingId={null}
       />
     )
 
     expect(screen.getByTestId("rf-valid").textContent).toBe("false")
+  })
+
+  it("routes edge action buttons to handlers", () => {
+    const onStartInsertFromEdge = vi.fn()
+    const onDeleteEdge = vi.fn()
+    const edgeId = initialWorkflowGraph.edges[0]?.id
+    if (!edgeId) {
+      throw new Error("fixture edge id not found")
+    }
+
+    render(
+      <WorkflowCanvas
+        nodes={initialWorkflowGraph.nodes}
+        edges={initialWorkflowGraph.edges}
+        viewport={initialWorkflowGraph.viewport}
+        onNodesChange={vi.fn()}
+        onEdgesChange={vi.fn()}
+        onConnect={vi.fn()}
+        onViewportChange={vi.fn()}
+        onSelectNodes={vi.fn()}
+        onPaneClick={vi.fn()}
+        onAddNodeAt={vi.fn()}
+        onStartInsertFromEdge={onStartInsertFromEdge}
+        onDeleteEdge={onDeleteEdge}
+        edgeInsertPendingId={null}
+      />
+    )
+
+    fireEvent.click(screen.getByTestId(`mock-edge-insert-${edgeId}`))
+    fireEvent.click(screen.getByTestId(`mock-edge-delete-${edgeId}`))
+
+    expect(onStartInsertFromEdge).toHaveBeenCalledWith(edgeId)
+    expect(onDeleteEdge).toHaveBeenCalledWith(edgeId)
   })
 })

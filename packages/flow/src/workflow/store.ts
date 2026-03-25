@@ -40,12 +40,16 @@ export interface WorkflowStoreState {
   history: ReturnType<typeof createHistoryState<WorkflowGraphState>>
   selectedNodeIds: string[]
   quickAddPending: PendingQuickAdd | null
+  edgeInsertPending: PendingEdgeInsert | null
   lastError: string | null
   setLastError: (message: string | null) => void
   addNode: (kind: NodeKind, position: XYPosition) => void
   startQuickAddFromOutput: (sourceNodeId: string, sourceHandle?: string | null) => void
+  startEdgeInsertFromEdge: (edgeId: string) => void
   cancelQuickAdd: () => void
+  cancelEdgeInsert: () => void
   confirmQuickAddNode: (kind: NodeKind) => void
+  confirmEdgeInsertNode: (kind: NodeKind) => void
   setSelectedNodes: (nodeIds: string[]) => void
   setSelectedNode: (nodeId: string | null) => void
   updateNodeLabel: (nodeId: string, nextLabel: string) => void
@@ -73,6 +77,10 @@ type WorkflowStoreSetState = StoreApi<WorkflowStoreState>["setState"]
 export interface PendingQuickAdd {
   sourceNodeId: string
   sourceHandle: string | null
+}
+
+export interface PendingEdgeInsert {
+  edgeId: string
 }
 
 function cloneGraphState(graph: WorkflowGraphState): WorkflowGraphState {
@@ -198,6 +206,129 @@ function createSmartQuickAddPosition(
   }
 
   return { x: baseX, y: sourceAnchorY + 480 }
+}
+
+function getNodeCenter(node: WorkflowNode): XYPosition {
+  const width = node.width ?? DEFAULT_NODE_WIDTH
+  const height = node.height ?? 80
+  return {
+    x: node.position.x + width / 2,
+    y: node.position.y + height / 2,
+  }
+}
+
+function createNodeRectAtPosition(position: XYPosition): {
+  left: number
+  right: number
+  top: number
+  bottom: number
+} {
+  const width = DEFAULT_NODE_WIDTH
+  const height = 80
+  return {
+    left: position.x,
+    right: position.x + width,
+    top: position.y,
+    bottom: position.y + height,
+  }
+}
+
+function getEdgeSplitInsertPosition(sourceNode: WorkflowNode, targetNode: WorkflowNode): XYPosition {
+  const sourceCenter = getNodeCenter(sourceNode)
+  const targetCenter = getNodeCenter(targetNode)
+  const centerX = (sourceCenter.x + targetCenter.x) / 2
+  const centerY = (sourceCenter.y + targetCenter.y) / 2
+
+  return {
+    x: centerX - DEFAULT_NODE_WIDTH / 2,
+    y: centerY - 40,
+  }
+}
+
+function collectDescendantNodeIds(startNodeId: string, edges: WorkflowEdge[]): Set<string> {
+  const adjacency = new Map<string, string[]>()
+  for (const edge of edges) {
+    const nextTargets = adjacency.get(edge.source) ?? []
+    nextTargets.push(edge.target)
+    adjacency.set(edge.source, nextTargets)
+  }
+
+  const visited = new Set<string>()
+  const queue = [startNodeId]
+  while (queue.length > 0) {
+    const current = queue.shift()
+    if (!current || visited.has(current)) {
+      continue
+    }
+
+    visited.add(current)
+    const nextTargets = adjacency.get(current) ?? []
+    queue.push(...nextTargets)
+  }
+
+  return visited
+}
+
+function shiftNodesBySubgraph(
+  nodes: WorkflowNode[],
+  nodeIds: Set<string>,
+  shiftX: number
+): WorkflowNode[] {
+  if (shiftX <= 0 || nodeIds.size === 0) {
+    return nodes
+  }
+
+  return nodes.map((node) => {
+    if (!nodeIds.has(node.id)) {
+      return node
+    }
+
+    return {
+      ...node,
+      position: {
+        ...node.position,
+        x: node.position.x + shiftX,
+      },
+    }
+  })
+}
+
+function resolveSubgraphShiftX(
+  nodes: WorkflowNode[],
+  subgraphNodeIds: Set<string>,
+  insertPosition: XYPosition
+): number {
+  if (subgraphNodeIds.size === 0) {
+    return 0
+  }
+
+  const staticNodes = nodes.filter((node) => !subgraphNodeIds.has(node.id))
+  const movableNodes = nodes.filter((node) => subgraphNodeIds.has(node.id))
+  const insertRect = createNodeRectAtPosition(insertPosition)
+  const safetyMargin = 88
+  let requiredShiftX = 0
+
+  const fixedRects = [...staticNodes.map((node) => getNodeRect(node)), insertRect]
+  const movableRects = movableNodes.map((node) => getNodeRect(node))
+
+  for (const movableRect of movableRects) {
+    for (const fixedRect of fixedRects) {
+      const verticalOverlap = !(
+        movableRect.bottom + safetyMargin < fixedRect.top ||
+        movableRect.top - safetyMargin > fixedRect.bottom
+      )
+      if (!verticalOverlap) {
+        continue
+      }
+
+      const shiftToRight = fixedRect.right + safetyMargin - movableRect.left
+      if (shiftToRight > requiredShiftX) {
+        requiredShiftX = shiftToRight
+      }
+    }
+  }
+
+  return Math.max(0, Math.ceil(requiredShiftX))
 }
 
 function shouldCommitNodeHistory(changes: NodeChange<WorkflowNode>[]): boolean {
@@ -328,6 +459,7 @@ export function createWorkflowStore(
     history: createHistoryState(initialGraph),
     selectedNodeIds: [],
     quickAddPending: null,
+    edgeInsertPending: null,
     lastError: null,
     setLastError: (message) => set({ lastError: message }),
     addNode: (kind, position) => {
@@ -356,6 +488,19 @@ export function createWorkflowStore(
           sourceNodeId,
           sourceHandle: normalizedHandle,
         },
+        edgeInsertPending: null,
+      })
+    },
+    startEdgeInsertFromEdge: (edgeId) => {
+      const currentGraph = get().history.present
+      const edge = currentGraph.edges.find((candidate) => candidate.id === edgeId)
+      if (!edge) {
+        return
+      }
+
+      set({
+        edgeInsertPending: { edgeId },
+        quickAddPending: null,
       })
     },
     cancelQuickAdd: () => {
@@ -364,6 +509,13 @@ export function createWorkflowStore(
       }
 
       set({ quickAddPending: null })
+    },
+    cancelEdgeInsert: () => {
+      if (!get().edgeInsertPending) {
+        return
+      }
+
+      set({ edgeInsertPending: null })
     },
     confirmQuickAddNode: (kind) => {
       const currentGraph = get().history.present
@@ -434,6 +586,181 @@ export function createWorkflowStore(
       })
       set({
         quickAddPending: null,
+        selectedNodeIds: [nextNode.id],
+        lastError: null,
+      })
+    },
+    confirmEdgeInsertNode: (kind) => {
+      const currentGraph = get().history.present
+      const pending = get().edgeInsertPending
+      if (!pending) {
+        return
+      }
+
+      const edgeToSplit = currentGraph.edges.find((edge) => edge.id === pending.edgeId)
+      if (!edgeToSplit) {
+        set({
+          edgeInsertPending: null,
+          lastError: "Failed to resolve edge for insertion.",
+        })
+        return
+      }
+
+      const sourceNode = currentGraph.nodes.find((node) => node.id === edgeToSplit.source)
+      const targetNode = currentGraph.nodes.find((node) => node.id === edgeToSplit.target)
+      if (!sourceNode || !targetNode) {
+        set({
+          edgeInsertPending: null,
+          lastError: "Failed to resolve edge nodes for insertion.",
+        })
+        return
+      }
+
+      const targetSubgraphIds = collectDescendantNodeIds(edgeToSplit.target, currentGraph.edges)
+      const initialInsertPosition = getEdgeSplitInsertPosition(sourceNode, targetNode)
+      const initialShiftX = resolveSubgraphShiftX(
+        currentGraph.nodes,
+        targetSubgraphIds,
+        initialInsertPosition
+      )
+      const initiallyShiftedNodes = shiftNodesBySubgraph(
+        currentGraph.nodes,
+        targetSubgraphIds,
+        initialShiftX
+      )
+      const shiftedSourceNode =
+        initiallyShiftedNodes.find((node) => node.id === edgeToSplit.source) ?? sourceNode
+      const shiftedTargetNode =
+        initiallyShiftedNodes.find((node) => node.id === edgeToSplit.target) ?? targetNode
+      const centeredInsertPosition = getEdgeSplitInsertPosition(shiftedSourceNode, shiftedTargetNode)
+      const extraShiftX = resolveSubgraphShiftX(
+        initiallyShiftedNodes,
+        targetSubgraphIds,
+        centeredInsertPosition
+      )
+      const finalShiftedNodes =
+        extraShiftX > 0
+          ? shiftNodesBySubgraph(initiallyShiftedNodes, targetSubgraphIds, extraShiftX)
+          : initiallyShiftedNodes
+      const finalSourceNode =
+        finalShiftedNodes.find((node) => node.id === edgeToSplit.source) ?? shiftedSourceNode
+      const finalTargetNode =
+        finalShiftedNodes.find((node) => node.id === edgeToSplit.target) ?? shiftedTargetNode
+      const insertPosition = getEdgeSplitInsertPosition(finalSourceNode, finalTargetNode)
+      const shiftedNodes = finalShiftedNodes
+      const nextNode = createWorkflowNode(kind, insertPosition)
+      const nextNodes = [...shiftedNodes, nextNode]
+      const nextEdgesBase = currentGraph.edges.filter((edge) => edge.id !== edgeToSplit.id)
+
+      const sourceToInserted: ConnectionLike = {
+        source: edgeToSplit.source,
+        target: nextNode.id,
+        sourceHandle: edgeToSplit.sourceHandle ?? null,
+        targetHandle: null,
+      }
+      const insertedToTarget: ConnectionLike = {
+        source: nextNode.id,
+        target: edgeToSplit.target,
+        sourceHandle: null,
+        targetHandle: edgeToSplit.targetHandle ?? null,
+      }
+
+      const sourceToInsertedValidation = validateConnection(sourceToInserted, nextNodes, nextEdgesBase)
+      const insertedToTargetValidation = validateConnection(insertedToTarget, nextNodes, nextEdgesBase)
+      const canInsertBetween = sourceToInsertedValidation.valid && insertedToTargetValidation.valid
+
+      if (canInsertBetween) {
+        const sourceKinds = getKindsFromConnection(sourceToInserted, nextNodes)
+        const targetKinds = getKindsFromConnection(insertedToTarget, nextNodes)
+        if (!sourceKinds || !targetKinds) {
+          set({
+            edgeInsertPending: null,
+            lastError: "Failed to resolve node kinds for edge insertion.",
+          })
+          return
+        }
+
+        const withSourceEdge = addEdge(
+          {
+            ...sourceToInserted,
+            sourceHandle: sourceToInserted.sourceHandle ?? null,
+            targetHandle: sourceToInserted.targetHandle ?? null,
+            data: {
+              sourceKind: sourceKinds.sourceKind,
+              targetKind: sourceKinds.targetKind,
+            },
+          },
+          nextEdgesBase
+        ) as WorkflowEdge[]
+        const withTwoEdges = addEdge(
+          {
+            ...insertedToTarget,
+            sourceHandle: insertedToTarget.sourceHandle ?? null,
+            targetHandle: insertedToTarget.targetHandle ?? null,
+            data: {
+              sourceKind: targetKinds.sourceKind,
+              targetKind: targetKinds.targetKind,
+            },
+          },
+          withSourceEdge
+        ) as WorkflowEdge[]
+
+        commitGraphState(set, {
+          ...currentGraph,
+          nodes: nextNodes,
+          edges: withTwoEdges,
+        })
+        set({
+          edgeInsertPending: null,
+          selectedNodeIds: [nextNode.id],
+          lastError: null,
+        })
+        return
+      }
+
+      const fallbackValidation = validateConnection(insertedToTarget, nextNodes, nextEdgesBase)
+      if (!fallbackValidation.valid) {
+        const message =
+          sourceToInsertedValidation.reason ??
+          insertedToTargetValidation.reason ??
+          fallbackValidation.reason ??
+          "Invalid edge insertion."
+        set({
+          edgeInsertPending: null,
+          lastError: message,
+        })
+        return
+      }
+
+      const fallbackKinds = getKindsFromConnection(insertedToTarget, nextNodes)
+      if (!fallbackKinds) {
+        set({
+          edgeInsertPending: null,
+          lastError: "Failed to resolve node kinds for edge insertion fallback.",
+        })
+        return
+      }
+
+      const fallbackEdges = addEdge(
+        {
+          ...insertedToTarget,
+          sourceHandle: insertedToTarget.sourceHandle ?? null,
+          targetHandle: insertedToTarget.targetHandle ?? null,
+          data: {
+            sourceKind: fallbackKinds.sourceKind,
+            targetKind: fallbackKinds.targetKind,
+          },
+        },
+        nextEdgesBase
+      ) as WorkflowEdge[]
+
+      commitGraphState(set, {
+        ...currentGraph,
+        nodes: nextNodes,
+        edges: fallbackEdges,
+      })
+      set({
+        edgeInsertPending: null,
         selectedNodeIds: [nextNode.id],
         lastError: null,
       })

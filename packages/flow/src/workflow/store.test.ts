@@ -432,6 +432,135 @@ describe("workflow store", () => {
     expect(store.getState().quickAddPending).toBeNull()
   })
 
+  it("splits edge into source->new and new->target in one history step", () => {
+    const state = store.getState()
+    const initialEdge = state.history.present.edges[0]
+    if (!initialEdge) {
+      throw new Error("fixture edge not found")
+    }
+
+    const targetBefore = state.history.present.nodes.find((node) => node.id === initialEdge.target)
+    if (!targetBefore) {
+      throw new Error("target node not found")
+    }
+    const basePastLength = state.history.past.length
+
+    state.startEdgeInsertFromEdge(initialEdge.id)
+    expect(store.getState().edgeInsertPending).toEqual({ edgeId: initialEdge.id })
+
+    state.confirmEdgeInsertNode("branch")
+
+    const nextState = store.getState()
+    const insertedNode = nextState.history.present.nodes.find((node) => node.data.kind === "branch")
+    if (!insertedNode) {
+      throw new Error("inserted node not found")
+    }
+
+    const nextEdges = nextState.history.present.edges
+    expect(nextEdges.some((edge) => edge.id === initialEdge.id)).toBe(false)
+    expect(nextEdges.some((edge) => edge.source === initialEdge.source && edge.target === insertedNode.id)).toBe(
+      true
+    )
+    expect(nextEdges.some((edge) => edge.source === insertedNode.id && edge.target === initialEdge.target)).toBe(
+      true
+    )
+    expect(nextState.history.past.length).toBe(basePastLength + 1)
+
+    const targetAfter = nextState.history.present.nodes.find((node) => node.id === initialEdge.target)
+    expect(targetAfter?.position.x).toBeGreaterThan(targetBefore.position.x)
+  })
+
+  it("preserves sourceHandle and targetHandle when split succeeds", () => {
+    const state = store.getState()
+    const triggerNode = state.history.present.nodes.find((node: WorkflowNode) => node.data.kind === "trigger")
+    const transformNode = state.history.present.nodes.find((node: WorkflowNode) => node.data.kind === "transform")
+    if (!triggerNode || !transformNode) {
+      throw new Error("fixture nodes not found")
+    }
+
+    state.onConnect({
+      source: triggerNode.id,
+      target: transformNode.id,
+      sourceHandle: "source-handle-a",
+      targetHandle: "target-handle-b",
+    })
+    const createdEdge = store
+      .getState()
+      .history.present.edges.find(
+        (edge) =>
+          edge.source === triggerNode.id &&
+          edge.target === transformNode.id &&
+          edge.sourceHandle === "source-handle-a" &&
+          edge.targetHandle === "target-handle-b"
+      )
+    if (!createdEdge) {
+      throw new Error("fixture handled edge not found")
+    }
+
+    state.startEdgeInsertFromEdge(createdEdge.id)
+    state.confirmEdgeInsertNode("branch")
+
+    const nextState = store.getState()
+    const insertedNode = nextState.history.present.nodes.find((node) => node.data.kind === "branch")
+    if (!insertedNode) {
+      throw new Error("inserted node not found")
+    }
+
+    const sourceLeg = nextState.history.present.edges.find(
+      (edge) => edge.source === triggerNode.id && edge.target === insertedNode.id
+    )
+    const targetLeg = nextState.history.present.edges.find(
+      (edge) => edge.source === insertedNode.id && edge.target === transformNode.id
+    )
+
+    expect(sourceLeg?.sourceHandle).toBe("source-handle-a")
+    expect(targetLeg?.targetHandle).toBe("target-handle-b")
+  })
+
+  it("uses target-only fallback when any leg of split is invalid", () => {
+    const state = store.getState()
+    state.addNode("code", { x: 240, y: 240 })
+    const transformNode = store
+      .getState()
+      .history.present.nodes.find((node: WorkflowNode) => node.data.kind === "transform")
+    const codeNode = store
+      .getState()
+      .history.present.nodes.find((node: WorkflowNode) => node.data.kind === "code")
+    if (!transformNode || !codeNode) {
+      throw new Error("fixture nodes not found")
+    }
+
+    state.onConnect({ source: codeNode.id, target: transformNode.id })
+    const edgeToSplit = store
+      .getState()
+      .history.present.edges.find((edge) => edge.source === codeNode.id && edge.target === transformNode.id)
+    if (!edgeToSplit) {
+      throw new Error("edge to split not found")
+    }
+
+    state.startEdgeInsertFromEdge(edgeToSplit.id)
+    state.confirmEdgeInsertNode("code")
+
+    const nextState = store.getState()
+    const insertedNode = nextState.history.present.nodes.find(
+      (node) => node.data.kind === "code" && node.id !== codeNode.id
+    )
+    if (!insertedNode) {
+      throw new Error("fallback inserted node not found")
+    }
+
+    const sourceLeg = nextState.history.present.edges.find(
+      (edge) => edge.source === codeNode.id && edge.target === insertedNode.id
+    )
+    const targetLeg = nextState.history.present.edges.find(
+      (edge) => edge.source === insertedNode.id && edge.target === transformNode.id
+    )
+
+    expect(nextState.history.present.edges.some((edge) => edge.id === edgeToSplit.id)).toBe(false)
+    expect(sourceLeg).toBeUndefined()
+    expect(targetLeg).toBeDefined()
+  })
+
   it("renames set variable references across expression fields", () => {
     const state = store.getState()
     state.addNode("setVariable", { x: 600, y: 80 })

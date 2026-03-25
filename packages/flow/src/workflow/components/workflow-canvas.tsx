@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback } from "react"
+import { useCallback, useMemo } from "react"
 
 import {
   Background,
@@ -11,6 +11,7 @@ import {
   useReactFlow,
   type Connection,
   type EdgeChange,
+  type EdgeProps,
   type NodeChange,
   type Viewport,
   type XYPosition,
@@ -18,6 +19,7 @@ import {
 
 import { WORKFLOW_NODE_KIND_MIME } from "../dnd"
 import { workflowNodeTypes } from "../nodes/node-types"
+import { WorkflowEdgeComponent } from "./workflow-edge"
 import { isNodeKind, type NodeKind, type WorkflowEdge, type WorkflowNode } from "../types"
 import { validateConnection } from "../validation"
 
@@ -32,6 +34,9 @@ interface WorkflowCanvasProps {
   onSelectNodes: (nodeIds: string[]) => void
   onPaneClick: () => void
   onAddNodeAt: (kind: NodeKind, position: XYPosition) => void
+  onStartInsertFromEdge: (edgeId: string) => void
+  onDeleteEdge: (edgeId: string) => void
+  edgeInsertPendingId: string | null
 }
 
 function WorkflowCanvasInner({
@@ -45,6 +50,9 @@ function WorkflowCanvasInner({
   onSelectNodes,
   onPaneClick,
   onAddNodeAt,
+  onStartInsertFromEdge,
+  onDeleteEdge,
+  edgeInsertPendingId,
 }: WorkflowCanvasProps) {
   const reactFlow = useReactFlow<WorkflowNode, WorkflowEdge>()
 
@@ -69,12 +77,30 @@ function WorkflowCanvasInner({
     },
     [onAddNodeAt, reactFlow]
   )
+  const edgesWithType = useMemo(
+    () => edges.map((edge) => (edge.type ? edge : { ...edge, type: "workflow" })),
+    [edges]
+  )
+  const edgeTypes = useMemo(
+    () => ({
+      workflow: (props: EdgeProps<WorkflowEdge>) => (
+        <WorkflowEdgeComponent
+          {...props}
+          onStartInsert={onStartInsertFromEdge}
+          onDeleteEdge={onDeleteEdge}
+          isInsertPending={props.id === edgeInsertPendingId}
+        />
+      ),
+    }),
+    [edgeInsertPendingId, onDeleteEdge, onStartInsertFromEdge]
+  )
 
   return (
     <ReactFlow
       nodes={nodes}
-      edges={edges}
+      edges={edgesWithType}
       nodeTypes={workflowNodeTypes}
+      edgeTypes={edgeTypes}
       proOptions={{ hideAttribution: true }}
       defaultViewport={viewport}
       onMoveEnd={(_, nextViewport) => onViewportChange(nextViewport)}

@@ -69,7 +69,7 @@ export function NodePalette({ onAddNode, quickAddActive = false }: NodePalettePr
     >
       {showQuickAddHint ? (
         <div className="rounded-md border border-primary/40 bg-primary/10 px-2 py-1 text-xs text-primary">
-          Select a node to connect from the active output.
+          Select a node kind to complete insertion.
         </div>
       ) : null}
       <h2 className="text-sm font-semibold">Node Palette</h2>
