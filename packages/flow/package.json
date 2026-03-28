@@ -24,6 +24,7 @@
     "@workspace/ui": "workspace:*",
     "@xyflow/react": "^12.10.1",
     "acorn": "^8.16.0",
+    "es-toolkit": "^1.45.1",
     "lucide-react": "^0.577.0"
   },
   "devDependencies": {

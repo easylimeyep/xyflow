@@ -2,7 +2,7 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-import { createHistoryHotkeyHandler } from "./hotkeys"
+import { createClipboardHotkeyHandler, createHistoryHotkeyHandler } from "./hotkeys"
 import { createWorkflowStore } from "../store"
 import type { WorkflowNode } from "../types"
 
@@ -192,5 +192,37 @@ describe("createHistoryHotkeyHandler integration", () => {
     expect(undoState.history.present.edges.length).toBe(edgesBeforeDelete)
 
     window.removeEventListener("keydown", handler)
+  })
+})
+
+describe("createClipboardHotkeyHandler integration", () => {
+  beforeEach(() => {
+    document.body.innerHTML = ""
+  })
+
+  it("calls copy and paste actions on global hotkeys", () => {
+    const onCopy = vi.fn()
+    const onPaste = vi.fn()
+    const handler = createClipboardHotkeyHandler(onCopy, onPaste)
+    window.addEventListener("keydown", handler)
+
+    window.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "c",
+        ctrlKey: true,
+        bubbles: true,
+      })
+    )
+    window.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "v",
+        ctrlKey: true,
+        bubbles: true,
+      })
+    )
+
+    window.removeEventListener("keydown", handler)
+    expect(onCopy).toHaveBeenCalledTimes(1)
+    expect(onPaste).toHaveBeenCalledTimes(1)
   })
 })

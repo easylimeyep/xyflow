@@ -16,15 +16,23 @@ import {
 } from "@workspace/store"
 
 import { initialWorkflowGraph } from "./default-graph"
-import { DEFAULT_NODE_WIDTH, createWorkflowNode } from "./node-registry"
+import {
+  DEFAULT_NODE_WIDTH,
+  createWorkflowNode,
+  normalizeNodeConfig,
+} from "./node-registry"
 import { refactorVariableReferencesInGraph } from "./expression/refactor"
 import { isValidJsIdentifier } from "./expression/variable-name"
 import {
   exportDomainJson,
   exportInternalJson,
   parseInternalGraphJson,
+  exportSelectionClipboardJson,
+  parseSelectionClipboardJson,
 } from "./mappers"
 import type {
+  DomainWorkflowConnectionDTO,
+  DomainWorkflowNodeDTO,
   NodeKind,
   WorkflowEdge,
   WorkflowGraphState,
@@ -35,16 +43,21 @@ import {
   validateConnection,
   type ConnectionLike,
 } from "./validation"
+import { cloneDeep } from "es-toolkit/object"
 
 export interface WorkflowStoreState {
   history: ReturnType<typeof createHistoryState<WorkflowGraphState>>
   selectedNodeIds: string[]
+  lastPointerFlowPosition: XYPosition | null
   quickAddPending: PendingQuickAdd | null
   edgeInsertPending: PendingEdgeInsert | null
   lastError: string | null
   setLastError: (message: string | null) => void
   addNode: (kind: NodeKind, position: XYPosition) => void
-  startQuickAddFromOutput: (sourceNodeId: string, sourceHandle?: string | null) => void
+  startQuickAddFromOutput: (
+    sourceNodeId: string,
+    sourceHandle?: string | null
+  ) => void
   startEdgeInsertFromEdge: (edgeId: string) => void
   cancelQuickAdd: () => void
   cancelEdgeInsert: () => void
@@ -62,6 +75,9 @@ export interface WorkflowStoreState {
   onEdgesChange: (changes: EdgeChange<WorkflowEdge>[]) => void
   onConnect: (connection: ConnectionLike) => void
   setViewport: (viewport: Viewport) => void
+  setLastPointerPosition: (position: XYPosition) => void
+  copySelectionToClipboard: () => Promise<boolean>
+  pasteFromClipboard: () => Promise<boolean>
   undo: () => void
   redo: () => void
   importFromJson: (rawJson: string) => boolean
@@ -84,6 +100,7 @@ export interface PendingEdgeInsert {
 }
 
 function cloneGraphState(graph: WorkflowGraphState): WorkflowGraphState {
+  return cloneDeep(graph)
   return {
     nodes: graph.nodes.map((node) => ({
       ...node,
@@ -133,11 +150,15 @@ function hasOutgoingConnection(
 ): boolean {
   return edges.some(
     (edge) =>
-      edge.source === sourceNodeId && (edge.sourceHandle ?? null) === (sourceHandle ?? null)
+      edge.source === sourceNodeId &&
+      (edge.sourceHandle ?? null) === (sourceHandle ?? null)
   )
 }
 
-function getQuickAddSourceAnchorY(sourceNode: WorkflowNode, sourceHandle: string | null): number {
+function getQuickAddSourceAnchorY(
+  sourceNode: WorkflowNode,
+  sourceHandle: string | null
+): number {
   const nodeHeight = sourceNode.height ?? 80
   const baseY = sourceNode.position.y
 
@@ -152,7 +173,12 @@ function getQuickAddSourceAnchorY(sourceNode: WorkflowNode, sourceHandle: string
   return baseY + nodeHeight / 2
 }
 
-function getNodeRect(node: WorkflowNode): { left: number; right: number; top: number; bottom: number } {
+function getNodeRect(node: WorkflowNode): {
+  left: number
+  right: number
+  top: number
+  bottom: number
+} {
   const width = node.width ?? DEFAULT_NODE_WIDTH
   const height = node.height ?? 80
   return {
@@ -233,7 +259,10 @@ function createNodeRectAtPosition(position: XYPosition): {
   }
 }
 
-function getEdgeSplitInsertPosition(sourceNode: WorkflowNode, targetNode: WorkflowNode): XYPosition {
+function getEdgeSplitInsertPosition(
+  sourceNode: WorkflowNode,
+  targetNode: WorkflowNode
+): XYPosition {
   const sourceCenter = getNodeCenter(sourceNode)
   const targetCenter = getNodeCenter(targetNode)
   const centerX = (sourceCenter.x + targetCenter.x) / 2
@@ -245,7 +274,10 @@ function getEdgeSplitInsertPosition(sourceNode: WorkflowNode, targetNode: Workfl
   }
 }
 
-function collectDescendantNodeIds(startNodeId: string, edges: WorkflowEdge[]): Set<string> {
+function collectDescendantNodeIds(
+  startNodeId: string,
+  edges: WorkflowEdge[]
+): Set<string> {
   const adjacency = new Map<string, string[]>()
   for (const edge of edges) {
     const nextTargets = adjacency.get(edge.source) ?? []
@@ -308,7 +340,10 @@ function resolveSubgraphShiftX(
   const safetyMargin = 88
   let requiredShiftX = 0
 
-  const fixedRects = [...staticNodes.map((node) => getNodeRect(node)), insertRect]
+  const fixedRects = [
+    ...staticNodes.map((node) => getNodeRect(node)),
+    insertRect,
+  ]
   const movableRects = movableNodes.map((node) => getNodeRect(node))
 
   for (const movableRect of movableRects) {
@@ -333,7 +368,11 @@ function resolveSubgraphShiftX(
 
 function shouldCommitNodeHistory(changes: NodeChange<WorkflowNode>[]): boolean {
   return changes.some((change) => {
-    if (change.type === "add" || change.type === "remove" || change.type === "replace") {
+    if (
+      change.type === "add" ||
+      change.type === "remove" ||
+      change.type === "replace"
+    ) {
       return true
     }
 
@@ -347,25 +386,39 @@ function shouldCommitNodeHistory(changes: NodeChange<WorkflowNode>[]): boolean {
 
 function shouldCommitEdgeHistory(changes: EdgeChange<WorkflowEdge>[]): boolean {
   return changes.some(
-    (change) => change.type === "add" || change.type === "remove" || change.type === "replace"
+    (change) =>
+      change.type === "add" ||
+      change.type === "remove" ||
+      change.type === "replace"
   )
 }
 
 function getRemovedNodeIds(changes: NodeChange<WorkflowNode>[]): Set<string> {
-  return new Set(changes.filter((change) => change.type === "remove").map((change) => change.id))
+  return new Set(
+    changes
+      .filter((change) => change.type === "remove")
+      .map((change) => change.id)
+  )
 }
 
-function filterEdgesForRemovedNodes(edges: WorkflowEdge[], removedNodeIds: Set<string>): WorkflowEdge[] {
+function filterEdgesForRemovedNodes(
+  edges: WorkflowEdge[],
+  removedNodeIds: Set<string>
+): WorkflowEdge[] {
   if (removedNodeIds.size === 0) {
     return edges
   }
 
   return edges.filter(
-    (edge) => !removedNodeIds.has(edge.source) && !removedNodeIds.has(edge.target)
+    (edge) =>
+      !removedNodeIds.has(edge.source) && !removedNodeIds.has(edge.target)
   )
 }
 
-function hasEdgeCollectionChanged(previous: WorkflowEdge[], next: WorkflowEdge[]): boolean {
+function hasEdgeCollectionChanged(
+  previous: WorkflowEdge[],
+  next: WorkflowEdge[]
+): boolean {
   if (previous === next) {
     return false
   }
@@ -383,7 +436,31 @@ function hasEdgeCollectionChanged(previous: WorkflowEdge[], next: WorkflowEdge[]
   return false
 }
 
-function haveSameNodeIds(previous: WorkflowNode[], next: WorkflowNode[]): boolean {
+function hasNodeCollectionChanged(
+  previous: WorkflowNode[],
+  next: WorkflowNode[]
+): boolean {
+  if (previous === next) {
+    return false
+  }
+
+  if (previous.length !== next.length) {
+    return true
+  }
+
+  for (let index = 0; index < previous.length; index += 1) {
+    if (previous[index] !== next[index]) {
+      return true
+    }
+  }
+
+  return false
+}
+
+function haveSameNodeIds(
+  previous: WorkflowNode[],
+  next: WorkflowNode[]
+): boolean {
   if (previous.length !== next.length) {
     return false
   }
@@ -397,12 +474,20 @@ function haveSameNodeIds(previous: WorkflowNode[], next: WorkflowNode[]): boolea
   return true
 }
 
-function getRemovedEdgeIdSet(previous: WorkflowEdge[], next: WorkflowEdge[]): Set<string> {
+function getRemovedEdgeIdSet(
+  previous: WorkflowEdge[],
+  next: WorkflowEdge[]
+): Set<string> {
   const nextEdgeIds = new Set(next.map((edge) => edge.id))
-  return new Set(previous.filter((edge) => !nextEdgeIds.has(edge.id)).map((edge) => edge.id))
+  return new Set(
+    previous.filter((edge) => !nextEdgeIds.has(edge.id)).map((edge) => edge.id)
+  )
 }
 
-function getIncidentEdgeIdSet(edges: WorkflowEdge[], nodeIds: Set<string>): Set<string> {
+function getIncidentEdgeIdSet(
+  edges: WorkflowEdge[],
+  nodeIds: Set<string>
+): Set<string> {
   return new Set(
     edges
       .filter((edge) => nodeIds.has(edge.source) || nodeIds.has(edge.target))
@@ -441,30 +526,186 @@ function shouldSquashPreviousEdgeRemovalWithNodeRemoval(
     return false
   }
 
-  const removedEdgeIds = getRemovedEdgeIdSet(previousGraph.edges, history.present.edges)
+  const removedEdgeIds = getRemovedEdgeIdSet(
+    previousGraph.edges,
+    history.present.edges
+  )
   if (removedEdgeIds.size === 0) {
     return false
   }
 
-  const incidentEdgeIds = getIncidentEdgeIdSet(previousGraph.edges, removedNodeIds)
+  const incidentEdgeIds = getIncidentEdgeIdSet(
+    previousGraph.edges,
+    removedNodeIds
+  )
   return areSetsEqual(removedEdgeIds, incidentEdgeIds)
+}
+
+function haveSameIdSet(left: string[], right: string[]): boolean {
+  if (left.length !== right.length) {
+    return false
+  }
+
+  const rightSet = new Set(right)
+  return left.every((id) => rightSet.has(id))
+}
+
+function normalizeSelectionIds(nodeIds: string[]): string[] {
+  const uniqueIds = new Set<string>()
+  nodeIds.forEach((nodeId) => {
+    if (nodeId.trim().length === 0) {
+      return
+    }
+
+    uniqueIds.add(nodeId)
+  })
+  return [...uniqueIds]
+}
+
+function getFallbackPasteAnchor(viewport: Viewport): XYPosition {
+  if (typeof window !== "undefined") {
+    return {
+      x: (-viewport.x + window.innerWidth / 2) / viewport.zoom,
+      y: (-viewport.y + window.innerHeight / 2) / viewport.zoom,
+    }
+  }
+
+  return {
+    x: -viewport.x / viewport.zoom,
+    y: -viewport.y / viewport.zoom,
+  }
+}
+
+function createUniqueLabel(baseLabel: string, usedLabels: Set<string>): string {
+  const trimmedBase = baseLabel.trim()
+  const normalizedBase = trimmedBase.length > 0 ? trimmedBase : "Node"
+  if (!usedLabels.has(normalizedBase)) {
+    usedLabels.add(normalizedBase)
+    return normalizedBase
+  }
+
+  let counter = 2
+  while (usedLabels.has(`${normalizedBase} ${counter}`)) {
+    counter += 1
+  }
+
+  const nextLabel = `${normalizedBase} ${counter}`
+  usedLabels.add(nextLabel)
+  return nextLabel
+}
+
+function createUniqueJsIdentifier(
+  baseName: string,
+  usedNames: Set<string>
+): string {
+  let normalizedBase = baseName.trim()
+  if (!normalizedBase || !isValidJsIdentifier(normalizedBase)) {
+    normalizedBase = "myVar"
+  }
+
+  if (!usedNames.has(normalizedBase)) {
+    usedNames.add(normalizedBase)
+    return normalizedBase
+  }
+
+  let counter = 2
+  while (usedNames.has(`${normalizedBase}${counter}`)) {
+    counter += 1
+  }
+
+  const nextName = `${normalizedBase}${counter}`
+  usedNames.add(nextName)
+  return nextName
+}
+
+function getSetVariableNames(nodes: WorkflowNode[]): Set<string> {
+  return new Set(
+    nodes
+      .filter((node) => node.data.kind === "setVariable")
+      .map((node) => node.data.config.variableName)
+      .filter((value): value is string => typeof value === "string")
+      .map((value) => value.trim())
+      .filter((value) => value.length > 0)
+  )
+}
+
+async function writeTextToClipboard(text: string): Promise<boolean> {
+  if (
+    typeof navigator === "undefined" ||
+    !navigator.clipboard ||
+    typeof navigator.clipboard.writeText !== "function"
+  ) {
+    return false
+  }
+
+  try {
+    await navigator.clipboard.writeText(text)
+    return true
+  } catch {
+    return false
+  }
+}
+
+async function readTextFromClipboard(): Promise<string | null> {
+  if (
+    typeof navigator === "undefined" ||
+    !navigator.clipboard ||
+    typeof navigator.clipboard.readText !== "function"
+  ) {
+    return null
+  }
+
+  try {
+    const text = await navigator.clipboard.readText()
+    return typeof text === "string" ? text : null
+  } catch {
+    return null
+  }
+}
+
+function asDomainNodeDTO(node: WorkflowNode): DomainWorkflowNodeDTO {
+  return {
+    id: node.id,
+    kind: node.data.kind,
+    position: { ...node.position },
+    label: node.data.label,
+    config: normalizeNodeConfig(node.data.kind, node.data.config),
+  }
+}
+
+function asDomainConnectionDTO(
+  edge: WorkflowEdge
+): DomainWorkflowConnectionDTO {
+  return {
+    id: edge.id,
+    sourceNodeId: edge.source,
+    targetNodeId: edge.target,
+    sourceHandle: edge.sourceHandle ?? null,
+    targetHandle: edge.targetHandle ?? null,
+  }
 }
 
 export function createWorkflowStore(
   initialProps: WorkflowStoreInitialProps = {}
 ): StoreApi<WorkflowStoreState> {
-  const initialGraph = cloneGraphState(initialProps.initialGraph ?? initialWorkflowGraph)
+  const initialGraph = cloneGraphState(
+    initialProps.initialGraph ?? initialWorkflowGraph
+  )
 
   return createStore<WorkflowStoreState>()((set, get) => ({
     history: createHistoryState(initialGraph),
     selectedNodeIds: [],
+    lastPointerFlowPosition: null,
     quickAddPending: null,
     edgeInsertPending: null,
     lastError: null,
     setLastError: (message) => set({ lastError: message }),
     addNode: (kind, position) => {
       const currentGraph = get().history.present
-      const nextNodes = [...currentGraph.nodes, createWorkflowNode(kind, position)]
+      const nextNodes = [
+        ...currentGraph.nodes,
+        createWorkflowNode(kind, position),
+      ]
 
       commitGraphState(set, {
         ...currentGraph,
@@ -473,13 +714,21 @@ export function createWorkflowStore(
     },
     startQuickAddFromOutput: (sourceNodeId, sourceHandle = null) => {
       const currentGraph = get().history.present
-      const sourceNode = currentGraph.nodes.find((node) => node.id === sourceNodeId)
+      const sourceNode = currentGraph.nodes.find(
+        (node) => node.id === sourceNodeId
+      )
       if (!sourceNode) {
         return
       }
 
       const normalizedHandle = sourceHandle ?? null
-      if (hasOutgoingConnection(currentGraph.edges, sourceNodeId, normalizedHandle)) {
+      if (
+        hasOutgoingConnection(
+          currentGraph.edges,
+          sourceNodeId,
+          normalizedHandle
+        )
+      ) {
         return
       }
 
@@ -493,7 +742,9 @@ export function createWorkflowStore(
     },
     startEdgeInsertFromEdge: (edgeId) => {
       const currentGraph = get().history.present
-      const edge = currentGraph.edges.find((candidate) => candidate.id === edgeId)
+      const edge = currentGraph.edges.find(
+        (candidate) => candidate.id === edgeId
+      )
       if (!edge) {
         return
       }
@@ -524,7 +775,9 @@ export function createWorkflowStore(
         return
       }
 
-      const sourceNode = currentGraph.nodes.find((node) => node.id === pending.sourceNodeId)
+      const sourceNode = currentGraph.nodes.find(
+        (node) => node.id === pending.sourceNodeId
+      )
       if (!sourceNode) {
         set({
           quickAddPending: null,
@@ -533,7 +786,13 @@ export function createWorkflowStore(
         return
       }
 
-      if (hasOutgoingConnection(currentGraph.edges, pending.sourceNodeId, pending.sourceHandle)) {
+      if (
+        hasOutgoingConnection(
+          currentGraph.edges,
+          pending.sourceNodeId,
+          pending.sourceHandle
+        )
+      ) {
         set({
           quickAddPending: null,
           lastError: "Selected output already has an outgoing connection.",
@@ -554,7 +813,11 @@ export function createWorkflowStore(
         sourceHandle: pending.sourceHandle,
         targetHandle: null,
       }
-      const validation = validateConnection(connection, nextNodes, currentGraph.edges)
+      const validation = validateConnection(
+        connection,
+        nextNodes,
+        currentGraph.edges
+      )
       if (!validation.valid) {
         set({ lastError: validation.reason ?? "Invalid quick add connection." })
         return
@@ -562,7 +825,9 @@ export function createWorkflowStore(
 
       const kinds = getKindsFromConnection(connection, nextNodes)
       if (!kinds) {
-        set({ lastError: "Failed to resolve node kinds for quick add connection." })
+        set({
+          lastError: "Failed to resolve node kinds for quick add connection.",
+        })
         return
       }
 
@@ -597,7 +862,9 @@ export function createWorkflowStore(
         return
       }
 
-      const edgeToSplit = currentGraph.edges.find((edge) => edge.id === pending.edgeId)
+      const edgeToSplit = currentGraph.edges.find(
+        (edge) => edge.id === pending.edgeId
+      )
       if (!edgeToSplit) {
         set({
           edgeInsertPending: null,
@@ -606,8 +873,12 @@ export function createWorkflowStore(
         return
       }
 
-      const sourceNode = currentGraph.nodes.find((node) => node.id === edgeToSplit.source)
-      const targetNode = currentGraph.nodes.find((node) => node.id === edgeToSplit.target)
+      const sourceNode = currentGraph.nodes.find(
+        (node) => node.id === edgeToSplit.source
+      )
+      const targetNode = currentGraph.nodes.find(
+        (node) => node.id === edgeToSplit.target
+      )
       if (!sourceNode || !targetNode) {
         set({
           edgeInsertPending: null,
@@ -616,8 +887,14 @@ export function createWorkflowStore(
         return
       }
 
-      const targetSubgraphIds = collectDescendantNodeIds(edgeToSplit.target, currentGraph.edges)
-      const initialInsertPosition = getEdgeSplitInsertPosition(sourceNode, targetNode)
+      const targetSubgraphIds = collectDescendantNodeIds(
+        edgeToSplit.target,
+        currentGraph.edges
+      )
+      const initialInsertPosition = getEdgeSplitInsertPosition(
+        sourceNode,
+        targetNode
+      )
       const initialShiftX = resolveSubgraphShiftX(
         currentGraph.nodes,
         targetSubgraphIds,
@@ -629,10 +906,15 @@ export function createWorkflowStore(
         initialShiftX
       )
       const shiftedSourceNode =
-        initiallyShiftedNodes.find((node) => node.id === edgeToSplit.source) ?? sourceNode
+        initiallyShiftedNodes.find((node) => node.id === edgeToSplit.source) ??
+        sourceNode
       const shiftedTargetNode =
-        initiallyShiftedNodes.find((node) => node.id === edgeToSplit.target) ?? targetNode
-      const centeredInsertPosition = getEdgeSplitInsertPosition(shiftedSourceNode, shiftedTargetNode)
+        initiallyShiftedNodes.find((node) => node.id === edgeToSplit.target) ??
+        targetNode
+      const centeredInsertPosition = getEdgeSplitInsertPosition(
+        shiftedSourceNode,
+        shiftedTargetNode
+      )
       const extraShiftX = resolveSubgraphShiftX(
         initiallyShiftedNodes,
         targetSubgraphIds,
@@ -640,17 +922,28 @@ export function createWorkflowStore(
       )
       const finalShiftedNodes =
         extraShiftX > 0
-          ? shiftNodesBySubgraph(initiallyShiftedNodes, targetSubgraphIds, extraShiftX)
+          ? shiftNodesBySubgraph(
+              initiallyShiftedNodes,
+              targetSubgraphIds,
+              extraShiftX
+            )
           : initiallyShiftedNodes
       const finalSourceNode =
-        finalShiftedNodes.find((node) => node.id === edgeToSplit.source) ?? shiftedSourceNode
+        finalShiftedNodes.find((node) => node.id === edgeToSplit.source) ??
+        shiftedSourceNode
       const finalTargetNode =
-        finalShiftedNodes.find((node) => node.id === edgeToSplit.target) ?? shiftedTargetNode
-      const insertPosition = getEdgeSplitInsertPosition(finalSourceNode, finalTargetNode)
+        finalShiftedNodes.find((node) => node.id === edgeToSplit.target) ??
+        shiftedTargetNode
+      const insertPosition = getEdgeSplitInsertPosition(
+        finalSourceNode,
+        finalTargetNode
+      )
       const shiftedNodes = finalShiftedNodes
       const nextNode = createWorkflowNode(kind, insertPosition)
       const nextNodes = [...shiftedNodes, nextNode]
-      const nextEdgesBase = currentGraph.edges.filter((edge) => edge.id !== edgeToSplit.id)
+      const nextEdgesBase = currentGraph.edges.filter(
+        (edge) => edge.id !== edgeToSplit.id
+      )
 
       const sourceToInserted: ConnectionLike = {
         source: edgeToSplit.source,
@@ -665,9 +958,18 @@ export function createWorkflowStore(
         targetHandle: edgeToSplit.targetHandle ?? null,
       }
 
-      const sourceToInsertedValidation = validateConnection(sourceToInserted, nextNodes, nextEdgesBase)
-      const insertedToTargetValidation = validateConnection(insertedToTarget, nextNodes, nextEdgesBase)
-      const canInsertBetween = sourceToInsertedValidation.valid && insertedToTargetValidation.valid
+      const sourceToInsertedValidation = validateConnection(
+        sourceToInserted,
+        nextNodes,
+        nextEdgesBase
+      )
+      const insertedToTargetValidation = validateConnection(
+        insertedToTarget,
+        nextNodes,
+        nextEdgesBase
+      )
+      const canInsertBetween =
+        sourceToInsertedValidation.valid && insertedToTargetValidation.valid
 
       if (canInsertBetween) {
         const sourceKinds = getKindsFromConnection(sourceToInserted, nextNodes)
@@ -718,7 +1020,11 @@ export function createWorkflowStore(
         return
       }
 
-      const fallbackValidation = validateConnection(insertedToTarget, nextNodes, nextEdgesBase)
+      const fallbackValidation = validateConnection(
+        insertedToTarget,
+        nextNodes,
+        nextEdgesBase
+      )
       if (!fallbackValidation.valid) {
         const message =
           sourceToInsertedValidation.reason ??
@@ -736,7 +1042,8 @@ export function createWorkflowStore(
       if (!fallbackKinds) {
         set({
           edgeInsertPending: null,
-          lastError: "Failed to resolve node kinds for edge insertion fallback.",
+          lastError:
+            "Failed to resolve node kinds for edge insertion fallback.",
         })
         return
       }
@@ -766,13 +1073,34 @@ export function createWorkflowStore(
       })
     },
     setSelectedNodes: (nodeIds) => {
-      set({ selectedNodeIds: [...nodeIds] })
+      const normalizedNodeIds = normalizeSelectionIds(nodeIds)
+      set((state) => {
+        if (haveSameIdSet(state.selectedNodeIds, normalizedNodeIds)) {
+          return state
+        }
+        return { selectedNodeIds: normalizedNodeIds }
+      })
     },
     setSelectedNode: (nodeId) => {
-      set({ selectedNodeIds: nodeId ? [nodeId] : [] })
+      set((state) => {
+        const nextSelectedNodeIds = nodeId ? [nodeId] : []
+        if (haveSameIdSet(state.selectedNodeIds, nextSelectedNodeIds)) {
+          return state
+        }
+        return { selectedNodeIds: nextSelectedNodeIds }
+      })
     },
     updateNodeLabel: (nodeId, nextLabel) => {
       const currentGraph = get().history.present
+      const targetNode = currentGraph.nodes.find((node) => node.id === nodeId)
+      if (!targetNode) {
+        return
+      }
+
+      if (targetNode.data.label === nextLabel) {
+        return
+      }
+
       const nextNodes = currentGraph.nodes.map((node) =>
         node.id === nodeId
           ? {
@@ -797,16 +1125,29 @@ export function createWorkflowStore(
         return
       }
 
-      if (targetNode.data.kind === "setVariable" && key === "variableName" && typeof rawValue === "string") {
+      const previousRawValue =
+        targetNode.data.config[key as keyof typeof targetNode.data.config]
+      if (Object.is(previousRawValue, rawValue)) {
+        return
+      }
+
+      if (
+        targetNode.data.kind === "setVariable" &&
+        key === "variableName" &&
+        typeof rawValue === "string"
+      ) {
         const previousNameValue = targetNode.data.config.variableName
-        const previousName = typeof previousNameValue === "string" ? previousNameValue.trim() : ""
+        const previousName =
+          typeof previousNameValue === "string" ? previousNameValue.trim() : ""
         const nextName = rawValue.trim()
         if (nextName === previousName) {
           return
         }
 
         if (!isValidJsIdentifier(nextName)) {
-          set({ lastError: "Variable name must be a valid JavaScript identifier." })
+          set({
+            lastError: "Variable name must be a valid JavaScript identifier.",
+          })
           return
         }
 
@@ -845,11 +1186,14 @@ export function createWorkflowStore(
           }
         })
 
-        const nextNodes = refactorVariableReferencesInGraph(nextNodesWithNewName, {
-          sourceNodeId: nodeId,
-          oldName: previousName,
-          newName: nextName,
-        })
+        const nextNodes = refactorVariableReferencesInGraph(
+          nextNodesWithNewName,
+          {
+            sourceNodeId: nodeId,
+            oldName: previousName,
+            newName: nextName,
+          }
+        )
 
         commitGraphState(set, {
           ...currentGraph,
@@ -886,10 +1230,34 @@ export function createWorkflowStore(
       const currentGraph = history.present
       const nextNodes = applyNodeChanges(changes, currentGraph.nodes)
       const removedNodeIds = getRemovedNodeIds(changes)
-      const nextEdges = filterEdgesForRemovedNodes(currentGraph.edges, removedNodeIds)
+      const nextEdges = filterEdgesForRemovedNodes(
+        currentGraph.edges,
+        removedNodeIds
+      )
       const selectedNodeIds = get().selectedNodeIds
       const remainingNodeIds = new Set(nextNodes.map((node) => node.id))
-      const nextSelectedNodeIds = selectedNodeIds.filter((id) => remainingNodeIds.has(id))
+      const nextSelectedNodeIds = selectedNodeIds.filter((id) =>
+        remainingNodeIds.has(id)
+      )
+      const nodeCollectionChanged = hasNodeCollectionChanged(
+        currentGraph.nodes,
+        nextNodes
+      )
+      const edgeCollectionChanged = hasEdgeCollectionChanged(
+        currentGraph.edges,
+        nextEdges
+      )
+      const selectionChanged = !haveSameIdSet(
+        selectedNodeIds,
+        nextSelectedNodeIds
+      )
+      if (
+        !nodeCollectionChanged &&
+        !edgeCollectionChanged &&
+        !selectionChanged
+      ) {
+        return
+      }
       const nextGraph: WorkflowGraphState = {
         ...currentGraph,
         nodes: nextNodes,
@@ -897,7 +1265,12 @@ export function createWorkflowStore(
       }
 
       if (shouldCommitNodeHistory(changes)) {
-        if (shouldSquashPreviousEdgeRemovalWithNodeRemoval(history, removedNodeIds)) {
+        if (
+          shouldSquashPreviousEdgeRemovalWithNodeRemoval(
+            history,
+            removedNodeIds
+          )
+        ) {
           set((state) => ({
             history: {
               ...state.history,
@@ -927,7 +1300,10 @@ export function createWorkflowStore(
     onEdgesChange: (changes) => {
       const currentGraph = get().history.present
       const nextEdges = applyEdgeChanges(changes, currentGraph.edges)
-      const edgeCollectionChanged = hasEdgeCollectionChanged(currentGraph.edges, nextEdges)
+      const edgeCollectionChanged = hasEdgeCollectionChanged(
+        currentGraph.edges,
+        nextEdges
+      )
 
       if (!edgeCollectionChanged) {
         return
@@ -1008,6 +1384,182 @@ export function createWorkflowStore(
         }
       })
     },
+    setLastPointerPosition: (position) => {
+      set((state) => {
+        const current = state.lastPointerFlowPosition
+        if (current && current.x === position.x && current.y === position.y) {
+          return state
+        }
+
+        return {
+          lastPointerFlowPosition: {
+            x: position.x,
+            y: position.y,
+          },
+        }
+      })
+    },
+    copySelectionToClipboard: async () => {
+      const state = get()
+      const currentGraph = state.history.present
+      const selectedNodeIdSet = new Set(state.selectedNodeIds)
+      const selectedNodes = currentGraph.nodes.filter((node) =>
+        selectedNodeIdSet.has(node.id)
+      )
+      if (selectedNodes.length === 0) {
+        return false
+      }
+
+      const selectedConnections = currentGraph.edges
+        .filter(
+          (edge) =>
+            selectedNodeIdSet.has(edge.source) &&
+            selectedNodeIdSet.has(edge.target)
+        )
+        .map(asDomainConnectionDTO)
+      const payload = exportSelectionClipboardJson(
+        selectedNodes.map(asDomainNodeDTO),
+        selectedConnections
+      )
+      const copied = await writeTextToClipboard(payload)
+      if (!copied) {
+        set({ lastError: "Failed to copy selected nodes." })
+        return false
+      }
+
+      set({ lastError: null })
+      return true
+    },
+    pasteFromClipboard: async () => {
+      const clipboardText = await readTextFromClipboard()
+      if (!clipboardText) {
+        set({ lastError: "Clipboard is empty or unavailable." })
+        return false
+      }
+
+      const parsed = parseSelectionClipboardJson(clipboardText)
+      if (!parsed.success || !parsed.value) {
+        set({
+          lastError:
+            parsed.error ??
+            "Clipboard JSON is not a workflow selection payload.",
+        })
+        return false
+      }
+
+      const currentGraph = get().history.present
+      const anchor =
+        get().lastPointerFlowPosition ??
+        getFallbackPasteAnchor(currentGraph.viewport)
+      const usedLabels = new Set(
+        currentGraph.nodes
+          .map((node) => node.data.label.trim())
+          .filter((label) => label.length > 0)
+      )
+      const usedVariableNames = getSetVariableNames(currentGraph.nodes)
+      const nodeIdMap = new Map<string, string>()
+      const variableRenames: Array<{
+        sourceNodeId: string
+        oldName: string
+        newName: string
+      }> = []
+
+      const nextNodes: WorkflowNode[] = parsed.value.nodes.map((nodeDto) => {
+        const uniqueLabel = createUniqueLabel(nodeDto.label, usedLabels)
+        const nextNode = createWorkflowNode(
+          nodeDto.kind,
+          {
+            x: anchor.x + nodeDto.position.x,
+            y: anchor.y + nodeDto.position.y,
+          },
+          uniqueLabel
+        )
+        nextNode.data = {
+          kind: nodeDto.kind,
+          label: uniqueLabel,
+          config: normalizeNodeConfig(nodeDto.kind, nodeDto.config),
+        }
+
+        if (nodeDto.kind === "setVariable") {
+          const rawVariableName = nextNode.data.config.variableName
+          const previousName =
+            typeof rawVariableName === "string" ? rawVariableName.trim() : ""
+          const uniqueName = createUniqueJsIdentifier(
+            previousName,
+            usedVariableNames
+          )
+          nextNode.data = {
+            ...nextNode.data,
+            config: {
+              ...nextNode.data.config,
+              variableName: uniqueName,
+            },
+          }
+
+          if (previousName && previousName !== uniqueName) {
+            variableRenames.push({
+              sourceNodeId: nextNode.id,
+              oldName: previousName,
+              newName: uniqueName,
+            })
+          }
+        }
+
+        nodeIdMap.set(nodeDto.id, nextNode.id)
+        return nextNode
+      })
+
+      let nextNodesWithRefactors = nextNodes
+      variableRenames.forEach((rename) => {
+        nextNodesWithRefactors = refactorVariableReferencesInGraph(
+          nextNodesWithRefactors,
+          rename
+        )
+      })
+
+      const nextNodeById = new Map(
+        nextNodesWithRefactors.map((node) => [node.id, node])
+      )
+      let nextEdges = [...currentGraph.edges]
+      parsed.value.connections.forEach((connection) => {
+        const source = nodeIdMap.get(connection.sourceNodeId)
+        const target = nodeIdMap.get(connection.targetNodeId)
+        if (!source || !target) {
+          return
+        }
+
+        const sourceNode = nextNodeById.get(source)
+        const targetNode = nextNodeById.get(target)
+        if (!sourceNode || !targetNode) {
+          return
+        }
+
+        nextEdges = addEdge(
+          {
+            source,
+            target,
+            sourceHandle: connection.sourceHandle ?? null,
+            targetHandle: connection.targetHandle ?? null,
+            data: {
+              sourceKind: sourceNode.data.kind,
+              targetKind: targetNode.data.kind,
+            },
+          },
+          nextEdges
+        ) as WorkflowEdge[]
+      })
+
+      commitGraphState(set, {
+        ...currentGraph,
+        nodes: [...currentGraph.nodes, ...nextNodesWithRefactors],
+        edges: nextEdges,
+      })
+      set({
+        selectedNodeIds: nextNodesWithRefactors.map((node) => node.id),
+        lastError: null,
+      })
+      return true
+    },
     undo: () => {
       set((state) => ({
         history: undoHistoryState(state.history),
@@ -1046,9 +1598,10 @@ export function createWorkflowStore(
   }))
 }
 
-const workflowStore = createContextStore<WorkflowStoreState, WorkflowStoreInitialProps>(
-  createWorkflowStore
-)
+const workflowStore = createContextStore<
+  WorkflowStoreState,
+  WorkflowStoreInitialProps
+>(createWorkflowStore)
 
 export const WorkflowStoreProvider = workflowStore.Provider
 export const useWorkflowStore = workflowStore.useStore

@@ -5,8 +5,10 @@ import { createWorkflowNode } from "./node-registry"
 import {
   domainToInternal,
   exportDomainJson,
+  exportSelectionClipboardJson,
   internalToDomain,
   parseInternalGraphJson,
+  parseSelectionClipboardJson,
 } from "./mappers"
 import type { DomainWorkflowDTO } from "./types"
 
@@ -106,5 +108,47 @@ describe("workflow mappers", () => {
 
     expect(restoredInlineNode?.data.kind).toBe("inlineExpression")
     expect(restoredInlineNode?.data.config.template).toBe("{{ $input.item.json.hostname }}")
+  })
+
+  it("exports and parses selection clipboard json with relative positions", () => {
+    const nodes = internalToDomain(initialWorkflowGraph).nodes.slice(0, 2)
+    const baseNodes = nodes.map((node, index) => ({
+      ...node,
+      position: {
+        x: 500 + index * 80,
+        y: 300 + index * 40,
+      },
+    }))
+    const raw = exportSelectionClipboardJson(baseNodes, [])
+    const parsed = parseSelectionClipboardJson(raw)
+
+    expect(parsed.success).toBe(true)
+    expect(parsed.value?.nodes[0]?.position).toEqual({ x: 0, y: 0 })
+    expect(parsed.value?.nodes[1]?.position).toEqual({ x: 80, y: 40 })
+  })
+
+  it("rejects selection clipboard json with external connections", () => {
+    const node = internalToDomain(initialWorkflowGraph).nodes[0]
+    if (!node) {
+      throw new Error("fixture node not found")
+    }
+
+    const payload = JSON.stringify({
+      kind: "workflow-selection-v1",
+      nodes: [node],
+      connections: [
+        {
+          id: "connection-1",
+          sourceNodeId: node.id,
+          targetNodeId: "missing-node",
+          sourceHandle: null,
+          targetHandle: null,
+        },
+      ],
+    })
+    const parsed = parseSelectionClipboardJson(payload)
+
+    expect(parsed.success).toBe(false)
+    expect(parsed.error).toContain("outside copied selection")
   })
 })

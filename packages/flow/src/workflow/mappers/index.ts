@@ -6,4 +6,10 @@ export {
   internalToDomain,
 } from "./converters"
 export { isValidDomainDto, parseInternalGraphJson, type ParseResult } from "./parser"
+export {
+  WORKFLOW_SELECTION_CLIPBOARD_KIND,
+  exportSelectionClipboardJson,
+  parseSelectionClipboardJson,
+  type WorkflowSelectionClipboardPayload,
+} from "./selection-clipboard"
 export { sanitizeConfigValue } from "./utils"

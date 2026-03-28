@@ -1,6 +1,10 @@
 "use client"
 
-import { autocompletion } from "@codemirror/autocomplete"
+import {
+  autocompletion,
+  type CompletionContext,
+  type CompletionResult,
+} from "@codemirror/autocomplete"
 import { javascript } from "@codemirror/lang-javascript"
 import type { EditorView, ViewUpdate } from "@codemirror/view"
 import {
@@ -11,14 +15,26 @@ import {
   CommandItem,
   CommandList,
 } from "@workspace/ui/components/command"
-import { Popover, PopoverAnchor, PopoverContent } from "@workspace/ui/components/popover"
+import {
+  Popover,
+  PopoverAnchor,
+  PopoverContent,
+} from "@workspace/ui/components/popover"
 import CodeMirror from "@uiw/react-codemirror"
 import { BracesIcon } from "lucide-react"
-import { useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 import { createExpressionCompletionSource } from "../expression/autocomplete"
-import { buildExpressionInsertion, validateTemplateExpression } from "../expression/template"
+import {
+  buildExpressionInsertion,
+  validateTemplateExpression,
+} from "../expression/template"
 import type { ExpressionVariableOption } from "../types"
+import { FieldError } from "@workspace/ui/components/field"
+
+type ExpressionCompletionSource = (
+  context: CompletionContext
+) => CompletionResult | null | Promise<CompletionResult | null>
 
 interface ExpressionInputProps {
   value: string
@@ -33,33 +49,65 @@ export function ExpressionInput({
   variables,
   onChange,
 }: ExpressionInputProps) {
-  const [editorView, setEditorView] = useState<EditorView | null>(null)
+  const editorViewRef = useRef<EditorView | null>(null)
+  const valueRef = useRef(value)
+  const variablesRef = useRef(variables)
+  const pickerOpenRef = useRef(false)
   const [pickerOpen, setPickerOpen] = useState(false)
-  const groupedVariables = useMemo(() => groupVariablesBySection(variables), [variables])
+  useEffect(() => {
+    valueRef.current = value
+  }, [value])
+  useEffect(() => {
+    variablesRef.current = variables
+  }, [variables])
+  useEffect(() => {
+    pickerOpenRef.current = pickerOpen
+  }, [pickerOpen])
+
+  const groupedVariables = useMemo(
+    () => groupVariablesBySection(variables),
+    [variables]
+  )
   const validation = useMemo(() => validateTemplateExpression(value), [value])
+  const completionSource = useCallback<ExpressionCompletionSource>((context) => {
+    return createExpressionCompletionSource(variablesRef.current)(context)
+  }, [])
   const extensions = useMemo(
     () => [
       javascript(),
       autocompletion({
-        override: [createExpressionCompletionSource(variables)],
+        override: [completionSource],
         icons: false,
         tooltipClass: () => "cm-shadcn-autocomplete",
       }),
     ],
-    [variables]
+    [completionSource]
+  )
+  const basicSetup = useMemo(
+    () => ({
+      foldGutter: false,
+      highlightActiveLine: false,
+      lineNumbers: false,
+    }),
+    []
   )
 
-  const insertVariable = (expressionValue: string) => {
+  const insertVariable = useCallback(
+    (expressionValue: string) => {
     const insertion = buildExpressionInsertion(expressionValue)
+    const editorView = editorViewRef.current
     if (!editorView) {
-      const endsWithWrappedPlaceholder = value.endsWith("{{}}")
-      const replaceTypedTrigger = value.endsWith("{{")
+      const currentValue = valueRef.current
+      const endsWithWrappedPlaceholder = currentValue.endsWith("{{}}")
+      const replaceTypedTrigger = currentValue.endsWith("{{")
       const nextValue = endsWithWrappedPlaceholder
-        ? `${value.slice(0, Math.max(0, value.length - 4))}${insertion}`
+        ? `${currentValue.slice(0, Math.max(0, currentValue.length - 4))}${insertion}`
         : replaceTypedTrigger
-          ? `${value.slice(0, Math.max(0, value.length - 2))}${insertion}`
-          : `${value}${insertion}`
-      onChange(nextValue)
+          ? `${currentValue.slice(0, Math.max(0, currentValue.length - 2))}${insertion}`
+          : `${currentValue}${insertion}`
+      if (nextValue !== currentValue) {
+        onChange(nextValue)
+      }
       setPickerOpen(false)
       return
     }
@@ -69,7 +117,8 @@ export function ExpressionInput({
     const hasTypedTrigger =
       selection.empty &&
       selection.from >= 2 &&
-      editorView.state.doc.sliceString(selection.from - 2, selection.from) === "{{"
+      editorView.state.doc.sliceString(selection.from - 2, selection.from) ===
+        "{{"
     const hasTypedClosingBraces =
       hasTypedTrigger &&
       editorView.state.doc.sliceString(selection.to, selection.to + 2) === "}}"
@@ -99,15 +148,25 @@ export function ExpressionInput({
         anchor: replaceFrom + insertion.length,
       },
     })
-    onChange(nextValue)
+    if (nextValue !== valueRef.current) {
+      onChange(nextValue)
+    }
     editorView.focus()
     setPickerOpen(false)
-  }
+    },
+    [onChange]
+  )
 
-  const handleChange = (nextValue: string, viewUpdate: ViewUpdate) => {
-    onChange(nextValue)
+  const handleCreateEditor = useCallback((nextEditorView: EditorView) => {
+    editorViewRef.current = nextEditorView
+  }, [])
 
-    if (pickerOpen) {
+  const handleChange = useCallback((nextValue: string, viewUpdate: ViewUpdate) => {
+    if (nextValue !== valueRef.current) {
+      onChange(nextValue)
+    }
+
+    if (pickerOpenRef.current) {
       return
     }
 
@@ -124,7 +183,7 @@ export function ExpressionInput({
     if (justTypedWrappedTrigger) {
       setPickerOpen(true)
     }
-  }
+  }, [onChange])
 
   return (
     <div className="space-y-1">
@@ -135,13 +194,9 @@ export function ExpressionInput({
               value={value}
               placeholder={placeholder}
               minHeight="110px"
-              basicSetup={{
-                foldGutter: false,
-                highlightActiveLine: false,
-                lineNumbers: false,
-              }}
+              basicSetup={basicSetup}
               extensions={extensions}
-              onCreateEditor={setEditorView}
+              onCreateEditor={handleCreateEditor}
               onChange={handleChange}
             />
           </div>
@@ -166,7 +221,9 @@ export function ExpressionInput({
                       onSelect={() => insertVariable(option.value)}
                     >
                       <div className="flex min-w-0 flex-col">
-                        <span className="truncate font-mono text-[11px]">{option.label}</span>
+                        <span className="truncate font-mono text-[11px]">
+                          {option.label}
+                        </span>
                         <span className="truncate text-[10px] text-muted-foreground">
                           {option.description}
                         </span>
@@ -180,15 +237,7 @@ export function ExpressionInput({
         </PopoverContent>
       </Popover>
 
-      {!validation.valid ? (
-        <div className="flex items-start gap-1 text-[11px] text-destructive">
-          <BracesIcon className="mt-0.5 size-3 shrink-0" />
-          <span>
-            {validation.errors[0]?.message}
-            {validation.errors.length > 1 ? ` (+${validation.errors.length - 1} more)` : ""}
-          </span>
-        </div>
-      ) : null}
+      {!validation.valid ? <FieldError errors={validation.errors} /> : null}
     </div>
   )
 }

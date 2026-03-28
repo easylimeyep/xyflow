@@ -1,4 +1,5 @@
 export type HistoryHotkeyAction = "undo" | "redo"
+export type ClipboardHotkeyAction = "copy" | "paste"
 
 export function getHistoryHotkeyAction(event: KeyboardEvent): HistoryHotkeyAction | null {
   if (event.defaultPrevented) {
@@ -42,6 +43,52 @@ export function createHistoryHotkeyHandler(
     } else {
       onRedo()
     }
+  }
+}
+
+export function getClipboardHotkeyAction(event: KeyboardEvent): ClipboardHotkeyAction | null {
+  if (event.defaultPrevented) {
+    return null
+  }
+
+  const hasModifier = event.metaKey || event.ctrlKey
+  if (!hasModifier) {
+    return null
+  }
+
+  if (isEditableEventTarget(event.target)) {
+    return null
+  }
+
+  const key = event.key.toLowerCase()
+  if (key === "c") {
+    return "copy"
+  }
+
+  if (key === "v") {
+    return "paste"
+  }
+
+  return null
+}
+
+export function createClipboardHotkeyHandler(
+  onCopy: () => void,
+  onPaste: () => void
+): (event: KeyboardEvent) => void {
+  return (event: KeyboardEvent) => {
+    const action = getClipboardHotkeyAction(event)
+    if (!action) {
+      return
+    }
+
+    event.preventDefault()
+    if (action === "copy") {
+      onCopy()
+      return
+    }
+
+    onPaste()
   }
 }
 

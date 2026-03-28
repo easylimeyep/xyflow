@@ -1,9 +1,13 @@
 "use client"
 
-import { useEffect, useMemo } from "react"
+import { useCallback, useEffect, useMemo } from "react"
 
 import { EditorToolbar } from "./editor-toolbar"
-import { createHistoryHotkeyHandler, isEscapeHotkey } from "./hotkeys"
+import {
+  createClipboardHotkeyHandler,
+  createHistoryHotkeyHandler,
+  isEscapeHotkey,
+} from "./hotkeys"
 import { NodeConfigPanel } from "./node-config-panel"
 import { NodePalette } from "./node-palette"
 import { WorkflowCanvas } from "./workflow-canvas"
@@ -38,16 +42,31 @@ function useCancelInsertHotkey(onCancelInsert: () => void): void {
   }, [onCancelInsert])
 }
 
+function useClipboardHotkeys(onCopy: () => Promise<boolean>, onPaste: () => Promise<boolean>): void {
+  useEffect(() => {
+    const handler = createClipboardHotkeyHandler(() => {
+      void onCopy()
+    }, () => {
+      void onPaste()
+    })
+    window.addEventListener("keydown", handler)
+    return () => window.removeEventListener("keydown", handler)
+  }, [onCopy, onPaste])
+}
+
 export function WorkflowEditor() {
-  const { undo, redo, cancelQuickAdd, cancelEdgeInsert } = useWorkflowShallowStore(
+  const { undo, redo, copySelectionToClipboard, pasteFromClipboard, cancelQuickAdd, cancelEdgeInsert } = useWorkflowShallowStore(
     (state: WorkflowStoreState) => ({
-    undo: state.undo,
-    redo: state.redo,
-    cancelQuickAdd: state.cancelQuickAdd,
+      undo: state.undo,
+      redo: state.redo,
+      copySelectionToClipboard: state.copySelectionToClipboard,
+      pasteFromClipboard: state.pasteFromClipboard,
+      cancelQuickAdd: state.cancelQuickAdd,
       cancelEdgeInsert: state.cancelEdgeInsert,
     })
   )
   useUndoRedoHotkeys(undo, redo)
+  useClipboardHotkeys(copySelectionToClipboard, pasteFromClipboard)
   useCancelInsertHotkey(() => {
     cancelQuickAdd()
     cancelEdgeInsert()
@@ -143,6 +162,7 @@ function CanvasContainer() {
     (state: WorkflowStoreState) => state.history.present.viewport,
     () => true
   )
+  const selectedNodeIds = useWorkflowStore((state: WorkflowStoreState) => state.selectedNodeIds)
   const {
     nodes,
     edges,
@@ -155,6 +175,7 @@ function CanvasContainer() {
     cancelQuickAdd,
     cancelEdgeInsert,
     startEdgeInsertFromEdge,
+    setLastPointerPosition,
     edgeInsertPending,
   } =
     useWorkflowShallowStore((state: WorkflowStoreState) => ({
@@ -169,12 +190,41 @@ function CanvasContainer() {
       cancelQuickAdd: state.cancelQuickAdd,
       cancelEdgeInsert: state.cancelEdgeInsert,
       startEdgeInsertFromEdge: state.startEdgeInsertFromEdge,
+      setLastPointerPosition: state.setLastPointerPosition,
       edgeInsertPending: state.edgeInsertPending,
     }))
+  const nodesWithSelection = useMemo(() => {
+    const selectedIdSet = new Set(selectedNodeIds)
+    let changed = false
+    const nextNodes = nodes.map((node) => {
+      const isSelected = selectedIdSet.has(node.id)
+      if (Boolean(node.selected) === isSelected) {
+        return node
+      }
+
+      changed = true
+      return {
+        ...node,
+        selected: isSelected,
+      }
+    })
+    return changed ? nextNodes : nodes
+  }, [nodes, selectedNodeIds])
+  const handlePaneClick = useCallback(() => {
+    setSelectedNodes([])
+    cancelQuickAdd()
+    cancelEdgeInsert()
+  }, [cancelEdgeInsert, cancelQuickAdd, setSelectedNodes])
+  const handleDeleteEdge = useCallback(
+    (edgeId: string) => {
+      onEdgesChange([{ id: edgeId, type: "remove" }])
+    },
+    [onEdgesChange]
+  )
 
   return (
     <WorkflowCanvas
-      nodes={nodes}
+      nodes={nodesWithSelection}
       edges={edges}
       viewport={initialViewport}
       onNodesChange={onNodesChange}
@@ -182,14 +232,11 @@ function CanvasContainer() {
       onConnect={onConnect}
       onViewportChange={setViewport}
       onSelectNodes={setSelectedNodes}
-      onPaneClick={() => {
-        setSelectedNodes([])
-        cancelQuickAdd()
-        cancelEdgeInsert()
-      }}
+      onPaneClick={handlePaneClick}
       onAddNodeAt={addNode}
       onStartInsertFromEdge={startEdgeInsertFromEdge}
-      onDeleteEdge={(edgeId) => onEdgesChange([{ id: edgeId, type: "remove" }])}
+      onDeleteEdge={handleDeleteEdge}
+      onPointerFlowPosition={setLastPointerPosition}
       edgeInsertPendingId={edgeInsertPending?.edgeId ?? null}
     />
   )

@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from "vitest"
 
-import { getHistoryHotkeyAction, isEscapeHotkey } from "./hotkeys"
+import { getClipboardHotkeyAction, getHistoryHotkeyAction, isEscapeHotkey } from "./hotkeys"
 
 function createKeyboardEvent(
   type: string,
@@ -102,5 +102,36 @@ describe("isEscapeHotkey", () => {
     textarea.dispatchEvent(event)
 
     expect(isEscapeHotkey(event)).toBe(false)
+  })
+})
+
+describe("getClipboardHotkeyAction", () => {
+  it("returns copy/paste for modified shortcuts", () => {
+    const copyEvent = createKeyboardEvent("keydown", {
+      key: "c",
+      ctrlKey: true,
+      bubbles: true,
+    })
+    expect(getClipboardHotkeyAction(copyEvent)).toBe("copy")
+
+    const pasteEvent = createKeyboardEvent("keydown", {
+      key: "v",
+      ctrlKey: true,
+      bubbles: true,
+    })
+    expect(getClipboardHotkeyAction(pasteEvent)).toBe("paste")
+  })
+
+  it("ignores clipboard shortcuts in editable targets", () => {
+    const input = document.createElement("input")
+    document.body.appendChild(input)
+    const event = createKeyboardEvent("keydown", {
+      key: "v",
+      ctrlKey: true,
+      bubbles: true,
+    })
+    input.dispatchEvent(event)
+
+    expect(getClipboardHotkeyAction(event)).toBeNull()
   })
 })

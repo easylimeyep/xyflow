@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@workspace/ui/components/select"
-import type { ChangeEvent } from "react"
+import { useCallback, type ChangeEvent } from "react"
 
 import { ExpressionInput } from "./expression-input"
 import { workflowNodeRegistry } from "../node-registry"
@@ -27,6 +27,40 @@ interface NodeConfigPanelProps {
   expressionVariables: ExpressionVariableOption[]
   onUpdateLabel: (nodeId: string, nextLabel: string) => void
   onUpdateConfigField: (nodeId: string, key: string, value: FieldValue) => void
+}
+
+interface ExpressionFieldInputProps {
+  value: string
+  placeholder?: string
+  variables: ExpressionVariableOption[]
+  nodeId: string
+  fieldKey: string
+  onUpdateConfigField: (nodeId: string, key: string, value: FieldValue) => void
+}
+
+function ExpressionFieldInput({
+  value,
+  placeholder,
+  variables,
+  nodeId,
+  fieldKey,
+  onUpdateConfigField,
+}: ExpressionFieldInputProps) {
+  const handleChange = useCallback(
+    (nextValue: string) => {
+      onUpdateConfigField(nodeId, fieldKey, nextValue)
+    },
+    [fieldKey, nodeId, onUpdateConfigField]
+  )
+
+  return (
+    <ExpressionInput
+      value={value}
+      placeholder={placeholder}
+      variables={variables}
+      onChange={handleChange}
+    />
+  )
 }
 
 function asFieldValue(
@@ -90,13 +124,13 @@ export function NodeConfigPanel({
               {field.label}
             </label>
             {isExpressionField ? (
-              <ExpressionInput
+              <ExpressionFieldInput
                 value={String(value)}
                 placeholder={field.placeholder}
                 variables={expressionVariables}
-                onChange={(nextValue) =>
-                  onUpdateConfigField(selectedNode.id, field.key, nextValue)
-                }
+                nodeId={selectedNode.id}
+                fieldKey={field.key}
+                onUpdateConfigField={onUpdateConfigField}
               />
             ) : null}
             {field.type === "text" && !isExpressionField ? (

@@ -55,10 +55,14 @@ vi.mock("./workflow-canvas", () => ({
     nodes,
     onSelectNodes,
     onViewportChange,
+    onPointerFlowPosition,
+    onPaneClick,
   }: {
     nodes: Array<{ id: string }>
     onSelectNodes: (nodeIds: string[]) => void
     onViewportChange: (viewport: { x: number; y: number; zoom: number }) => void
+    onPointerFlowPosition: (position: { x: number; y: number }) => void
+    onPaneClick: () => void
   }) => {
     canvasRenderSpy()
     return (
@@ -87,6 +91,15 @@ vi.mock("./workflow-canvas", () => ({
           onClick={() => onViewportChange({ x: 100, y: 50, zoom: 1.2 })}
         >
           canvas-update-viewport
+        </button>
+        <button
+          type="button"
+          onClick={() => onPointerFlowPosition({ x: 320, y: 240 })}
+        >
+          canvas-update-pointer
+        </button>
+        <button type="button" onClick={onPaneClick}>
+          canvas-pane-click
         </button>
       </div>
     )
@@ -184,6 +197,17 @@ describe("WorkflowEditor wiring", () => {
     expect(screen.getByTestId("selected-node-label").textContent).toBe("none")
   })
 
+  it("clears selection on pane click", async () => {
+    const user = userEvent.setup()
+    renderWithStore(<WorkflowEditor />)
+
+    await user.click(screen.getByRole("button", { name: "canvas-select-first" }))
+    expect(screen.getByTestId("selected-node-id").textContent).not.toBe("none")
+
+    await user.click(screen.getByRole("button", { name: "canvas-pane-click" }))
+    expect(screen.getByTestId("selected-node-id").textContent).toBe("none")
+  })
+
   it("updates selected node label through panel callback", async () => {
     const user = userEvent.setup()
     renderWithStore(<WorkflowEditor />)
@@ -230,4 +254,5 @@ describe("WorkflowEditor wiring", () => {
     expect(afterCount).toBe(beforeCount + 1)
     expect(screen.getByTestId("palette-quick-add-active").textContent).toBe("false")
   })
+
 })

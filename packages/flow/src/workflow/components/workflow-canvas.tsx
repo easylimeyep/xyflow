@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useMemo } from "react"
+import { useCallback, useLayoutEffect, useMemo, useRef } from "react"
 
 import {
   Background,
@@ -36,6 +36,7 @@ interface WorkflowCanvasProps {
   onAddNodeAt: (kind: NodeKind, position: XYPosition) => void
   onStartInsertFromEdge: (edgeId: string) => void
   onDeleteEdge: (edgeId: string) => void
+  onPointerFlowPosition: (position: XYPosition) => void
   edgeInsertPendingId: string | null
 }
 
@@ -52,9 +53,57 @@ function WorkflowCanvasInner({
   onAddNodeAt,
   onStartInsertFromEdge,
   onDeleteEdge,
+  onPointerFlowPosition,
   edgeInsertPendingId,
 }: WorkflowCanvasProps) {
   const reactFlow = useReactFlow<WorkflowNode, WorkflowEdge>()
+  const lastSelectionSignatureRef = useRef<string | null>(null)
+  const emitSelection = useCallback(
+    (nodeIds: string[]) => {
+      const nextSignature = [...nodeIds].sort().join("\u0000")
+      if (nextSignature === lastSelectionSignatureRef.current) {
+        return
+      }
+
+      lastSelectionSignatureRef.current = nextSignature
+      onSelectNodes(nodeIds)
+    },
+    [onSelectNodes]
+  )
+  const onReactFlowNodesChange = useCallback(
+    (changes: NodeChange<WorkflowNode>[]) => {
+      const nonSelectionChanges: NodeChange<WorkflowNode>[] = []
+      let nextSelectedNodeIdsSet: Set<string> | null = null
+
+      changes.forEach((change) => {
+        if (change.type !== "select") {
+          nonSelectionChanges.push(change)
+          return
+        }
+
+        if (!nextSelectedNodeIdsSet) {
+          nextSelectedNodeIdsSet = new Set(
+            nodes.filter((node) => Boolean(node.selected)).map((node) => node.id)
+          )
+        }
+
+        if (change.selected) {
+          nextSelectedNodeIdsSet.add(change.id)
+          return
+        }
+        nextSelectedNodeIdsSet.delete(change.id)
+      })
+
+      if (nextSelectedNodeIdsSet) {
+        emitSelection([...nextSelectedNodeIdsSet])
+      }
+
+      if (nonSelectionChanges.length > 0) {
+        onNodesChange(nonSelectionChanges)
+      }
+    },
+    [emitSelection, nodes, onNodesChange]
+  )
 
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault()
@@ -77,6 +126,27 @@ function WorkflowCanvasInner({
     },
     [onAddNodeAt, reactFlow]
   )
+  const onMouseMove = useCallback(
+    (event: React.MouseEvent) => {
+      onPointerFlowPosition(
+        reactFlow.screenToFlowPosition({
+          x: event.clientX,
+          y: event.clientY,
+        })
+      )
+    },
+    [onPointerFlowPosition, reactFlow]
+  )
+  const edgeInteractionRef = useRef({
+    onStartInsertFromEdge,
+    onDeleteEdge,
+    edgeInsertPendingId,
+  })
+  useLayoutEffect(() => {
+    edgeInteractionRef.current.onStartInsertFromEdge = onStartInsertFromEdge
+    edgeInteractionRef.current.onDeleteEdge = onDeleteEdge
+    edgeInteractionRef.current.edgeInsertPendingId = edgeInsertPendingId
+  }, [edgeInsertPendingId, onDeleteEdge, onStartInsertFromEdge])
   const edgesWithType = useMemo(
     () => edges.map((edge) => (edge.type ? edge : { ...edge, type: "workflow" })),
     [edges]
@@ -86,13 +156,13 @@ function WorkflowCanvasInner({
       workflow: (props: EdgeProps<WorkflowEdge>) => (
         <WorkflowEdgeComponent
           {...props}
-          onStartInsert={onStartInsertFromEdge}
-          onDeleteEdge={onDeleteEdge}
-          isInsertPending={props.id === edgeInsertPendingId}
+          onStartInsert={(edgeId) => edgeInteractionRef.current.onStartInsertFromEdge(edgeId)}
+          onDeleteEdge={(edgeId) => edgeInteractionRef.current.onDeleteEdge(edgeId)}
+          isInsertPending={props.id === edgeInteractionRef.current.edgeInsertPendingId}
         />
       ),
     }),
-    [edgeInsertPendingId, onDeleteEdge, onStartInsertFromEdge]
+    []
   )
 
   return (
@@ -104,7 +174,7 @@ function WorkflowCanvasInner({
       proOptions={{ hideAttribution: true }}
       defaultViewport={viewport}
       onMoveEnd={(_, nextViewport) => onViewportChange(nextViewport)}
-      onNodesChange={onNodesChange}
+      onNodesChange={onReactFlowNodesChange}
       onEdgesChange={onEdgesChange}
       onConnect={onConnect}
       selectionOnDrag
@@ -115,12 +185,10 @@ function WorkflowCanvasInner({
       isValidConnection={(connection) =>
         validateConnection(connection, nodes, edges).valid
       }
-      onSelectionChange={({ nodes: selectedNodes }) =>
-        onSelectNodes(selectedNodes.map((node) => node.id))
-      }
       onPaneClick={onPaneClick}
       onDragOver={onDragOver}
       onDrop={onDrop}
+      onMouseMove={onMouseMove}
     >
       <MiniMap />
       <Controls />
