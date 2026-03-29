@@ -1,15 +1,15 @@
 "use client"
 
 import type { NodeProps } from "@xyflow/react"
-import { useCallback, useMemo, useRef, useState } from "react"
+import { useCallback, useRef, useState } from "react"
 
 import { ExpressionInput } from "../../components/expression-input"
-import { buildExpressionVariableCatalog } from "../../expression/variables/variables"
 import {
+  selectExpressionVariablesForNode,
   useWorkflowShallowStore,
   useWorkflowStore,
   type WorkflowStoreState,
-} from "../../store/store"
+} from "../../store"
 import { NodeShell } from "../node-shell/node-shell"
 import { OutputQuickAddAffordance } from "../output-quick-add-affordance/output-quick-add-affordance"
 
@@ -37,11 +37,8 @@ export function InlineExpressionNode({ id, data, selected }: NodeProps) {
   const updateNodeConfigField = useWorkflowShallowStore(
     (state: WorkflowStoreState) => state.updateNodeConfigField
   )
-  const nodes = useWorkflowStore((state: WorkflowStoreState) => state.history.present.nodes)
-  const edges = useWorkflowStore((state: WorkflowStoreState) => state.history.present.edges)
-  const expressionVariables = useMemo(
-    () => buildExpressionVariableCatalog(nodes, edges, id),
-    [edges, id, nodes]
+  const expressionVariables = useWorkflowStore((state: WorkflowStoreState) =>
+    selectExpressionVariablesForNode(state, id)
   )
 
   const [draftTemplate, setDraftTemplate] = useState(templateFromStore)

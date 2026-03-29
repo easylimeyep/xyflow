@@ -2,13 +2,24 @@
 
 import { useCallback, useEffect, useMemo } from "react"
 
-import { buildExpressionVariableCatalog } from "../../expression/variables"
 import {
+  selectCanRedo,
+  selectCanUndo,
+  selectEdgeInsertPending,
+  selectExpressionVariablesForNode,
+  selectLastError,
+  selectNodeCount,
+  selectPresentEdges,
+  selectPresentNodes,
+  selectQuickAddPending,
+  selectSelectedNode,
+  selectSelectedNodeIds,
+  selectViewport,
   useWorkflowShallowStore,
   useWorkflowStore,
   type WorkflowStoreState,
 } from "../../store"
-import type { NodeKind, WorkflowNode } from "../../types"
+import type { NodeKind } from "../../types"
 import { EditorToolbar } from "../editor-toolbar"
 import {
   createClipboardHotkeyHandler,
@@ -100,7 +111,8 @@ export function WorkflowEditor() {
 
 function ToolbarContainer() {
   const {
-    history,
+    canUndo,
+    canRedo,
     lastError,
     setLastError,
     undo,
@@ -109,8 +121,9 @@ function ToolbarContainer() {
     exportDomain,
     importFromJson,
   } = useWorkflowShallowStore((state: WorkflowStoreState) => ({
-    history: state.history,
-    lastError: state.lastError,
+    canUndo: selectCanUndo(state),
+    canRedo: selectCanRedo(state),
+    lastError: selectLastError(state),
     setLastError: state.setLastError,
     undo: state.undo,
     redo: state.redo,
@@ -121,8 +134,8 @@ function ToolbarContainer() {
 
   return (
     <EditorToolbar
-      canUndo={history.past.length > 0}
-      canRedo={history.future.length > 0}
+      canUndo={canUndo}
+      canRedo={canRedo}
       lastError={lastError}
       onUndo={undo}
       onRedo={redo}
@@ -135,15 +148,9 @@ function ToolbarContainer() {
 }
 
 function PaletteContainer() {
-  const nodeCount = useWorkflowStore(
-    (state: WorkflowStoreState) => state.history.present.nodes.length
-  )
-  const quickAddPending = useWorkflowStore(
-    (state: WorkflowStoreState) => state.quickAddPending
-  )
-  const edgeInsertPending = useWorkflowStore(
-    (state: WorkflowStoreState) => state.edgeInsertPending
-  )
+  const nodeCount = useWorkflowStore(selectNodeCount)
+  const quickAddPending = useWorkflowStore(selectQuickAddPending)
+  const edgeInsertPending = useWorkflowStore(selectEdgeInsertPending)
   const { addNode, confirmQuickAddNode, confirmEdgeInsertNode } =
     useWorkflowShallowStore((state: WorkflowStoreState) => ({
       addNode: state.addNode,
@@ -174,13 +181,8 @@ function PaletteContainer() {
 }
 
 function CanvasContainer() {
-  const initialViewport = useWorkflowStore(
-    (state: WorkflowStoreState) => state.history.present.viewport,
-    () => true
-  )
-  const selectedNodeIds = useWorkflowStore(
-    (state: WorkflowStoreState) => state.selectedNodeIds
-  )
+  const initialViewport = useWorkflowStore(selectViewport, () => true)
+  const selectedNodeIds = useWorkflowStore(selectSelectedNodeIds)
   const {
     nodes,
     edges,
@@ -196,8 +198,8 @@ function CanvasContainer() {
     setLastPointerPosition,
     edgeInsertPending,
   } = useWorkflowShallowStore((state: WorkflowStoreState) => ({
-    nodes: state.history.present.nodes,
-    edges: state.history.present.edges,
+    nodes: selectPresentNodes(state),
+    edges: selectPresentEdges(state),
     onNodesChange: state.onNodesChange,
     onEdgesChange: state.onEdgesChange,
     onConnect: state.onConnect,
@@ -260,32 +262,15 @@ function CanvasContainer() {
 }
 
 function ConfigPanelContainer() {
-  const nodes = useWorkflowStore(
-    (state: WorkflowStoreState) => state.history.present.nodes
-  )
-  const edges = useWorkflowStore(
-    (state: WorkflowStoreState) => state.history.present.edges
-  )
-  const selectedNodeIds = useWorkflowStore(
-    (state: WorkflowStoreState) => state.selectedNodeIds
+  const selectedNode = useWorkflowStore(selectSelectedNode)
+  const expressionVariables = useWorkflowStore((state: WorkflowStoreState) =>
+    selectExpressionVariablesForNode(state, selectedNode?.id ?? null)
   )
   const { updateNodeLabel, updateNodeConfigField } = useWorkflowShallowStore(
     (state: WorkflowStoreState) => ({
       updateNodeLabel: state.updateNodeLabel,
       updateNodeConfigField: state.updateNodeConfigField,
     })
-  )
-  const selectedNodeId =
-    selectedNodeIds.length === 1 ? (selectedNodeIds[0] ?? null) : null
-
-  const selectedNode = useMemo(
-    () =>
-      nodes.find((node: WorkflowNode) => node.id === selectedNodeId) ?? null,
-    [nodes, selectedNodeId]
-  )
-  const expressionVariables = useMemo(
-    () => buildExpressionVariableCatalog(nodes, edges, selectedNodeId),
-    [edges, nodes, selectedNodeId]
   )
 
   return (

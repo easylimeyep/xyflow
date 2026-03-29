@@ -3,7 +3,12 @@
 import { Handle, Position } from "@xyflow/react"
 import { ArrowRight, Plus } from "lucide-react"
 
-import { useWorkflowStore, type WorkflowStoreState } from "../../store/store"
+import {
+  selectPresentEdges,
+  selectQuickAddPending,
+  useWorkflowStore,
+  type WorkflowStoreState,
+} from "../../store"
 
 interface OutputQuickAddAffordanceProps {
   nodeId: string
@@ -25,15 +30,16 @@ export function OutputQuickAddAffordance({
     (state: WorkflowStoreState) => state.startQuickAddFromOutput
   )
   const hasOutgoing = useWorkflowStore((state: WorkflowStoreState) =>
-    state.history.present.edges.some(
+    selectPresentEdges(state).some(
       (edge) =>
         edge.source === nodeId && (edge.sourceHandle ?? null) === (normalizedHandle ?? null)
     )
   )
   const isPending = useWorkflowStore((state: WorkflowStoreState) => {
+    const pending = selectQuickAddPending(state)
     return (
-      state.quickAddPending?.sourceNodeId === nodeId &&
-      (state.quickAddPending.sourceHandle ?? null) === (normalizedHandle ?? null)
+      pending?.sourceNodeId === nodeId &&
+      (pending.sourceHandle ?? null) === (normalizedHandle ?? null)
     )
   })
 

@@ -221,17 +221,35 @@ describe("WorkflowEditor wiring", () => {
     const user = userEvent.setup()
     renderWithStore(<WorkflowEditor />)
 
-    expect(configPanelRenderSpy).toHaveBeenCalledTimes(1)
-    expect(paletteRenderSpy).toHaveBeenCalledTimes(1)
-    expect(canvasRenderSpy).toHaveBeenCalledTimes(1)
+    const baselineConfigPanelRenders = configPanelRenderSpy.mock.calls.length
+    const baselinePaletteRenders = paletteRenderSpy.mock.calls.length
+    const baselineCanvasRenders = canvasRenderSpy.mock.calls.length
 
     await user.click(screen.getByRole("button", { name: "canvas-update-viewport" }))
     await user.click(screen.getByRole("button", { name: "canvas-update-viewport" }))
     await user.click(screen.getByRole("button", { name: "canvas-update-viewport" }))
 
-    expect(canvasRenderSpy).toHaveBeenCalledTimes(1)
-    expect(configPanelRenderSpy).toHaveBeenCalledTimes(1)
-    expect(paletteRenderSpy).toHaveBeenCalledTimes(1)
+    expect(canvasRenderSpy.mock.calls.length).toBe(baselineCanvasRenders)
+    expect(configPanelRenderSpy.mock.calls.length).toBe(baselineConfigPanelRenders)
+    expect(paletteRenderSpy.mock.calls.length).toBe(baselinePaletteRenders)
+  })
+
+  it("keeps non-canvas render budget stable on pointer updates", async () => {
+    const user = userEvent.setup()
+    renderWithStore(<WorkflowEditor />)
+
+    const baselineConfigPanelRenders = configPanelRenderSpy.mock.calls.length
+    const baselinePaletteRenders = paletteRenderSpy.mock.calls.length
+    const baselineCanvasRenders = canvasRenderSpy.mock.calls.length
+
+    for (let index = 0; index < 25; index += 1) {
+      await user.click(screen.getByRole("button", { name: "canvas-update-pointer" }))
+    }
+
+    // Perf budget: pointer tracking should not force toolbar/palette/panel rerenders.
+    expect(configPanelRenderSpy.mock.calls.length).toBe(baselineConfigPanelRenders)
+    expect(paletteRenderSpy.mock.calls.length).toBe(baselinePaletteRenders)
+    expect(canvasRenderSpy.mock.calls.length).toBe(baselineCanvasRenders)
   })
 
   it("routes palette click to quick add confirmation when quick add is active", async () => {

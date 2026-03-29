@@ -13,7 +13,7 @@ import { useEffect, useRef, useState } from "react"
 
 import { WORKFLOW_NODE_KIND_MIME } from "../../dnd"
 import { workflowNodeRegistry } from "../../node-registry"
-import type { NodeKind } from "../../types"
+import { WORKFLOW_NODE_KINDS, type NodeKind } from "../../types"
 
 interface NodePaletteProps {
   onAddNode: (kind: NodeKind) => void
@@ -30,15 +30,9 @@ const iconByNodeKind: Record<NodeKind, LucideIcon> = {
   inlineExpression: Braces,
 }
 
-const entries: Array<(typeof workflowNodeRegistry)[NodeKind]> = [
-  workflowNodeRegistry.trigger,
-  workflowNodeRegistry.branch,
-  workflowNodeRegistry.transform,
-  workflowNodeRegistry.code,
-  workflowNodeRegistry.customInput,
-  workflowNodeRegistry.setVariable,
-  workflowNodeRegistry.inlineExpression,
-]
+const entries: Array<(typeof workflowNodeRegistry)[NodeKind]> = WORKFLOW_NODE_KINDS.map(
+  (kind) => workflowNodeRegistry[kind]
+)
 
 export function NodePalette({
   onAddNode,

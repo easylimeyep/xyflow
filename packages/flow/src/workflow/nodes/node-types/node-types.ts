@@ -7,8 +7,9 @@ import { InlineExpressionNode } from "../inline-expression-node/inline-expressio
 import { SetVariableNode } from "../set-variable-node/set-variable-node"
 import { TransformNode } from "../transform-node/transform-node"
 import { TriggerNode } from "../trigger-node/trigger-node"
+import type { NodeKind } from "../../types/types"
 
-export const workflowNodeTypes: NodeTypes = {
+const workflowNodeComponents: Record<NodeKind, NodeTypes[string]> = {
   trigger: TriggerNode,
   branch: BranchNode,
   transform: TransformNode,
@@ -17,3 +18,5 @@ export const workflowNodeTypes: NodeTypes = {
   setVariable: SetVariableNode,
   inlineExpression: InlineExpressionNode,
 }
+
+export const workflowNodeTypes: NodeTypes = workflowNodeComponents

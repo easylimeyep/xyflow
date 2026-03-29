@@ -137,6 +137,71 @@ describe("workflow store clipboard actions", () => {
     expect(store.getState().lastError).toContain("workflow selection schema")
   })
 
+  it("returns false when clipboard write fails", async () => {
+    const store = createWorkflowStore()
+    const triggerNode = store
+      .getState()
+      .history.present.nodes.find((node: WorkflowNode) => node.data.kind === "trigger")
+    if (!triggerNode) {
+      throw new Error("fixture node not found")
+    }
+
+    store.getState().setSelectedNodes([triggerNode.id])
+    clipboardWriteTextMock.mockRejectedValueOnce(new Error("write failed"))
+
+    const copied = await store.getState().copySelectionToClipboard()
+
+    expect(copied).toBe(false)
+    expect(store.getState().lastError).toContain("Failed to copy")
+  })
+
+  it("handles concurrent paste calls without throwing and keeps graph consistent", async () => {
+    const store = createWorkflowStore()
+    const payloadNodes: DomainWorkflowNodeDTO[] = [
+      {
+        id: "parallel-copy-set-variable",
+        kind: "setVariable",
+        position: { x: 10, y: 20 },
+        label: "Set Variable",
+        config: {
+          variableName: "myVar",
+          valueExpression: "{{ $input.item.json }}",
+        },
+      },
+      {
+        id: "parallel-copy-code",
+        kind: "code",
+        position: { x: 200, y: 20 },
+        label: "Code",
+        config: {
+          runtime: "js",
+          code: "return { ok: true }",
+        },
+      },
+    ]
+    const payload = exportSelectionClipboardJson(payloadNodes, [
+      {
+        id: "parallel-connection",
+        sourceNodeId: "parallel-copy-set-variable",
+        targetNodeId: "parallel-copy-code",
+        sourceHandle: null,
+        targetHandle: null,
+      },
+    ])
+    clipboardReadTextMock.mockResolvedValue(payload)
+    const beforeNodeCount = store.getState().history.present.nodes.length
+
+    const [firstPasteResult, secondPasteResult] = await Promise.all([
+      store.getState().pasteFromClipboard(),
+      store.getState().pasteFromClipboard(),
+    ])
+
+    expect(firstPasteResult).toBe(true)
+    expect(secondPasteResult).toBe(true)
+    expect(store.getState().history.present.nodes.length).toBe(beforeNodeCount + 4)
+    expect(store.getState().lastError).toBeNull()
+  })
+
   it("does not commit graph for unchanged config updates", () => {
     const store = createWorkflowStore()
     const initialState = store.getState()
@@ -148,8 +213,11 @@ describe("workflow store clipboard actions", () => {
     const previousHistory = initialState.history
     const previousNodesRef = initialState.history.present.nodes
     const previousNode = node
-    const sameName = node.data.config.name
-    store.getState().updateNodeConfigField(node.id, "name", sameName)
+    const sameEventName =
+      typeof node.data.config.eventName === "string"
+        ? node.data.config.eventName
+        : ""
+    store.getState().updateNodeConfigField(node.id, "eventName", sameEventName)
 
     const nextState = store.getState()
     expect(nextState.history).toBe(previousHistory)
