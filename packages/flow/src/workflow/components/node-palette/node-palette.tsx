@@ -3,15 +3,14 @@
 import { useEffect, useRef, useState } from "react"
 
 import { WORKFLOW_NODE_KIND_MIME } from "../../dnd"
-import { workflowNodeRegistry } from "../../node-registry/node-ui-metadata"
-import { WORKFLOW_NODE_KINDS, type NodeKind } from "../../types"
+import { nodeRegistry, WORKFLOW_NODE_KINDS, type NodeKind } from "../../node-registry/registry"
 
 interface NodePaletteProps {
   onAddNode: (kind: NodeKind) => void
   quickAddActive?: boolean
 }
 
-const entries = WORKFLOW_NODE_KINDS.map((kind) => workflowNodeRegistry[kind])
+const entries = WORKFLOW_NODE_KINDS.map((kind) => nodeRegistry[kind])
 
 export function NodePalette({
   onAddNode,
@@ -71,7 +70,7 @@ export function NodePalette({
                 type="button"
                 aria-label={`Add ${definition.title} node`}
                 className="align-center flex w-full gap-2"
-                onClick={() => onAddNode(definition.kind)}
+                onClick={() => onAddNode(definition.kind as NodeKind)}
               >
                 <div className="flex items-center justify-center">
                   <Icon className="size-4 text-muted-foreground" />

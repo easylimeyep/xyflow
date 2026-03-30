@@ -1,8 +1,8 @@
 import { normalizeNodeConfig } from "../node-registry/node-config-normalization"
+import type { NodeKind } from "../node-registry/registry"
 import type {
   DomainWorkflowConnectionDTO,
   DomainWorkflowNodeDTO,
-  NodeKind,
   WorkflowEdge,
   WorkflowNode,
 } from "../types/types"
@@ -14,7 +14,7 @@ export function asDomainNodeDTO(node: WorkflowNode): DomainWorkflowNodeDTO {
     kind: node.data.kind,
     position: { ...node.position },
     label: node.data.label,
-    config: normalizeNodeConfig(node.data.kind, node.data.config),
+    config: normalizeNodeConfig(node.data.kind as NodeKind, node.data.config),
   }
 }
 
@@ -32,8 +32,8 @@ export function asDomainConnectionDTO(
 
 export function toEdgeConnectionWithKind(
   connection: ConnectionLike,
-  sourceKind: NodeKind,
-  targetKind: NodeKind
+  sourceKind: string,
+  targetKind: string
 ) {
   return {
     ...connection,

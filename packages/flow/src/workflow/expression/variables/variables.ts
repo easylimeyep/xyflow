@@ -1,4 +1,4 @@
-import { getNodeDefinition } from "../../node-registry/node-ui-metadata"
+import { getNodeDefinition, type NodeKind } from "../../node-registry/registry"
 import { getBuiltinExpressionVariables } from "../builtins/builtins"
 import { isValidJsIdentifier } from "../variable-name/variable-name"
 import type { ExpressionVariableOption, WorkflowEdge, WorkflowNode } from "../../types/types"
@@ -17,7 +17,7 @@ export function buildExpressionVariableCatalog(
   const upstreamNodes = getReachableUpstreamNodes(nodes, edges, selectedNodeId)
   upstreamNodes.forEach((node) => {
     const nodeReference = buildNodeReference(node.id)
-    const definition = getNodeDefinition(node.data.kind)
+    const definition = getNodeDefinition(node.data.kind as NodeKind)
     const group = `Upstream: ${node.data.label}`
     options.push({
       group,

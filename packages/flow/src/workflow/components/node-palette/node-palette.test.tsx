@@ -3,8 +3,7 @@
 import { fireEvent, render, screen } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
 
-import { workflowNodeRegistry } from "../../node-registry"
-import { WORKFLOW_NODE_KINDS } from "../../types"
+import { nodeRegistry, WORKFLOW_NODE_KINDS } from "../../node-registry/registry"
 import { NodePalette } from "./node-palette"
 
 describe("NodePalette", () => {
@@ -12,7 +11,7 @@ describe("NodePalette", () => {
     render(<NodePalette onAddNode={vi.fn()} />)
 
     WORKFLOW_NODE_KINDS.forEach((kind) => {
-      expect(screen.getByText(workflowNodeRegistry[kind].title)).toBeTruthy()
+      expect(screen.getByText(nodeRegistry[kind].title)).toBeTruthy()
     })
   })
 

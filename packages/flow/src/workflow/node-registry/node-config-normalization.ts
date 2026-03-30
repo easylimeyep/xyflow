@@ -1,21 +1,16 @@
-import type {
-  JsonObject,
-  NodeConfigByKind,
-  NodeFieldSchema,
-  NodeKind,
-} from "../types/types"
-import { workflowNodeRegistry } from "./node-definitions"
+import type { JsonObject, NodeFieldSchema } from "../types/types"
+import { nodeRegistry, type NodeKind } from "./registry"
 
-export function normalizeNodeConfig<K extends NodeKind>(
-  kind: K,
-  partialConfig: Partial<NodeConfigByKind[K]>
-): NodeConfigByKind[K] {
-  const definition = workflowNodeRegistry[kind]
+export function normalizeNodeConfig(
+  kind: NodeKind,
+  partialConfig: Record<string, unknown>
+): JsonObject {
+  const definition = nodeRegistry[kind]
   if (!definition) {
     throw new Error(`Unknown node kind: ${kind}`)
   }
   const baseConfig = definition.buildDefaultConfig()
-  const result = { ...baseConfig } as Record<string, unknown>
+  const result: Record<string, unknown> = { ...baseConfig }
   const rawConfig = partialConfig as Record<string, unknown>
 
   definition.fields.forEach((field) => {
@@ -27,7 +22,7 @@ export function normalizeNodeConfig<K extends NodeKind>(
     result[field.key] = coerceFieldValue(field, rawValue, result[field.key])
   })
 
-  return result as NodeConfigByKind[K]
+  return result as JsonObject
 }
 
 function coerceFieldValue(

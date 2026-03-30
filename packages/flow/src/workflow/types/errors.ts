@@ -14,6 +14,7 @@ export type WorkflowErrorCode =
   | "QUICK_ADD_FAILED"
   | "KIND_RESOLUTION_FAILED"
   | "OUTGOING_CONNECTION_EXISTS"
+  | "INVALID_NODE_CONFIG_KIND"
 
 export interface WorkflowError {
   code: WorkflowErrorCode

@@ -22,7 +22,7 @@ export interface FieldRendererProps {
   field: NodeFieldSchema
   value: FieldValue
   nodeId: string
-  nodeKind: NodeConfigUpdate["kind"]
+  nodeKind: string
   expressionVariables: ExpressionVariableOption[]
   onUpdateConfigField: (nodeId: string, update: NodeConfigUpdate) => void
   fieldId?: string
@@ -42,7 +42,7 @@ function ExpressionFieldRenderer({
         kind: nodeKind,
         key: field.key,
         value: nextValue,
-      } as NodeConfigUpdate)
+      })
     },
     [field.key, nodeId, nodeKind, onUpdateConfigField]
   )
@@ -68,7 +68,7 @@ function TextFieldRenderer({ field, value, nodeId, nodeKind, onUpdateConfigField
           kind: nodeKind,
           key: field.key,
           value: event.target.value,
-        } as NodeConfigUpdate)
+        })
       }
     />
   )
@@ -85,7 +85,7 @@ function TextareaFieldRenderer({ field, value, nodeId, nodeKind, onUpdateConfigF
           kind: nodeKind,
           key: field.key,
           value: event.target.value,
-        } as NodeConfigUpdate)
+        })
       }
     />
   )
@@ -102,7 +102,7 @@ function NumberFieldRenderer({ field, value, nodeId, nodeKind, onUpdateConfigFie
           kind: nodeKind,
           key: field.key,
           value: Number(event.target.value) || 0,
-        } as NodeConfigUpdate)
+        })
       }
     />
   )
@@ -120,7 +120,7 @@ function BooleanFieldRenderer({ field, value, nodeId, nodeKind, onUpdateConfigFi
             kind: nodeKind,
             key: field.key,
             value: event.target.checked,
-          } as NodeConfigUpdate)
+          })
         }
       />
       Enabled
@@ -137,7 +137,7 @@ function SelectFieldRenderer({ field, value, nodeId, nodeKind, onUpdateConfigFie
           kind: nodeKind,
           key: field.key,
           value: nextValue,
-        } as NodeConfigUpdate)
+        })
       }
     >
       <SelectTrigger className="w-full">

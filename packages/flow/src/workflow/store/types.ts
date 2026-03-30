@@ -4,7 +4,6 @@ import type { HistoryState } from "@workspace/store"
 
 import type { WorkflowError } from "../types/errors"
 import type {
-  NodeConfigByKind,
   NodeKind,
   WorkflowEdge,
   WorkflowGraphState,
@@ -19,6 +18,12 @@ export interface PendingQuickAdd {
 
 export interface PendingEdgeInsert {
   edgeId: string
+}
+
+export interface NodeConfigUpdate {
+  kind: string
+  key: string
+  value: unknown
 }
 
 export interface WorkflowStoreQueries {
@@ -39,18 +44,6 @@ export interface WorkflowStoreGraphCommands {
   onConnect: (connection: ConnectionLike) => void
   setViewport: (viewport: Viewport) => void
 }
-
-type NodeConfigUpdateByKind<K extends NodeKind> = {
-  [P in keyof NodeConfigByKind[K]]: {
-    kind: K
-    key: P
-    value: NodeConfigByKind[K][P]
-  }
-}[keyof NodeConfigByKind[K]]
-
-export type NodeConfigUpdate = {
-  [K in NodeKind]: NodeConfigUpdateByKind<K>
-}[NodeKind]
 
 export interface WorkflowStoreUICommands {
   setLastError: (error: WorkflowError | null) => void

@@ -1,5 +1,5 @@
-import { getNodeDefinition } from "../../node-registry/node-ui-metadata"
-import type { NodeKind, WorkflowNode } from "../../types/types"
+import { getNodeDefinition, type NodeKind } from "../../node-registry/registry"
+import type { WorkflowNode } from "../../types/types"
 import { buildNodeReference } from "../variables/variables"
 
 interface VariableRenameContext {
@@ -13,7 +13,7 @@ export function refactorVariableReferencesInGraph(
   context: VariableRenameContext
 ): WorkflowNode[] {
   return nodes.map((node) => {
-    const expressionKeys = getExpressionConfigKeys(node.data.kind)
+    const expressionKeys = getExpressionConfigKeys(node.data.kind as NodeKind)
     if (expressionKeys.length === 0) {
       return node
     }

@@ -1,7 +1,7 @@
 import { refactorVariableReferencesInGraph } from "../expression/refactor/refactor"
 import { isValidJsIdentifier } from "../expression/variable-name/variable-name"
 import { createWorkflowError, type WorkflowError } from "../types/errors"
-import type { WorkflowGraphState, WorkflowNode } from "../types/types"
+import type { JsonObject, WorkflowGraphState, WorkflowNode } from "../types/types"
 import type { NodeConfigUpdate } from "./types"
 
 interface NodeConfigUpdateResult {
@@ -51,7 +51,7 @@ export function applyNodeConfigUpdate(
         config: {
           ...node.data.config,
           [update.key]: update.value,
-        },
+        } as JsonObject,
       },
     }
   })

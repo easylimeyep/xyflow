@@ -1,5 +1,6 @@
 import { normalizeNodeConfig } from "../../node-registry/node-config-normalization"
 import { createWorkflowNode } from "../../node-registry/node-factory"
+import type { NodeKind } from "../../node-registry/registry"
 import type {
   DomainWorkflowConnectionDTO,
   DomainWorkflowDTO,
@@ -20,7 +21,7 @@ export function internalToDomain(
     kind: node.data.kind,
     position: node.position,
     label: node.data.label,
-    config: normalizeNodeConfig(node.data.kind, toJsonConfig(node.data.config)),
+    config: normalizeNodeConfig(node.data.kind as NodeKind, toJsonConfig(node.data.config)),
   }))
 
   const connections: DomainWorkflowConnectionDTO[] = graph.edges.map((edge) => ({
@@ -44,12 +45,12 @@ export function internalToDomain(
 
 export function domainToInternal(dto: DomainWorkflowDTO): WorkflowGraphState {
   const nodes: WorkflowNode[] = dto.nodes.map((nodeDto: DomainWorkflowNodeDTO) => {
-    const baseNode = createWorkflowNode(nodeDto.kind, nodeDto.position, nodeDto.label)
+    const baseNode = createWorkflowNode(nodeDto.kind as NodeKind, nodeDto.position, nodeDto.label)
     baseNode.id = nodeDto.id
     baseNode.data = {
       kind: nodeDto.kind,
       label: nodeDto.label,
-      config: normalizeNodeConfig(nodeDto.kind, nodeDto.config),
+      config: normalizeNodeConfig(nodeDto.kind as NodeKind, nodeDto.config),
     }
 
     return baseNode

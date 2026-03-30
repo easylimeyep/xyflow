@@ -1,32 +1,12 @@
 import type { Edge, Node, Viewport, XYPosition } from "@xyflow/react"
 
+export type { NodeKind } from "../node-registry/registry"
+export { WORKFLOW_NODE_KINDS, isNodeKind } from "../node-registry/registry"
+
 export type JsonPrimitive = string | number | boolean | null
 export type JsonValue = JsonPrimitive | JsonObject | JsonArray
 export type JsonObject = { [key: string]: JsonValue }
 export type JsonArray = JsonValue[]
-
-export type NodeKind =
-  | "trigger"
-  | "branch"
-  | "transform"
-  | "code"
-  | "customInput"
-  | "setVariable"
-  | "inlineExpression"
-
-export const WORKFLOW_NODE_KINDS: NodeKind[] = [
-  "trigger",
-  "branch",
-  "transform",
-  "code",
-  "customInput",
-  "setVariable",
-  "inlineExpression",
-]
-
-export function isNodeKind(value: unknown): value is NodeKind {
-  return typeof value === "string" && WORKFLOW_NODE_KINDS.includes(value as NodeKind)
-}
 
 export type FieldType = "text" | "textarea" | "number" | "boolean" | "select"
 export type FieldUi = "default" | "expression"
@@ -96,23 +76,21 @@ export interface NodeConfigByKind {
   inlineExpression: InlineExpressionNodeConfig
 }
 
-export type NodeConfig<K extends NodeKind> = NodeConfigByKind[K]
-
-export interface BaseWorkflowNodeData<K extends NodeKind> {
+export interface BaseWorkflowNodeData {
   [key: string]: unknown
-  kind: K
+  kind: string
   label: string
   config: JsonObject
 }
 
-export type WorkflowNodeData = BaseWorkflowNodeData<NodeKind>
+export type WorkflowNodeData = BaseWorkflowNodeData
 
 export type WorkflowNode = Node<WorkflowNodeData>
 
 export interface WorkflowEdgeData {
   [key: string]: unknown
-  sourceKind: NodeKind
-  targetKind: NodeKind
+  sourceKind: string
+  targetKind: string
 }
 
 export type WorkflowEdge = Edge<WorkflowEdgeData>
@@ -131,7 +109,7 @@ export interface WorkflowGraphState {
 
 export interface DomainWorkflowNodeDTO {
   id: string
-  kind: NodeKind
+  kind: string
   position: XYPosition
   label: string
   config: JsonObject

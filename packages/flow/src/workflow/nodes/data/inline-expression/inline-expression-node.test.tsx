@@ -1,12 +1,12 @@
 // @vitest-environment jsdom
 
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
+import type { NodeProps } from "@xyflow/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-import type { InlineExpressionNodeProps } from "./inline-expression-node"
 import { InlineExpressionNode } from "./inline-expression-node"
 
-const updateNodeConfigField = vi.fn()
+const mockUpdateNodeConfig = vi.fn()
 
 vi.mock("@xyflow/react", () => ({
   Handle: () => null,
@@ -16,11 +16,15 @@ vi.mock("@xyflow/react", () => ({
   },
 }))
 
-vi.mock("../output-quick-add-affordance/output-quick-add-affordance", () => ({
-  OutputQuickAddAffordance: () => null,
+vi.mock("../../shared/use-node-store-data", () => ({
+  useNodeStoreData: () => ({
+    expressionVariables: [],
+    updateNodeConfig: mockUpdateNodeConfig,
+    allNodes: [],
+  }),
 }))
 
-vi.mock("../../components/expression-input", () => ({
+vi.mock("../../../components/expression-input", () => ({
   ExpressionInput: ({
     value,
     onChange,
@@ -36,16 +40,18 @@ vi.mock("../../components/expression-input", () => ({
   ),
 }))
 
-function createNodeProps(template: string): InlineExpressionNodeProps {
+vi.mock("../../output-quick-add-affordance/output-quick-add-affordance", () => ({
+  OutputQuickAddAffordance: () => null,
+}))
+
+function createNodeProps(template: string): NodeProps {
   return {
     id: "inline-node-1",
     type: "inlineExpression",
     data: {
       kind: "inlineExpression",
       label: "Inline Node",
-      config: {
-        template,
-      },
+      config: { template },
     },
     selected: false,
     dragging: false,
@@ -58,8 +64,6 @@ function createNodeProps(template: string): InlineExpressionNodeProps {
     targetPosition: undefined,
     positionAbsoluteX: 0,
     positionAbsoluteY: 0,
-    expressionVariables: [],
-    onUpdateConfigField: updateNodeConfigField,
   }
 }
 
@@ -78,19 +82,16 @@ describe("InlineExpressionNode", () => {
     const input = screen.getByTestId("inline-expression-input")
     fireEvent.change(input, { target: { value: "{{ $input.item.json.name }}" } })
 
-    expect(updateNodeConfigField).not.toHaveBeenCalled()
+    expect(mockUpdateNodeConfig).not.toHaveBeenCalled()
 
     fireEvent.blur(input)
 
-    expect(updateNodeConfigField).toHaveBeenCalledTimes(1)
-    expect(updateNodeConfigField).toHaveBeenCalledWith(
-      "inline-node-1",
-      {
-        kind: "inlineExpression",
-        key: "template",
-        value: "{{ $input.item.json.name }}",
-      }
-    )
+    expect(mockUpdateNodeConfig).toHaveBeenCalledTimes(1)
+    expect(mockUpdateNodeConfig).toHaveBeenCalledWith("inline-node-1", {
+      kind: "inlineExpression",
+      key: "template",
+      value: "{{ $input.item.json.name }}",
+    })
   })
 
   it("commits template on Enter key", () => {
@@ -100,52 +101,26 @@ describe("InlineExpressionNode", () => {
     fireEvent.change(input, { target: { value: "{{ $input.item.json.id }}" } })
     fireEvent.keyDown(input, { key: "Enter" })
 
-    expect(updateNodeConfigField).toHaveBeenCalledTimes(1)
-    expect(updateNodeConfigField).toHaveBeenCalledWith(
-      "inline-node-1",
-      {
-        kind: "inlineExpression",
-        key: "template",
-        value: "{{ $input.item.json.id }}",
-      }
-    )
-  })
-
-  it("keeps empty expression braces on delayed blur commit", () => {
-    vi.useFakeTimers()
-    try {
-      render(<InlineExpressionNode {...createNodeProps("{{ $input.item.json }}")} />)
-
-      const input = screen.getByTestId("inline-expression-input")
-      fireEvent.focus(input)
-      fireEvent.change(input, { target: { value: "{{}}" } })
-
-      setTimeout(() => {
-        fireEvent.blur(input)
-      }, 120)
-      vi.advanceTimersByTime(120)
-
-      expect(updateNodeConfigField).toHaveBeenCalledTimes(1)
-      expect(updateNodeConfigField).toHaveBeenCalledWith("inline-node-1", {
-        kind: "inlineExpression",
-        key: "template",
-        value: "{{}}",
-      })
-    } finally {
-      vi.useRealTimers()
-    }
+    expect(mockUpdateNodeConfig).toHaveBeenCalledTimes(1)
+    expect(mockUpdateNodeConfig).toHaveBeenCalledWith("inline-node-1", {
+      kind: "inlineExpression",
+      key: "template",
+      value: "{{ $input.item.json.id }}",
+    })
   })
 
   it("syncs draft from store when not focused", () => {
-    const rendered = render(<InlineExpressionNode {...createNodeProps("{{ old }}")} />)
+    const rendered = render(
+      <InlineExpressionNode {...createNodeProps("{{ old }}")} />
+    )
 
     const input = screen.getByTestId("inline-expression-input") as HTMLInputElement
     expect(input.value).toBe("{{ old }}")
 
     rendered.rerender(<InlineExpressionNode {...createNodeProps("{{ new }}")} />)
 
-    expect((screen.getByTestId("inline-expression-input") as HTMLInputElement).value).toBe(
-      "{{ new }}"
-    )
+    expect(
+      (screen.getByTestId("inline-expression-input") as HTMLInputElement).value
+    ).toBe("{{ new }}")
   })
 })

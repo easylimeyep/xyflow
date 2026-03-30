@@ -1,0 +1,30 @@
+import { Braces } from "lucide-react"
+
+import { defineNode } from "../../../node-registry/define-node"
+
+export const inlineExpression = defineNode({
+  kind: "inlineExpression" as const,
+  title: "Inline Expression",
+  description: "Edit expression template directly on the node.",
+  icon: Braces,
+  category: "data",
+  fields: [
+    {
+      key: "template",
+      label: "Template",
+      type: "text",
+      ui: "expression",
+      placeholder: '{{ $input.item.json.value || "fallback" }}',
+    },
+  ],
+  outputPaths: ["template"],
+  allowedTargets: [
+    "transform",
+    "branch",
+    "code",
+    "customInput",
+    "setVariable",
+    "inlineExpression",
+  ],
+  buildDefaultConfig: () => ({ template: "{{ $input.item.json }}" }),
+})

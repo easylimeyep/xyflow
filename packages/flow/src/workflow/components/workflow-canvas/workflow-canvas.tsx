@@ -18,8 +18,11 @@ import {
 } from "@xyflow/react"
 
 import { WORKFLOW_NODE_KIND_MIME } from "../../dnd"
-import { workflowNodeTypes } from "../../nodes/node-types"
-import { isNodeKind, type NodeKind, type WorkflowEdge, type WorkflowNode } from "../../types"
+import { buildNodeTypes } from "../../node-registry/node-types-builder"
+import { allDefinitions, isNodeKind, type NodeKind } from "../../node-registry/registry"
+import type { WorkflowEdge, WorkflowNode } from "../../types"
+
+const workflowNodeTypes = buildNodeTypes(allDefinitions)
 import { validateConnection } from "../../validation"
 import { WorkflowEdgeComponent } from "../workflow-edge"
 import { useNodeChangeRouter } from "./use-node-change-router"

@@ -4,7 +4,7 @@ import { type ChangeEvent, useId } from "react"
 
 import { Input } from "@workspace/ui/components/input"
 
-import { getNodeDefinition } from "../../node-registry"
+import { getNodeDefinition, type NodeKind } from "../../node-registry/registry"
 import type { NodeConfigUpdate } from "../../store/types"
 import type {
   ExpressionVariableOption,
@@ -99,7 +99,7 @@ export function NodeConfigPanel({
   }
 
   const { kind } = selectedNode.data
-  const definition = getNodeDefinition(kind)
+  const definition = getNodeDefinition(kind as NodeKind)
 
   return (
     <aside aria-label="Node configuration" className="w-80 space-y-3 border-l bg-background p-3">

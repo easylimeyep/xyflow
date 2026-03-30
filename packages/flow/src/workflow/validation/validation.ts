@@ -1,7 +1,8 @@
 import type { Connection } from "@xyflow/react"
 
 import { getAllowedTargets } from "../node-registry/node-graph-rules"
-import type { NodeKind, WorkflowEdge, WorkflowNode } from "../types/types"
+import type { NodeKind } from "../node-registry/registry"
+import type { WorkflowEdge, WorkflowNode } from "../types/types"
 
 export interface ValidationResult {
   valid: boolean
@@ -89,7 +90,7 @@ export function validateConnection(
     }
   }
 
-  const sourceKind = sourceNode.data.kind
+  const sourceKind = sourceNode.data.kind as NodeKind
   const targetKind = targetNode.data.kind
   const allowedTargets = getAllowedTargets(sourceKind)
 
@@ -128,7 +129,7 @@ export function validateConnection(
 export function getKindsFromConnection(
   connection: ConnectionLike,
   nodes: WorkflowNode[]
-): { sourceKind: NodeKind; targetKind: NodeKind } | null {
+): { sourceKind: string; targetKind: string } | null {
   if (!connection.source || !connection.target) {
     return null
   }

@@ -13,6 +13,7 @@ import {
   createWorkflowNode,
 } from "../../node-registry/node-factory"
 import { normalizeNodeConfig } from "../../node-registry/node-config-normalization"
+import type { NodeKind } from "../../node-registry/registry"
 import { createWorkflowError } from "../../types/errors"
 import type { WorkflowEdge, WorkflowNode } from "../../types/types"
 import {
@@ -94,7 +95,7 @@ export const createIoSlice: WorkflowSliceCreator = (set, get) => ({
     const nextNodes: WorkflowNode[] = parsed.value.nodes.map((nodeDto) => {
       const uniqueLabel = createUniqueLabel(nodeDto.label, usedLabels)
       const nextNode = createWorkflowNode(
-        nodeDto.kind,
+        nodeDto.kind as NodeKind,
         {
           x: anchor.x + nodeDto.position.x,
           y: anchor.y + nodeDto.position.y,
@@ -104,7 +105,7 @@ export const createIoSlice: WorkflowSliceCreator = (set, get) => ({
       nextNode.data = {
         kind: nodeDto.kind,
         label: uniqueLabel,
-        config: normalizeNodeConfig(nodeDto.kind, nodeDto.config),
+        config: normalizeNodeConfig(nodeDto.kind as NodeKind, nodeDto.config),
       }
 
       if (nodeDto.kind === "setVariable") {

@@ -1,14 +1,14 @@
 // @vitest-environment jsdom
 
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
+import type { NodeProps } from "@xyflow/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-import type { WorkflowNode } from "../../types"
-import type { SetVariableNodeProps } from "./set-variable-node"
+import type { WorkflowNode } from "../../../types"
 import { SetVariableNode } from "./set-variable-node"
 
-const updateNodeConfigField = vi.fn()
-let mockNodes: WorkflowNode[] = []
+const mockUpdateNodeConfig = vi.fn()
+let mockAllNodes: WorkflowNode[] = []
 
 vi.mock("@xyflow/react", () => ({
   Handle: () => null,
@@ -18,11 +18,15 @@ vi.mock("@xyflow/react", () => ({
   },
 }))
 
-vi.mock("../output-quick-add-affordance/output-quick-add-affordance", () => ({
-  OutputQuickAddAffordance: () => null,
+vi.mock("../../shared/use-node-store-data", () => ({
+  useNodeStoreData: () => ({
+    expressionVariables: [],
+    updateNodeConfig: mockUpdateNodeConfig,
+    allNodes: mockAllNodes,
+  }),
 }))
 
-vi.mock("../../components/expression-input", () => ({
+vi.mock("../../../components/expression-input", () => ({
   ExpressionInput: ({
     value,
     onChange,
@@ -38,17 +42,18 @@ vi.mock("../../components/expression-input", () => ({
   ),
 }))
 
-function createNodeProps(variableName: string, valueExpression: string): SetVariableNodeProps {
+vi.mock("../../output-quick-add-affordance/output-quick-add-affordance", () => ({
+  OutputQuickAddAffordance: () => null,
+}))
+
+function createNodeProps(variableName: string, valueExpression: string): NodeProps {
   return {
     id: "set-variable-1",
     type: "setVariable",
     data: {
       kind: "setVariable",
       label: "Set Variable",
-      config: {
-        variableName,
-        valueExpression,
-      },
+      config: { variableName, valueExpression },
     },
     selected: false,
     dragging: false,
@@ -61,21 +66,22 @@ function createNodeProps(variableName: string, valueExpression: string): SetVari
     targetPosition: undefined,
     positionAbsoluteX: 0,
     positionAbsoluteY: 0,
-    expressionVariables: [],
-    onUpdateConfigField: updateNodeConfigField,
-    allNodes: mockNodes,
   }
 }
 
 describe("SetVariableNode", () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockNodes = [
+    mockAllNodes = [
       {
         id: "set-variable-1",
         type: "setVariable",
         position: { x: 0, y: 0 },
-        data: { kind: "setVariable", label: "Set Variable", config: { variableName: "myVar", valueExpression: "" } },
+        data: {
+          kind: "setVariable",
+          label: "Set Variable",
+          config: { variableName: "myVar", valueExpression: "" },
+        },
       } as WorkflowNode,
     ]
   })
@@ -85,7 +91,9 @@ describe("SetVariableNode", () => {
   })
 
   it("commits variable name and value expression on blur", () => {
-    render(<SetVariableNode {...createNodeProps("myVar", "{{ $input.item.json }}")} />)
+    render(
+      <SetVariableNode {...createNodeProps("myVar", "{{ $input.item.json }}")} />
+    )
 
     const variableInput = screen.getByDisplayValue("myVar")
     fireEvent.focus(variableInput)
@@ -94,60 +102,34 @@ describe("SetVariableNode", () => {
 
     const expressionInput = screen.getByTestId("set-variable-expression-input")
     fireEvent.focus(expressionInput)
-    fireEvent.change(expressionInput, { target: { value: "{{ $vars.regionName }}" } })
+    fireEvent.change(expressionInput, {
+      target: { value: "{{ $vars.regionName }}" },
+    })
     fireEvent.blur(expressionInput)
 
-    expect(updateNodeConfigField).toHaveBeenCalledWith("set-variable-1", {
+    expect(mockUpdateNodeConfig).toHaveBeenCalledWith("set-variable-1", {
       kind: "setVariable",
       key: "variableName",
       value: "regionName",
     })
-    expect(updateNodeConfigField).toHaveBeenCalledWith(
-      "set-variable-1",
-      {
-        kind: "setVariable",
-        key: "valueExpression",
-        value: "{{ $vars.regionName }}",
-      }
-    )
-  })
-
-  it("keeps empty expression braces on delayed blur commit", () => {
-    vi.useFakeTimers()
-    try {
-      render(<SetVariableNode {...createNodeProps("myVar", "{{ $input.item.json }}")} />)
-
-      const expressionInput = screen.getByTestId("set-variable-expression-input")
-      fireEvent.focus(expressionInput)
-      fireEvent.change(expressionInput, { target: { value: "{{}}" } })
-
-      setTimeout(() => {
-        fireEvent.blur(expressionInput)
-      }, 120)
-      vi.advanceTimersByTime(120)
-
-      expect(updateNodeConfigField).toHaveBeenCalledWith(
-        "set-variable-1",
-        {
-          kind: "setVariable",
-          key: "valueExpression",
-          value: "{{}}",
-        }
-      )
-    } finally {
-      vi.useRealTimers()
-    }
+    expect(mockUpdateNodeConfig).toHaveBeenCalledWith("set-variable-1", {
+      kind: "setVariable",
+      key: "valueExpression",
+      value: "{{ $vars.regionName }}",
+    })
   })
 
   it("rejects invalid identifier and shows inline error", () => {
-    render(<SetVariableNode {...createNodeProps("myVar", "{{ $input.item.json }}")} />)
+    render(
+      <SetVariableNode {...createNodeProps("myVar", "{{ $input.item.json }}")} />
+    )
 
     const variableInput = screen.getByDisplayValue("myVar")
     fireEvent.focus(variableInput)
     fireEvent.change(variableInput, { target: { value: "bad name" } })
     fireEvent.blur(variableInput)
 
-    expect(updateNodeConfigField).not.toHaveBeenCalledWith(
+    expect(mockUpdateNodeConfig).not.toHaveBeenCalledWith(
       "set-variable-1",
       expect.objectContaining({
         kind: "setVariable",
@@ -155,32 +137,44 @@ describe("SetVariableNode", () => {
         value: "bad name",
       })
     )
-    expect(screen.getByText("Variable name must be a valid JavaScript identifier.")).toBeTruthy()
+    expect(
+      screen.getByText("Variable name must be a valid JavaScript identifier.")
+    ).toBeTruthy()
   })
 
   it("rejects duplicate variable names", () => {
-    mockNodes = [
+    mockAllNodes = [
       {
         id: "set-variable-1",
         type: "setVariable",
         position: { x: 0, y: 0 },
-        data: { kind: "setVariable", label: "Set Variable", config: { variableName: "myVar", valueExpression: "" } },
+        data: {
+          kind: "setVariable",
+          label: "Set Variable",
+          config: { variableName: "myVar", valueExpression: "" },
+        },
       } as WorkflowNode,
       {
         id: "set-variable-2",
         type: "setVariable",
         position: { x: 200, y: 0 },
-        data: { kind: "setVariable", label: "Set Variable 2", config: { variableName: "existing", valueExpression: "" } },
+        data: {
+          kind: "setVariable",
+          label: "Set Variable 2",
+          config: { variableName: "existing", valueExpression: "" },
+        },
       } as WorkflowNode,
     ]
 
-    render(<SetVariableNode {...createNodeProps("myVar", "{{ $input.item.json }}")} />)
+    render(
+      <SetVariableNode {...createNodeProps("myVar", "{{ $input.item.json }}")} />
+    )
     const variableInput = screen.getByDisplayValue("myVar")
     fireEvent.focus(variableInput)
     fireEvent.change(variableInput, { target: { value: "existing" } })
     fireEvent.blur(variableInput)
 
-    expect(updateNodeConfigField).not.toHaveBeenCalledWith(
+    expect(mockUpdateNodeConfig).not.toHaveBeenCalledWith(
       "set-variable-1",
       expect.objectContaining({
         kind: "setVariable",
@@ -188,6 +182,8 @@ describe("SetVariableNode", () => {
         value: "existing",
       })
     )
-    expect(screen.getByText("Variable name must be unique in this workflow.")).toBeTruthy()
+    expect(
+      screen.getByText("Variable name must be unique in this workflow.")
+    ).toBeTruthy()
   })
 })

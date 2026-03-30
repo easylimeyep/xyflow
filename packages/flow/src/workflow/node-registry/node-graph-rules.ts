@@ -1,10 +1,9 @@
-import type { NodeKind } from "../types/types"
-import { workflowNodeRegistry } from "./node-definitions"
+import { nodeRegistry, type NodeKind } from "./registry"
 
-export function getAllowedTargets(kind: NodeKind): NodeKind[] {
-  return workflowNodeRegistry[kind].allowedTargets
+export function getAllowedTargets(kind: NodeKind): string[] {
+  return nodeRegistry[kind].allowedTargets
 }
 
 export function getNodeOutputPaths(kind: NodeKind): string[] {
-  return workflowNodeRegistry[kind].outputPaths
+  return nodeRegistry[kind].outputPaths
 }
