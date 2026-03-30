@@ -1,7 +1,7 @@
 "use client"
 
 import { Handle, Position } from "@xyflow/react"
-import { ArrowRight, Plus } from "lucide-react"
+import { Plus } from "lucide-react"
 
 import {
   selectPresentEdges,
@@ -9,6 +9,7 @@ import {
   useWorkflowStore,
   type WorkflowStoreState,
 } from "../../store"
+import { tv } from "tailwind-variants"
 
 interface OutputQuickAddAffordanceProps {
   nodeId: string
@@ -17,6 +18,24 @@ interface OutputQuickAddAffordanceProps {
   label?: string
   labelClassName?: string
 }
+
+const outgoingClasses = tv({
+  slots: {
+    root: "absolute top-1/2 left-1 flex -translate-y-1/2 items-center",
+    line: ["h-px w-10 bg-gray-400"],
+    button: ["size-4 rounded-sm border bg-background"],
+    outgoing:
+      "transition-transform duration-300 hover:scale-150 size-3 origin-top-right",
+  },
+  variants: {
+    isPending: {
+      true: {
+        line: "bg-primary/60",
+        outgoing: "bg-color-(--primary) border-(--primary)",
+      },
+    },
+  },
+})
 
 export function OutputQuickAddAffordance({
   nodeId,
@@ -32,7 +51,8 @@ export function OutputQuickAddAffordance({
   const hasOutgoing = useWorkflowStore((state: WorkflowStoreState) =>
     selectPresentEdges(state).some(
       (edge) =>
-        edge.source === nodeId && (edge.sourceHandle ?? null) === (normalizedHandle ?? null)
+        edge.source === nodeId &&
+        (edge.sourceHandle ?? null) === (normalizedHandle ?? null)
     )
   )
   const isPending = useWorkflowStore((state: WorkflowStoreState) => {
@@ -43,6 +63,8 @@ export function OutputQuickAddAffordance({
     )
   })
 
+  const outgoingStyles = outgoingClasses({ isPending })
+
   return (
     <div
       className="absolute -translate-y-1/2"
@@ -50,7 +72,9 @@ export function OutputQuickAddAffordance({
       data-quick-add-active={isPending ? "true" : "false"}
     >
       {label ? (
-        <div className={`pointer-events-none absolute -top-5 left-10 text-[10px] ${labelClassName ?? ""}`}>
+        <div
+          className={`pointer-events-none absolute -top-5 left-10 text-[10px] ${labelClassName ?? ""}`}
+        >
           {label}
         </div>
       ) : null}
@@ -58,21 +82,14 @@ export function OutputQuickAddAffordance({
         id={normalizedHandle ?? undefined}
         type="source"
         position={Position.Right}
-        style={
-          isPending ? { borderColor: "hsl(var(--primary))", background: "hsl(var(--primary))" } : undefined
-        }
+        className={outgoingStyles.outgoing()}
       />
       {!hasOutgoing ? (
-        <div className="absolute left-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
-          <div className={`h-px w-10 ${isPending ? "bg-primary/60" : "bg-border"}`} />
-          <ArrowRight
-            className={`pointer-events-none size-3 ${isPending ? "text-primary" : "text-muted-foreground"}`}
-          />
+        <div className={outgoingStyles.root()}>
+          <div className={outgoingStyles.line()} />
           <button
             type="button"
-            className={`nodrag nopan inline-flex size-4 items-center justify-center rounded-sm border bg-background ${
-              isPending ? "border-primary text-primary" : "border-border text-muted-foreground"
-            }`}
+            className={outgoingStyles.button()}
             aria-label={`Quick add from ${nodeId}${normalizedHandle ? `:${normalizedHandle}` : ""}`}
             onClick={(event) => {
               event.stopPropagation()

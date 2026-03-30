@@ -31,10 +31,14 @@ export function NodeShell({
     <div className="relative">
       <div
         className={`w-[260px] rounded-md border bg-white px-3 py-2 shadow-sm dark:bg-neutral-900 ${
-          selected ? "border-2 border-black ring-2 ring-black/40 shadow-md dark:border-white dark:ring-white/50" : ""
+          selected
+            ? "border-2 border-black shadow-md ring-2 ring-black/40 dark:border-white dark:ring-white/50"
+            : ""
         }`}
       >
-        {showTarget ? <Handle type="target" position={Position.Left} /> : null}
+        {showTarget ? (
+          <Handle type="target" position={Position.Left} className="size-3" />
+        ) : null}
 
         <div className="mb-0.5 text-xs font-semibold">{title}</div>
         <div className="text-[11px] text-muted-foreground">{subtitle}</div>

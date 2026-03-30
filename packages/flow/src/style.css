@@ -1,11 +1,12 @@
-@import "@xyflow/react/dist/style.css";
+@import "@xyflow/react/dist/style.css" layer(components);
 
 .cm-editor {
   font-size: 12px;
 }
 
 .cm-content {
-  font-family: ui-monospace, SFMono-Regular, SFMono-Regular, Menlo, Monaco, Consolas,
+  font-family:
+    ui-monospace, SFMono-Regular, SFMono-Regular, Menlo, Monaco, Consolas,
     "Liberation Mono", "Courier New", monospace;
 }
 
