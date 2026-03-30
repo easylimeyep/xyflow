@@ -1,8 +1,11 @@
 "use client"
 
 import { Handle, Position } from "@xyflow/react"
-import { Plus } from "lucide-react"
-import { nodeHandlesStyles, outputQuickAddAffordanceStyles } from "../../../styles/components/nodes"
+import { Plus, PlusIcon } from "lucide-react"
+import {
+  nodeHandlesStyles,
+  outputQuickAddAffordanceStyles,
+} from "../../../styles/components/nodes"
 
 import {
   selectPresentEdges,
@@ -10,6 +13,7 @@ import {
   useWorkflowStore,
   type WorkflowStoreState,
 } from "../../store"
+import { Button } from "@workspace/ui/components/button"
 
 interface OutputQuickAddAffordanceProps {
   nodeId: string
@@ -58,9 +62,7 @@ export function OutputQuickAddAffordance({
       data-quick-add-active={isPending ? "true" : "false"}
     >
       {label ? (
-        <div className={styles.label({ class: labelClassName })}>
-          {label}
-        </div>
+        <div className={styles.label({ class: labelClassName })}>{label}</div>
       ) : null}
       <Handle
         id={normalizedHandle ?? undefined}
@@ -71,8 +73,9 @@ export function OutputQuickAddAffordance({
       {!hasOutgoing ? (
         <div className={styles.quickAddRoot()}>
           <div className={styles.quickAddLine()} />
-          <button
-            type="button"
+          <Button
+            size="icon-xs"
+            variant="outline"
             className={styles.quickAddButton()}
             aria-label={`Quick add from ${nodeId}${normalizedHandle ? `:${normalizedHandle}` : ""}`}
             onClick={(event) => {
@@ -80,8 +83,8 @@ export function OutputQuickAddAffordance({
               startQuickAddFromOutput(nodeId, normalizedHandle)
             }}
           >
-            <Plus className={styles.icon()} />
-          </button>
+            <PlusIcon className={styles.icon()} />
+          </Button>
         </div>
       ) : null}
     </div>

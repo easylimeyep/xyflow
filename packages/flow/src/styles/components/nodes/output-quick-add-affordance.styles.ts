@@ -3,11 +3,13 @@ import { tv } from "tailwind-variants"
 export const outputQuickAddAffordanceStyles = tv({
   slots: {
     container: "absolute -translate-y-1/2",
-    label: "pointer-events-none absolute -top-5 left-10 text-[10px]",
-    quickAddRoot: "absolute top-1/2 left-1 flex -translate-y-1/2 items-center",
+    label:
+      "pointer-events-none absolute top-0 -translate-y-1/2 left-5 text-[10px] bg-border z-10",
+    quickAddRoot:
+      "absolute top-0.25 left-1.5 flex -translate-y-1/2 items-center",
     quickAddLine: "h-px w-10 bg-gray-400",
-    quickAddButton: "size-4 rounded-sm border bg-background",
-    icon: "size-3",
+    quickAddButton: "",
+    icon: "",
   },
   variants: {
     isPending: {

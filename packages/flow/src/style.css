@@ -1,5 +1,36 @@
 @import "@xyflow/react/dist/style.css" layer(components);
 
+.react-flow {
+  --xy-background-color: var(--background);
+  --xy-minimap-background-color: var(--card);
+  --xy-minimap-mask-background-color: var(--background);
+  --xy-minimap-mask-stroke-color: var(--ring);
+  --xy-controls-button-background-color: var(--card);
+  --xy-controls-button-background-color-hover: var(--muted);
+  --xy-controls-button-color: var(--foreground);
+  --xy-controls-button-color-hover: var(--foreground);
+  --xy-controls-button-border-color: var(--border);
+}
+
+.react-flow__minimap {
+  border: 1px solid var(--border);
+}
+
+.react-flow__controls {
+  border: 1px solid var(--border);
+  box-shadow: none;
+}
+
+.react-flow__controls-button {
+  background-color: var(--card);
+  color: var(--foreground);
+  border-bottom: 1px solid var(--border);
+}
+
+.react-flow__controls-button:hover {
+  background-color: var(--muted);
+}
+
 .cm-editor {
   font-size: 12px;
 }

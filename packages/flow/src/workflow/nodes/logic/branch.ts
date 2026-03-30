@@ -34,13 +34,11 @@ export const branch = defineNode({
       id: "branch-true",
       top: "34%",
       label: "true",
-      labelClassName: "font-medium text-emerald-600",
     },
     {
       id: "branch-false",
       top: "72%",
       label: "false",
-      labelClassName: "font-medium text-rose-600",
     },
   ],
 })
