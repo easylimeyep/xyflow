@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react"
 
 import { WORKFLOW_NODE_KIND_MIME } from "../../dnd"
 import { nodeRegistry, WORKFLOW_NODE_KINDS, type NodeKind } from "../../node-registry/registry"
+import { nodePaletteStyles } from "../../../styles/components/panels"
 
 interface NodePaletteProps {
   onAddNode: (kind: NodeKind) => void
@@ -18,6 +19,7 @@ export function NodePalette({
 }: NodePaletteProps) {
   const containerRef = useRef<HTMLElement | null>(null)
   const [showQuickAddHint, setShowQuickAddHint] = useState(false)
+  const styles = nodePaletteStyles({ quickAddActive })
 
   useEffect(() => {
     if (!quickAddActive) {
@@ -39,17 +41,15 @@ export function NodePalette({
       ref={containerRef}
       tabIndex={-1}
       aria-label="Node palette"
-      className={`relative w-72 space-y-2 border-r bg-background p-3 outline-none ${
-        quickAddActive ? "ring-2 ring-primary/60 ring-inset" : ""
-      }`}
+      className={styles.aside()}
     >
       {showQuickAddHint ? (
-        <div className="rounded-md border border-primary/40 bg-primary/10 px-2 py-1 text-xs text-primary">
+        <div className={styles.quickAddHint()}>
           Select a node kind to complete insertion.
         </div>
       ) : null}
-      <h2 className="text-sm font-semibold">Node Palette</h2>
-      <div className="flex flex-col gap-2">
+      <h2 className={styles.heading()}>Node Palette</h2>
+      <div className={styles.list()}>
         {entries.map((definition) => {
           const Icon = definition.icon
 
@@ -57,7 +57,7 @@ export function NodePalette({
             <div
               key={definition.kind}
               draggable
-              className="rounded-md border px-3 py-2 text-left transition-colors hover:bg-muted"
+              className={styles.card()}
               onDragStart={(event) => {
                 event.dataTransfer.effectAllowed = "move"
                 event.dataTransfer.setData(
@@ -69,17 +69,17 @@ export function NodePalette({
               <button
                 type="button"
                 aria-label={`Add ${definition.title} node`}
-                className="align-center flex w-full gap-2"
+                className={styles.cardButton()}
                 onClick={() => onAddNode(definition.kind as NodeKind)}
               >
-                <div className="flex items-center justify-center">
-                  <Icon className="size-4 text-muted-foreground" />
+                <div className={styles.iconWrap()}>
+                  <Icon className={styles.icon()} />
                 </div>
-                <div className="flex flex-col items-start gap-1">
-                  <span className="text-lg font-medium">
+                <div className={styles.textWrap()}>
+                  <span className={styles.title()}>
                     {definition.title}
                   </span>
-                  <span className="text-left text-xs text-muted-foreground">
+                  <span className={styles.description()}>
                     {definition.description}
                   </span>
                 </div>

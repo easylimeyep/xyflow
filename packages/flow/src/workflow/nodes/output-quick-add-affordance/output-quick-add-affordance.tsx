@@ -2,6 +2,7 @@
 
 import { Handle, Position } from "@xyflow/react"
 import { Plus } from "lucide-react"
+import { nodeHandlesStyles, outputQuickAddAffordanceStyles } from "../../../styles/components/nodes"
 
 import {
   selectPresentEdges,
@@ -9,7 +10,6 @@ import {
   useWorkflowStore,
   type WorkflowStoreState,
 } from "../../store"
-import { tv } from "tailwind-variants"
 
 interface OutputQuickAddAffordanceProps {
   nodeId: string
@@ -18,24 +18,6 @@ interface OutputQuickAddAffordanceProps {
   label?: string
   labelClassName?: string
 }
-
-const outgoingClasses = tv({
-  slots: {
-    root: "absolute top-1/2 left-1 flex -translate-y-1/2 items-center",
-    line: ["h-px w-10 bg-gray-400"],
-    button: ["size-4 rounded-sm border bg-background"],
-    outgoing:
-      "transition-transform duration-300 hover:scale-150 size-3 origin-top-right",
-  },
-  variants: {
-    isPending: {
-      true: {
-        line: "bg-primary/60",
-        outgoing: "bg-color-(--primary) border-(--primary)",
-      },
-    },
-  },
-})
 
 export function OutputQuickAddAffordance({
   nodeId,
@@ -63,18 +45,20 @@ export function OutputQuickAddAffordance({
     )
   })
 
-  const outgoingStyles = outgoingClasses({ isPending })
+  const styles = outputQuickAddAffordanceStyles({ isPending })
+  const handleStyles = nodeHandlesStyles({
+    kind: "outgoing",
+    isPending,
+  })
 
   return (
     <div
-      className="absolute -translate-y-1/2"
+      className={styles.container()}
       style={{ top, right: 0 }}
       data-quick-add-active={isPending ? "true" : "false"}
     >
       {label ? (
-        <div
-          className={`pointer-events-none absolute -top-5 left-10 text-[10px] ${labelClassName ?? ""}`}
-        >
+        <div className={styles.label({ class: labelClassName })}>
           {label}
         </div>
       ) : null}
@@ -82,21 +66,21 @@ export function OutputQuickAddAffordance({
         id={normalizedHandle ?? undefined}
         type="source"
         position={Position.Right}
-        className={outgoingStyles.outgoing()}
+        className={handleStyles.handleBase()}
       />
       {!hasOutgoing ? (
-        <div className={outgoingStyles.root()}>
-          <div className={outgoingStyles.line()} />
+        <div className={styles.quickAddRoot()}>
+          <div className={styles.quickAddLine()} />
           <button
             type="button"
-            className={outgoingStyles.button()}
+            className={styles.quickAddButton()}
             aria-label={`Quick add from ${nodeId}${normalizedHandle ? `:${normalizedHandle}` : ""}`}
             onClick={(event) => {
               event.stopPropagation()
               startQuickAddFromOutput(nodeId, normalizedHandle)
             }}
           >
-            <Plus className="size-3" />
+            <Plus className={styles.icon()} />
           </button>
         </div>
       ) : null}

@@ -4,6 +4,7 @@ import { BaseEdge, EdgeLabelRenderer, getBezierPath, type EdgeProps } from "@xyf
 import { Plus, Trash2 } from "lucide-react"
 import { useMemo, useState } from "react"
 
+import { workflowEdgeStyles } from "../../../styles/components/canvas"
 import type { WorkflowEdge } from "../../types"
 
 interface WorkflowEdgeProps extends EdgeProps<WorkflowEdge> {
@@ -42,6 +43,7 @@ export function WorkflowEdgeComponent({
     [sourcePosition, sourceX, sourceY, targetPosition, targetX, targetY]
   )
   const showToolbar = isHovered || isToolbarHovered || isInsertPending
+  const styles = workflowEdgeStyles({ showToolbar })
 
   return (
     <>
@@ -64,20 +66,20 @@ export function WorkflowEdgeComponent({
 
       <EdgeLabelRenderer>
         <div
-          className={`absolute z-20 transition-opacity ${showToolbar ? "opacity-100" : "opacity-0"}`}
+          className={styles.toolbarContainer()}
           style={{
             transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
             pointerEvents: showToolbar ? "all" : "none",
           }}
         >
           <div
-            className="nodrag nopan inline-flex items-center gap-1 rounded-md border bg-background/95 p-1 shadow-sm"
+            className={styles.toolbar()}
             onMouseEnter={() => setIsToolbarHovered(true)}
             onMouseLeave={() => setIsToolbarHovered(false)}
           >
             <button
               type="button"
-              className="inline-flex size-6 items-center justify-center rounded-sm border border-border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              className={styles.actionButton({ class: styles.insertButton() })}
               aria-label={`Insert node on edge ${id}`}
               data-testid={`edge-insert-${id}`}
               onClick={(event) => {
@@ -88,11 +90,11 @@ export function WorkflowEdgeComponent({
                 event.stopPropagation()
               }}
             >
-              <Plus className="size-3.5" />
+              <Plus className={styles.actionIcon()} />
             </button>
             <button
               type="button"
-              className="inline-flex size-6 items-center justify-center rounded-sm border border-border text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+              className={styles.actionButton({ class: styles.deleteButton() })}
               aria-label={`Delete edge ${id}`}
               data-testid={`edge-delete-${id}`}
               onClick={(event) => {
@@ -103,7 +105,7 @@ export function WorkflowEdgeComponent({
                 event.stopPropagation()
               }}
             >
-              <Trash2 className="size-3.5" />
+              <Trash2 className={styles.actionIcon()} />
             </button>
           </div>
         </div>

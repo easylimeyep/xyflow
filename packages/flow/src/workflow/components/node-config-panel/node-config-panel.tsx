@@ -3,6 +3,7 @@
 import { type ChangeEvent, type KeyboardEvent, useEffect, useId, useRef, useState } from "react"
 
 import { Input } from "@workspace/ui/components/input"
+import { nodeConfigPanelStyles } from "../../../styles/components/panels"
 
 import { getNodeDefinition, type NodeKind } from "../../node-registry/registry"
 import type { NodeConfigUpdate } from "../../store/types"
@@ -14,6 +15,7 @@ import type {
 import { resolveFieldRenderer, type FieldRendererProps } from "./field-renderers"
 
 type FieldValue = string | number | boolean
+const styles = nodeConfigPanelStyles()
 
 interface NodeConfigPanelProps {
   selectedNode: WorkflowNode | null
@@ -65,13 +67,13 @@ function ConfigField({
   }
 
   return (
-    <div className="space-y-1">
-      <label htmlFor={fieldId} className="text-[11px] font-medium text-muted-foreground">
+    <div className={styles.fieldGroup()}>
+      <label htmlFor={fieldId} className={styles.label()}>
         {field.label}
       </label>
       <Renderer {...props} />
       {field.description ? (
-        <p id={descriptionId} className="text-[11px] text-muted-foreground">
+        <p id={descriptionId} className={styles.description()}>
           {field.description}
         </p>
       ) : null}
@@ -99,9 +101,9 @@ export function NodeConfigPanel({
 
   if (!selectedNode) {
     return (
-      <aside aria-label="Node configuration" className="w-80 border-l bg-background p-3">
-        <h2 className="text-sm font-semibold">Node Config</h2>
-        <p className="mt-2 text-xs text-muted-foreground">
+      <aside aria-label="Node configuration" className={styles.aside()}>
+        <h2 className={styles.heading()}>Node Config</h2>
+        <p className={styles.emptyMessage()}>
           Select a node to edit its settings.
         </p>
       </aside>
@@ -113,10 +115,10 @@ export function NodeConfigPanel({
   const displayedLabel = isLabelFocused ? labelDraft : selectedNode.data.label
 
   return (
-    <aside aria-label="Node configuration" className="w-80 space-y-3 border-l bg-background p-3">
-      <h2 className="text-sm font-semibold">Node Config</h2>
-      <div className="space-y-1">
-        <label htmlFor={labelId} className="text-[11px] font-medium text-muted-foreground">
+    <aside aria-label="Node configuration" className={styles.asideWithContent()}>
+      <h2 className={styles.heading()}>Node Config</h2>
+      <div className={styles.fieldGroup()}>
+        <label htmlFor={labelId} className={styles.label()}>
           Label
         </label>
         <Input

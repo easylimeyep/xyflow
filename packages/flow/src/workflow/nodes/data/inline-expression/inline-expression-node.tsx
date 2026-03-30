@@ -2,6 +2,7 @@
 
 import type { NodeProps } from "@xyflow/react"
 
+import { inlineExpressionNodeStyles } from "../../../../styles/components/nodes"
 import { ExpressionInput } from "../../../components/expression-input"
 import { NodeShell } from "../../node-shell/node-shell"
 import { InlineEditField, asText, useBaseNodeData } from "../../shared"
@@ -11,6 +12,7 @@ export function InlineExpressionNode({ id, data, selected }: NodeProps) {
   const { label, config } = useBaseNodeData(data)
   const { expressionVariables, updateNodeConfig } = useNodeStoreData(id)
   const templateFromStore = asText(config.template)
+  const styles = inlineExpressionNodeStyles()
 
   return (
     <NodeShell
@@ -20,7 +22,7 @@ export function InlineExpressionNode({ id, data, selected }: NodeProps) {
       selected={selected}
     >
       <InlineEditField
-        className="nodrag nopan mt-2"
+        className={styles.editField()}
         storeValue={templateFromStore}
         nodeId={id}
         configKind="inlineExpression"
@@ -35,7 +37,7 @@ export function InlineExpressionNode({ id, data, selected }: NodeProps) {
               variables={expressionVariables}
               onChange={onChange}
             />
-            <p className="mt-1 text-[10px] text-muted-foreground">
+            <p className={styles.helperText()}>
               Press Enter or blur to commit one history step.
             </p>
           </>

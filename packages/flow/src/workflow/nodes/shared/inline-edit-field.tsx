@@ -2,6 +2,7 @@
 
 import { useCallback, useRef, useState, type ReactNode } from "react"
 
+import { inlineEditFieldStyles } from "../../../styles/components/nodes"
 import { isInsideExpressionPopover } from "./node-data-utils"
 
 interface InlineEditFieldProps {
@@ -39,10 +40,11 @@ export function InlineEditField({
 
     onUpdate(nodeId, { kind: configKind, key: configKey, value: nextValue })
   }, [nodeId, storeValue, onUpdate, configKind, configKey])
+  const styles = inlineEditFieldStyles()
 
   return (
     <div
-      className={className}
+      className={styles.root({ class: className })}
       onFocusCapture={(event) => {
         const previousTarget = event.relatedTarget
         if (

@@ -4,6 +4,7 @@ import { type ChangeEvent, useMemo, useState } from "react"
 
 import { Button } from "@workspace/ui/components/button"
 import { Textarea } from "@workspace/ui/components/textarea"
+import { editorToolbarStyles } from "../../../styles/components/editor-shell"
 
 interface EditorToolbarProps {
   canUndo: boolean
@@ -44,12 +45,13 @@ export function EditorToolbar({
   const [importOpen, setImportOpen] = useState(false)
   const [importText, setImportText] = useState("")
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
+  const styles = editorToolbarStyles()
 
   const shownStatus = useMemo(() => lastError ?? statusMessage, [lastError, statusMessage])
 
   return (
-    <div className="space-y-2 border-b bg-background p-3">
-      <div className="flex flex-wrap items-center gap-2">
+    <div className={styles.root()}>
+      <div className={styles.actions()}>
         <Button type="button" variant="outline" onClick={onUndo} disabled={!canUndo}>
           Undo
         </Button>
@@ -86,7 +88,7 @@ export function EditorToolbar({
       </div>
 
       {importOpen ? (
-        <div className="space-y-2">
+        <div className={styles.importPanel()}>
           <Textarea
             rows={8}
             value={importText}
@@ -108,8 +110,8 @@ export function EditorToolbar({
       ) : null}
 
       {shownStatus ? (
-        <div className="flex items-center justify-between rounded-md border px-2 py-1">
-          <span className="text-xs">{shownStatus}</span>
+        <div className={styles.status()}>
+          <span className={styles.statusText()}>{shownStatus}</span>
           <Button
             type="button"
             variant="ghost"

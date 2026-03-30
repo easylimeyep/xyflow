@@ -20,6 +20,7 @@ import {
 import { WORKFLOW_NODE_KIND_MIME } from "../../dnd"
 import { buildNodeTypes } from "../../node-registry/node-types-builder"
 import { allDefinitions, isNodeKind, type NodeKind } from "../../node-registry/registry"
+import { workflowCanvasStyles } from "../../../styles/components/canvas"
 import type { WorkflowEdge, WorkflowNode } from "../../types"
 
 const workflowNodeTypes = buildNodeTypes(allDefinitions)
@@ -160,8 +161,10 @@ function WorkflowCanvasInner({
 }
 
 export function WorkflowCanvas(props: WorkflowCanvasProps) {
+  const styles = workflowCanvasStyles()
+
   return (
-    <div className="h-full w-full">
+    <div className={styles.root()}>
       <ReactFlowProvider>
         <WorkflowCanvasInner {...props} />
       </ReactFlowProvider>

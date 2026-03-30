@@ -29,6 +29,7 @@ import {
   buildExpressionInsertion,
   validateTemplateExpression,
 } from "../../expression/template"
+import { expressionInputStyles } from "../../../styles/components/expression"
 import type { ExpressionVariableOption } from "../../types"
 
 type ExpressionCompletionSource = (
@@ -68,6 +69,7 @@ export function ExpressionInput({
     [variables]
   )
   const validation = useMemo(() => validateTemplateExpression(value), [value])
+  const styles = expressionInputStyles()
   const completionSource = useCallback<ExpressionCompletionSource>((context) => {
     return createExpressionCompletionSource(variablesRef.current)(context)
   }, [])
@@ -185,10 +187,10 @@ export function ExpressionInput({
   }, [onChange])
 
   return (
-    <div className="space-y-1">
+    <div className={styles.root()}>
       <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
         <PopoverAnchor asChild>
-          <div className="overflow-hidden rounded-md border border-input bg-background">
+          <div className={styles.editorContainer()}>
             <CodeMirror
               value={value}
               placeholder={placeholder}
@@ -201,7 +203,7 @@ export function ExpressionInput({
           </div>
         </PopoverAnchor>
         <PopoverContent
-          className="w-96 p-0"
+          className={styles.popoverContent()}
           align="start"
           onOpenAutoFocus={(event) => {
             event.preventDefault()
@@ -219,11 +221,11 @@ export function ExpressionInput({
                       value={`${option.label} ${option.description}`}
                       onSelect={() => insertVariable(option.value)}
                     >
-                      <div className="flex min-w-0 flex-col">
-                        <span className="truncate font-mono text-[11px]">
+                      <div className={styles.commandItemContent()}>
+                        <span className={styles.commandItemLabel()}>
                           {option.label}
                         </span>
-                        <span className="truncate text-[10px] text-muted-foreground">
+                        <span className={styles.commandItemDescription()}>
                           {option.description}
                         </span>
                       </div>

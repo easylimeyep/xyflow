@@ -3,6 +3,7 @@
 import { Handle, Position } from "@xyflow/react"
 import type { ReactNode } from "react"
 
+import { nodeHandlesStyles, nodeShellStyles } from "../../../styles/components/nodes"
 import type { OutputHandle } from "../../node-registry/define-node"
 import { OutputQuickAddAffordance } from "../output-quick-add-affordance/output-quick-add-affordance"
 
@@ -27,21 +28,22 @@ export function NodeShell({
   outputs = DEFAULT_OUTPUTS,
   children,
 }: NodeShellProps) {
+  const styles = nodeShellStyles({ selected })
+  const handleStyles = nodeHandlesStyles({ kind: "target" })
+
   return (
-    <div className="relative">
-      <div
-        className={`w-[260px] rounded-md border bg-white px-3 py-2 shadow-sm dark:bg-neutral-900 ${
-          selected
-            ? "border-2 border-black shadow-md ring-2 ring-black/40 dark:border-white dark:ring-white/50"
-            : ""
-        }`}
-      >
+    <div className={styles.root()}>
+      <div className={styles.panel()}>
         {showTarget ? (
-          <Handle type="target" position={Position.Left} className="size-3" />
+          <Handle
+            type="target"
+            position={Position.Left}
+            className={handleStyles.handleBase()}
+          />
         ) : null}
 
-        <div className="mb-0.5 text-xs font-semibold">{title}</div>
-        <div className="text-[11px] text-muted-foreground">{subtitle}</div>
+        <div className={styles.title()}>{title}</div>
+        <div className={styles.subtitle()}>{subtitle}</div>
         {children}
       </div>
 

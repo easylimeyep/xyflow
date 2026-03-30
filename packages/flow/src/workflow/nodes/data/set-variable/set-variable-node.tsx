@@ -4,6 +4,7 @@ import type { NodeProps } from "@xyflow/react"
 import { Input } from "@workspace/ui/components/input"
 import { useCallback, useRef, useState } from "react"
 
+import { setVariableNodeStyles } from "../../../../styles/components/nodes"
 import { ExpressionInput } from "../../../components/expression-input"
 import { isValidJsIdentifier } from "../../../expression/variable-name/variable-name"
 import { NodeShell } from "../../node-shell/node-shell"
@@ -22,6 +23,7 @@ export function SetVariableNode({ id, data, selected }: NodeProps) {
   const [isVariableNameFocused, setIsVariableNameFocused] = useState(false)
   const [nameError, setNameError] = useState<string | null>(null)
   const variableInputRef = useRef<HTMLInputElement | null>(null)
+  const styles = setVariableNodeStyles()
 
   const shownVariableName = isVariableNameFocused ? draftVariableName : variableNameFromStore
 
@@ -63,9 +65,9 @@ export function SetVariableNode({ id, data, selected }: NodeProps) {
       subtitle="Create variable for downstream expressions"
       selected={selected}
     >
-      <div className="nodrag nopan mt-2 space-y-2">
-        <div className="space-y-1">
-          <label className="text-[11px] font-medium text-muted-foreground">Variable name</label>
+      <div className={styles.root()}>
+        <div className={styles.fieldGroup()}>
+          <label className={styles.label()}>Variable name</label>
           <Input
             ref={variableInputRef}
             value={shownVariableName}
@@ -96,11 +98,11 @@ export function SetVariableNode({ id, data, selected }: NodeProps) {
               }
             }}
           />
-          {nameError ? <p className="text-[11px] text-destructive">{nameError}</p> : null}
+          {nameError ? <p className={styles.errorText()}>{nameError}</p> : null}
         </div>
 
         <InlineEditField
-          className="space-y-1"
+          className={styles.inlineEditField()}
           storeValue={valueExpressionFromStore}
           nodeId={id}
           configKind="setVariable"
@@ -109,7 +111,7 @@ export function SetVariableNode({ id, data, selected }: NodeProps) {
         >
           {({ value, onChange }) => (
             <>
-              <label className="text-[11px] font-medium text-muted-foreground">
+              <label className={styles.label()}>
                 Value expression
               </label>
               <ExpressionInput

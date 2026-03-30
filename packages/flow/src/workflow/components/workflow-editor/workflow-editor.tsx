@@ -20,6 +20,7 @@ import {
   type WorkflowStoreState,
 } from "../../store"
 import type { NodeKind } from "../../types"
+import { workflowEditorStyles } from "../../../styles/components/editor-shell"
 import { EditorToolbar } from "../editor-toolbar"
 import {
   createClipboardHotkeyHandler,
@@ -93,14 +94,15 @@ export function WorkflowEditor() {
     cancelQuickAdd()
     cancelEdgeInsert()
   })
+  const styles = workflowEditorStyles()
 
   return (
-    <div className="flex h-full w-full flex-1 flex-col overflow-hidden rounded-md">
+    <div className={styles.root()}>
       <ToolbarContainer />
 
-      <div className="flex min-h-0 flex-1">
+      <div className={styles.content()}>
         <PaletteContainer />
-        <div className="min-h-0 flex-1">
+        <div className={styles.canvasWrap()}>
           <CanvasContainer />
         </div>
         <ConfigPanelContainer />

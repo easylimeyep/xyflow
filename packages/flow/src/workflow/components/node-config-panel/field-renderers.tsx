@@ -11,12 +11,14 @@ import {
   SelectValue,
 } from "@workspace/ui/components/select"
 import { Textarea } from "@workspace/ui/components/textarea"
+import { nodeConfigPanelStyles } from "../../../styles/components/panels"
 
 import { ExpressionInput } from "../expression-input"
 import type { NodeConfigUpdate } from "../../store/types"
 import type { ExpressionVariableOption, FieldOption, NodeFieldSchema } from "../../types"
 
 type FieldValue = string | number | boolean
+const styles = nodeConfigPanelStyles()
 
 export interface FieldRendererProps {
   field: NodeFieldSchema
@@ -110,7 +112,7 @@ function NumberFieldRenderer({ field, value, nodeId, nodeKind, onUpdateConfigFie
 
 function BooleanFieldRenderer({ field, value, nodeId, nodeKind, onUpdateConfigField, fieldId }: FieldRendererProps) {
   return (
-    <label htmlFor={fieldId} className="inline-flex items-center gap-2 text-xs">
+    <label htmlFor={fieldId} className={styles.booleanLabel()}>
       <input
         id={fieldId}
         type="checkbox"
@@ -140,7 +142,7 @@ function SelectFieldRenderer({ field, value, nodeId, nodeKind, onUpdateConfigFie
         })
       }
     >
-      <SelectTrigger className="w-full">
+      <SelectTrigger className={styles.selectTrigger()}>
         <SelectValue placeholder="Select value" />
       </SelectTrigger>
       <SelectContent>
