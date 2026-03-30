@@ -1,4 +1,13 @@
 import type { XYPosition } from "@xyflow/react"
+import type { LucideIcon } from "lucide-react"
+import {
+  Braces,
+  Code2,
+  FileInput,
+  GitBranch,
+  Play,
+  WandSparkles,
+} from "lucide-react"
 
 import type {
   JsonObject,
@@ -14,6 +23,7 @@ export interface NodeDefinition<K extends NodeKind> {
   kind: K
   title: string
   description: string
+  icon: LucideIcon
   fields: NodeFieldSchema[]
   outputPaths: string[]
   allowedTargets: NodeKind[]
@@ -27,6 +37,7 @@ const nodeDefinitions: {
     kind: "trigger",
     title: "Trigger",
     description: "Start node that kicks off a workflow.",
+    icon: Play,
     fields: [
       {
         key: "eventName",
@@ -53,6 +64,7 @@ const nodeDefinitions: {
     kind: "branch",
     title: "Branch",
     description: "Split the flow by condition.",
+    icon: GitBranch,
     fields: [
       {
         key: "condition",
@@ -72,6 +84,7 @@ const nodeDefinitions: {
     kind: "transform",
     title: "Transform",
     description: "Map and normalize parsed values.",
+    icon: WandSparkles,
     fields: [
       {
         key: "expression",
@@ -98,6 +111,7 @@ const nodeDefinitions: {
     kind: "code",
     title: "Code",
     description: "Run custom logic in a node.",
+    icon: Code2,
     fields: [
       {
         key: "runtime",
@@ -124,6 +138,7 @@ const nodeDefinitions: {
     kind: "customInput",
     title: "Custom Input",
     description: "Node with configurable user inputs.",
+    icon: FileInput,
     fields: [
       {
         key: "inputKind",
@@ -166,6 +181,7 @@ const nodeDefinitions: {
     kind: "setVariable",
     title: "Set Variable",
     description: "Create reusable variable value for downstream nodes.",
+    icon: Braces,
     fields: [],
     outputPaths: [],
     allowedTargets: ["transform", "branch", "code", "customInput", "setVariable", "inlineExpression"],
@@ -178,6 +194,7 @@ const nodeDefinitions: {
     kind: "inlineExpression",
     title: "Inline Expression",
     description: "Edit expression template directly on the node.",
+    icon: Braces,
     fields: [
       {
         key: "template",
@@ -200,8 +217,7 @@ export const workflowNodeRegistry = nodeDefinitions
 export const DEFAULT_NODE_WIDTH = 260
 
 export function createNodeId(kind: NodeKind): string {
-  const token = Math.random().toString(36).slice(2, 8)
-  return `${kind}-${token}`
+  return `${kind}-${crypto.randomUUID()}`
 }
 
 function toNodeData<K extends NodeKind>(kind: K, label?: string): WorkflowNodeData {

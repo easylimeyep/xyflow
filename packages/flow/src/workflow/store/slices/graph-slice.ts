@@ -4,28 +4,24 @@ import { pushHistoryState } from "@workspace/store"
 import { createWorkflowNode } from "../../node-registry/node-registry"
 import { refactorVariableReferencesInGraph } from "../../expression/refactor/refactor"
 import { isValidJsIdentifier } from "../../expression/variable-name/variable-name"
+import { createWorkflowError } from "../../types/errors"
 import type { WorkflowEdge, WorkflowGraphState, WorkflowNode } from "../../types/types"
 import { getKindsFromConnection, validateConnection, type ConnectionLike } from "../../validation/validation"
 import {
-  collectDescendantNodeIds,
-  cloneGraphState,
-  commitGraphState,
-  createSmartQuickAddPosition,
   filterEdgesForRemovedNodes,
-  getEdgeSplitInsertPosition,
   getRemovedNodeIds,
   hasEdgeCollectionChanged,
   hasNodeCollectionChanged,
   hasOutgoingConnection,
   haveSameIdSet,
-  replacePresentGraphState,
-  resolveSubgraphShiftX,
-  shiftNodesBySubgraph,
   shouldCommitEdgeHistory,
   shouldCommitNodeHistory,
   shouldSquashPreviousEdgeRemovalWithNodeRemoval,
-  toEdgeConnectionWithKind,
-} from "../helpers"
+} from "../collection-diff"
+import { toEdgeConnectionWithKind } from "../dto-mappers"
+import { computeEdgeInsertion } from "../edge-insertion"
+import { createSmartQuickAddPosition } from "../geometry"
+import { cloneGraphState, commitGraphState, replacePresentGraphState } from "../history-helpers"
 import type { WorkflowSliceCreator } from "../types"
 
 export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
@@ -46,7 +42,7 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
     if (!sourceNode) {
       set({
         quickAddPending: null,
-        lastError: "Failed to resolve source node for quick add.",
+        lastError: createWorkflowError("NODE_NOT_FOUND", "Failed to resolve source node for quick add."),
       })
       return
     }
@@ -56,7 +52,7 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
     ) {
       set({
         quickAddPending: null,
-        lastError: "Selected output already has an outgoing connection.",
+        lastError: createWorkflowError("OUTGOING_CONNECTION_EXISTS", "Selected output already has an outgoing connection."),
       })
       return
     }
@@ -76,14 +72,14 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
     }
     const validation = validateConnection(connection, nextNodes, currentGraph.edges)
     if (!validation.valid) {
-      set({ lastError: validation.reason ?? "Invalid quick add connection." })
+      set({ lastError: createWorkflowError("INVALID_CONNECTION", validation.reason ?? "Invalid quick add connection.") })
       return
     }
 
     const kinds = getKindsFromConnection(connection, nextNodes)
     if (!kinds) {
       set({
-        lastError: "Failed to resolve node kinds for quick add connection.",
+        lastError: createWorkflowError("KIND_RESOLUTION_FAILED", "Failed to resolve node kinds for quick add connection."),
       })
       return
     }
@@ -109,168 +105,20 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
     const pending = get().edgeInsertPending
     if (!pending) return
 
-    const edgeToSplit = currentGraph.edges.find((edge) => edge.id === pending.edgeId)
-    if (!edgeToSplit) {
-      set({
-        edgeInsertPending: null,
-        lastError: "Failed to resolve edge for insertion.",
-      })
+    const result = computeEdgeInsertion(currentGraph, pending.edgeId, kind)
+    if (!result.ok) {
+      set({ edgeInsertPending: null, lastError: createWorkflowError("EDGE_INSERT_FAILED", result.error) })
       return
     }
-
-    const sourceNode = currentGraph.nodes.find((node) => node.id === edgeToSplit.source)
-    const targetNode = currentGraph.nodes.find((node) => node.id === edgeToSplit.target)
-    if (!sourceNode || !targetNode) {
-      set({
-        edgeInsertPending: null,
-        lastError: "Failed to resolve edge nodes for insertion.",
-      })
-      return
-    }
-
-    const targetSubgraphIds = collectDescendantNodeIds(edgeToSplit.target, currentGraph.edges)
-    const initialInsertPosition = getEdgeSplitInsertPosition(sourceNode, targetNode)
-    const initialShiftX = resolveSubgraphShiftX(
-      currentGraph.nodes,
-      targetSubgraphIds,
-      initialInsertPosition
-    )
-    const initiallyShiftedNodes = shiftNodesBySubgraph(
-      currentGraph.nodes,
-      targetSubgraphIds,
-      initialShiftX
-    )
-    const shiftedSourceNode =
-      initiallyShiftedNodes.find((node) => node.id === edgeToSplit.source) ?? sourceNode
-    const shiftedTargetNode =
-      initiallyShiftedNodes.find((node) => node.id === edgeToSplit.target) ?? targetNode
-    const centeredInsertPosition = getEdgeSplitInsertPosition(shiftedSourceNode, shiftedTargetNode)
-    const extraShiftX = resolveSubgraphShiftX(
-      initiallyShiftedNodes,
-      targetSubgraphIds,
-      centeredInsertPosition
-    )
-    const finalShiftedNodes =
-      extraShiftX > 0
-        ? shiftNodesBySubgraph(initiallyShiftedNodes, targetSubgraphIds, extraShiftX)
-        : initiallyShiftedNodes
-    const finalSourceNode =
-      finalShiftedNodes.find((node) => node.id === edgeToSplit.source) ?? shiftedSourceNode
-    const finalTargetNode =
-      finalShiftedNodes.find((node) => node.id === edgeToSplit.target) ?? shiftedTargetNode
-    const insertPosition = getEdgeSplitInsertPosition(finalSourceNode, finalTargetNode)
-    const shiftedNodes = finalShiftedNodes
-    const nextNode = createWorkflowNode(kind, insertPosition)
-    const nextNodes = [...shiftedNodes, nextNode]
-    const nextEdgesBase = currentGraph.edges.filter((edge) => edge.id !== edgeToSplit.id)
-
-    const sourceToInserted: ConnectionLike = {
-      source: edgeToSplit.source,
-      target: nextNode.id,
-      sourceHandle: edgeToSplit.sourceHandle ?? null,
-      targetHandle: null,
-    }
-    const insertedToTarget: ConnectionLike = {
-      source: nextNode.id,
-      target: edgeToSplit.target,
-      sourceHandle: null,
-      targetHandle: edgeToSplit.targetHandle ?? null,
-    }
-
-    const sourceToInsertedValidation = validateConnection(
-      sourceToInserted,
-      nextNodes,
-      nextEdgesBase
-    )
-    const insertedToTargetValidation = validateConnection(
-      insertedToTarget,
-      nextNodes,
-      nextEdgesBase
-    )
-    const canInsertBetween =
-      sourceToInsertedValidation.valid && insertedToTargetValidation.valid
-
-    if (canInsertBetween) {
-      const sourceKinds = getKindsFromConnection(sourceToInserted, nextNodes)
-      const targetKinds = getKindsFromConnection(insertedToTarget, nextNodes)
-      if (!sourceKinds || !targetKinds) {
-        set({
-          edgeInsertPending: null,
-          lastError: "Failed to resolve node kinds for edge insertion.",
-        })
-        return
-      }
-
-      const withSourceEdge = addEdge(
-        toEdgeConnectionWithKind(
-          sourceToInserted,
-          sourceKinds.sourceKind,
-          sourceKinds.targetKind
-        ),
-        nextEdgesBase
-      ) as WorkflowEdge[]
-      const withTwoEdges = addEdge(
-        toEdgeConnectionWithKind(
-          insertedToTarget,
-          targetKinds.sourceKind,
-          targetKinds.targetKind
-        ),
-        withSourceEdge
-      ) as WorkflowEdge[]
-
-      commitGraphState(set, {
-        ...currentGraph,
-        nodes: nextNodes,
-        edges: withTwoEdges,
-      })
-      set({
-        edgeInsertPending: null,
-        selectedNodeIds: [nextNode.id],
-        lastError: null,
-      })
-      return
-    }
-
-    const fallbackValidation = validateConnection(insertedToTarget, nextNodes, nextEdgesBase)
-    if (!fallbackValidation.valid) {
-      const message =
-        sourceToInsertedValidation.reason ??
-        insertedToTargetValidation.reason ??
-        fallbackValidation.reason ??
-        "Invalid edge insertion."
-      set({
-        edgeInsertPending: null,
-        lastError: message,
-      })
-      return
-    }
-
-    const fallbackKinds = getKindsFromConnection(insertedToTarget, nextNodes)
-    if (!fallbackKinds) {
-      set({
-        edgeInsertPending: null,
-        lastError: "Failed to resolve node kinds for edge insertion fallback.",
-      })
-      return
-    }
-
-    const fallbackEdges = addEdge(
-      toEdgeConnectionWithKind(
-        insertedToTarget,
-        fallbackKinds.sourceKind,
-        fallbackKinds.targetKind
-      ),
-      nextEdgesBase
-    ) as WorkflowEdge[]
 
     commitGraphState(set, {
       ...currentGraph,
-      nodes: nextNodes,
-      edges: fallbackEdges,
+      nodes: result.nextNodes,
+      edges: result.nextEdges,
     })
     set({
       edgeInsertPending: null,
-      selectedNodeIds: [nextNode.id],
+      selectedNodeIds: [result.insertedNodeId],
       lastError: null,
     })
   },
@@ -312,7 +160,7 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
 
       if (!isValidJsIdentifier(nextName)) {
         set({
-          lastError: "Variable name must be a valid JavaScript identifier.",
+          lastError: createWorkflowError("INVALID_VARIABLE_NAME", "Variable name must be a valid JavaScript identifier."),
         })
         return
       }
@@ -327,7 +175,7 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
       })
 
       if (duplicateVariable) {
-        set({ lastError: "Variable name must be unique in this workflow." })
+        set({ lastError: createWorkflowError("DUPLICATE_VARIABLE_NAME", "Variable name must be unique in this workflow.") })
         return
       }
 
@@ -453,13 +301,13 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
       currentGraph.edges
     )
     if (!validation.valid) {
-      set({ lastError: validation.reason ?? "Invalid connection." })
+      set({ lastError: createWorkflowError("INVALID_CONNECTION", validation.reason ?? "Invalid connection.") })
       return
     }
 
     const kinds = getKindsFromConnection(connection, currentGraph.nodes)
     if (!kinds) {
-      set({ lastError: "Failed to resolve node kinds for connection." })
+      set({ lastError: createWorkflowError("KIND_RESOLUTION_FAILED", "Failed to resolve node kinds for connection.") })
       return
     }
 

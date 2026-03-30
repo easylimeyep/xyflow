@@ -12,8 +12,11 @@ export const selectCanUndo = (state: WorkflowStoreState): boolean =>
 export const selectCanRedo = (state: WorkflowStoreState): boolean =>
   state.history.future.length > 0
 
-export const selectLastError = (state: WorkflowStoreState): string | null =>
+export const selectLastError = (state: WorkflowStoreState) =>
   state.lastError
+
+export const selectLastErrorMessage = (state: WorkflowStoreState): string | null =>
+  state.lastError?.message ?? null
 
 export const selectPresentNodes = (state: WorkflowStoreState): WorkflowNode[] =>
   state.history.present.nodes
@@ -51,33 +54,23 @@ export const selectSelectedNode = (
   return state.history.present.nodes.find((node) => node.id === selectedNodeId) ?? null
 }
 
+const expressionCatalogCache = new WeakMap<
+  WorkflowNode[],
+  { edges: WorkflowEdge[]; nodeId: string | null; value: ExpressionVariableOption[] }
+>()
+
 export const selectExpressionVariablesForNode = (
   state: WorkflowStoreState,
   nodeId: string | null
 ): ExpressionVariableOption[] => {
   const nodes = state.history.present.nodes
   const edges = state.history.present.edges
-  if (
-    cachedExpressionCatalog.nodes === nodes &&
-    cachedExpressionCatalog.edges === edges &&
-    cachedExpressionCatalog.nodeId === nodeId
-  ) {
-    return cachedExpressionCatalog.value
+  const cached = expressionCatalogCache.get(nodes)
+  if (cached && cached.edges === edges && cached.nodeId === nodeId) {
+    return cached.value
   }
 
   const value = buildExpressionVariableCatalog(nodes, edges, nodeId)
-  cachedExpressionCatalog = { nodes, edges, nodeId, value }
+  expressionCatalogCache.set(nodes, { edges, nodeId, value })
   return value
-}
-
-let cachedExpressionCatalog: {
-  nodes: WorkflowNode[] | null
-  edges: WorkflowEdge[] | null
-  nodeId: string | null
-  value: ExpressionVariableOption[]
-} = {
-  nodes: null,
-  edges: null,
-  nodeId: null,
-  value: [],
 }

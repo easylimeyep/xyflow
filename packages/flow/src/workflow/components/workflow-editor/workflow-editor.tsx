@@ -7,7 +7,7 @@ import {
   selectCanUndo,
   selectEdgeInsertPending,
   selectExpressionVariablesForNode,
-  selectLastError,
+  selectLastErrorMessage,
   selectNodeCount,
   selectPresentEdges,
   selectPresentNodes,
@@ -123,7 +123,7 @@ function ToolbarContainer() {
   } = useWorkflowShallowStore((state: WorkflowStoreState) => ({
     canUndo: selectCanUndo(state),
     canRedo: selectCanRedo(state),
-    lastError: selectLastError(state),
+    lastError: selectLastErrorMessage(state),
     setLastError: state.setLastError,
     undo: state.undo,
     redo: state.redo,

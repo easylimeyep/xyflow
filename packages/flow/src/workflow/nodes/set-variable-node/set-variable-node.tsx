@@ -6,45 +6,30 @@ import { useCallback, useRef, useState } from "react"
 
 import { ExpressionInput } from "../../components/expression-input"
 import { isValidJsIdentifier } from "../../expression/variable-name/variable-name"
-import {
-  selectExpressionVariablesForNode,
-  useWorkflowShallowStore,
-  useWorkflowStore,
-  type WorkflowStoreState,
-} from "../../store"
+import type { ExpressionVariableOption, WorkflowNode } from "../../types"
 import { NodeShell } from "../node-shell/node-shell"
 import { OutputQuickAddAffordance } from "../output-quick-add-affordance/output-quick-add-affordance"
+import { asRecord, asText, isInsideExpressionPopover } from "../shared/node-data-utils"
 
-function asText(value: unknown): string {
-  return typeof value === "string" ? value : ""
+export interface SetVariableNodeProps extends NodeProps {
+  expressionVariables: ExpressionVariableOption[]
+  onUpdateConfigField: (nodeId: string, key: string, value: string | number | boolean) => void
+  allNodes: WorkflowNode[]
 }
 
-function asRecord(value: unknown): Record<string, unknown> {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    return {}
-  }
-
-  return value as Record<string, unknown>
-}
-
-function isInsideExpressionPopover(target: EventTarget | null): boolean {
-  return target instanceof HTMLElement && Boolean(target.closest('[data-slot="popover-content"]'))
-}
-
-export function SetVariableNode({ id, data, selected }: NodeProps) {
+export function SetVariableNode({
+  id,
+  data,
+  selected,
+  expressionVariables,
+  onUpdateConfigField,
+  allNodes,
+}: SetVariableNodeProps) {
   const dataRecord = asRecord(data)
   const label = asText(dataRecord.label) || "Set Variable"
   const config = asRecord(dataRecord.config)
   const variableNameFromStore = asText(config.variableName)
   const valueExpressionFromStore = asText(config.valueExpression)
-
-  const updateNodeConfigField = useWorkflowShallowStore(
-    (state: WorkflowStoreState) => state.updateNodeConfigField
-  )
-  const nodes = useWorkflowStore((state: WorkflowStoreState) => state.history.present.nodes)
-  const expressionVariables = useWorkflowStore((state: WorkflowStoreState) =>
-    selectExpressionVariablesForNode(state, id)
-  )
 
   const [draftVariableName, setDraftVariableName] = useState(variableNameFromStore)
   const [draftValueExpression, setDraftValueExpression] = useState(valueExpressionFromStore)
@@ -71,7 +56,7 @@ export function SetVariableNode({ id, data, selected }: NodeProps) {
       return false
     }
 
-    const duplicateNode = nodes.find((node) => {
+    const duplicateNode = allNodes.find((node) => {
       if (node.id === id || node.data.kind !== "setVariable") {
         return false
       }
@@ -85,9 +70,9 @@ export function SetVariableNode({ id, data, selected }: NodeProps) {
     }
 
     setNameError(null)
-    updateNodeConfigField(id, "variableName", nextName)
+    onUpdateConfigField(id, "variableName", nextName)
     return true
-  }, [draftVariableName, id, nodes, updateNodeConfigField, variableNameFromStore])
+  }, [draftVariableName, id, allNodes, onUpdateConfigField, variableNameFromStore])
 
   const commitValueExpression = useCallback(() => {
     const nextExpression = draftValueExpressionRef.current
@@ -95,8 +80,8 @@ export function SetVariableNode({ id, data, selected }: NodeProps) {
       return
     }
 
-    updateNodeConfigField(id, "valueExpression", nextExpression)
-  }, [id, updateNodeConfigField, valueExpressionFromStore])
+    onUpdateConfigField(id, "valueExpression", nextExpression)
+  }, [id, onUpdateConfigField, valueExpressionFromStore])
 
   const handleValueExpressionChange = useCallback((nextValue: string) => {
     draftValueExpressionRef.current = nextValue

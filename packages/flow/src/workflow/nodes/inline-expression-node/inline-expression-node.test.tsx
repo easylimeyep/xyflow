@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
-import type { NodeProps } from "@xyflow/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
+import type { InlineExpressionNodeProps } from "./inline-expression-node"
 import { InlineExpressionNode } from "./inline-expression-node"
 
 const updateNodeConfigField = vi.fn()
@@ -14,6 +14,10 @@ vi.mock("@xyflow/react", () => ({
     Left: "left",
     Right: "right",
   },
+}))
+
+vi.mock("../output-quick-add-affordance/output-quick-add-affordance", () => ({
+  OutputQuickAddAffordance: () => null,
 }))
 
 vi.mock("../../components/expression-input", () => ({
@@ -32,31 +36,7 @@ vi.mock("../../components/expression-input", () => ({
   ),
 }))
 
-vi.mock("../../expression/variables/variables", () => ({
-  buildExpressionVariableCatalog: () => [],
-}))
-
-vi.mock("../../store/store", () => ({
-  useWorkflowShallowStore: (
-    selector: (state: { updateNodeConfigField: typeof updateNodeConfigField }) => unknown
-  ) =>
-    selector({
-      updateNodeConfigField,
-    }),
-  useWorkflowStore: (
-    selector: (state: { history: { present: { nodes: []; edges: [] } } }) => unknown
-  ) =>
-    selector({
-      history: {
-        present: {
-          nodes: [],
-          edges: [],
-        },
-      },
-    }),
-}))
-
-function createNodeProps(template: string): NodeProps {
+function createNodeProps(template: string): InlineExpressionNodeProps {
   return {
     id: "inline-node-1",
     type: "inlineExpression",
@@ -78,6 +58,8 @@ function createNodeProps(template: string): NodeProps {
     targetPosition: undefined,
     positionAbsoluteX: 0,
     positionAbsoluteY: 0,
+    expressionVariables: [],
+    onUpdateConfigField: updateNodeConfigField,
   }
 }
 

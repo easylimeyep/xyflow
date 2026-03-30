@@ -22,6 +22,7 @@ import { workflowNodeTypes } from "../../nodes/node-types"
 import { isNodeKind, type NodeKind, type WorkflowEdge, type WorkflowNode } from "../../types"
 import { validateConnection } from "../../validation"
 import { WorkflowEdgeComponent } from "../workflow-edge"
+import { useNodeChangeRouter } from "./use-node-change-router"
 
 interface WorkflowCanvasProps {
   nodes: WorkflowNode[]
@@ -57,53 +58,11 @@ function WorkflowCanvasInner({
   edgeInsertPendingId,
 }: WorkflowCanvasProps) {
   const reactFlow = useReactFlow<WorkflowNode, WorkflowEdge>()
-  const lastSelectionSignatureRef = useRef<string | null>(null)
-  const emitSelection = useCallback(
-    (nodeIds: string[]) => {
-      const nextSignature = [...nodeIds].sort().join("\u0000")
-      if (nextSignature === lastSelectionSignatureRef.current) {
-        return
-      }
-
-      lastSelectionSignatureRef.current = nextSignature
-      onSelectNodes(nodeIds)
-    },
-    [onSelectNodes]
-  )
-  const onReactFlowNodesChange = useCallback(
-    (changes: NodeChange<WorkflowNode>[]) => {
-      const nonSelectionChanges: NodeChange<WorkflowNode>[] = []
-      let nextSelectedNodeIdsSet: Set<string> | null = null
-
-      changes.forEach((change) => {
-        if (change.type !== "select") {
-          nonSelectionChanges.push(change)
-          return
-        }
-
-        if (!nextSelectedNodeIdsSet) {
-          nextSelectedNodeIdsSet = new Set(
-            nodes.filter((node) => Boolean(node.selected)).map((node) => node.id)
-          )
-        }
-
-        if (change.selected) {
-          nextSelectedNodeIdsSet.add(change.id)
-          return
-        }
-        nextSelectedNodeIdsSet.delete(change.id)
-      })
-
-      if (nextSelectedNodeIdsSet) {
-        emitSelection([...nextSelectedNodeIdsSet])
-      }
-
-      if (nonSelectionChanges.length > 0) {
-        onNodesChange(nonSelectionChanges)
-      }
-    },
-    [emitSelection, nodes, onNodesChange]
-  )
+  const onReactFlowNodesChange = useNodeChangeRouter({
+    nodes,
+    onStructuralChanges: onNodesChange,
+    onSelectionChange: onSelectNodes,
+  })
 
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault()

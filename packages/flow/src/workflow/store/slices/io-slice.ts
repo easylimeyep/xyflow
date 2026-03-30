@@ -13,6 +13,7 @@ import {
   createWorkflowNode,
   normalizeNodeConfig,
 } from "../../node-registry/node-registry"
+import { createWorkflowError } from "../../types/errors"
 import type { WorkflowEdge, WorkflowNode } from "../../types/types"
 import {
   asDomainConnectionDTO,
@@ -52,7 +53,7 @@ export const createIoSlice: WorkflowSliceCreator = (set, get) => ({
     )
     const copied = await writeTextToClipboard(payload)
     if (!copied) {
-      set({ lastError: "Failed to copy selected nodes." })
+      set({ lastError: createWorkflowError("CLIPBOARD_WRITE_FAILED", "Failed to copy selected nodes.") })
       return false
     }
 
@@ -62,15 +63,14 @@ export const createIoSlice: WorkflowSliceCreator = (set, get) => ({
   pasteFromClipboard: async () => {
     const clipboardText = await readTextFromClipboard()
     if (!clipboardText) {
-      set({ lastError: "Clipboard is empty or unavailable." })
+      set({ lastError: createWorkflowError("CLIPBOARD_EMPTY", "Clipboard is empty or unavailable.") })
       return false
     }
 
     const parsed = parseSelectionClipboardJson(clipboardText)
     if (!parsed.success || !parsed.value) {
       set({
-        lastError:
-          parsed.error ?? "Clipboard JSON is not a workflow selection payload.",
+        lastError: createWorkflowError("IMPORT_INVALID_SCHEMA", parsed.error ?? "Clipboard JSON is not a workflow selection payload."),
       })
       return false
     }
@@ -181,7 +181,7 @@ export const createIoSlice: WorkflowSliceCreator = (set, get) => ({
     const parsed = parseInternalGraphJson(rawJson)
     if (!parsed.success || !parsed.value) {
       set({
-        lastError: parsed.error ?? "Import failed due to invalid schema.",
+        lastError: createWorkflowError("IMPORT_INVALID_SCHEMA", parsed.error ?? "Import failed due to invalid schema."),
       })
       return false
     }

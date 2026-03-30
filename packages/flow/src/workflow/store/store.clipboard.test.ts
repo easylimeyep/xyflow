@@ -134,7 +134,7 @@ describe("workflow store clipboard actions", () => {
 
     const pasted = await store.getState().pasteFromClipboard()
     expect(pasted).toBe(false)
-    expect(store.getState().lastError).toContain("workflow selection schema")
+    expect(store.getState().lastError?.message).toContain("workflow selection schema")
   })
 
   it("returns false when clipboard write fails", async () => {
@@ -152,7 +152,7 @@ describe("workflow store clipboard actions", () => {
     const copied = await store.getState().copySelectionToClipboard()
 
     expect(copied).toBe(false)
-    expect(store.getState().lastError).toContain("Failed to copy")
+    expect(store.getState().lastError?.message).toContain("Failed to copy")
   })
 
   it("handles concurrent paste calls without throwing and keeps graph consistent", async () => {

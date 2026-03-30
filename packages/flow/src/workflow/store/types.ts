@@ -2,6 +2,7 @@ import type { EdgeChange, NodeChange, Viewport, XYPosition } from "@xyflow/react
 import type { StoreApi } from "@workspace/store"
 import type { HistoryState } from "@workspace/store"
 
+import type { WorkflowError } from "../types/errors"
 import type {
   NodeKind,
   WorkflowEdge,
@@ -19,26 +20,17 @@ export interface PendingEdgeInsert {
   edgeId: string
 }
 
-export interface WorkflowStoreState {
+export interface WorkflowStoreQueries {
   history: HistoryState<WorkflowGraphState>
   selectedNodeIds: string[]
   lastPointerFlowPosition: XYPosition | null
   quickAddPending: PendingQuickAdd | null
   edgeInsertPending: PendingEdgeInsert | null
-  lastError: string | null
-  setLastError: (message: string | null) => void
+  lastError: WorkflowError | null
+}
+
+export interface WorkflowStoreGraphCommands {
   addNode: (kind: NodeKind, position: XYPosition) => void
-  startQuickAddFromOutput: (
-    sourceNodeId: string,
-    sourceHandle?: string | null
-  ) => void
-  startEdgeInsertFromEdge: (edgeId: string) => void
-  cancelQuickAdd: () => void
-  cancelEdgeInsert: () => void
-  confirmQuickAddNode: (kind: NodeKind) => void
-  confirmEdgeInsertNode: (kind: NodeKind) => void
-  setSelectedNodes: (nodeIds: string[]) => void
-  setSelectedNode: (nodeId: string | null) => void
   updateNodeLabel: (nodeId: string, nextLabel: string) => void
   updateNodeConfigField: (
     nodeId: string,
@@ -49,15 +41,43 @@ export interface WorkflowStoreState {
   onEdgesChange: (changes: EdgeChange<WorkflowEdge>[]) => void
   onConnect: (connection: ConnectionLike) => void
   setViewport: (viewport: Viewport) => void
+}
+
+export interface WorkflowStoreUICommands {
+  setLastError: (error: WorkflowError | null) => void
+  setSelectedNodes: (nodeIds: string[]) => void
+  setSelectedNode: (nodeId: string | null) => void
   setLastPointerPosition: (position: XYPosition) => void
+  startQuickAddFromOutput: (
+    sourceNodeId: string,
+    sourceHandle?: string | null
+  ) => void
+  startEdgeInsertFromEdge: (edgeId: string) => void
+  cancelQuickAdd: () => void
+  cancelEdgeInsert: () => void
+  confirmQuickAddNode: (kind: NodeKind) => void
+  confirmEdgeInsertNode: (kind: NodeKind) => void
+}
+
+export interface WorkflowStoreIOCommands {
   copySelectionToClipboard: () => Promise<boolean>
   pasteFromClipboard: () => Promise<boolean>
-  undo: () => void
-  redo: () => void
   importFromJson: (rawJson: string) => boolean
   exportInternal: () => string
   exportDomain: () => string
 }
+
+export interface WorkflowStoreHistoryCommands {
+  undo: () => void
+  redo: () => void
+}
+
+export interface WorkflowStoreState
+  extends WorkflowStoreQueries,
+    WorkflowStoreGraphCommands,
+    WorkflowStoreUICommands,
+    WorkflowStoreIOCommands,
+    WorkflowStoreHistoryCommands {}
 
 export interface WorkflowStoreInitialProps {
   initialGraph?: WorkflowGraphState

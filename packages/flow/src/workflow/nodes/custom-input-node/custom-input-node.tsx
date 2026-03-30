@@ -4,22 +4,7 @@ import type { NodeProps } from "@xyflow/react"
 
 import { NodeShell } from "../node-shell/node-shell"
 import { OutputQuickAddAffordance } from "../output-quick-add-affordance/output-quick-add-affordance"
-
-function asText(value: unknown): string {
-  return typeof value === "string" ? value : ""
-}
-
-function asNumber(value: unknown): number {
-  return typeof value === "number" ? value : 0
-}
-
-function asRecord(value: unknown): Record<string, unknown> {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    return {}
-  }
-
-  return value as Record<string, unknown>
-}
+import { asNumber, asRecord, asText } from "../shared/node-data-utils"
 
 export function CustomInputNode({ id, data, selected }: NodeProps) {
   const dataRecord = asRecord(data)

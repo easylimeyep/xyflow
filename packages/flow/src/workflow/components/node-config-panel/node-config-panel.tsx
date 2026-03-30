@@ -1,25 +1,16 @@
 "use client"
 
-import { useCallback, type ChangeEvent } from "react"
+import { type ChangeEvent, useId } from "react"
 
 import { Input } from "@workspace/ui/components/input"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@workspace/ui/components/select"
-import { Textarea } from "@workspace/ui/components/textarea"
 
-import { ExpressionInput } from "../expression-input"
 import { workflowNodeRegistry } from "../../node-registry"
 import type {
   ExpressionVariableOption,
-  FieldOption,
   NodeFieldSchema,
   WorkflowNode,
 } from "../../types"
+import { resolveFieldRenderer, type FieldRendererProps } from "./field-renderers"
 
 type FieldValue = string | number | boolean
 
@@ -28,40 +19,6 @@ interface NodeConfigPanelProps {
   expressionVariables: ExpressionVariableOption[]
   onUpdateLabel: (nodeId: string, nextLabel: string) => void
   onUpdateConfigField: (nodeId: string, key: string, value: FieldValue) => void
-}
-
-interface ExpressionFieldInputProps {
-  value: string
-  placeholder?: string
-  variables: ExpressionVariableOption[]
-  nodeId: string
-  fieldKey: string
-  onUpdateConfigField: (nodeId: string, key: string, value: FieldValue) => void
-}
-
-function ExpressionFieldInput({
-  value,
-  placeholder,
-  variables,
-  nodeId,
-  fieldKey,
-  onUpdateConfigField,
-}: ExpressionFieldInputProps) {
-  const handleChange = useCallback(
-    (nextValue: string) => {
-      onUpdateConfigField(nodeId, fieldKey, nextValue)
-    },
-    [fieldKey, nodeId, onUpdateConfigField]
-  )
-
-  return (
-    <ExpressionInput
-      value={value}
-      placeholder={placeholder}
-      variables={variables}
-      onChange={handleChange}
-    />
-  )
 }
 
 function asFieldValue(
@@ -80,15 +37,57 @@ function asFieldValue(
   return typeof value === "string" ? value : fallback
 }
 
+function ConfigField({
+  field,
+  selectedNode,
+  expressionVariables,
+  onUpdateConfigField,
+}: {
+  field: NodeFieldSchema
+  selectedNode: WorkflowNode
+  expressionVariables: ExpressionVariableOption[]
+  onUpdateConfigField: NodeConfigPanelProps["onUpdateConfigField"]
+}) {
+  const fieldId = useId()
+  const descriptionId = field.description ? `${fieldId}-desc` : undefined
+  const rawValue = selectedNode.data.config[field.key as keyof typeof selectedNode.data.config]
+  const value = asFieldValue(rawValue, "", field.type)
+  const Renderer = resolveFieldRenderer(field)
+  const props: FieldRendererProps = {
+    field,
+    value,
+    nodeId: selectedNode.id,
+    expressionVariables,
+    onUpdateConfigField,
+    fieldId,
+  }
+
+  return (
+    <div className="space-y-1">
+      <label htmlFor={fieldId} className="text-[11px] font-medium text-muted-foreground">
+        {field.label}
+      </label>
+      <Renderer {...props} />
+      {field.description ? (
+        <p id={descriptionId} className="text-[11px] text-muted-foreground">
+          {field.description}
+        </p>
+      ) : null}
+    </div>
+  )
+}
+
 export function NodeConfigPanel({
   selectedNode,
   expressionVariables,
   onUpdateLabel,
   onUpdateConfigField,
 }: NodeConfigPanelProps) {
+  const labelId = useId()
+
   if (!selectedNode) {
     return (
-      <aside className="w-80 border-l bg-background p-3">
+      <aside aria-label="Node configuration" className="w-80 border-l bg-background p-3">
         <h2 className="text-sm font-semibold">Node Config</h2>
         <p className="mt-2 text-xs text-muted-foreground">
           Select a node to edit its settings.
@@ -101,11 +100,14 @@ export function NodeConfigPanel({
   const definition = workflowNodeRegistry[kind]
 
   return (
-    <aside className="w-80 space-y-3 border-l bg-background p-3">
+    <aside aria-label="Node configuration" className="w-80 space-y-3 border-l bg-background p-3">
       <h2 className="text-sm font-semibold">Node Config</h2>
       <div className="space-y-1">
-        <label className="text-[11px] font-medium text-muted-foreground">Label</label>
+        <label htmlFor={labelId} className="text-[11px] font-medium text-muted-foreground">
+          Label
+        </label>
         <Input
+          id={labelId}
           value={selectedNode.data.label}
           onChange={(event: ChangeEvent<HTMLInputElement>) =>
             onUpdateLabel(selectedNode.id, event.target.value)
@@ -113,99 +115,15 @@ export function NodeConfigPanel({
         />
       </div>
 
-      {definition.fields.map((field: NodeFieldSchema) => {
-        const rawValue = selectedNode.data.config[field.key as keyof typeof selectedNode.data.config]
-        const value = asFieldValue(rawValue, "", field.type)
-        const isExpressionField =
-          field.ui === "expression" && (field.type === "text" || field.type === "textarea")
-
-        return (
-          <div key={field.key} className="space-y-1">
-            <label className="text-[11px] font-medium text-muted-foreground">
-              {field.label}
-            </label>
-            {isExpressionField ? (
-              <ExpressionFieldInput
-                value={String(value)}
-                placeholder={field.placeholder}
-                variables={expressionVariables}
-                nodeId={selectedNode.id}
-                fieldKey={field.key}
-                onUpdateConfigField={onUpdateConfigField}
-              />
-            ) : null}
-            {field.type === "text" && !isExpressionField ? (
-              <Input
-                value={String(value)}
-                placeholder={field.placeholder}
-                onChange={(event: ChangeEvent<HTMLInputElement>) =>
-                  onUpdateConfigField(selectedNode.id, field.key, event.target.value)
-                }
-              />
-            ) : null}
-            {field.type === "textarea" && !isExpressionField ? (
-              <Textarea
-                value={String(value)}
-                placeholder={field.placeholder}
-                onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
-                  onUpdateConfigField(selectedNode.id, field.key, event.target.value)
-                }
-              />
-            ) : null}
-            {field.type === "number" ? (
-              <Input
-                type="number"
-                value={String(value)}
-                onChange={(event: ChangeEvent<HTMLInputElement>) =>
-                  onUpdateConfigField(
-                    selectedNode.id,
-                    field.key,
-                    Number(event.target.value) || 0
-                  )
-                }
-              />
-            ) : null}
-            {field.type === "boolean" ? (
-              <label className="inline-flex items-center gap-2 text-xs">
-                <input
-                  type="checkbox"
-                  checked={Boolean(value)}
-                  onChange={(event: ChangeEvent<HTMLInputElement>) =>
-                    onUpdateConfigField(
-                      selectedNode.id,
-                      field.key,
-                      event.target.checked
-                    )
-                  }
-                />
-                Enabled
-              </label>
-            ) : null}
-            {field.type === "select" ? (
-              <Select
-                value={String(value)}
-                onValueChange={(nextValue) =>
-                  onUpdateConfigField(selectedNode.id, field.key, nextValue)
-                }
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select value" />
-                </SelectTrigger>
-                <SelectContent>
-                  {field.options?.map((option: FieldOption) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : null}
-            {field.description ? (
-              <p className="text-[11px] text-muted-foreground">{field.description}</p>
-            ) : null}
-          </div>
-        )
-      })}
+      {definition.fields.map((field: NodeFieldSchema) => (
+        <ConfigField
+          key={field.key}
+          field={field}
+          selectedNode={selectedNode}
+          expressionVariables={expressionVariables}
+          onUpdateConfigField={onUpdateConfigField}
+        />
+      ))}
     </aside>
   )
 }

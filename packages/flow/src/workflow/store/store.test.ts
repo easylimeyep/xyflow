@@ -43,7 +43,7 @@ describe("workflow store", () => {
     const imported = store.getState().importFromJson("{\"bad\":true}")
 
     expect(imported).toBe(false)
-    expect(store.getState().lastError).toContain("domain workflow schema")
+    expect(store.getState().lastError?.message).toContain("domain workflow schema")
   })
 
   it("rejects invalid connections and keeps graph stable", () => {
@@ -63,7 +63,7 @@ describe("workflow store", () => {
     const nextState = store.getState()
 
     expect(nextState.history.present.edges.length).toBe(edgeCount)
-    expect(nextState.lastError).toContain("cannot connect")
+    expect(nextState.lastError?.message).toContain("cannot connect")
   })
 
   it("creates valid connections and clears previous errors", () => {
@@ -80,7 +80,7 @@ describe("workflow store", () => {
     }
 
     state.onConnect({ source: code.id, target: trigger.id })
-    expect(store.getState().lastError).toContain("cannot connect")
+    expect(store.getState().lastError?.message).toContain("cannot connect")
 
     const beforeEdgeCount = store.getState().history.present.edges.length
     store.getState().onConnect({ source: trigger.id, target: code.id })

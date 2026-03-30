@@ -1,14 +1,5 @@
 "use client"
 
-import {
-  Braces,
-  Code2,
-  FileInput,
-  GitBranch,
-  Play,
-  WandSparkles,
-  type LucideIcon,
-} from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 
 import { WORKFLOW_NODE_KIND_MIME } from "../../dnd"
@@ -20,19 +11,7 @@ interface NodePaletteProps {
   quickAddActive?: boolean
 }
 
-const iconByNodeKind: Record<NodeKind, LucideIcon> = {
-  trigger: Play,
-  branch: GitBranch,
-  transform: WandSparkles,
-  code: Code2,
-  customInput: FileInput,
-  setVariable: Braces,
-  inlineExpression: Braces,
-}
-
-const entries: Array<(typeof workflowNodeRegistry)[NodeKind]> = WORKFLOW_NODE_KINDS.map(
-  (kind) => workflowNodeRegistry[kind]
-)
+const entries = WORKFLOW_NODE_KINDS.map((kind) => workflowNodeRegistry[kind])
 
 export function NodePalette({
   onAddNode,
@@ -60,6 +39,7 @@ export function NodePalette({
     <aside
       ref={containerRef}
       tabIndex={-1}
+      aria-label="Node palette"
       className={`relative w-72 space-y-2 border-r bg-background p-3 outline-none ${
         quickAddActive ? "ring-2 ring-primary/60 ring-inset" : ""
       }`}
@@ -72,7 +52,7 @@ export function NodePalette({
       <h2 className="text-sm font-semibold">Node Palette</h2>
       <div className="flex flex-col gap-2">
         {entries.map((definition) => {
-          const Icon = iconByNodeKind[definition.kind]
+          const Icon = definition.icon
 
           return (
             <div
@@ -89,6 +69,7 @@ export function NodePalette({
             >
               <button
                 type="button"
+                aria-label={`Add ${definition.title} node`}
                 className="align-center flex w-full gap-2"
                 onClick={() => onAddNode(definition.kind)}
               >

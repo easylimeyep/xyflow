@@ -4,42 +4,27 @@ import type { NodeProps } from "@xyflow/react"
 import { useCallback, useRef, useState } from "react"
 
 import { ExpressionInput } from "../../components/expression-input"
-import {
-  selectExpressionVariablesForNode,
-  useWorkflowShallowStore,
-  useWorkflowStore,
-  type WorkflowStoreState,
-} from "../../store"
+import type { ExpressionVariableOption } from "../../types"
 import { NodeShell } from "../node-shell/node-shell"
 import { OutputQuickAddAffordance } from "../output-quick-add-affordance/output-quick-add-affordance"
+import { asRecord, asText, isInsideExpressionPopover } from "../shared/node-data-utils"
 
-function asText(value: unknown): string {
-  return typeof value === "string" ? value : ""
+export interface InlineExpressionNodeProps extends NodeProps {
+  expressionVariables: ExpressionVariableOption[]
+  onUpdateConfigField: (nodeId: string, key: string, value: string | number | boolean) => void
 }
 
-function asRecord(value: unknown): Record<string, unknown> {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    return {}
-  }
-
-  return value as Record<string, unknown>
-}
-
-function isInsideExpressionPopover(target: EventTarget | null): boolean {
-  return target instanceof HTMLElement && Boolean(target.closest('[data-slot="popover-content"]'))
-}
-
-export function InlineExpressionNode({ id, data, selected }: NodeProps) {
+export function InlineExpressionNode({
+  id,
+  data,
+  selected,
+  expressionVariables,
+  onUpdateConfigField,
+}: InlineExpressionNodeProps) {
   const dataRecord = asRecord(data)
   const label = asText(dataRecord.label)
   const config = asRecord(dataRecord.config)
   const templateFromStore = asText(config.template)
-  const updateNodeConfigField = useWorkflowShallowStore(
-    (state: WorkflowStoreState) => state.updateNodeConfigField
-  )
-  const expressionVariables = useWorkflowStore((state: WorkflowStoreState) =>
-    selectExpressionVariablesForNode(state, id)
-  )
 
   const [draftTemplate, setDraftTemplate] = useState(templateFromStore)
   const [isFocused, setIsFocused] = useState(false)
@@ -57,8 +42,8 @@ export function InlineExpressionNode({ id, data, selected }: NodeProps) {
       return
     }
 
-    updateNodeConfigField(id, "template", nextTemplate)
-  }, [id, templateFromStore, updateNodeConfigField])
+    onUpdateConfigField(id, "template", nextTemplate)
+  }, [id, templateFromStore, onUpdateConfigField])
 
   return (
     <div className="relative">

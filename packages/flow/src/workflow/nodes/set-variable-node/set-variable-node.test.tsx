@@ -1,14 +1,14 @@
 // @vitest-environment jsdom
 
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
-import type { NodeProps } from "@xyflow/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
+import type { WorkflowNode } from "../../types"
+import type { SetVariableNodeProps } from "./set-variable-node"
 import { SetVariableNode } from "./set-variable-node"
 
 const updateNodeConfigField = vi.fn()
-let mockNodes: Array<{ id: string; data: { kind: string; config: Record<string, unknown> } }> = []
-let mockEdges: [] = []
+let mockNodes: WorkflowNode[] = []
 
 vi.mock("@xyflow/react", () => ({
   Handle: () => null,
@@ -16,6 +16,10 @@ vi.mock("@xyflow/react", () => ({
     Left: "left",
     Right: "right",
   },
+}))
+
+vi.mock("../output-quick-add-affordance/output-quick-add-affordance", () => ({
+  OutputQuickAddAffordance: () => null,
 }))
 
 vi.mock("../../components/expression-input", () => ({
@@ -34,31 +38,7 @@ vi.mock("../../components/expression-input", () => ({
   ),
 }))
 
-vi.mock("../../expression/variables/variables", () => ({
-  buildExpressionVariableCatalog: () => [],
-}))
-
-vi.mock("../../store/store", () => ({
-  useWorkflowShallowStore: (
-    selector: (state: { updateNodeConfigField: typeof updateNodeConfigField }) => unknown
-  ) =>
-    selector({
-      updateNodeConfigField,
-    }),
-  useWorkflowStore: (
-    selector: (state: { history: { present: { nodes: typeof mockNodes; edges: typeof mockEdges } } }) => unknown
-  ) =>
-    selector({
-      history: {
-        present: {
-          nodes: mockNodes,
-          edges: mockEdges,
-        },
-      },
-    }),
-}))
-
-function createNodeProps(variableName: string, valueExpression: string): NodeProps {
+function createNodeProps(variableName: string, valueExpression: string): SetVariableNodeProps {
   return {
     id: "set-variable-1",
     type: "setVariable",
@@ -81,14 +61,23 @@ function createNodeProps(variableName: string, valueExpression: string): NodePro
     targetPosition: undefined,
     positionAbsoluteX: 0,
     positionAbsoluteY: 0,
+    expressionVariables: [],
+    onUpdateConfigField: updateNodeConfigField,
+    allNodes: mockNodes,
   }
 }
 
 describe("SetVariableNode", () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockNodes = [{ id: "set-variable-1", data: { kind: "setVariable", config: { variableName: "myVar" } } }]
-    mockEdges = []
+    mockNodes = [
+      {
+        id: "set-variable-1",
+        type: "setVariable",
+        position: { x: 0, y: 0 },
+        data: { kind: "setVariable", label: "Set Variable", config: { variableName: "myVar", valueExpression: "" } },
+      } as WorkflowNode,
+    ]
   })
 
   afterEach(() => {
@@ -158,8 +147,18 @@ describe("SetVariableNode", () => {
 
   it("rejects duplicate variable names", () => {
     mockNodes = [
-      { id: "set-variable-1", data: { kind: "setVariable", config: { variableName: "myVar" } } },
-      { id: "set-variable-2", data: { kind: "setVariable", config: { variableName: "existing" } } },
+      {
+        id: "set-variable-1",
+        type: "setVariable",
+        position: { x: 0, y: 0 },
+        data: { kind: "setVariable", label: "Set Variable", config: { variableName: "myVar", valueExpression: "" } },
+      } as WorkflowNode,
+      {
+        id: "set-variable-2",
+        type: "setVariable",
+        position: { x: 200, y: 0 },
+        data: { kind: "setVariable", label: "Set Variable 2", config: { variableName: "existing", valueExpression: "" } },
+      } as WorkflowNode,
     ]
 
     render(<SetVariableNode {...createNodeProps("myVar", "{{ $input.item.json }}")} />)
