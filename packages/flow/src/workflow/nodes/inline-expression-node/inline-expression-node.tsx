@@ -8,7 +8,7 @@ import type { NodeConfigUpdate } from "../../store/types"
 import type { ExpressionVariableOption } from "../../types"
 import { NodeShell } from "../node-shell/node-shell"
 import { OutputQuickAddAffordance } from "../output-quick-add-affordance/output-quick-add-affordance"
-import { asRecord, asText, isInsideExpressionPopover } from "../shared/node-data-utils"
+import { asText, isInsideExpressionPopover, useBaseNodeData } from "../shared"
 
 export interface InlineExpressionNodeProps extends NodeProps {
   expressionVariables: ExpressionVariableOption[]
@@ -22,9 +22,7 @@ export function InlineExpressionNode({
   expressionVariables,
   onUpdateConfigField,
 }: InlineExpressionNodeProps) {
-  const dataRecord = asRecord(data)
-  const label = asText(dataRecord.label)
-  const config = asRecord(dataRecord.config)
+  const { label, config } = useBaseNodeData(data)
   const templateFromStore = asText(config.template)
 
   const [draftTemplate, setDraftTemplate] = useState(templateFromStore)

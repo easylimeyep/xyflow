@@ -4,12 +4,10 @@ import type { NodeProps } from "@xyflow/react"
 
 import { NodeShell } from "../node-shell/node-shell"
 import { OutputQuickAddAffordance } from "../output-quick-add-affordance/output-quick-add-affordance"
-import { asRecord, asText } from "../shared/node-data-utils"
+import { asText, useBaseNodeData } from "../shared"
 
 export function TriggerNode({ id, data, selected }: NodeProps) {
-  const dataRecord = asRecord(data)
-  const label = asText(dataRecord.label)
-  const config = asRecord(dataRecord.config)
+  const { label, config } = useBaseNodeData(data)
   const eventName = asText(config.eventName)
   return (
     <div className="relative">

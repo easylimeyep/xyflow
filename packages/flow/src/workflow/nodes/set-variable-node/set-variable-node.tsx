@@ -10,7 +10,7 @@ import type { NodeConfigUpdate } from "../../store/types"
 import type { ExpressionVariableOption, WorkflowNode } from "../../types"
 import { NodeShell } from "../node-shell/node-shell"
 import { OutputQuickAddAffordance } from "../output-quick-add-affordance/output-quick-add-affordance"
-import { asRecord, asText, isInsideExpressionPopover } from "../shared/node-data-utils"
+import { asRecord, asText, isInsideExpressionPopover, useBaseNodeData } from "../shared"
 
 export interface SetVariableNodeProps extends NodeProps {
   expressionVariables: ExpressionVariableOption[]
@@ -26,9 +26,8 @@ export function SetVariableNode({
   onUpdateConfigField,
   allNodes,
 }: SetVariableNodeProps) {
-  const dataRecord = asRecord(data)
-  const label = asText(dataRecord.label) || "Set Variable"
-  const config = asRecord(dataRecord.config)
+  const { label: baseLabel, config } = useBaseNodeData(data)
+  const label = baseLabel || "Set Variable"
   const variableNameFromStore = asText(config.variableName)
   const valueExpressionFromStore = asText(config.valueExpression)
 
