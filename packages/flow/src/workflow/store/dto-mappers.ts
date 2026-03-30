@@ -1,4 +1,4 @@
-import { normalizeNodeConfig } from "../node-registry/node-registry"
+import { normalizeNodeConfig } from "../node-registry/node-config-normalization"
 import type {
   DomainWorkflowConnectionDTO,
   DomainWorkflowNodeDTO,

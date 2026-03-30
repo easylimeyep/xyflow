@@ -1,6 +1,6 @@
 import { addEdge } from "@xyflow/react"
 
-import { createWorkflowNode } from "../node-registry/node-registry"
+import { createWorkflowNode } from "../node-registry/node-factory"
 import type { NodeKind, WorkflowEdge, WorkflowGraphState, WorkflowNode } from "../types/types"
 import { getKindsFromConnection, validateConnection, type ConnectionLike } from "../validation/validation"
 

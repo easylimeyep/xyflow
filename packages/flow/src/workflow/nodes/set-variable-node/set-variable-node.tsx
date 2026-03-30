@@ -6,6 +6,7 @@ import { useCallback, useRef, useState } from "react"
 
 import { ExpressionInput } from "../../components/expression-input"
 import { isValidJsIdentifier } from "../../expression/variable-name/variable-name"
+import type { NodeConfigUpdate } from "../../store/types"
 import type { ExpressionVariableOption, WorkflowNode } from "../../types"
 import { NodeShell } from "../node-shell/node-shell"
 import { OutputQuickAddAffordance } from "../output-quick-add-affordance/output-quick-add-affordance"
@@ -13,7 +14,7 @@ import { asRecord, asText, isInsideExpressionPopover } from "../shared/node-data
 
 export interface SetVariableNodeProps extends NodeProps {
   expressionVariables: ExpressionVariableOption[]
-  onUpdateConfigField: (nodeId: string, key: string, value: string | number | boolean) => void
+  onUpdateConfigField: (nodeId: string, update: NodeConfigUpdate) => void
   allNodes: WorkflowNode[]
 }
 
@@ -70,7 +71,11 @@ export function SetVariableNode({
     }
 
     setNameError(null)
-    onUpdateConfigField(id, "variableName", nextName)
+    onUpdateConfigField(id, {
+      kind: "setVariable",
+      key: "variableName",
+      value: nextName,
+    })
     return true
   }, [draftVariableName, id, allNodes, onUpdateConfigField, variableNameFromStore])
 
@@ -80,7 +85,11 @@ export function SetVariableNode({
       return
     }
 
-    onUpdateConfigField(id, "valueExpression", nextExpression)
+    onUpdateConfigField(id, {
+      kind: "setVariable",
+      key: "valueExpression",
+      value: nextExpression,
+    })
   }, [id, onUpdateConfigField, valueExpressionFromStore])
 
   const handleValueExpressionChange = useCallback((nextValue: string) => {

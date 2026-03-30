@@ -1,4 +1,5 @@
-import { createWorkflowNode, normalizeNodeConfig } from "../../node-registry/node-registry"
+import { normalizeNodeConfig } from "../../node-registry/node-config-normalization"
+import { createWorkflowNode } from "../../node-registry/node-factory"
 import type {
   DomainWorkflowConnectionDTO,
   DomainWorkflowDTO,

@@ -4,7 +4,8 @@ import { type ChangeEvent, useId } from "react"
 
 import { Input } from "@workspace/ui/components/input"
 
-import { workflowNodeRegistry } from "../../node-registry"
+import { getNodeDefinition } from "../../node-registry"
+import type { NodeConfigUpdate } from "../../store/types"
 import type {
   ExpressionVariableOption,
   NodeFieldSchema,
@@ -18,7 +19,7 @@ interface NodeConfigPanelProps {
   selectedNode: WorkflowNode | null
   expressionVariables: ExpressionVariableOption[]
   onUpdateLabel: (nodeId: string, nextLabel: string) => void
-  onUpdateConfigField: (nodeId: string, key: string, value: FieldValue) => void
+  onUpdateConfigField: (nodeId: string, update: NodeConfigUpdate) => void
 }
 
 function asFieldValue(
@@ -57,6 +58,7 @@ function ConfigField({
     field,
     value,
     nodeId: selectedNode.id,
+    nodeKind: selectedNode.data.kind,
     expressionVariables,
     onUpdateConfigField,
     fieldId,
@@ -97,7 +99,7 @@ export function NodeConfigPanel({
   }
 
   const { kind } = selectedNode.data
-  const definition = workflowNodeRegistry[kind]
+  const definition = getNodeDefinition(kind)
 
   return (
     <aside aria-label="Node configuration" className="w-80 space-y-3 border-l bg-background p-3">

@@ -4,6 +4,7 @@ import type { HistoryState } from "@workspace/store"
 
 import type { WorkflowError } from "../types/errors"
 import type {
+  NodeConfigByKind,
   NodeKind,
   WorkflowEdge,
   WorkflowGraphState,
@@ -32,16 +33,24 @@ export interface WorkflowStoreQueries {
 export interface WorkflowStoreGraphCommands {
   addNode: (kind: NodeKind, position: XYPosition) => void
   updateNodeLabel: (nodeId: string, nextLabel: string) => void
-  updateNodeConfigField: (
-    nodeId: string,
-    key: string,
-    rawValue: string | number | boolean
-  ) => void
+  updateNodeConfig: (nodeId: string, update: NodeConfigUpdate) => void
   onNodesChange: (changes: NodeChange<WorkflowNode>[]) => void
   onEdgesChange: (changes: EdgeChange<WorkflowEdge>[]) => void
   onConnect: (connection: ConnectionLike) => void
   setViewport: (viewport: Viewport) => void
 }
+
+type NodeConfigUpdateByKind<K extends NodeKind> = {
+  [P in keyof NodeConfigByKind[K]]: {
+    kind: K
+    key: P
+    value: NodeConfigByKind[K][P]
+  }
+}[keyof NodeConfigByKind[K]]
+
+export type NodeConfigUpdate = {
+  [K in NodeKind]: NodeConfigUpdateByKind<K>
+}[NodeKind]
 
 export interface WorkflowStoreUICommands {
   setLastError: (error: WorkflowError | null) => void

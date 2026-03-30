@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest"
 
-import { createWorkflowNode, workflowNodeRegistry } from "./node-registry"
+import { normalizeNodeConfig } from "./node-config-normalization"
+import { createWorkflowNode } from "./node-factory"
+import { workflowNodeRegistry } from "./node-ui-metadata"
 
 describe("workflow node registry", () => {
   it("includes set variable definition", () => {
@@ -32,5 +34,13 @@ describe("workflow node registry", () => {
 
     expect(node.type).toBe("inlineExpression")
     expect(node.data.config.template).toBe("{{ $input.item.json }}")
+  })
+
+  it("falls back to default select option for invalid values", () => {
+    const nextConfig = normalizeNodeConfig("customInput", {
+      inputKind: "unknown-value" as "config",
+    })
+
+    expect(nextConfig.inputKind).toBe("config")
   })
 })

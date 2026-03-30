@@ -11,8 +11,8 @@ import {
 } from "../../mappers"
 import {
   createWorkflowNode,
-  normalizeNodeConfig,
-} from "../../node-registry/node-registry"
+} from "../../node-registry/node-factory"
+import { normalizeNodeConfig } from "../../node-registry/node-config-normalization"
 import { createWorkflowError } from "../../types/errors"
 import type { WorkflowEdge, WorkflowNode } from "../../types/types"
 import {

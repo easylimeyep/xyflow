@@ -97,11 +97,18 @@ describe("SetVariableNode", () => {
     fireEvent.change(expressionInput, { target: { value: "{{ $vars.regionName }}" } })
     fireEvent.blur(expressionInput)
 
-    expect(updateNodeConfigField).toHaveBeenCalledWith("set-variable-1", "variableName", "regionName")
+    expect(updateNodeConfigField).toHaveBeenCalledWith("set-variable-1", {
+      kind: "setVariable",
+      key: "variableName",
+      value: "regionName",
+    })
     expect(updateNodeConfigField).toHaveBeenCalledWith(
       "set-variable-1",
-      "valueExpression",
-      "{{ $vars.regionName }}"
+      {
+        kind: "setVariable",
+        key: "valueExpression",
+        value: "{{ $vars.regionName }}",
+      }
     )
   })
 
@@ -121,8 +128,11 @@ describe("SetVariableNode", () => {
 
       expect(updateNodeConfigField).toHaveBeenCalledWith(
         "set-variable-1",
-        "valueExpression",
-        "{{}}"
+        {
+          kind: "setVariable",
+          key: "valueExpression",
+          value: "{{}}",
+        }
       )
     } finally {
       vi.useRealTimers()
@@ -139,8 +149,11 @@ describe("SetVariableNode", () => {
 
     expect(updateNodeConfigField).not.toHaveBeenCalledWith(
       "set-variable-1",
-      "variableName",
-      "bad name"
+      expect.objectContaining({
+        kind: "setVariable",
+        key: "variableName",
+        value: "bad name",
+      })
     )
     expect(screen.getByText("Variable name must be a valid JavaScript identifier.")).toBeTruthy()
   })
@@ -169,8 +182,11 @@ describe("SetVariableNode", () => {
 
     expect(updateNodeConfigField).not.toHaveBeenCalledWith(
       "set-variable-1",
-      "variableName",
-      "existing"
+      expect.objectContaining({
+        kind: "setVariable",
+        key: "variableName",
+        value: "existing",
+      })
     )
     expect(screen.getByText("Variable name must be unique in this workflow.")).toBeTruthy()
   })

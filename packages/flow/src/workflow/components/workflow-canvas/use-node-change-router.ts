@@ -1,4 +1,4 @@
-import { useCallback, useRef } from "react"
+import { useCallback, useEffect, useRef } from "react"
 import type { NodeChange } from "@xyflow/react"
 
 import type { WorkflowNode } from "../../types"
@@ -24,6 +24,11 @@ export function useNodeChangeRouter({
   onSelectionChange,
 }: UseNodeChangeRouterOptions) {
   const lastSelectionSignatureRef = useRef<string | null>(null)
+  const nodesRef = useRef(nodes)
+
+  useEffect(() => {
+    nodesRef.current = nodes
+  }, [nodes])
 
   const emitSelection = useCallback(
     (nodeIds: string[]) => {
@@ -51,7 +56,7 @@ export function useNodeChangeRouter({
 
         if (!nextSelectedNodeIdsSet) {
           nextSelectedNodeIdsSet = new Set(
-            nodes.filter((node) => Boolean(node.selected)).map((node) => node.id)
+            nodesRef.current.filter((node) => Boolean(node.selected)).map((node) => node.id)
           )
         }
 
@@ -70,6 +75,6 @@ export function useNodeChangeRouter({
         onStructuralChanges(nonSelectionChanges)
       }
     },
-    [emitSelection, nodes, onStructuralChanges]
+    [emitSelection, onStructuralChanges]
   )
 }

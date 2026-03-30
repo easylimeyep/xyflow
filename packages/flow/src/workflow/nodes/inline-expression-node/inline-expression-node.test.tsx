@@ -85,8 +85,11 @@ describe("InlineExpressionNode", () => {
     expect(updateNodeConfigField).toHaveBeenCalledTimes(1)
     expect(updateNodeConfigField).toHaveBeenCalledWith(
       "inline-node-1",
-      "template",
-      "{{ $input.item.json.name }}"
+      {
+        kind: "inlineExpression",
+        key: "template",
+        value: "{{ $input.item.json.name }}",
+      }
     )
   })
 
@@ -100,8 +103,11 @@ describe("InlineExpressionNode", () => {
     expect(updateNodeConfigField).toHaveBeenCalledTimes(1)
     expect(updateNodeConfigField).toHaveBeenCalledWith(
       "inline-node-1",
-      "template",
-      "{{ $input.item.json.id }}"
+      {
+        kind: "inlineExpression",
+        key: "template",
+        value: "{{ $input.item.json.id }}",
+      }
     )
   })
 
@@ -120,7 +126,11 @@ describe("InlineExpressionNode", () => {
       vi.advanceTimersByTime(120)
 
       expect(updateNodeConfigField).toHaveBeenCalledTimes(1)
-      expect(updateNodeConfigField).toHaveBeenCalledWith("inline-node-1", "template", "{{}}")
+      expect(updateNodeConfigField).toHaveBeenCalledWith("inline-node-1", {
+        kind: "inlineExpression",
+        key: "template",
+        value: "{{}}",
+      })
     } finally {
       vi.useRealTimers()
     }

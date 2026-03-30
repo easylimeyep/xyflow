@@ -4,6 +4,7 @@ import type { NodeProps } from "@xyflow/react"
 import { useCallback, useRef, useState } from "react"
 
 import { ExpressionInput } from "../../components/expression-input"
+import type { NodeConfigUpdate } from "../../store/types"
 import type { ExpressionVariableOption } from "../../types"
 import { NodeShell } from "../node-shell/node-shell"
 import { OutputQuickAddAffordance } from "../output-quick-add-affordance/output-quick-add-affordance"
@@ -11,7 +12,7 @@ import { asRecord, asText, isInsideExpressionPopover } from "../shared/node-data
 
 export interface InlineExpressionNodeProps extends NodeProps {
   expressionVariables: ExpressionVariableOption[]
-  onUpdateConfigField: (nodeId: string, key: string, value: string | number | boolean) => void
+  onUpdateConfigField: (nodeId: string, update: NodeConfigUpdate) => void
 }
 
 export function InlineExpressionNode({
@@ -42,7 +43,11 @@ export function InlineExpressionNode({
       return
     }
 
-    onUpdateConfigField(id, "template", nextTemplate)
+    onUpdateConfigField(id, {
+      kind: "inlineExpression",
+      key: "template",
+      value: nextTemplate,
+    })
   }, [id, templateFromStore, onUpdateConfigField])
 
   return (

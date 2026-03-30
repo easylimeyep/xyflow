@@ -1,4 +1,3 @@
-import type { XYPosition } from "@xyflow/react"
 import type { LucideIcon } from "lucide-react"
 import {
   Braces,
@@ -10,13 +9,9 @@ import {
 } from "lucide-react"
 
 import type {
-  JsonObject,
   NodeConfig,
-  NodeConfigByKind,
   NodeFieldSchema,
   NodeKind,
-  WorkflowNode,
-  WorkflowNodeData,
 } from "../types/types"
 
 export interface NodeDefinition<K extends NodeKind> {
@@ -213,88 +208,3 @@ const nodeDefinitions: {
 }
 
 export const workflowNodeRegistry = nodeDefinitions
-
-export const DEFAULT_NODE_WIDTH = 260
-
-export function createNodeId(kind: NodeKind): string {
-  return `${kind}-${crypto.randomUUID()}`
-}
-
-function toNodeData<K extends NodeKind>(kind: K, label?: string): WorkflowNodeData {
-  const definition = workflowNodeRegistry[kind]
-  if (!definition) {
-    throw new Error(`Unknown node kind: ${kind}`)
-  }
-
-  return {
-    kind,
-    label: label ?? definition.title,
-    config: definition.buildDefaultConfig(),
-  }
-}
-
-export function createWorkflowNode<K extends NodeKind>(
-  kind: K,
-  position: XYPosition,
-  label?: string
-): WorkflowNode {
-  return {
-    id: createNodeId(kind),
-    type: kind,
-    position,
-    width: DEFAULT_NODE_WIDTH,
-    data: toNodeData(kind, label),
-  }
-}
-
-export function normalizeNodeConfig<K extends NodeKind>(
-  kind: K,
-  partialConfig: Partial<NodeConfigByKind[K]>
-): NodeConfigByKind[K] {
-  const definition = workflowNodeRegistry[kind]
-  if (!definition) {
-    throw new Error(`Unknown node kind: ${kind}`)
-  }
-  const baseConfig = definition.buildDefaultConfig()
-
-  const result = { ...baseConfig } as Record<string, unknown>
-  const rawConfig = partialConfig as Record<string, unknown>
-  definition.fields.forEach((field) => {
-    const rawValue = rawConfig[field.key]
-    if (rawValue === undefined) {
-      return
-    }
-
-    result[field.key] = coerceFieldValue(field.type, rawValue, result[field.key])
-  })
-
-  return result as NodeConfigByKind[K]
-}
-
-function coerceFieldValue(
-  fieldType: NodeFieldSchema["type"],
-  rawValue: unknown,
-  fallback: unknown
-): unknown {
-  if (fieldType === "number") {
-    return typeof rawValue === "number" && Number.isFinite(rawValue) ? rawValue : fallback
-  }
-
-  if (fieldType === "boolean") {
-    return typeof rawValue === "boolean" ? rawValue : fallback
-  }
-
-  if (fieldType === "select") {
-    return typeof rawValue === "string" ? rawValue : fallback
-  }
-
-  return typeof rawValue === "string" ? rawValue : fallback
-}
-
-export function isRecordJsonObject(input: unknown): input is JsonObject {
-  if (typeof input !== "object" || input === null || Array.isArray(input)) {
-    return false
-  }
-
-  return true
-}

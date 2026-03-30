@@ -1,9 +1,7 @@
 import { addEdge, applyEdgeChanges, applyNodeChanges } from "@xyflow/react"
 import { pushHistoryState } from "@workspace/store"
 
-import { createWorkflowNode } from "../../node-registry/node-registry"
-import { refactorVariableReferencesInGraph } from "../../expression/refactor/refactor"
-import { isValidJsIdentifier } from "../../expression/variable-name/variable-name"
+import { createWorkflowNode } from "../../node-registry/node-factory"
 import { createWorkflowError } from "../../types/errors"
 import type { WorkflowEdge, WorkflowGraphState, WorkflowNode } from "../../types/types"
 import { getKindsFromConnection, validateConnection, type ConnectionLike } from "../../validation/validation"
@@ -22,6 +20,7 @@ import { toEdgeConnectionWithKind } from "../dto-mappers"
 import { computeEdgeInsertion } from "../edge-insertion"
 import { createSmartQuickAddPosition } from "../geometry"
 import { cloneGraphState, commitGraphState, replacePresentGraphState } from "../history-helpers"
+import { applyNodeConfigUpdate } from "../node-config-updates"
 import type { WorkflowSliceCreator } from "../types"
 
 export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
@@ -138,93 +137,17 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
       nodes: nextNodes,
     })
   },
-  updateNodeConfigField: (nodeId, key, rawValue) => {
+  updateNodeConfig: (nodeId, update) => {
     const currentGraph = get().history.present
-    const targetNode = currentGraph.nodes.find((node) => node.id === nodeId)
-    if (!targetNode) return
-
-    const previousRawValue =
-      targetNode.data.config[key as keyof typeof targetNode.data.config]
-    if (Object.is(previousRawValue, rawValue)) return
-
-    if (
-      targetNode.data.kind === "setVariable" &&
-      key === "variableName" &&
-      typeof rawValue === "string"
-    ) {
-      const previousNameValue = targetNode.data.config.variableName
-      const previousName =
-        typeof previousNameValue === "string" ? previousNameValue.trim() : ""
-      const nextName = rawValue.trim()
-      if (nextName === previousName) return
-
-      if (!isValidJsIdentifier(nextName)) {
-        set({
-          lastError: createWorkflowError("INVALID_VARIABLE_NAME", "Variable name must be a valid JavaScript identifier."),
-        })
-        return
-      }
-
-      const duplicateVariable = currentGraph.nodes.some((node) => {
-        if (node.id === nodeId || node.data.kind !== "setVariable") {
-          return false
-        }
-        const variableNameValue = node.data.config.variableName
-        if (typeof variableNameValue !== "string") return false
-        return variableNameValue.trim() === nextName
-      })
-
-      if (duplicateVariable) {
-        set({ lastError: createWorkflowError("DUPLICATE_VARIABLE_NAME", "Variable name must be unique in this workflow.") })
-        return
-      }
-
-      const nextNodesWithNewName = currentGraph.nodes.map((node) => {
-        if (node.id !== nodeId) return node
-        return {
-          ...node,
-          data: {
-            ...node.data,
-            config: {
-              ...node.data.config,
-              variableName: nextName,
-            },
-          },
-        }
-      })
-
-      const nextNodes = refactorVariableReferencesInGraph(nextNodesWithNewName, {
-        sourceNodeId: nodeId,
-        oldName: previousName,
-        newName: nextName,
-      })
-
-      commitGraphState(set, {
-        ...currentGraph,
-        nodes: nextNodes,
-      })
-      set({ lastError: null })
+    const result = applyNodeConfigUpdate(currentGraph, nodeId, update)
+    if (result.error) {
+      set({ lastError: result.error })
       return
     }
 
-    const nextNodes = currentGraph.nodes.map((node) => {
-      if (node.id !== nodeId) return node
-      return {
-        ...node,
-        data: {
-          ...node.data,
-          config: {
-            ...node.data.config,
-            [key]: rawValue,
-          },
-        },
-      }
-    })
-
-    commitGraphState(set, {
-      ...currentGraph,
-      nodes: nextNodes,
-    })
+    if (!result.nextGraph) return
+    commitGraphState(set, result.nextGraph)
+    set({ lastError: null })
   },
   onNodesChange: (changes) => {
     const history = get().history

@@ -266,10 +266,10 @@ function ConfigPanelContainer() {
   const expressionVariables = useWorkflowStore((state: WorkflowStoreState) =>
     selectExpressionVariablesForNode(state, selectedNode?.id ?? null)
   )
-  const { updateNodeLabel, updateNodeConfigField } = useWorkflowShallowStore(
+  const { updateNodeLabel, updateNodeConfig } = useWorkflowShallowStore(
     (state: WorkflowStoreState) => ({
       updateNodeLabel: state.updateNodeLabel,
-      updateNodeConfigField: state.updateNodeConfigField,
+      updateNodeConfig: state.updateNodeConfig,
     })
   )
 
@@ -278,7 +278,7 @@ function ConfigPanelContainer() {
       selectedNode={selectedNode}
       expressionVariables={expressionVariables}
       onUpdateLabel={updateNodeLabel}
-      onUpdateConfigField={updateNodeConfigField}
+      onUpdateConfigField={updateNodeConfig}
     />
   )
 }

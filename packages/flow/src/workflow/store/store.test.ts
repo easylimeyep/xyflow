@@ -99,7 +99,11 @@ describe("workflow store", () => {
 
     const initialPastLength = state.history.past.length
     state.updateNodeLabel(targetNode.id, "Updated label")
-    state.updateNodeConfigField(targetNode.id, "eventName", "updated-event")
+    state.updateNodeConfig(targetNode.id, {
+      kind: "trigger",
+      key: "eventName",
+      value: "updated-event",
+    })
 
     const nextState = store.getState()
     const updatedNode = nextState.history.present.nodes.find((node) => node.id === targetNode.id)
@@ -576,15 +580,27 @@ describe("workflow store", () => {
       throw new Error("set variable fixture nodes not found")
     }
 
-    state.updateNodeConfigField(setVariableNode.id, "variableName", "oldName")
-    state.updateNodeConfigField(setVariableNode.id, "valueExpression", "{{ $vars.oldName }}")
-    state.updateNodeConfigField(
-      inlineExpressionNode.id,
-      "template",
-      `{{ $node("${setVariableNode.id}").item.json.oldName }}`
-    )
+    state.updateNodeConfig(setVariableNode.id, {
+      kind: "setVariable",
+      key: "variableName",
+      value: "oldName",
+    })
+    state.updateNodeConfig(setVariableNode.id, {
+      kind: "setVariable",
+      key: "valueExpression",
+      value: "{{ $vars.oldName }}",
+    })
+    state.updateNodeConfig(inlineExpressionNode.id, {
+      kind: "inlineExpression",
+      key: "template",
+      value: `{{ $node("${setVariableNode.id}").item.json.oldName }}`,
+    })
 
-    state.updateNodeConfigField(setVariableNode.id, "variableName", "newName")
+    state.updateNodeConfig(setVariableNode.id, {
+      kind: "setVariable",
+      key: "variableName",
+      value: "newName",
+    })
 
     const nextState = store.getState()
     const nextSetVariableNode = nextState.history.present.nodes.find(

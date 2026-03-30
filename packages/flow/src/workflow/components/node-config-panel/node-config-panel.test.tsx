@@ -59,8 +59,11 @@ describe("NodeConfigPanel expression integration", () => {
 
     expect(onUpdateConfigField).toHaveBeenCalledWith(
       node.id,
-      "inputText",
-      expect.stringContaining('{{ $node("trigger-a").item.json.eventName }}')
+      expect.objectContaining({
+        kind: "customInput",
+        key: "inputText",
+        value: expect.stringContaining('{{ $node("trigger-a").item.json.eventName }}'),
+      })
     )
   })
 })

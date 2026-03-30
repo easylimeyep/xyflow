@@ -13,6 +13,7 @@ import {
 import { Textarea } from "@workspace/ui/components/textarea"
 
 import { ExpressionInput } from "../expression-input"
+import type { NodeConfigUpdate } from "../../store/types"
 import type { ExpressionVariableOption, FieldOption, NodeFieldSchema } from "../../types"
 
 type FieldValue = string | number | boolean
@@ -21,8 +22,9 @@ export interface FieldRendererProps {
   field: NodeFieldSchema
   value: FieldValue
   nodeId: string
+  nodeKind: NodeConfigUpdate["kind"]
   expressionVariables: ExpressionVariableOption[]
-  onUpdateConfigField: (nodeId: string, key: string, value: FieldValue) => void
+  onUpdateConfigField: (nodeId: string, update: NodeConfigUpdate) => void
   fieldId?: string
 }
 
@@ -30,14 +32,19 @@ function ExpressionFieldRenderer({
   field,
   value,
   nodeId,
+  nodeKind,
   expressionVariables,
   onUpdateConfigField,
 }: FieldRendererProps) {
   const handleChange = useCallback(
     (nextValue: string) => {
-      onUpdateConfigField(nodeId, field.key, nextValue)
+      onUpdateConfigField(nodeId, {
+        kind: nodeKind,
+        key: field.key,
+        value: nextValue,
+      } as NodeConfigUpdate)
     },
-    [field.key, nodeId, onUpdateConfigField]
+    [field.key, nodeId, nodeKind, onUpdateConfigField]
   )
 
   return (
@@ -50,46 +57,58 @@ function ExpressionFieldRenderer({
   )
 }
 
-function TextFieldRenderer({ field, value, nodeId, onUpdateConfigField, fieldId }: FieldRendererProps) {
+function TextFieldRenderer({ field, value, nodeId, nodeKind, onUpdateConfigField, fieldId }: FieldRendererProps) {
   return (
     <Input
       id={fieldId}
       value={String(value)}
       placeholder={field.placeholder}
       onChange={(event: ChangeEvent<HTMLInputElement>) =>
-        onUpdateConfigField(nodeId, field.key, event.target.value)
+        onUpdateConfigField(nodeId, {
+          kind: nodeKind,
+          key: field.key,
+          value: event.target.value,
+        } as NodeConfigUpdate)
       }
     />
   )
 }
 
-function TextareaFieldRenderer({ field, value, nodeId, onUpdateConfigField, fieldId }: FieldRendererProps) {
+function TextareaFieldRenderer({ field, value, nodeId, nodeKind, onUpdateConfigField, fieldId }: FieldRendererProps) {
   return (
     <Textarea
       id={fieldId}
       value={String(value)}
       placeholder={field.placeholder}
       onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
-        onUpdateConfigField(nodeId, field.key, event.target.value)
+        onUpdateConfigField(nodeId, {
+          kind: nodeKind,
+          key: field.key,
+          value: event.target.value,
+        } as NodeConfigUpdate)
       }
     />
   )
 }
 
-function NumberFieldRenderer({ field, value, nodeId, onUpdateConfigField, fieldId }: FieldRendererProps) {
+function NumberFieldRenderer({ field, value, nodeId, nodeKind, onUpdateConfigField, fieldId }: FieldRendererProps) {
   return (
     <Input
       id={fieldId}
       type="number"
       value={String(value)}
       onChange={(event: ChangeEvent<HTMLInputElement>) =>
-        onUpdateConfigField(nodeId, field.key, Number(event.target.value) || 0)
+        onUpdateConfigField(nodeId, {
+          kind: nodeKind,
+          key: field.key,
+          value: Number(event.target.value) || 0,
+        } as NodeConfigUpdate)
       }
     />
   )
 }
 
-function BooleanFieldRenderer({ field, value, nodeId, onUpdateConfigField, fieldId }: FieldRendererProps) {
+function BooleanFieldRenderer({ field, value, nodeId, nodeKind, onUpdateConfigField, fieldId }: FieldRendererProps) {
   return (
     <label htmlFor={fieldId} className="inline-flex items-center gap-2 text-xs">
       <input
@@ -97,7 +116,11 @@ function BooleanFieldRenderer({ field, value, nodeId, onUpdateConfigField, field
         type="checkbox"
         checked={Boolean(value)}
         onChange={(event: ChangeEvent<HTMLInputElement>) =>
-          onUpdateConfigField(nodeId, field.key, event.target.checked)
+          onUpdateConfigField(nodeId, {
+            kind: nodeKind,
+            key: field.key,
+            value: event.target.checked,
+          } as NodeConfigUpdate)
         }
       />
       Enabled
@@ -105,11 +128,17 @@ function BooleanFieldRenderer({ field, value, nodeId, onUpdateConfigField, field
   )
 }
 
-function SelectFieldRenderer({ field, value, nodeId, onUpdateConfigField }: FieldRendererProps) {
+function SelectFieldRenderer({ field, value, nodeId, nodeKind, onUpdateConfigField }: FieldRendererProps) {
   return (
     <Select
       value={String(value)}
-      onValueChange={(nextValue) => onUpdateConfigField(nodeId, field.key, nextValue)}
+      onValueChange={(nextValue) =>
+        onUpdateConfigField(nodeId, {
+          kind: nodeKind,
+          key: field.key,
+          value: nextValue,
+        } as NodeConfigUpdate)
+      }
     >
       <SelectTrigger className="w-full">
         <SelectValue placeholder="Select value" />

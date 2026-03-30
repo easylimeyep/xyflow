@@ -1,4 +1,4 @@
-import { workflowNodeRegistry } from "../../node-registry/node-registry"
+import { getNodeDefinition } from "../../node-registry/node-ui-metadata"
 import type { NodeKind, WorkflowNode } from "../../types/types"
 import { buildNodeReference } from "../variables/variables"
 
@@ -74,7 +74,7 @@ export function refactorVariableReferencesInExpression(
 }
 
 function getExpressionConfigKeys(kind: NodeKind): string[] {
-  const definition = workflowNodeRegistry[kind]
+  const definition = getNodeDefinition(kind)
   const fieldKeys = definition.fields
     .filter((field) => field.ui === "expression" && (field.type === "text" || field.type === "textarea"))
     .map((field) => field.key)

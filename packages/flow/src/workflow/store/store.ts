@@ -27,14 +27,14 @@ export function createWorkflowStore(
   )
 
   return createStore<WorkflowStoreState>()((set, get) => {
-    const nextState = {
-    history: createHistoryState(initialGraph),
-    ...createSelectionSlice(set, get),
-    ...createIntentSlice(set, get),
-    ...createGraphSlice(set, get),
-    ...createHistorySlice(set, get),
-    ...createIoSlice(set, get),
-    } as WorkflowStoreState
+    const nextState: WorkflowStoreState = {
+      history: createHistoryState(initialGraph),
+      ...createSelectionSlice(set, get),
+      ...createIntentSlice(set, get),
+      ...createGraphSlice(set, get),
+      ...createHistorySlice(set, get),
+      ...createIoSlice(set, get),
+    }
     return nextState
   })
 }

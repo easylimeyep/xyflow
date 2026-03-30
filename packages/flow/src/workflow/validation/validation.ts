@@ -1,6 +1,6 @@
 import type { Connection } from "@xyflow/react"
 
-import { workflowNodeRegistry } from "../node-registry/node-registry"
+import { getAllowedTargets } from "../node-registry/node-graph-rules"
 import type { NodeKind, WorkflowEdge, WorkflowNode } from "../types/types"
 
 export interface ValidationResult {
@@ -91,7 +91,7 @@ export function validateConnection(
 
   const sourceKind = sourceNode.data.kind
   const targetKind = targetNode.data.kind
-  const allowedTargets = workflowNodeRegistry[sourceKind].allowedTargets
+  const allowedTargets = getAllowedTargets(sourceKind)
 
   if (!allowedTargets.includes(targetKind)) {
     return {

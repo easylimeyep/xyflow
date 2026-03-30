@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 
 import { WORKFLOW_NODE_KIND_MIME } from "../../dnd"
-import { workflowNodeRegistry } from "../../node-registry"
+import { workflowNodeRegistry } from "../../node-registry/node-ui-metadata"
 import { WORKFLOW_NODE_KINDS, type NodeKind } from "../../types"
 
 interface NodePaletteProps {

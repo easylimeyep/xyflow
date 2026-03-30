@@ -217,7 +217,11 @@ describe("workflow store clipboard actions", () => {
       typeof node.data.config.eventName === "string"
         ? node.data.config.eventName
         : ""
-    store.getState().updateNodeConfigField(node.id, "eventName", sameEventName)
+    store.getState().updateNodeConfig(node.id, {
+      kind: "trigger",
+      key: "eventName",
+      value: sameEventName,
+    })
 
     const nextState = store.getState()
     expect(nextState.history).toBe(previousHistory)

@@ -1,39 +1,53 @@
 # packages/flow baseline audit
 
-Date: 2026-03-29
+Date: 2026-03-30
 
-## High-impact rerender hotspots
+## Architecture baseline (SOLID view)
 
-- `workflow-editor.tsx`:
-  - `ToolbarContainer` subscribes to `history` object instead of derived flags (`canUndo`, `canRedo`).
-  - `ConfigPanelContainer` subscribes to full `nodes` and `edges`.
-- `inline-expression-node.tsx` and `set-variable-node.tsx`:
-  - each node instance subscribes to full `nodes` and `edges`;
-  - each instance recomputes `buildExpressionVariableCatalog(...)`.
-- `node-palette.tsx`:
-  - entries are manually wired; adding new node kind requires touching multiple files.
+- `node-registry` is a single dependency hub that mixes:
+  - UI metadata (`icon`, `title`, `fields`);
+  - graph constraints (`allowedTargets`, `outputPaths`);
+  - data normalization (`normalizeNodeConfig` / `coerceFieldValue`);
+  - node creation (`createWorkflowNode`).
+- `graph-slice` orchestrates graph updates, history policy, validation flows, and
+  node-specific behavior (`setVariable` rename/refactor branch) in one module.
+- config writes are weakly typed at boundary level:
+  - `updateNodeConfigField(nodeId, key: string, rawValue)` allows arbitrary keys;
+  - dynamic assignment `[key]` in runtime path.
 
-## Store complexity baseline
+## Scale and extension risks
 
-- `src/workflow/store/store.ts` was a single ~1600-line module.
-- It combined:
-  - history transitions and commit strategy;
-  - graph mutations and selection sync;
-  - quick-add / edge-insert UI intents;
-  - clipboard IO and import/export;
-  - connection and variable-name validation;
-  - geometry helpers for insertion placement.
+- Adding a new node kind requires synchronized edits in multiple locations:
+  - `types.ts` (`NodeKind`, `NodeConfigByKind`, kind guards);
+  - `node-registry.ts` definition;
+  - `nodes/node-types.tsx` component map;
+  - any edge/validation or mapper assumptions.
+- `select` config values are only type-coerced to `string`, not validated against
+  field option values, allowing invalid persisted config states.
+- `WorkflowStoreState` exposes a wide flat command/query surface that couples
+  presentation layer to full store API.
+
+## Performance constraints to preserve
+
+- Pointer-only and viewport-only updates must not rerender non-canvas containers.
+- Expression variable selector should preserve references when graph inputs are
+  unchanged.
+- Node-change routing should avoid frequent callback identity churn in large graphs.
+
+See: `docs/architecture/perf-budget.md`.
 
 ## Critical behavior scenarios to protect
 
 - node drag is transient and commits history only on drag end;
-- edge insertion can split an edge into two edges and fallback to single edge path;
+- edge insertion can split an edge into two edges and fallback to single-edge path;
 - quick-add and edge-insert clear pending state and keep selection consistent;
-- clipboard copy/paste preserves internal links and handles unique label/variable naming;
-- viewport updates do not create history entries.
+- clipboard copy/paste preserves internal links and unique label/variable naming;
+- viewport updates do not create history entries;
+- set-variable rename updates expression references and enforces uniqueness.
 
-## Test gaps at baseline
+## Immediate refactor goals
 
-- no explicit coverage thresholds in `vitest.config.ts`;
-- no dedicated perf budget checks;
-- no ADR log for architecture choices around state slices, selector policy, and normalization.
+1. Split `node-registry` into focused modules (metadata, graph rules, normalization).
+2. Introduce a typed config update boundary for node config writes.
+3. Move node-kind specific config side-effects out of `graph-slice`.
+4. Expand regression and performance guardrail tests around extracted pure logic.

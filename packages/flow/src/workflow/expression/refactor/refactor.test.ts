@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { createWorkflowNode } from "../../node-registry/node-registry"
+import { createWorkflowNode } from "../../node-registry/node-factory"
 import {
   refactorVariableReferencesInExpression,
   refactorVariableReferencesInGraph,

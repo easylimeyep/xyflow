@@ -23,7 +23,7 @@ function InlineExpressionNodeContainer(props: NodeProps) {
     selectExpressionVariablesForNode(state, props.id)
   )
   const onUpdateConfigField = useWorkflowShallowStore(
-    (state: WorkflowStoreState) => state.updateNodeConfigField
+    (state: WorkflowStoreState) => state.updateNodeConfig
   )
 
   return (
@@ -40,7 +40,7 @@ function SetVariableNodeContainer(props: NodeProps) {
     selectExpressionVariablesForNode(state, props.id)
   )
   const onUpdateConfigField = useWorkflowShallowStore(
-    (state: WorkflowStoreState) => state.updateNodeConfigField
+    (state: WorkflowStoreState) => state.updateNodeConfig
   )
   const allNodes = useWorkflowStore(selectPresentNodes)
 

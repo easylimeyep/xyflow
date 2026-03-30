@@ -1,6 +1,6 @@
 import type { XYPosition } from "@xyflow/react"
 
-import { isRecordJsonObject } from "../../node-registry/node-registry"
+import { isRecordJsonObject } from "../../node-registry/node-config-normalization"
 import { isNodeKind } from "../../types/types"
 import type { DomainWorkflowConnectionDTO, DomainWorkflowNodeDTO, JsonObject } from "../../types/types"
 import type { ParseResult } from "../parser/parser"

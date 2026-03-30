@@ -1,6 +1,6 @@
 import type { XYPosition } from "@xyflow/react"
 
-import { DEFAULT_NODE_WIDTH } from "../node-registry/node-registry"
+import { DEFAULT_NODE_WIDTH } from "../node-registry/node-factory"
 import type { WorkflowNode } from "../types/types"
 
 function getQuickAddSourceAnchorY(
