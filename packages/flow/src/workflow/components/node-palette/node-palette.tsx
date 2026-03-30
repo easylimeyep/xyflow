@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef } from "react"
 
 import { WORKFLOW_NODE_KIND_MIME } from "../../dnd"
 import { nodeRegistry, WORKFLOW_NODE_KINDS, type NodeKind } from "../../node-registry/registry"
@@ -18,22 +18,14 @@ export function NodePalette({
   quickAddActive = false,
 }: NodePaletteProps) {
   const containerRef = useRef<HTMLElement | null>(null)
-  const [showQuickAddHint, setShowQuickAddHint] = useState(false)
   const styles = nodePaletteStyles({ quickAddActive })
 
   useEffect(() => {
     if (!quickAddActive) {
-      setShowQuickAddHint(false)
       return
     }
 
     containerRef.current?.focus()
-    setShowQuickAddHint(true)
-    const timeoutId = window.setTimeout(() => {
-      setShowQuickAddHint(false)
-    }, 2200)
-
-    return () => window.clearTimeout(timeoutId)
   }, [quickAddActive])
 
   return (
@@ -43,7 +35,7 @@ export function NodePalette({
       aria-label="Node palette"
       className={styles.aside()}
     >
-      {showQuickAddHint ? (
+      {quickAddActive ? (
         <div className={styles.quickAddHint()}>
           Select a node kind to complete insertion.
         </div>

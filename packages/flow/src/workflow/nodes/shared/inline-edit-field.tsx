@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useRef, useState, type ReactNode } from "react"
+import { useCallback, useState, type ReactNode } from "react"
 
 import { inlineEditFieldStyles } from "../../../styles/components/nodes"
 import { isInsideExpressionPopover } from "./node-data-utils"
@@ -26,20 +26,18 @@ export function InlineEditField({
 }: InlineEditFieldProps) {
   const [draft, setDraft] = useState(storeValue)
   const [isFocused, setIsFocused] = useState(false)
-  const draftRef = useRef(draft)
   const displayedValue = isFocused ? draft : storeValue
 
   const handleChange = useCallback((nextValue: string) => {
-    draftRef.current = nextValue
     setDraft(nextValue)
   }, [])
 
   const commitDraft = useCallback(() => {
-    const nextValue = draftRef.current
+    const nextValue = draft
     if (nextValue === storeValue) return
 
     onUpdate(nodeId, { kind: configKind, key: configKey, value: nextValue })
-  }, [nodeId, storeValue, onUpdate, configKind, configKey])
+  }, [configKey, configKind, draft, nodeId, onUpdate, storeValue])
   const styles = inlineEditFieldStyles()
 
   return (
@@ -55,7 +53,6 @@ export function InlineEditField({
         }
 
         setDraft(storeValue)
-        draftRef.current = storeValue
         setIsFocused(true)
       }}
       onBlurCapture={(event) => {

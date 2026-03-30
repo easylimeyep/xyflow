@@ -66,7 +66,7 @@ describe("collection-diff", () => {
     expect(shouldCommitEdgeHistory([{ id: "edge-1", type: "select", selected: true }])).toBe(
       false
     )
-    expect(shouldCommitEdgeHistory([{ id: "edge-1", type: "add", item: {} as never }])).toBe(
+    expect(shouldCommitEdgeHistory([{ type: "add", item: {} as never }])).toBe(
       true
     )
     expect(shouldCommitEdgeHistory([{ id: "edge-1", type: "remove" }])).toBe(true)

@@ -156,26 +156,25 @@ function SelectFieldRenderer({ field, value, nodeId, nodeKind, onUpdateConfigFie
   )
 }
 
-export function resolveFieldRenderer(
-  field: NodeFieldSchema
-): React.FC<FieldRendererProps> {
+export function FieldRenderer(props: FieldRendererProps) {
+  const { field } = props
   const isExpressionField =
     field.ui === "expression" && (field.type === "text" || field.type === "textarea")
 
-  if (isExpressionField) return ExpressionFieldRenderer
+  if (isExpressionField) return <ExpressionFieldRenderer {...props} />
 
   switch (field.type) {
     case "text":
-      return TextFieldRenderer
+      return <TextFieldRenderer {...props} />
     case "textarea":
-      return TextareaFieldRenderer
+      return <TextareaFieldRenderer {...props} />
     case "number":
-      return NumberFieldRenderer
+      return <NumberFieldRenderer {...props} />
     case "boolean":
-      return BooleanFieldRenderer
+      return <BooleanFieldRenderer {...props} />
     case "select":
-      return SelectFieldRenderer
+      return <SelectFieldRenderer {...props} />
     default:
-      return TextFieldRenderer
+      return <TextFieldRenderer {...props} />
   }
 }

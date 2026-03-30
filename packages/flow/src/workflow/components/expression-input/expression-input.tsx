@@ -22,7 +22,7 @@ import {
   PopoverContent,
 } from "@workspace/ui/components/popover"
 import CodeMirror from "@uiw/react-codemirror"
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useMemo, useRef, useState } from "react"
 
 import { createExpressionCompletionSource } from "../../expression/autocomplete"
 import {
@@ -50,19 +50,7 @@ export function ExpressionInput({
   onChange,
 }: ExpressionInputProps) {
   const editorViewRef = useRef<EditorView | null>(null)
-  const valueRef = useRef(value)
-  const variablesRef = useRef(variables)
-  const pickerOpenRef = useRef(false)
   const [pickerOpen, setPickerOpen] = useState(false)
-  useEffect(() => {
-    valueRef.current = value
-  }, [value])
-  useEffect(() => {
-    variablesRef.current = variables
-  }, [variables])
-  useEffect(() => {
-    pickerOpenRef.current = pickerOpen
-  }, [pickerOpen])
 
   const groupedVariables = useMemo(
     () => groupVariablesBySection(variables),
@@ -70,9 +58,10 @@ export function ExpressionInput({
   )
   const validation = useMemo(() => validateTemplateExpression(value), [value])
   const styles = expressionInputStyles()
-  const completionSource = useCallback<ExpressionCompletionSource>((context) => {
-    return createExpressionCompletionSource(variablesRef.current)(context)
-  }, [])
+  const completionSource = useMemo<ExpressionCompletionSource>(
+    () => createExpressionCompletionSource(variables),
+    [variables]
+  )
   const extensions = useMemo(
     () => [
       javascript(),
@@ -98,7 +87,7 @@ export function ExpressionInput({
       const insertion = buildExpressionInsertion(expressionValue)
       const editorView = editorViewRef.current
       if (!editorView) {
-        const currentValue = valueRef.current
+        const currentValue = value
         const endsWithWrappedPlaceholder = currentValue.endsWith("{{}}")
         const replaceTypedTrigger = currentValue.endsWith("{{")
         const nextValue = endsWithWrappedPlaceholder
@@ -149,13 +138,13 @@ export function ExpressionInput({
           anchor: replaceFrom + insertion.length,
         },
       })
-      if (nextValue !== valueRef.current) {
+      if (nextValue !== value) {
         onChange(nextValue)
       }
       editorView.focus()
       setPickerOpen(false)
     },
-    [onChange]
+    [onChange, value]
   )
 
   const handleCreateEditor = useCallback((nextEditorView: EditorView) => {
@@ -163,11 +152,11 @@ export function ExpressionInput({
   }, [])
 
   const handleChange = useCallback((nextValue: string, viewUpdate: ViewUpdate) => {
-    if (nextValue !== valueRef.current) {
+    if (nextValue !== value) {
       onChange(nextValue)
     }
 
-    if (pickerOpenRef.current) {
+    if (pickerOpen) {
       return
     }
 
@@ -184,7 +173,7 @@ export function ExpressionInput({
     if (justTypedWrappedTrigger) {
       setPickerOpen(true)
     }
-  }, [onChange])
+  }, [onChange, pickerOpen, value])
 
   return (
     <div className={styles.root()}>

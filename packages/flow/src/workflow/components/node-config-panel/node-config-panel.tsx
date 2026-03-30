@@ -1,6 +1,6 @@
 "use client"
 
-import { type ChangeEvent, type KeyboardEvent, useEffect, useId, useRef, useState } from "react"
+import { type ChangeEvent, type KeyboardEvent, useId, useState } from "react"
 
 import { Input } from "@workspace/ui/components/input"
 import { nodeConfigPanelStyles } from "../../../styles/components/panels"
@@ -12,7 +12,7 @@ import type {
   NodeFieldSchema,
   WorkflowNode,
 } from "../../types"
-import { resolveFieldRenderer, type FieldRendererProps } from "./field-renderers"
+import { FieldRenderer, type FieldRendererProps } from "./field-renderers"
 
 type FieldValue = string | number | boolean
 const styles = nodeConfigPanelStyles()
@@ -55,7 +55,6 @@ function ConfigField({
   const descriptionId = field.description ? `${fieldId}-desc` : undefined
   const rawValue = selectedNode.data.config[field.key as keyof typeof selectedNode.data.config]
   const value = asFieldValue(rawValue, "", field.type)
-  const Renderer = resolveFieldRenderer(field)
   const props: FieldRendererProps = {
     field,
     value,
@@ -71,7 +70,7 @@ function ConfigField({
       <label htmlFor={fieldId} className={styles.label()}>
         {field.label}
       </label>
-      <Renderer {...props} />
+      <FieldRenderer {...props} />
       {field.description ? (
         <p id={descriptionId} className={styles.description()}>
           {field.description}
@@ -90,14 +89,6 @@ export function NodeConfigPanel({
   const labelId = useId()
   const [labelDraft, setLabelDraft] = useState("")
   const [isLabelFocused, setIsLabelFocused] = useState(false)
-  const labelDraftRef = useRef(labelDraft)
-
-  useEffect(() => {
-    const nextLabel = selectedNode?.data.label ?? ""
-    setLabelDraft(nextLabel)
-    labelDraftRef.current = nextLabel
-    setIsLabelFocused(false)
-  }, [selectedNode?.id, selectedNode?.data.label])
 
   if (!selectedNode) {
     return (
@@ -126,21 +117,19 @@ export function NodeConfigPanel({
           value={displayedLabel}
           onFocus={() => {
             setLabelDraft(selectedNode.data.label)
-            labelDraftRef.current = selectedNode.data.label
             setIsLabelFocused(true)
           }}
           onChange={(event: ChangeEvent<HTMLInputElement>) => {
             setLabelDraft(event.target.value)
-            labelDraftRef.current = event.target.value
           }}
           onBlur={() => {
-            onUpdateLabel(selectedNode.id, labelDraftRef.current)
+            onUpdateLabel(selectedNode.id, labelDraft)
             setIsLabelFocused(false)
           }}
           onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => {
             if (event.key !== "Enter") return
             event.preventDefault()
-            onUpdateLabel(selectedNode.id, labelDraftRef.current)
+            onUpdateLabel(selectedNode.id, labelDraft)
             setIsLabelFocused(false)
             event.currentTarget.blur()
           }}
