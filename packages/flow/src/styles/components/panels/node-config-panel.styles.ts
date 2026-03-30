@@ -2,7 +2,7 @@ import { tv } from "tailwind-variants"
 
 export const nodeConfigPanelStyles = tv({
   slots: {
-    aside: "w-80 border-l bg-background p-3",
+    aside: "w-80 border-l bg-background p-3 rounded-lg",
     asideWithContent: "w-80 space-y-3 border-l bg-background p-3",
     heading: "text-sm font-semibold",
     emptyMessage: "mt-2 text-xs text-muted-foreground",

@@ -2,9 +2,8 @@ import { tv } from "tailwind-variants"
 
 export const nodePaletteStyles = tv({
   slots: {
-    aside: "relative w-72 space-y-2 border-r bg-background p-3 outline-none",
-    quickAddHint:
-      "rounded-md border border-primary/40 bg-primary/10 px-2 py-1 text-xs text-primary",
+    aside:
+      "relative w-72 space-y-2 border-r bg-background p-3 outline-none rounded-lg",
     heading: "text-sm font-semibold",
     list: "flex flex-col gap-2",
     card: "rounded-md border px-3 py-2 text-left transition-colors hover:bg-muted",
