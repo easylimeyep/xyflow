@@ -202,6 +202,57 @@ describe("workflow store clipboard actions", () => {
     expect(store.getState().lastError).toBeNull()
   })
 
+  it("rewrites pasted node references when labels are auto-incremented", async () => {
+    const store = createWorkflowStore()
+    const state = store.getState()
+    state.addNode("setVariable", { x: 600, y: 160 })
+
+    const payloadNodes: DomainWorkflowNodeDTO[] = [
+      {
+        id: "label-copy-set-variable",
+        kind: "setVariable",
+        position: { x: 20, y: 20 },
+        label: "Set Variable",
+        config: {
+          variableName: "myVar",
+          valueExpression: "{{ $input.item.json }}",
+        },
+      },
+      {
+        id: "label-copy-inline-expression",
+        kind: "inlineExpression",
+        position: { x: 200, y: 20 },
+        label: "Inline Expression",
+        config: {
+          template: '{{ $node("Set Variable").item.json.myVar }}',
+        },
+      },
+    ]
+    const payload = exportSelectionClipboardJson(payloadNodes, [
+      {
+        id: "label-copy-connection",
+        sourceNodeId: "label-copy-set-variable",
+        targetNodeId: "label-copy-inline-expression",
+        sourceHandle: null,
+        targetHandle: null,
+      },
+    ])
+    clipboardReadTextMock.mockResolvedValue(payload)
+
+    const pasted = await store.getState().pasteFromClipboard()
+    expect(pasted).toBe(true)
+
+    const nextState = store.getState()
+    const pastedNodes = nextState.history.present.nodes.filter((node) =>
+      nextState.selectedNodeIds.includes(node.id)
+    )
+    const pastedInlineExpression = pastedNodes.find((node) => node.data.kind === "inlineExpression")
+
+    expect(pastedInlineExpression?.data.config.template).toContain(
+      '$node("Set Variable 2").item.json.myVar'
+    )
+  })
+
   it("does not commit graph for unchanged config updates", () => {
     const store = createWorkflowStore()
     const initialState = store.getState()

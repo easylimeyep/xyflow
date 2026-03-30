@@ -3,14 +3,37 @@ import type { WorkflowNode } from "../../types/types"
 import { buildNodeReference } from "../variables/variables"
 
 interface VariableRenameContext {
-  sourceNodeId: string
+  sourceNodeLabel: string
   oldName: string
   newName: string
+}
+
+interface NodeLabelRenameContext {
+  oldLabel: string
+  newLabel: string
 }
 
 export function refactorVariableReferencesInGraph(
   nodes: WorkflowNode[],
   context: VariableRenameContext
+): WorkflowNode[] {
+  return refactorExpressionFieldsInGraph(nodes, (expression) =>
+    refactorVariableReferencesInExpression(expression, context)
+  )
+}
+
+export function refactorNodeReferencesInGraph(
+  nodes: WorkflowNode[],
+  context: NodeLabelRenameContext
+): WorkflowNode[] {
+  return refactorExpressionFieldsInGraph(nodes, (expression) =>
+    refactorNodeReferencesInExpression(expression, context)
+  )
+}
+
+function refactorExpressionFieldsInGraph(
+  nodes: WorkflowNode[],
+  refactorExpression: (expression: string) => string
 ): WorkflowNode[] {
   return nodes.map((node) => {
     const expressionKeys = getExpressionConfigKeys(node.data.kind as NodeKind)
@@ -26,7 +49,7 @@ export function refactorVariableReferencesInGraph(
         return
       }
 
-      const nextValue = refactorVariableReferencesInExpression(value, context)
+      const nextValue = refactorExpression(value)
       if (nextValue === value) {
         return
       }
@@ -60,7 +83,7 @@ export function refactorVariableReferencesInExpression(
   }
 
   const escapedOldName = escapeRegExp(trimmedOldName)
-  const escapedNodeReference = escapeRegExp(buildNodeReference(context.sourceNodeId))
+  const escapedNodeReference = escapeRegExp(buildNodeReference(context.sourceNodeLabel))
 
   const globalVariablePattern = new RegExp(`\\$vars\\.${escapedOldName}(?![\\w$])`, "g")
   const nodeVariablePattern = new RegExp(
@@ -70,7 +93,23 @@ export function refactorVariableReferencesInExpression(
 
   return expression
     .replace(globalVariablePattern, `$vars.${trimmedNewName}`)
-    .replace(nodeVariablePattern, `${buildNodeReference(context.sourceNodeId)}.item.json.${trimmedNewName}`)
+    .replace(nodeVariablePattern, `${buildNodeReference(context.sourceNodeLabel)}.item.json.${trimmedNewName}`)
+}
+
+export function refactorNodeReferencesInExpression(
+  expression: string,
+  context: NodeLabelRenameContext
+): string {
+  const trimmedOldLabel = context.oldLabel.trim()
+  const trimmedNewLabel = context.newLabel.trim()
+  if (!trimmedOldLabel || trimmedOldLabel === trimmedNewLabel) {
+    return expression
+  }
+
+  const escapedOldReference = escapeRegExp(buildNodeReference(trimmedOldLabel))
+  const nodeReferencePattern = new RegExp(escapedOldReference, "g")
+
+  return expression.replace(nodeReferencePattern, buildNodeReference(trimmedNewLabel))
 }
 
 function getExpressionConfigKeys(kind: NodeKind): string[] {

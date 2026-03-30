@@ -1,7 +1,10 @@
 import { createHistoryState } from "@workspace/store"
 import { addEdge } from "@xyflow/react"
 
-import { refactorVariableReferencesInGraph } from "../../expression/refactor/refactor"
+import {
+  refactorNodeReferencesInGraph,
+  refactorVariableReferencesInGraph,
+} from "../../expression/refactor/refactor"
 import {
   exportDomainJson,
   exportInternalJson,
@@ -87,12 +90,17 @@ export const createIoSlice: WorkflowSliceCreator = (set, get) => ({
     const usedVariableNames = getSetVariableNames(currentGraph.nodes)
     const nodeIdMap = new Map<string, string>()
     const variableRenames: Array<{
-      sourceNodeId: string
+      sourceNodeLabel: string
       oldName: string
       newName: string
     }> = []
+    const labelRenames: Array<{
+      oldLabel: string
+      newLabel: string
+    }> = []
 
     const nextNodes: WorkflowNode[] = parsed.value.nodes.map((nodeDto) => {
+      const previousLabel = nodeDto.label.trim()
       const uniqueLabel = createUniqueLabel(nodeDto.label, usedLabels)
       const nextNode = createWorkflowNode(
         nodeDto.kind as NodeKind,
@@ -106,6 +114,12 @@ export const createIoSlice: WorkflowSliceCreator = (set, get) => ({
         kind: nodeDto.kind,
         label: uniqueLabel,
         config: normalizeNodeConfig(nodeDto.kind as NodeKind, nodeDto.config),
+      }
+      if (previousLabel && previousLabel !== uniqueLabel) {
+        labelRenames.push({
+          oldLabel: previousLabel,
+          newLabel: uniqueLabel,
+        })
       }
 
       if (nodeDto.kind === "setVariable") {
@@ -123,7 +137,7 @@ export const createIoSlice: WorkflowSliceCreator = (set, get) => ({
 
         if (previousName && previousName !== uniqueName) {
           variableRenames.push({
-            sourceNodeId: nextNode.id,
+            sourceNodeLabel: uniqueLabel,
             oldName: previousName,
             newName: uniqueName,
           })
@@ -135,6 +149,9 @@ export const createIoSlice: WorkflowSliceCreator = (set, get) => ({
     })
 
     let nextNodesWithRefactors = nextNodes
+    labelRenames.forEach((rename) => {
+      nextNodesWithRefactors = refactorNodeReferencesInGraph(nextNodesWithRefactors, rename)
+    })
     variableRenames.forEach((rename) => {
       nextNodesWithRefactors = refactorVariableReferencesInGraph(
         nextNodesWithRefactors,
@@ -188,8 +205,38 @@ export const createIoSlice: WorkflowSliceCreator = (set, get) => ({
     }
 
     const importedGraph = cloneGraphState(parsed.value)
+    const usedLabels = new Set<string>()
+    const labelRenames: Array<{ oldLabel: string; newLabel: string }> = []
+    const nodesWithUniqueLabels = importedGraph.nodes.map((node) => {
+      const previousLabel = node.data.label.trim()
+      const uniqueLabel = createUniqueLabel(previousLabel, usedLabels)
+      if (previousLabel && previousLabel !== uniqueLabel) {
+        labelRenames.push({
+          oldLabel: previousLabel,
+          newLabel: uniqueLabel,
+        })
+      }
+      if (uniqueLabel === node.data.label) {
+        return node
+      }
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          label: uniqueLabel,
+        },
+      }
+    })
+    let normalizedNodes = nodesWithUniqueLabels
+    labelRenames.forEach((rename) => {
+      normalizedNodes = refactorNodeReferencesInGraph(normalizedNodes, rename)
+    })
+
     set({
-      history: createHistoryState(importedGraph),
+      history: createHistoryState({
+        ...importedGraph,
+        nodes: normalizedNodes,
+      }),
       selectedNodeIds: [],
       lastError: null,
     })

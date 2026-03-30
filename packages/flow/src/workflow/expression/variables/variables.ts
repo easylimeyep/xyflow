@@ -16,7 +16,7 @@ export function buildExpressionVariableCatalog(
 
   const upstreamNodes = getReachableUpstreamNodes(nodes, edges, selectedNodeId)
   upstreamNodes.forEach((node) => {
-    const nodeReference = buildNodeReference(node.id)
+    const nodeReference = buildNodeReference(node.data.label)
     const definition = getNodeDefinition(node.data.kind as NodeKind)
     const group = `Upstream: ${node.data.label}`
     options.push({
@@ -79,12 +79,12 @@ function getSetVariableName(node: WorkflowNode): string | null {
   return variableName
 }
 
-export function buildNodeReference(nodeId: string): string {
-  return `$node("${escapeNodeId(nodeId)}")`
+export function buildNodeReference(nodeLabel: string): string {
+  return `$node("${escapeNodeLabel(nodeLabel)}")`
 }
 
-function escapeNodeId(nodeId: string): string {
-  return nodeId.replaceAll("\\", "\\\\").replaceAll('"', '\\"')
+function escapeNodeLabel(nodeLabel: string): string {
+  return nodeLabel.replaceAll("\\", "\\\\").replaceAll('"', '\\"')
 }
 
 function dedupeVariableOptions(options: ExpressionVariableOption[]): ExpressionVariableOption[] {

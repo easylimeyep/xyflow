@@ -1,6 +1,6 @@
 "use client"
 
-import { type ChangeEvent, useId } from "react"
+import { type ChangeEvent, type KeyboardEvent, useEffect, useId, useRef, useState } from "react"
 
 import { Input } from "@workspace/ui/components/input"
 
@@ -86,6 +86,16 @@ export function NodeConfigPanel({
   onUpdateConfigField,
 }: NodeConfigPanelProps) {
   const labelId = useId()
+  const [labelDraft, setLabelDraft] = useState("")
+  const [isLabelFocused, setIsLabelFocused] = useState(false)
+  const labelDraftRef = useRef(labelDraft)
+
+  useEffect(() => {
+    const nextLabel = selectedNode?.data.label ?? ""
+    setLabelDraft(nextLabel)
+    labelDraftRef.current = nextLabel
+    setIsLabelFocused(false)
+  }, [selectedNode?.id, selectedNode?.data.label])
 
   if (!selectedNode) {
     return (
@@ -100,6 +110,7 @@ export function NodeConfigPanel({
 
   const { kind } = selectedNode.data
   const definition = getNodeDefinition(kind as NodeKind)
+  const displayedLabel = isLabelFocused ? labelDraft : selectedNode.data.label
 
   return (
     <aside aria-label="Node configuration" className="w-80 space-y-3 border-l bg-background p-3">
@@ -110,10 +121,27 @@ export function NodeConfigPanel({
         </label>
         <Input
           id={labelId}
-          value={selectedNode.data.label}
-          onChange={(event: ChangeEvent<HTMLInputElement>) =>
-            onUpdateLabel(selectedNode.id, event.target.value)
-          }
+          value={displayedLabel}
+          onFocus={() => {
+            setLabelDraft(selectedNode.data.label)
+            labelDraftRef.current = selectedNode.data.label
+            setIsLabelFocused(true)
+          }}
+          onChange={(event: ChangeEvent<HTMLInputElement>) => {
+            setLabelDraft(event.target.value)
+            labelDraftRef.current = event.target.value
+          }}
+          onBlur={() => {
+            onUpdateLabel(selectedNode.id, labelDraftRef.current)
+            setIsLabelFocused(false)
+          }}
+          onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => {
+            if (event.key !== "Enter") return
+            event.preventDefault()
+            onUpdateLabel(selectedNode.id, labelDraftRef.current)
+            setIsLabelFocused(false)
+            event.currentTarget.blur()
+          }}
         />
       </div>
 

@@ -593,7 +593,7 @@ describe("workflow store", () => {
     state.updateNodeConfig(inlineExpressionNode.id, {
       kind: "inlineExpression",
       key: "template",
-      value: `{{ $node("${setVariableNode.id}").item.json.oldName }}`,
+      value: `{{ $node("${setVariableNode.data.label}").item.json.oldName }}`,
     })
 
     state.updateNodeConfig(setVariableNode.id, {
@@ -613,7 +613,62 @@ describe("workflow store", () => {
     expect(nextSetVariableNode?.data.config.variableName).toBe("newName")
     expect(nextSetVariableNode?.data.config.valueExpression).toBe("{{ $vars.newName }}")
     expect(nextInlineExpressionNode?.data.config.template).toBe(
-      `{{ $node("${setVariableNode.id}").item.json.newName }}`
+      `{{ $node("${setVariableNode.data.label}").item.json.newName }}`
+    )
+  })
+
+  it("auto-increments duplicate labels when adding same node kind", () => {
+    const state = store.getState()
+    state.addNode("code", { x: 700, y: 80 })
+    state.addNode("code", { x: 900, y: 80 })
+
+    const codeLabels = store
+      .getState()
+      .history.present.nodes.filter((node) => node.data.kind === "code")
+      .map((node) => node.data.label)
+      .sort()
+
+    expect(codeLabels).toEqual(["Code", "Code 2"])
+  })
+
+  it("renames node label with auto-increment and refactors node references", () => {
+    const state = store.getState()
+    const triggerNode = state.history.present.nodes.find((node: WorkflowNode) => node.data.kind === "trigger")
+    const conflictingNode = state.history.present.nodes.find(
+      (node: WorkflowNode) => node.data.kind === "transform"
+    )
+    if (!triggerNode) {
+      throw new Error("trigger node fixture not found")
+    }
+    if (!conflictingNode) {
+      throw new Error("transform node fixture not found")
+    }
+
+    state.addNode("inlineExpression", { x: 900, y: 80 })
+    const inlineExpressionNode = store
+      .getState()
+      .history.present.nodes.find((node: WorkflowNode) => node.data.kind === "inlineExpression")
+    if (!inlineExpressionNode) {
+      throw new Error("inline expression fixture not found")
+    }
+
+    state.updateNodeConfig(inlineExpressionNode.id, {
+      kind: "inlineExpression",
+      key: "template",
+      value: `{{ $node("${triggerNode.data.label}").item.json.eventName }}`,
+    })
+    state.updateNodeLabel(triggerNode.id, conflictingNode.data.label)
+
+    const nextState = store.getState()
+    const nextTriggerNode = nextState.history.present.nodes.find((node) => node.id === triggerNode.id)
+    const nextInlineExpressionNode = nextState.history.present.nodes.find(
+      (node) => node.id === inlineExpressionNode.id
+    )
+
+    const expectedLabel = `${conflictingNode.data.label} 2`
+    expect(nextTriggerNode?.data.label).toBe(expectedLabel)
+    expect(nextInlineExpressionNode?.data.config.template).toBe(
+      `{{ $node("${expectedLabel}").item.json.eventName }}`
     )
   })
 })

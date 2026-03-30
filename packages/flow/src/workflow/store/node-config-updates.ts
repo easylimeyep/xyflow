@@ -122,7 +122,7 @@ function applySetVariableRename(
   })
 
   const nextNodes = refactorVariableReferencesInGraph(nextNodesWithNewName, {
-    sourceNodeId: nodeId,
+    sourceNodeLabel: targetNode.data.label,
     oldName: previousName,
     newName: nextName,
   })

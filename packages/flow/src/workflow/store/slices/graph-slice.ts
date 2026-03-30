@@ -1,6 +1,7 @@
 import { addEdge, applyEdgeChanges, applyNodeChanges } from "@xyflow/react"
 import { pushHistoryState } from "@workspace/store"
 
+import { refactorNodeReferencesInGraph } from "../../expression/refactor/refactor"
 import { createWorkflowNode } from "../../node-registry/node-factory"
 import { createWorkflowError } from "../../types/errors"
 import type { WorkflowEdge, WorkflowGraphState, WorkflowNode } from "../../types/types"
@@ -21,12 +22,14 @@ import { computeEdgeInsertion } from "../edge-insertion"
 import { createSmartQuickAddPosition } from "../geometry"
 import { cloneGraphState, commitGraphState, replacePresentGraphState } from "../history-helpers"
 import { applyNodeConfigUpdate } from "../node-config-updates"
+import { createUniqueLabel } from "../naming"
 import type { WorkflowSliceCreator } from "../types"
 
 export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
   addNode: (kind, position) => {
     const currentGraph = get().history.present
-    const nextNodes = [...currentGraph.nodes, createWorkflowNode(kind, position)]
+    const nextNode = createNodeWithUniqueLabel(currentGraph.nodes, kind, position)
+    const nextNodes = [...currentGraph.nodes, nextNode]
     commitGraphState(set, {
       ...currentGraph,
       nodes: nextNodes,
@@ -61,7 +64,7 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
       sourceNode,
       pending.sourceHandle
     )
-    const nextNode = createWorkflowNode(kind, nextNodePosition)
+    const nextNode = createNodeWithUniqueLabel(currentGraph.nodes, kind, nextNodePosition)
     const nextNodes = [...currentGraph.nodes, nextNode]
     const connection: ConnectionLike = {
       source: pending.sourceNodeId,
@@ -104,7 +107,7 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
     const pending = get().edgeInsertPending
     if (!pending) return
 
-    const result = computeEdgeInsertion(currentGraph, pending.edgeId, kind)
+    const result = computeEdgeInsertion(currentGraph, pending.edgeId, kind, createNodeWithUniqueLabel)
     if (!result.ok) {
       set({ edgeInsertPending: null, lastError: createWorkflowError("EDGE_INSERT_FAILED", result.error) })
       return
@@ -124,13 +127,27 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
   updateNodeLabel: (nodeId, nextLabel) => {
     const currentGraph = get().history.present
     const targetNode = currentGraph.nodes.find((node) => node.id === nodeId)
-    if (!targetNode || targetNode.data.label === nextLabel) return
+    if (!targetNode) return
 
-    const nextNodes = currentGraph.nodes.map((node) =>
+    const normalizedLabel = nextLabel.trim() || targetNode.data.label.trim() || "Node"
+    const usedLabels = new Set(
+      currentGraph.nodes
+        .filter((node) => node.id !== nodeId)
+        .map((node) => node.data.label.trim())
+        .filter((label) => label.length > 0)
+    )
+    const uniqueLabel = createUniqueLabel(normalizedLabel, usedLabels)
+    if (targetNode.data.label === uniqueLabel) return
+
+    const nextNodesWithLabel = currentGraph.nodes.map((node) =>
       node.id === nodeId
-        ? { ...node, data: { ...node.data, label: nextLabel } }
+        ? { ...node, data: { ...node.data, label: uniqueLabel } }
         : node
     )
+    const nextNodes = refactorNodeReferencesInGraph(nextNodesWithLabel, {
+      oldLabel: targetNode.data.label,
+      newLabel: uniqueLabel,
+    })
 
     commitGraphState(set, {
       ...currentGraph,
@@ -272,3 +289,27 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
     })
   },
 })
+
+function createNodeWithUniqueLabel(
+  currentNodes: WorkflowNode[],
+  kind: Parameters<typeof createWorkflowNode>[0],
+  position: Parameters<typeof createWorkflowNode>[1]
+): WorkflowNode {
+  const nextNode = createWorkflowNode(kind, position)
+  const usedLabels = new Set(
+    currentNodes
+      .map((node) => node.data.label.trim())
+      .filter((label) => label.length > 0)
+  )
+  const uniqueLabel = createUniqueLabel(nextNode.data.label, usedLabels)
+  if (uniqueLabel === nextNode.data.label) {
+    return nextNode
+  }
+  return {
+    ...nextNode,
+    data: {
+      ...nextNode.data,
+      label: uniqueLabel,
+    },
+  }
+}

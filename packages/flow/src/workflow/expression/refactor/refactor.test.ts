@@ -2,27 +2,28 @@ import { describe, expect, it } from "vitest"
 
 import { createWorkflowNode } from "../../node-registry/node-factory"
 import {
+  refactorNodeReferencesInExpression,
   refactorVariableReferencesInExpression,
   refactorVariableReferencesInGraph,
 } from "./refactor"
 
 describe("expression variable refactor", () => {
   it("replaces both $vars and $node references in expression text", () => {
-    const nodeId = "setVariable-1"
+    const nodeLabel = "Set Variable"
     const source = [
       "{{ $vars.oldName }}",
-      "{{ $node(\"setVariable-1\").item.json.oldName }}",
+      '{{ $node("Set Variable").item.json.oldName }}',
       "{{ $vars.oldNameSuffix }}",
     ].join(" ")
 
     const nextValue = refactorVariableReferencesInExpression(source, {
-      sourceNodeId: nodeId,
+      sourceNodeLabel: nodeLabel,
       oldName: "oldName",
       newName: "newName",
     })
 
     expect(nextValue).toContain("$vars.newName")
-    expect(nextValue).toContain('$node("setVariable-1").item.json.newName')
+    expect(nextValue).toContain('$node("Set Variable").item.json.newName')
     expect(nextValue).toContain("$vars.oldNameSuffix")
   })
 
@@ -32,10 +33,10 @@ describe("expression variable refactor", () => {
     setVariable.data.config.valueExpression = "{{ $vars.oldName }}"
 
     const inlineExpression = createWorkflowNode("inlineExpression", { x: 100, y: 0 })
-    inlineExpression.data.config.template = `{{ $node("${setVariable.id}").item.json.oldName }}`
+    inlineExpression.data.config.template = `{{ $node("${setVariable.data.label}").item.json.oldName }}`
 
     const nextNodes = refactorVariableReferencesInGraph([setVariable, inlineExpression], {
-      sourceNodeId: setVariable.id,
+      sourceNodeLabel: setVariable.data.label,
       oldName: "oldName",
       newName: "newName",
     })
@@ -44,7 +45,17 @@ describe("expression variable refactor", () => {
 
     expect(nextSetVariable?.data.config.valueExpression).toBe("{{ $vars.newName }}")
     expect(nextInlineExpression?.data.config.template).toBe(
-      `{{ $node("${setVariable.id}").item.json.newName }}`
+      `{{ $node("${setVariable.data.label}").item.json.newName }}`
     )
+  })
+
+  it("replaces node references by label in expression text", () => {
+    const source = '{{ $node("Trigger").item.json.eventName }}'
+    const nextValue = refactorNodeReferencesInExpression(source, {
+      oldLabel: "Trigger",
+      newLabel: "Trigger 2",
+    })
+
+    expect(nextValue).toBe('{{ $node("Trigger 2").item.json.eventName }}')
   })
 })

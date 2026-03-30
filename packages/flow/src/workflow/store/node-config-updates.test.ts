@@ -37,7 +37,7 @@ describe("applyNodeConfigUpdate", () => {
     const setVariableNode = createWorkflowNode("setVariable", { x: 0, y: 0 })
     setVariableNode.data.config.variableName = "oldName"
     const inlineExpressionNode = createWorkflowNode("inlineExpression", { x: 200, y: 0 })
-    inlineExpressionNode.data.config.template = "{{ $vars.oldName }} + {{ $node(\"" + setVariableNode.id + "\").item.json.oldName }}"
+    inlineExpressionNode.data.config.template = "{{ $vars.oldName }} + {{ $node(\"" + setVariableNode.data.label + "\").item.json.oldName }}"
 
     const graph = createGraph([setVariableNode, inlineExpressionNode])
     const result = applyNodeConfigUpdate(graph, setVariableNode.id, {
@@ -49,6 +49,8 @@ describe("applyNodeConfigUpdate", () => {
     expect(result.error).toBeNull()
     expect(result.nextGraph?.nodes[0]?.data.config.variableName).toBe("newName")
     expect(result.nextGraph?.nodes[1]?.data.config.template).toContain("$vars.newName")
-    expect(result.nextGraph?.nodes[1]?.data.config.template).toContain(`$node("${setVariableNode.id}").item.json.newName`)
+    expect(result.nextGraph?.nodes[1]?.data.config.template).toContain(
+      `$node("${setVariableNode.data.label}").item.json.newName`
+    )
   })
 })

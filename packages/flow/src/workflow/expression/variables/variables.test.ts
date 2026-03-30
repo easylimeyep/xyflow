@@ -51,15 +51,15 @@ describe("expression variable catalog", () => {
       code.id
     )
 
-    expect(options.some((option) => option.value.includes(`$node("${trigger.id}").item.json`))).toBe(
+    expect(options.some((option) => option.value.includes(`$node("${trigger.data.label}").item.json`))).toBe(
       true
     )
     expect(
-      options.some((option) => option.value.includes(`$node("${transform.id}").item.json`))
+      options.some((option) => option.value.includes(`$node("${transform.data.label}").item.json`))
     ).toBe(
       true
     )
-    expect(options.some((option) => option.value.includes(`$node("${isolated.id}").item.json`))).toBe(
+    expect(options.some((option) => option.value.includes(`$node("${isolated.data.label}").item.json`))).toBe(
       false
     )
   })
@@ -100,7 +100,7 @@ describe("expression variable catalog", () => {
     expect(options.some((option) => option.value === "$vars.regionName")).toBe(true)
     expect(
       options.some(
-        (option) => option.value === `$node("${setVariable.id}").item.json.regionName`
+        (option) => option.value === `$node("${setVariable.data.label}").item.json.regionName`
       )
     ).toBe(true)
   })

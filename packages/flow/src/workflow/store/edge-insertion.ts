@@ -30,7 +30,12 @@ export type EdgeInsertionResult = EdgeInsertionSuccess | EdgeInsertionFailure
 export function computeEdgeInsertion(
   currentGraph: WorkflowGraphState,
   edgeId: string,
-  kind: NodeKind
+  kind: NodeKind,
+  createNode: (currentNodes: WorkflowNode[], kind: NodeKind, position: { x: number; y: number }) => WorkflowNode = (
+    _currentNodes,
+    nextKind,
+    position
+  ) => createWorkflowNode(nextKind, position)
 ): EdgeInsertionResult {
   const edgeToSplit = currentGraph.edges.find((edge) => edge.id === edgeId)
   if (!edgeToSplit) {
@@ -49,7 +54,7 @@ export function computeEdgeInsertion(
   const finalTargetNode =
     shiftedNodes.find((node) => node.id === edgeToSplit.target) ?? targetNode
   const insertPosition = getEdgeSplitInsertPosition(finalSourceNode, finalTargetNode)
-  const nextNode = createWorkflowNode(kind, insertPosition)
+  const nextNode = createNode(shiftedNodes, kind, insertPosition)
   const nextNodes = [...shiftedNodes, nextNode]
   const nextEdgesBase = currentGraph.edges.filter((edge) => edge.id !== edgeToSplit.id)
 

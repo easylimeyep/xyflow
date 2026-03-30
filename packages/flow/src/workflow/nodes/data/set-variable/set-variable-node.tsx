@@ -114,7 +114,7 @@ export function SetVariableNode({ id, data, selected }: NodeProps) {
               </label>
               <ExpressionInput
                 value={value}
-                placeholder='{{ $node("trigger-1").item.json.eventName }}'
+                placeholder='{{ $node("Trigger").item.json.eventName }}'
                 variables={expressionVariables}
                 onChange={onChange}
               />
