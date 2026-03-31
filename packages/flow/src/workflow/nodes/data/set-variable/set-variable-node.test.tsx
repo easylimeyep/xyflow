@@ -8,6 +8,7 @@ import type { WorkflowNode } from "../../../types"
 import { SetVariableNode } from "./set-variable-node"
 
 const mockUpdateNodeConfig = vi.fn()
+const mockIsSetVariableNameUnique = vi.fn()
 let mockAllNodes: WorkflowNode[] = []
 
 vi.mock("@xyflow/react", () => ({
@@ -22,7 +23,7 @@ vi.mock("../../shared/use-node-store-data", () => ({
   useNodeStoreData: () => ({
     expressionVariables: [],
     updateNodeConfig: mockUpdateNodeConfig,
-    allNodes: mockAllNodes,
+    isSetVariableNameUnique: mockIsSetVariableNameUnique,
   }),
 }))
 
@@ -72,6 +73,14 @@ function createNodeProps(variableName: string, valueExpression: string): NodePro
 describe("SetVariableNode", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockIsSetVariableNameUnique.mockImplementation((nodeId: string, variableName: string) => {
+      const normalizedName = variableName.trim()
+      return !mockAllNodes.some((node) => {
+        if (node.id === nodeId || node.data.kind !== "setVariable") return false
+        const candidateVariableName = node.data.config.variableName
+        return typeof candidateVariableName === "string" && candidateVariableName.trim() === normalizedName
+      })
+    })
     mockAllNodes = [
       {
         id: "set-variable-1",

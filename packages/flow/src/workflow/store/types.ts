@@ -26,8 +26,30 @@ export interface NodeConfigUpdate {
   value: unknown
 }
 
+export interface ExpressionDepsNode {
+  id: string
+  kind: string
+  label: string
+  config: Record<string, unknown>
+}
+
+export interface ExpressionDepsEdge {
+  id: string
+  source: string
+  target: string
+  sourceHandle: string | null
+  targetHandle: string | null
+}
+
+export interface ExpressionDepsGraph {
+  nodes: ExpressionDepsNode[]
+  edges: ExpressionDepsEdge[]
+}
+
 export interface WorkflowStoreQueries {
   history: HistoryState<WorkflowGraphState>
+  expressionDeps: ExpressionDepsGraph
+  expressionStructuralSignature: string
   selectedNodeIds: string[]
   lastPointerFlowPosition: XYPosition | null
   quickAddPending: PendingQuickAdd | null
@@ -39,6 +61,7 @@ export interface WorkflowStoreGraphCommands {
   addNode: (kind: NodeKind, position: XYPosition) => void
   updateNodeLabel: (nodeId: string, nextLabel: string) => void
   updateNodeConfig: (nodeId: string, update: NodeConfigUpdate) => void
+  isSetVariableNameUnique: (nodeId: string, variableName: string) => boolean
   onNodesChange: (changes: NodeChange<WorkflowNode>[]) => void
   onEdgesChange: (changes: EdgeChange<WorkflowEdge>[]) => void
   onConnect: (connection: ConnectionLike) => void

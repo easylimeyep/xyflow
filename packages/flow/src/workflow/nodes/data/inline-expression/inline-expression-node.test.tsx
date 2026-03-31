@@ -20,7 +20,7 @@ vi.mock("../../shared/use-node-store-data", () => ({
   useNodeStoreData: () => ({
     expressionVariables: [],
     updateNodeConfig: mockUpdateNodeConfig,
-    allNodes: [],
+    isSetVariableNameUnique: () => true,
   }),
 }))
 

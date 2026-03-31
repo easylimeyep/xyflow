@@ -1,3 +1,4 @@
+export { createExpressionSlice } from "./expression-slice"
 export { createGraphSlice } from "./graph-slice"
 export { createHistorySlice } from "./history-slice"
 export { createIntentSlice } from "./intent-slice"

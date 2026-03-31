@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo } from "react"
+import { useCallback, useEffect } from "react"
 
 import {
   selectCanRedo,
@@ -13,7 +13,7 @@ import {
   selectPresentNodes,
   selectQuickAddPending,
   selectSelectedNode,
-  selectSelectedNodeIds,
+  selectSelectedSingleNodeId,
   selectViewport,
   useWorkflowShallowStore,
   useWorkflowStore,
@@ -184,10 +184,10 @@ function PaletteContainer() {
 
 function CanvasContainer() {
   const initialViewport = useWorkflowStore(selectViewport, () => true)
-  const selectedNodeIds = useWorkflowStore(selectSelectedNodeIds)
+  const nodes = useWorkflowStore(selectPresentNodes)
+  const edges = useWorkflowStore(selectPresentEdges)
+  const edgeInsertPending = useWorkflowStore(selectEdgeInsertPending)
   const {
-    nodes,
-    edges,
     onNodesChange,
     onEdgesChange,
     onConnect,
@@ -198,10 +198,7 @@ function CanvasContainer() {
     cancelEdgeInsert,
     startEdgeInsertFromEdge,
     setLastPointerPosition,
-    edgeInsertPending,
   } = useWorkflowShallowStore((state: WorkflowStoreState) => ({
-    nodes: selectPresentNodes(state),
-    edges: selectPresentEdges(state),
     onNodesChange: state.onNodesChange,
     onEdgesChange: state.onEdgesChange,
     onConnect: state.onConnect,
@@ -212,25 +209,7 @@ function CanvasContainer() {
     cancelEdgeInsert: state.cancelEdgeInsert,
     startEdgeInsertFromEdge: state.startEdgeInsertFromEdge,
     setLastPointerPosition: state.setLastPointerPosition,
-    edgeInsertPending: state.edgeInsertPending,
   }))
-  const nodesWithSelection = useMemo(() => {
-    const selectedIdSet = new Set(selectedNodeIds)
-    let changed = false
-    const nextNodes = nodes.map((node) => {
-      const isSelected = selectedIdSet.has(node.id)
-      if (Boolean(node.selected) === isSelected) {
-        return node
-      }
-
-      changed = true
-      return {
-        ...node,
-        selected: isSelected,
-      }
-    })
-    return changed ? nextNodes : nodes
-  }, [nodes, selectedNodeIds])
   const handlePaneClick = useCallback(() => {
     setSelectedNodes([])
     cancelQuickAdd()
@@ -245,7 +224,7 @@ function CanvasContainer() {
 
   return (
     <WorkflowCanvas
-      nodes={nodesWithSelection}
+      nodes={nodes}
       edges={edges}
       viewport={initialViewport}
       onNodesChange={onNodesChange}
@@ -265,8 +244,9 @@ function CanvasContainer() {
 
 function ConfigPanelContainer() {
   const selectedNode = useWorkflowStore(selectSelectedNode)
+  const selectedNodeId = useWorkflowStore(selectSelectedSingleNodeId)
   const expressionVariables = useWorkflowStore((state: WorkflowStoreState) =>
-    selectExpressionVariablesForNode(state, selectedNode?.id ?? null)
+    selectExpressionVariablesForNode(state, selectedNodeId)
   )
   const { updateNodeLabel, updateNodeConfig } = useWorkflowShallowStore(
     (state: WorkflowStoreState) => ({

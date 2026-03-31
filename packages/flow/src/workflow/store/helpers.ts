@@ -1,4 +1,11 @@
 export {
+  buildExpressionSlicePatch,
+  buildExpressionSliceState,
+  computeStructuralSignature,
+  projectExpressionDeps,
+} from "./expression-deps"
+
+export {
   cloneGraphState,
   commitGraphState,
   createInitialHistory,

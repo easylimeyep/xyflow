@@ -7,7 +7,7 @@ import {
   type EdgeProps,
 } from "@xyflow/react"
 import { Plus, Trash2 } from "lucide-react"
-import { useMemo, useState } from "react"
+import { useState } from "react"
 
 import { workflowEdgeStyles } from "../../../styles/components/canvas"
 import type { WorkflowEdge } from "../../types"
@@ -17,6 +17,19 @@ interface WorkflowEdgeProps extends EdgeProps<WorkflowEdge> {
   onDeleteEdge: (edgeId: string) => void
   isInsertPending: boolean
 }
+
+const edgeStrokeDefault = {
+  stroke: "var(--border)",
+  strokeWidth: 2,
+}
+
+const edgeStrokeHighlighted = {
+  stroke: "var(--border)",
+  strokeWidth: 2.5,
+}
+
+const toolbarVisibleStyles = workflowEdgeStyles({ showToolbar: true })
+const toolbarHiddenStyles = workflowEdgeStyles({ showToolbar: false })
 
 export function WorkflowEdgeComponent({
   id,
@@ -35,20 +48,19 @@ export function WorkflowEdgeComponent({
 }: WorkflowEdgeProps) {
   const [isHovered, setIsHovered] = useState(false)
   const [isToolbarHovered, setIsToolbarHovered] = useState(false)
-  const [edgePath, labelX, labelY] = useMemo(
-    () =>
-      getBezierPath({
-        sourceX,
-        sourceY,
-        sourcePosition,
-        targetX,
-        targetY,
-        targetPosition,
-      }),
-    [sourcePosition, sourceX, sourceY, targetPosition, targetX, targetY]
-  )
+  const [edgePath, labelX, labelY] = getBezierPath({
+    sourceX,
+    sourceY,
+    sourcePosition,
+    targetX,
+    targetY,
+    targetPosition,
+  })
   const showToolbar = isHovered || isToolbarHovered || isInsertPending
-  const styles = workflowEdgeStyles({ showToolbar })
+  const styles = showToolbar ? toolbarVisibleStyles : toolbarHiddenStyles
+  const highlightEdge = selected || isInsertPending
+  const baseStroke = highlightEdge ? edgeStrokeHighlighted : edgeStrokeDefault
+  const edgeStyle = style ? { ...style, ...baseStroke } : baseStroke
 
   return (
     <>
@@ -61,11 +73,7 @@ export function WorkflowEdgeComponent({
           id={id}
           path={edgePath}
           markerEnd={markerEnd}
-          style={{
-            ...style,
-            stroke: "var(--border)",
-            strokeWidth: selected || isInsertPending ? 2.5 : 2,
-          }}
+          style={edgeStyle}
         />
         <path d={edgePath} fill="none" stroke="transparent" strokeWidth={20} />
       </g>

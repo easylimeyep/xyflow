@@ -22,6 +22,7 @@ import type { WorkflowEdge, WorkflowNode } from "../../types/types"
 import {
   asDomainConnectionDTO,
   asDomainNodeDTO,
+  buildExpressionSlicePatch,
   cloneGraphState,
   commitGraphState,
   createUniqueJsIdentifier,
@@ -189,10 +190,10 @@ export const createIoSlice: WorkflowSliceCreator = (set, get) => ({
       nodes: [...currentGraph.nodes, ...nextNodesWithRefactors],
       edges: nextEdges,
     })
-    set({
+    set((state) => ({
       selectedNodeIds: nextNodesWithRefactors.map((node) => node.id),
       lastError: null,
-    })
+    }))
     return true
   },
   importFromJson: (rawJson) => {
@@ -232,14 +233,18 @@ export const createIoSlice: WorkflowSliceCreator = (set, get) => ({
       normalizedNodes = refactorNodeReferencesInGraph(normalizedNodes, rename)
     })
 
-    set({
+    set((state) => ({
       history: createHistoryState({
         ...importedGraph,
         nodes: normalizedNodes,
       }),
       selectedNodeIds: [],
       lastError: null,
-    })
+      ...buildExpressionSlicePatch(state, {
+        ...importedGraph,
+        nodes: normalizedNodes,
+      }),
+    }))
     return true
   },
   exportInternal: () => {

@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest"
 
+import { selectExpressionVariablesForNode } from "./selectors"
 import { createWorkflowStore } from "./store"
 import type { WorkflowNode } from "../types/types"
 
@@ -130,6 +131,7 @@ describe("workflow store", () => {
       },
     ])
     expect(store.getState().history.past.length).toBe(basePastLength)
+    const signatureAfterTransientDrag = store.getState().expressionStructuralSignature
 
     store.getState().onNodesChange([
       {
@@ -140,6 +142,60 @@ describe("workflow store", () => {
       },
     ])
     expect(store.getState().history.past.length).toBe(basePastLength + 1)
+    expect(store.getState().expressionStructuralSignature).toBe(
+      signatureAfterTransientDrag
+    )
+  })
+
+  it("keeps expression catalog selector reference stable across drag-only updates", () => {
+    const state = store.getState()
+    const targetNode = state.history.present.nodes.find(
+      (node: WorkflowNode) => node.data.kind === "transform"
+    )
+    if (!targetNode) {
+      throw new Error("transform fixture node not found")
+    }
+
+    const beforeCatalog = selectExpressionVariablesForNode(
+      store.getState(),
+      targetNode.id
+    )
+
+    state.onNodesChange([
+      {
+        id: targetNode.id,
+        type: "position",
+        position: { x: targetNode.position.x + 40, y: targetNode.position.y + 30 },
+        dragging: true,
+      },
+    ])
+
+    const afterTransientCatalog = selectExpressionVariablesForNode(
+      store.getState(),
+      targetNode.id
+    )
+    expect(afterTransientCatalog).toBe(beforeCatalog)
+
+    store.getState().onNodesChange([
+      {
+        id: targetNode.id,
+        type: "position",
+        position: { x: targetNode.position.x + 80, y: targetNode.position.y + 60 },
+        dragging: false,
+      },
+    ])
+    const afterCommitCatalog = selectExpressionVariablesForNode(
+      store.getState(),
+      targetNode.id
+    )
+    expect(afterCommitCatalog).toBe(afterTransientCatalog)
+
+    store.getState().updateNodeLabel(targetNode.id, "Transform changed")
+    const afterStructuralChangeCatalog = selectExpressionVariablesForNode(
+      store.getState(),
+      targetNode.id
+    )
+    expect(afterStructuralChangeCatalog).not.toBe(afterCommitCatalog)
   })
 
   it("commits structural edge changes to history", () => {
@@ -615,6 +671,31 @@ describe("workflow store", () => {
     expect(nextInlineExpressionNode?.data.config.template).toBe(
       `{{ $node("${setVariableNode.data.label}").item.json.newName }}`
     )
+  })
+
+  it("checks set-variable name uniqueness against live graph state", () => {
+    const state = store.getState()
+    state.addNode("setVariable", { x: 600, y: 80 })
+    state.addNode("setVariable", { x: 900, y: 80 })
+    const setVariableNodes = store
+      .getState()
+      .history.present.nodes.filter((node) => node.data.kind === "setVariable")
+    const firstNode = setVariableNodes[0]
+    const secondNode = setVariableNodes[1]
+    if (!firstNode || !secondNode) {
+      throw new Error("setVariable fixtures not found")
+    }
+
+    state.updateNodeConfig(firstNode.id, {
+      kind: "setVariable",
+      key: "variableName",
+      value: "existingVar",
+    })
+
+    expect(store.getState().isSetVariableNameUnique(secondNode.id, "existingVar")).toBe(
+      false
+    )
+    expect(store.getState().isSetVariableNameUnique(secondNode.id, "newVar")).toBe(true)
   })
 
   it("auto-increments duplicate labels when adding same node kind", () => {

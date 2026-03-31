@@ -7,6 +7,7 @@ import {
 } from "@workspace/store"
 
 import type { WorkflowGraphState } from "../types/types"
+import { buildExpressionSlicePatch } from "./expression-deps"
 
 import type { WorkflowStoreSetState } from "./types"
 
@@ -24,6 +25,7 @@ export function commitGraphState(
 ): void {
   set((state) => ({
     history: pushHistoryState(state.history, cloneGraphState(nextGraph)),
+    ...buildExpressionSlicePatch(state, nextGraph),
   }))
 }
 
@@ -36,5 +38,6 @@ export function replacePresentGraphState(
       ...state.history,
       present: cloneGraphState(nextGraph),
     },
+    ...buildExpressionSlicePatch(state, nextGraph),
   }))
 }

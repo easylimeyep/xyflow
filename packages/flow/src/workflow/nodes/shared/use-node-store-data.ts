@@ -1,6 +1,5 @@
 import {
   selectExpressionVariablesForNode,
-  selectPresentNodes,
   useWorkflowShallowStore,
   useWorkflowStore,
   type WorkflowStoreState,
@@ -13,7 +12,9 @@ export function useNodeStoreData(nodeId: string) {
   const updateNodeConfig = useWorkflowShallowStore(
     (state: WorkflowStoreState) => state.updateNodeConfig
   )
-  const allNodes = useWorkflowStore(selectPresentNodes)
+  const isSetVariableNameUnique = useWorkflowShallowStore(
+    (state: WorkflowStoreState) => state.isSetVariableNameUnique
+  )
 
-  return { expressionVariables, updateNodeConfig, allNodes }
+  return { expressionVariables, updateNodeConfig, isSetVariableNameUnique }
 }

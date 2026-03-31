@@ -8,13 +8,13 @@ import { setVariableNodeStyles } from "../../../../styles/components/nodes"
 import { ExpressionInput } from "../../../components/expression-input"
 import { isValidJsIdentifier } from "../../../expression/variable-name/variable-name"
 import { NodeShell } from "../../node-shell/node-shell"
-import { InlineEditField, asRecord, asText, useBaseNodeData } from "../../shared"
+import { InlineEditField, asText, useBaseNodeData } from "../../shared"
 import { useNodeStoreData } from "../../shared/use-node-store-data"
 
 export function SetVariableNode({ id, data, selected }: NodeProps) {
   const { label: baseLabel, config } = useBaseNodeData(data)
   const label = baseLabel || "Set Variable"
-  const { expressionVariables, updateNodeConfig, allNodes } = useNodeStoreData(id)
+  const { expressionVariables, updateNodeConfig, isSetVariableNameUnique } = useNodeStoreData(id)
 
   const variableNameFromStore = asText(config.variableName)
   const valueExpressionFromStore = asText(config.valueExpression)
@@ -39,12 +39,7 @@ export function SetVariableNode({ id, data, selected }: NodeProps) {
       return false
     }
 
-    const duplicateNode = allNodes.find((node) => {
-      if (node.id === id || node.data.kind !== "setVariable") return false
-      const nodeConfig = asRecord(node.data.config)
-      return asText(nodeConfig.variableName) === nextName
-    })
-    if (duplicateNode) {
+    if (!isSetVariableNameUnique(id, nextName)) {
       setNameError("Variable name must be unique in this workflow.")
       return false
     }
@@ -56,7 +51,7 @@ export function SetVariableNode({ id, data, selected }: NodeProps) {
       value: nextName,
     })
     return true
-  }, [draftVariableName, id, allNodes, updateNodeConfig, variableNameFromStore])
+  }, [draftVariableName, id, isSetVariableNameUnique, updateNodeConfig, variableNameFromStore])
 
   return (
     <NodeShell

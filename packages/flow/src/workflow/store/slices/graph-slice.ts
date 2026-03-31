@@ -19,6 +19,7 @@ import {
 } from "../collection-diff"
 import { toEdgeConnectionWithKind } from "../dto-mappers"
 import { computeEdgeInsertion } from "../edge-insertion"
+import { buildExpressionSlicePatch } from "../expression-deps"
 import { createSmartQuickAddPosition } from "../geometry"
 import { cloneGraphState, commitGraphState, replacePresentGraphState } from "../history-helpers"
 import { applyNodeConfigUpdate } from "../node-config-updates"
@@ -96,11 +97,11 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
       nodes: nextNodes,
       edges: nextEdges,
     })
-    set({
+    set((state) => ({
       quickAddPending: null,
       selectedNodeIds: [nextNode.id],
       lastError: null,
-    })
+    }))
   },
   confirmEdgeInsertNode: (kind) => {
     const currentGraph = get().history.present
@@ -118,11 +119,11 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
       nodes: result.nextNodes,
       edges: result.nextEdges,
     })
-    set({
+    set((state) => ({
       edgeInsertPending: null,
       selectedNodeIds: [result.insertedNodeId],
       lastError: null,
-    })
+    }))
   },
   updateNodeLabel: (nodeId, nextLabel) => {
     const currentGraph = get().history.present
@@ -166,6 +167,23 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
     commitGraphState(set, result.nextGraph)
     set({ lastError: null })
   },
+  isSetVariableNameUnique: (nodeId, variableName) => {
+    const normalizedVariableName = variableName.trim()
+    if (!normalizedVariableName) {
+      return false
+    }
+    const nodes = get().history.present.nodes
+    return !nodes.some((node) => {
+      if (node.id === nodeId || node.data.kind !== "setVariable") {
+        return false
+      }
+      const candidateVariableName = node.data.config.variableName
+      return (
+        typeof candidateVariableName === "string" &&
+        candidateVariableName.trim() === normalizedVariableName
+      )
+    })
+  },
   onNodesChange: (changes) => {
     const history = get().history
     const currentGraph = history.present
@@ -195,6 +213,7 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
             future: [],
           },
           selectedNodeIds: nextSelectedNodeIds,
+          ...buildExpressionSlicePatch(state, nextGraph),
         }))
         return
       }
@@ -202,6 +221,7 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
       set((state) => ({
         history: pushHistoryState(state.history, cloneGraphState(nextGraph)),
         selectedNodeIds: nextSelectedNodeIds,
+        ...buildExpressionSlicePatch(state, nextGraph),
       }))
       return
     }
@@ -212,6 +232,7 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
         present: nextGraph,
       },
       selectedNodeIds: nextSelectedNodeIds,
+      ...buildExpressionSlicePatch(state, nextGraph),
     }))
   },
   onEdgesChange: (changes) => {
