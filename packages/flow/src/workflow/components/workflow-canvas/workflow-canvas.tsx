@@ -19,7 +19,11 @@ import {
 
 import { WORKFLOW_NODE_KIND_MIME } from "../../dnd"
 import { buildNodeTypes } from "../../node-registry/node-types-builder"
-import { allDefinitions, isNodeKind, type NodeKind } from "../../node-registry/registry"
+import {
+  allDefinitions,
+  isNodeKind,
+  type NodeKind,
+} from "../../node-registry/registry"
 import { workflowCanvasStyles } from "../../../styles/components/canvas"
 import type { WorkflowEdge, WorkflowNode } from "../../types"
 
@@ -111,7 +115,8 @@ function WorkflowCanvasInner({
     edgeInteractionRef.current.edgeInsertPendingId = edgeInsertPendingId
   }, [edgeInsertPendingId, onDeleteEdge, onStartInsertFromEdge])
   const edgesWithType = useMemo(
-    () => edges.map((edge) => (edge.type ? edge : { ...edge, type: "workflow" })),
+    () =>
+      edges.map((edge) => (edge.type ? edge : { ...edge, type: "workflow" })),
     [edges]
   )
   const edgeTypes = useMemo(
@@ -119,9 +124,15 @@ function WorkflowCanvasInner({
       workflow: (props: EdgeProps<WorkflowEdge>) => (
         <WorkflowEdgeComponent
           {...props}
-          onStartInsert={(edgeId) => edgeInteractionRef.current.onStartInsertFromEdge(edgeId)}
-          onDeleteEdge={(edgeId) => edgeInteractionRef.current.onDeleteEdge(edgeId)}
-          isInsertPending={props.id === edgeInteractionRef.current.edgeInsertPendingId}
+          onStartInsert={(edgeId) =>
+            edgeInteractionRef.current.onStartInsertFromEdge(edgeId)
+          }
+          onDeleteEdge={(edgeId) =>
+            edgeInteractionRef.current.onDeleteEdge(edgeId)
+          }
+          isInsertPending={
+            props.id === edgeInteractionRef.current.edgeInsertPendingId
+          }
         />
       ),
     }),
@@ -152,6 +163,7 @@ function WorkflowCanvasInner({
       onDragOver={onDragOver}
       onDrop={onDrop}
       onMouseMove={onMouseMove}
+      connectionLineStyle={{ strokeWidth: 2, stroke: "var(--border)" }}
     >
       <MiniMap />
       <Controls />

@@ -7,7 +7,7 @@ export const outputQuickAddAffordanceStyles = tv({
       "pointer-events-none absolute top-0 -translate-y-1/2 left-5 text-[10px] bg-border z-10",
     quickAddRoot:
       "absolute top-0.25 left-1.5 flex -translate-y-1/2 items-center",
-    quickAddLine: "h-px w-10 bg-gray-400",
+    quickAddLine: "h-[2px] w-10 bg-border",
     quickAddButton: "",
     icon: "",
   },

@@ -10,6 +10,18 @@
   --xy-controls-button-color: var(--foreground);
   --xy-controls-button-color-hover: var(--foreground);
   --xy-controls-button-border-color: var(--border);
+  --flow-editor-bg: var(--background);
+  --flow-editor-fg: var(--foreground);
+  --flow-editor-border: var(--input);
+  --flow-editor-muted: var(--muted-foreground);
+  --flow-editor-selection: color-mix(in oklab, var(--primary) 35%, transparent);
+  --flow-editor-selection-match: color-mix(
+    in oklab,
+    var(--primary) 18%,
+    transparent
+  );
+  --flow-editor-active-line: var(--muted);
+  --flow-editor-cursor: var(--primary);
 }
 
 .react-flow__minimap {
@@ -33,18 +45,58 @@
 
 .cm-editor {
   font-size: 12px;
+  border: 1px solid var(--flow-editor-border);
+  background: var(--flow-editor-bg);
+  color: var(--flow-editor-fg);
 }
 
 .cm-content {
   font-family:
     ui-monospace, SFMono-Regular, SFMono-Regular, Menlo, Monaco, Consolas,
     "Liberation Mono", "Courier New", monospace;
+  color: var(--flow-editor-fg);
+  caret-color: var(--flow-editor-cursor);
+}
+
+.cm-scroller,
+.cm-gutters {
+  background: var(--flow-editor-bg);
+  color: var(--flow-editor-muted);
+}
+
+.cm-gutters {
+  border-right: 1px solid var(--flow-editor-border);
+}
+
+.cm-cursor,
+.cm-dropCursor {
+  border-left-color: var(--flow-editor-cursor);
+}
+
+.cm-selectionBackground,
+.cm-content ::selection {
+  background: var(--flow-editor-selection);
+}
+
+.cm-panels {
+  background: var(--flow-editor-bg);
+  color: var(--flow-editor-fg);
+  border-color: var(--flow-editor-border);
+}
+
+.cm-activeLine,
+.cm-activeLineGutter {
+  background: var(--flow-editor-active-line);
+}
+
+.cm-selectionMatch {
+  background: var(--flow-editor-selection-match);
 }
 
 .cm-tooltip.cm-shadcn-autocomplete {
-  border: 1px solid hsl(var(--border));
-  background: hsl(var(--popover));
-  color: hsl(var(--popover-foreground));
+  border: 1px solid var(--flow-editor-border);
+  background: var(--flow-editor-bg);
+  color: var(--flow-editor-fg);
   border-radius: 0.5rem;
   box-shadow:
     0 10px 15px -3px rgb(0 0 0 / 0.1),
@@ -69,6 +121,6 @@
 }
 
 .cm-tooltip.cm-shadcn-autocomplete > ul > li[aria-selected="true"] {
-  background: hsl(var(--muted));
-  color: hsl(var(--foreground));
+  background: var(--flow-editor-active-line);
+  color: var(--flow-editor-fg);
 }

@@ -1,6 +1,11 @@
 "use client"
 
-import { BaseEdge, EdgeLabelRenderer, getBezierPath, type EdgeProps } from "@xyflow/react"
+import {
+  BaseEdge,
+  EdgeLabelRenderer,
+  getBezierPath,
+  type EdgeProps,
+} from "@xyflow/react"
 import { Plus, Trash2 } from "lucide-react"
 import { useMemo, useState } from "react"
 
@@ -58,7 +63,8 @@ export function WorkflowEdgeComponent({
           markerEnd={markerEnd}
           style={{
             ...style,
-            strokeWidth: selected || isInsertPending ? 2.5 : 1.5,
+            stroke: "var(--border)",
+            strokeWidth: selected || isInsertPending ? 2.5 : 2,
           }}
         />
         <path d={edgePath} fill="none" stroke="transparent" strokeWidth={20} />
