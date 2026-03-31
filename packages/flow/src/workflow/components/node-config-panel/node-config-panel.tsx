@@ -1,8 +1,6 @@
 "use client"
 
-import { type ChangeEvent, type KeyboardEvent, useId, useState } from "react"
-
-import { Input } from "@workspace/ui/components/input"
+import { useId } from "react"
 import { nodeConfigPanelStyles } from "../../../styles/components/panels"
 
 import { getNodeDefinition, type NodeKind } from "../../node-registry/registry"
@@ -13,6 +11,7 @@ import type {
   WorkflowNode,
 } from "../../types"
 import { FieldRenderer, type FieldRendererProps } from "./field-renderers"
+import { NodeLabelField } from "./node-label-field"
 
 type FieldValue = string | number | boolean
 const styles = nodeConfigPanelStyles()
@@ -86,10 +85,6 @@ export function NodeConfigPanel({
   onUpdateLabel,
   onUpdateConfigField,
 }: NodeConfigPanelProps) {
-  const labelId = useId()
-  const [labelDraft, setLabelDraft] = useState("")
-  const [isLabelFocused, setIsLabelFocused] = useState(false)
-
   if (!selectedNode) {
     return (
       <aside aria-label="Node configuration" className={styles.aside()}>
@@ -103,38 +98,16 @@ export function NodeConfigPanel({
 
   const { kind } = selectedNode.data
   const definition = getNodeDefinition(kind as NodeKind)
-  const displayedLabel = isLabelFocused ? labelDraft : selectedNode.data.label
 
   return (
     <aside aria-label="Node configuration" className={styles.asideWithContent()}>
       <h2 className={styles.heading()}>Node Config</h2>
-      <div className={styles.fieldGroup()}>
-        <label htmlFor={labelId} className={styles.label()}>
-          Label
-        </label>
-        <Input
-          id={labelId}
-          value={displayedLabel}
-          onFocus={() => {
-            setLabelDraft(selectedNode.data.label)
-            setIsLabelFocused(true)
-          }}
-          onChange={(event: ChangeEvent<HTMLInputElement>) => {
-            setLabelDraft(event.target.value)
-          }}
-          onBlur={() => {
-            onUpdateLabel(selectedNode.id, labelDraft)
-            setIsLabelFocused(false)
-          }}
-          onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => {
-            if (event.key !== "Enter") return
-            event.preventDefault()
-            onUpdateLabel(selectedNode.id, labelDraft)
-            setIsLabelFocused(false)
-            event.currentTarget.blur()
-          }}
-        />
-      </div>
+      <NodeLabelField
+        key={selectedNode.id}
+        nodeId={selectedNode.id}
+        label={selectedNode.data.label}
+        onUpdateLabel={onUpdateLabel}
+      />
 
       {definition.fields.map((field: NodeFieldSchema) => (
         <ConfigField

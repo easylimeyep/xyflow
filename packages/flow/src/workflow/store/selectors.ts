@@ -54,6 +54,23 @@ export const selectSelectedNode = (
   return state.history.present.nodes.find((node) => node.id === selectedNodeId) ?? null
 }
 
+export const selectSelectedNodeForConfigPanel = (
+  state: WorkflowStoreState
+): WorkflowNode | null => selectSelectedNode(state)
+
+export const isSameSelectedNodeConfig = (
+  currentNode: WorkflowNode | null,
+  previousNode: WorkflowNode | null
+): boolean => {
+  if (currentNode === previousNode) {
+    return true
+  }
+  if (!currentNode || !previousNode) {
+    return false
+  }
+  return currentNode.id === previousNode.id && currentNode.data === previousNode.data
+}
+
 let cachedExpressionStructuralSignature = ""
 let expressionCatalogByNodeId = new Map<string, ExpressionVariableOption[]>()
 

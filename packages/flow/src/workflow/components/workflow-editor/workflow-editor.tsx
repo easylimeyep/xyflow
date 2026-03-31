@@ -7,12 +7,13 @@ import {
   selectCanUndo,
   selectEdgeInsertPending,
   selectExpressionVariablesForNode,
+  isSameSelectedNodeConfig,
   selectLastErrorMessage,
   selectNodeCount,
   selectPresentEdges,
   selectPresentNodes,
+  selectSelectedNodeForConfigPanel,
   selectQuickAddPending,
-  selectSelectedNode,
   selectSelectedSingleNodeId,
   selectViewport,
   useWorkflowShallowStore,
@@ -243,7 +244,10 @@ function CanvasContainer() {
 }
 
 function ConfigPanelContainer() {
-  const selectedNode = useWorkflowStore(selectSelectedNode)
+  const selectedNode = useWorkflowStore(
+    selectSelectedNodeForConfigPanel,
+    isSameSelectedNodeConfig
+  )
   const selectedNodeId = useWorkflowStore(selectSelectedSingleNodeId)
   const expressionVariables = useWorkflowStore((state: WorkflowStoreState) =>
     selectExpressionVariablesForNode(state, selectedNodeId)
