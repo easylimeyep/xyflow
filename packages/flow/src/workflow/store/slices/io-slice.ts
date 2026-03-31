@@ -32,6 +32,7 @@ import {
   readTextFromClipboard,
   writeTextToClipboard,
 } from "../helpers"
+import { projectSelectionToNodes } from "../selection-sync"
 import type { WorkflowSliceCreator } from "../types"
 
 export const createIoSlice: WorkflowSliceCreator = (set, get) => ({
@@ -190,8 +191,16 @@ export const createIoSlice: WorkflowSliceCreator = (set, get) => ({
       nodes: [...currentGraph.nodes, ...nextNodesWithRefactors],
       edges: nextEdges,
     })
+    const pastedNodeIds = nextNodesWithRefactors.map((node) => node.id)
     set((state) => ({
-      selectedNodeIds: nextNodesWithRefactors.map((node) => node.id),
+      selectedNodeIds: pastedNodeIds,
+      history: {
+        ...state.history,
+        present: {
+          ...state.history.present,
+          nodes: projectSelectionToNodes(state.history.present.nodes, pastedNodeIds),
+        },
+      },
       lastError: null,
     }))
     return true
@@ -239,6 +248,7 @@ export const createIoSlice: WorkflowSliceCreator = (set, get) => ({
         nodes: normalizedNodes,
       }),
       selectedNodeIds: [],
+      nodeDragOriginGraph: null,
       lastError: null,
       ...buildExpressionSlicePatch(state, {
         ...importedGraph,

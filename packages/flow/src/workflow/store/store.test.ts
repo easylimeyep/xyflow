@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it } from "vitest"
 
-import { selectExpressionVariablesForNode } from "./selectors"
+import {
+  selectExpressionVariablesForNode,
+  selectSelectedNodeForConfigPanel,
+} from "./selectors"
 import { createWorkflowStore } from "./store"
 import type { WorkflowNode } from "../types/types"
 
@@ -145,6 +148,87 @@ describe("workflow store", () => {
     expect(store.getState().expressionStructuralSignature).toBe(
       signatureAfterTransientDrag
     )
+  })
+
+  it("undoes node drag from the first hotkey press", () => {
+    const state = store.getState()
+    const targetNode = state.history.present.nodes[0]
+    if (!targetNode) {
+      throw new Error("fixture node not found")
+    }
+
+    const initialPosition = { ...targetNode.position }
+    const basePastLength = state.history.past.length
+
+    state.onNodesChange([
+      {
+        id: targetNode.id,
+        type: "position",
+        position: { x: initialPosition.x + 60, y: initialPosition.y + 40 },
+        dragging: true,
+      },
+    ])
+
+    state.onNodesChange([
+      {
+        id: targetNode.id,
+        type: "position",
+        position: { x: initialPosition.x + 60, y: initialPosition.y + 40 },
+        dragging: false,
+      },
+    ])
+
+    expect(store.getState().history.past.length).toBe(basePastLength + 1)
+
+    store.getState().undo()
+    const nodeAfterUndo = store
+      .getState()
+      .history.present.nodes.find((node) => node.id === targetNode.id)
+    expect(nodeAfterUndo?.position).toEqual(initialPosition)
+  })
+
+  it("keeps selected node highlight and panel selection in sync after undo/redo", () => {
+    const state = store.getState()
+    const targetNode = state.history.present.nodes[0]
+    if (!targetNode) {
+      throw new Error("fixture node not found")
+    }
+
+    state.setSelectedNode(targetNode.id)
+    state.onNodesChange([
+      {
+        id: targetNode.id,
+        type: "position",
+        position: { x: targetNode.position.x + 80, y: targetNode.position.y + 40 },
+        dragging: true,
+      },
+    ])
+    state.onNodesChange([
+      {
+        id: targetNode.id,
+        type: "position",
+        position: { x: targetNode.position.x + 80, y: targetNode.position.y + 40 },
+        dragging: false,
+      },
+    ])
+
+    store.getState().undo()
+    const stateAfterUndo = store.getState()
+    const selectedNodeAfterUndo = stateAfterUndo.history.present.nodes.find(
+      (node) => node.id === targetNode.id
+    )
+    expect(stateAfterUndo.selectedNodeIds).toEqual([targetNode.id])
+    expect(selectedNodeAfterUndo?.selected).toBe(true)
+    expect(selectSelectedNodeForConfigPanel(stateAfterUndo)?.id).toBe(targetNode.id)
+
+    store.getState().redo()
+    const stateAfterRedo = store.getState()
+    const selectedNodeAfterRedo = stateAfterRedo.history.present.nodes.find(
+      (node) => node.id === targetNode.id
+    )
+    expect(stateAfterRedo.selectedNodeIds).toEqual([targetNode.id])
+    expect(selectedNodeAfterRedo?.selected).toBe(true)
+    expect(selectSelectedNodeForConfigPanel(stateAfterRedo)?.id).toBe(targetNode.id)
   })
 
   it("keeps expression catalog selector reference stable across drag-only updates", () => {

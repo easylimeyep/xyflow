@@ -25,6 +25,7 @@ export function commitGraphState(
 ): void {
   set((state) => ({
     history: pushHistoryState(state.history, cloneGraphState(nextGraph)),
+    nodeDragOriginGraph: null,
     ...buildExpressionSlicePatch(state, nextGraph),
   }))
 }
@@ -38,6 +39,7 @@ export function replacePresentGraphState(
       ...state.history,
       present: cloneGraphState(nextGraph),
     },
+    nodeDragOriginGraph: null,
     ...buildExpressionSlicePatch(state, nextGraph),
   }))
 }

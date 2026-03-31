@@ -51,6 +51,7 @@ export interface WorkflowStoreQueries {
   expressionDeps: ExpressionDepsGraph
   expressionStructuralSignature: string
   selectedNodeIds: string[]
+  nodeDragOriginGraph: WorkflowGraphState | null
   lastPointerFlowPosition: XYPosition | null
   quickAddPending: PendingQuickAdd | null
   edgeInsertPending: PendingEdgeInsert | null

@@ -1,25 +1,18 @@
 import { haveSameIdSet, normalizeSelectionIds } from "../helpers"
+import { projectSelectionToNodes } from "../selection-sync"
 import type { WorkflowSliceCreator } from "../types"
 
 export const createSelectionSlice: WorkflowSliceCreator = (set) => ({
   selectedNodeIds: [],
+  nodeDragOriginGraph: null,
   setSelectedNodes: (nodeIds) => {
     const normalizedNodeIds = normalizeSelectionIds(nodeIds)
     set((state) => {
-      const selectedNodeIdSet = new Set(normalizedNodeIds)
-      const nextNodes = state.history.present.nodes.map((node) => {
-        const shouldBeSelected = selectedNodeIdSet.has(node.id)
-        if (Boolean(node.selected) === shouldBeSelected) {
-          return node
-        }
-        return {
-          ...node,
-          selected: shouldBeSelected,
-        }
-      })
-      const nodesChanged = nextNodes.some(
-        (node, index) => node !== state.history.present.nodes[index]
+      const nextNodes = projectSelectionToNodes(
+        state.history.present.nodes,
+        normalizedNodeIds
       )
+      const nodesChanged = nextNodes !== state.history.present.nodes
       if (!nodesChanged && haveSameIdSet(state.selectedNodeIds, normalizedNodeIds)) {
         return state
       }
@@ -41,20 +34,11 @@ export const createSelectionSlice: WorkflowSliceCreator = (set) => ({
   setSelectedNode: (nodeId) => {
     const nextSelectedNodeIds = nodeId ? [nodeId] : []
     set((state) => {
-      const selectedNodeIdSet = new Set(nextSelectedNodeIds)
-      const nextNodes = state.history.present.nodes.map((node) => {
-        const shouldBeSelected = selectedNodeIdSet.has(node.id)
-        if (Boolean(node.selected) === shouldBeSelected) {
-          return node
-        }
-        return {
-          ...node,
-          selected: shouldBeSelected,
-        }
-      })
-      const nodesChanged = nextNodes.some(
-        (node, index) => node !== state.history.present.nodes[index]
+      const nextNodes = projectSelectionToNodes(
+        state.history.present.nodes,
+        nextSelectedNodeIds
       )
+      const nodesChanged = nextNodes !== state.history.present.nodes
       if (haveSameIdSet(state.selectedNodeIds, nextSelectedNodeIds)) {
         return nodesChanged
           ? {

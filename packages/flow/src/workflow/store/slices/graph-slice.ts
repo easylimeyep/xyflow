@@ -1,4 +1,4 @@
-import { addEdge, applyEdgeChanges, applyNodeChanges } from "@xyflow/react"
+import { addEdge, applyEdgeChanges, applyNodeChanges, type NodeChange } from "@xyflow/react"
 import { pushHistoryState } from "@workspace/store"
 
 import { refactorNodeReferencesInGraph } from "../../expression/refactor/refactor"
@@ -24,6 +24,7 @@ import { createSmartQuickAddPosition } from "../geometry"
 import { cloneGraphState, commitGraphState, replacePresentGraphState } from "../history-helpers"
 import { applyNodeConfigUpdate } from "../node-config-updates"
 import { createUniqueLabel } from "../naming"
+import { projectSelectionToNodes } from "../selection-sync"
 import type { WorkflowSliceCreator } from "../types"
 
 export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
@@ -100,6 +101,13 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
     set((state) => ({
       quickAddPending: null,
       selectedNodeIds: [nextNode.id],
+      history: {
+        ...state.history,
+        present: {
+          ...state.history.present,
+          nodes: projectSelectionToNodes(state.history.present.nodes, [nextNode.id]),
+        },
+      },
       lastError: null,
     }))
   },
@@ -122,6 +130,13 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
     set((state) => ({
       edgeInsertPending: null,
       selectedNodeIds: [result.insertedNodeId],
+      history: {
+        ...state.history,
+        present: {
+          ...state.history.present,
+          nodes: projectSelectionToNodes(state.history.present.nodes, [result.insertedNodeId]),
+        },
+      },
       lastError: null,
     }))
   },
@@ -187,16 +202,23 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
   onNodesChange: (changes) => {
     const history = get().history
     const currentGraph = history.present
-    const nextNodes = applyNodeChanges(changes, currentGraph.nodes)
+    const rawNextNodes = applyNodeChanges(changes, currentGraph.nodes)
     const removedNodeIds = getRemovedNodeIds(changes)
     const nextEdges = filterEdgesForRemovedNodes(currentGraph.edges, removedNodeIds)
     const selectedNodeIds = get().selectedNodeIds
-    const remainingNodeIds = new Set(nextNodes.map((node) => node.id))
+    const remainingNodeIds = new Set(rawNextNodes.map((node) => node.id))
     const nextSelectedNodeIds = selectedNodeIds.filter((id) => remainingNodeIds.has(id))
+    const nextNodes = projectSelectionToNodes(rawNextNodes, nextSelectedNodeIds)
     const nodeCollectionChanged = hasNodeCollectionChanged(currentGraph.nodes, nextNodes)
     const edgeCollectionChanged = hasEdgeCollectionChanged(currentGraph.edges, nextEdges)
     const selectionChanged = !haveSameIdSet(selectedNodeIds, nextSelectedNodeIds)
-    if (!nodeCollectionChanged && !edgeCollectionChanged && !selectionChanged) return
+    const hasDraggingPositionChanges = hasDraggingPositionChange(changes)
+    if (!nodeCollectionChanged && !edgeCollectionChanged && !selectionChanged) {
+      if (!hasDraggingPositionChanges && get().nodeDragOriginGraph) {
+        set({ nodeDragOriginGraph: null })
+      }
+      return
+    }
 
     const nextGraph: WorkflowGraphState = {
       ...currentGraph,
@@ -213,14 +235,46 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
             future: [],
           },
           selectedNodeIds: nextSelectedNodeIds,
+          nodeDragOriginGraph: null,
           ...buildExpressionSlicePatch(state, nextGraph),
         }))
         return
       }
 
+      if (isPositionOnlyChange(changes)) {
+        const dragOriginGraph = get().nodeDragOriginGraph ?? currentGraph
+        if (!haveNodePositionsChanged(dragOriginGraph.nodes, nextGraph.nodes)) {
+          set((state) => ({
+            history: {
+              ...state.history,
+              present: nextGraph,
+            },
+            selectedNodeIds: nextSelectedNodeIds,
+            nodeDragOriginGraph: null,
+            ...buildExpressionSlicePatch(state, nextGraph),
+          }))
+          return
+        }
+
+        if (get().nodeDragOriginGraph) {
+          set((state) => ({
+            history: {
+              past: [...state.history.past, cloneGraphState(dragOriginGraph)],
+              present: cloneGraphState(nextGraph),
+              future: [],
+            },
+            selectedNodeIds: nextSelectedNodeIds,
+            nodeDragOriginGraph: null,
+            ...buildExpressionSlicePatch(state, nextGraph),
+          }))
+          return
+        }
+      }
+
       set((state) => ({
         history: pushHistoryState(state.history, cloneGraphState(nextGraph)),
         selectedNodeIds: nextSelectedNodeIds,
+        nodeDragOriginGraph: null,
         ...buildExpressionSlicePatch(state, nextGraph),
       }))
       return
@@ -232,6 +286,12 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
         present: nextGraph,
       },
       selectedNodeIds: nextSelectedNodeIds,
+      nodeDragOriginGraph:
+        hasDraggingPositionChanges && !state.nodeDragOriginGraph
+          ? cloneGraphState(currentGraph)
+          : hasDraggingPositionChanges
+            ? state.nodeDragOriginGraph
+            : null,
       ...buildExpressionSlicePatch(state, nextGraph),
     }))
   },
@@ -333,4 +393,27 @@ function createNodeWithUniqueLabel(
       label: uniqueLabel,
     },
   }
+}
+
+function hasDraggingPositionChange(changes: NodeChange<WorkflowNode>[]): boolean {
+  return changes.some((change) => change.type === "position" && change.dragging)
+}
+
+function isPositionOnlyChange(changes: NodeChange<WorkflowNode>[]): boolean {
+  return changes.length > 0 && changes.every((change) => change.type === "position")
+}
+
+function haveNodePositionsChanged(currentNodes: WorkflowNode[], nextNodes: WorkflowNode[]): boolean {
+  if (currentNodes.length !== nextNodes.length) return true
+  const currentPositionsById = new Map(
+    currentNodes.map((node) => [node.id, node.position] as const)
+  )
+  for (const node of nextNodes) {
+    const currentPosition = currentPositionsById.get(node.id)
+    if (!currentPosition) return true
+    if (currentPosition.x !== node.position.x || currentPosition.y !== node.position.y) {
+      return true
+    }
+  }
+  return false
 }
