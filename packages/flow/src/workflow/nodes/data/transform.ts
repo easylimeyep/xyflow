@@ -26,6 +26,7 @@ export const transform = defineNode({
     "customInput",
     "setVariable",
     "inlineExpression",
+    "extractor",
   ],
   buildDefaultConfig: () => ({ expression: "return input" }),
   subtitle: (config) => asText(config.expression),

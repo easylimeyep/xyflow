@@ -31,6 +31,7 @@ export const code = defineNode({
     "customInput",
     "setVariable",
     "inlineExpression",
+    "extractor",
   ],
   buildDefaultConfig: () => ({ runtime: "js", code: "return { ok: true }" }),
   subtitle: (config) =>

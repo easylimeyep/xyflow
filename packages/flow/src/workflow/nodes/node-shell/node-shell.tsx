@@ -3,7 +3,10 @@
 import { Handle, Position } from "@xyflow/react"
 import type { ReactNode } from "react"
 
-import { nodeHandlesStyles, nodeShellStyles } from "../../../styles/components/nodes"
+import {
+  nodeHandlesStyles,
+  nodeShellStyles,
+} from "../../../styles/components/nodes"
 import type { OutputHandle } from "../../node-registry/define-node"
 import { OutputQuickAddAffordance } from "../output-quick-add-affordance/output-quick-add-affordance"
 
@@ -22,7 +25,6 @@ interface NodeShellProps {
 export function NodeShell({
   nodeId,
   title,
-  subtitle,
   selected = false,
   showTarget = true,
   outputs = DEFAULT_OUTPUTS,
@@ -43,7 +45,6 @@ export function NodeShell({
         ) : null}
 
         <div className={styles.title()}>{title}</div>
-        <div className={styles.subtitle()}>{subtitle}</div>
         {children}
       </div>
 

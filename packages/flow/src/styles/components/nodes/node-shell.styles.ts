@@ -10,7 +10,7 @@ export const nodeShellStyles = tv({
   variants: {
     selected: {
       true: {
-        panel: "border-2 border-ring shadow-md ring-2 ring-ring/40",
+        panel: "shadow-md ring-2 ring-ring/40",
       },
     },
   },

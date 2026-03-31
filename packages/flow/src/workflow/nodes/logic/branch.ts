@@ -26,6 +26,7 @@ export const branch = defineNode({
     "branch",
     "setVariable",
     "inlineExpression",
+    "extractor",
   ],
   buildDefaultConfig: () => ({ condition: "true" }),
   subtitle: (config) => asText(config.condition),

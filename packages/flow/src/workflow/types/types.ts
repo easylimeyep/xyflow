@@ -66,6 +66,12 @@ export type SetVariableNodeConfig = {
   valueExpression: string
 }
 
+export type ExtractorNodeConfig = {
+  tokenNumber: number
+  extractExpression: string
+  unlimited: boolean
+}
+
 export interface NodeConfigByKind {
   trigger: TriggerNodeConfig
   branch: BranchNodeConfig
@@ -74,6 +80,7 @@ export interface NodeConfigByKind {
   customInput: CustomInputNodeConfig
   setVariable: SetVariableNodeConfig
   inlineExpression: InlineExpressionNodeConfig
+  extractor: ExtractorNodeConfig
 }
 
 export interface BaseWorkflowNodeData {

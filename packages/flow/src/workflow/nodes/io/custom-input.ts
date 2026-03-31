@@ -37,6 +37,7 @@ export const customInput = defineNode({
     "code",
     "setVariable",
     "inlineExpression",
+    "extractor",
   ],
   buildDefaultConfig: () => ({
     inputKind: "config",
