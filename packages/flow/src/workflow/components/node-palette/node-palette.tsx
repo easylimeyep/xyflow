@@ -19,6 +19,7 @@ import { nodePaletteStyles } from "../../../styles/components/panels"
 interface NodePaletteProps {
   onAddNode: (kind: NodeKind) => void
   quickAddActive?: boolean
+  isOpen?: boolean
 }
 
 const entries = WORKFLOW_NODE_KINDS.map((kind) => nodeRegistry[kind])
@@ -26,17 +27,27 @@ const entries = WORKFLOW_NODE_KINDS.map((kind) => nodeRegistry[kind])
 export function NodePalette({
   onAddNode,
   quickAddActive = false,
+  isOpen = true,
 }: NodePaletteProps) {
   const containerRef = useRef<HTMLElement | null>(null)
+  const wasOpenRef = useRef(isOpen)
   const styles = nodePaletteStyles({ quickAddActive })
 
   useEffect(() => {
-    if (!quickAddActive) {
+    if (!isOpen) {
+      return
+    }
+
+    if (wasOpenRef.current === isOpen && !quickAddActive) {
       return
     }
 
     containerRef.current?.focus()
-  }, [quickAddActive])
+  }, [isOpen, quickAddActive])
+
+  useEffect(() => {
+    wasOpenRef.current = isOpen
+  }, [isOpen])
 
   return (
     <>
@@ -60,6 +71,8 @@ export function NodePalette({
         ref={containerRef}
         tabIndex={-1}
         aria-label="Node palette"
+        aria-hidden={!isOpen}
+        data-state={isOpen ? "open" : "closed"}
         className={styles.aside()}
       >
         <h2 className={styles.heading()}>Node Palette</h2>

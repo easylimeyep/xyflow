@@ -1,7 +1,9 @@
 "use client"
 
-import { useCallback, useEffect } from "react"
+import { useCallback, useEffect, useState } from "react"
 
+import { Button } from "@workspace/ui/components/button"
+import { PlusIcon } from "lucide-react"
 import {
   selectCanRedo,
   selectCanUndo,
@@ -74,6 +76,10 @@ function useClipboardHotkeys(
 }
 
 export function WorkflowEditor() {
+  const quickAddPending = useWorkflowStore(selectQuickAddPending)
+  const edgeInsertPending = useWorkflowStore(selectEdgeInsertPending)
+  const quickAddActive = Boolean(quickAddPending || edgeInsertPending)
+  const [isPaletteOpen, setIsPaletteOpen] = useState(true)
   const {
     undo,
     redo,
@@ -95,6 +101,11 @@ export function WorkflowEditor() {
     cancelQuickAdd()
     cancelEdgeInsert()
   })
+  useEffect(() => {
+    if (quickAddActive) {
+      setIsPaletteOpen(true)
+    }
+  }, [quickAddActive])
   const styles = workflowEditorStyles()
 
   return (
@@ -102,8 +113,21 @@ export function WorkflowEditor() {
       <ToolbarContainer />
 
       <div className={styles.content()}>
-        <PaletteContainer />
+        <PaletteContainer isOpen={isPaletteOpen} quickAddActive={quickAddActive} />
         <div className={styles.canvasWrap()}>
+          <div className={styles.canvasOverlay()}>
+            <div className={styles.canvasToolbar()}>
+              <Button
+                type="button"
+                size="icon-xs"
+                variant="outline"
+                aria-label={isPaletteOpen ? "Hide node palette" : "Show node palette"}
+                onClick={() => setIsPaletteOpen((open) => !open)}
+              >
+                <PlusIcon className={isPaletteOpen ? "rotate-45 transition-transform" : "transition-transform"} />
+              </Button>
+            </div>
+          </div>
           <CanvasContainer />
         </div>
         <ConfigPanelContainer />
@@ -150,7 +174,12 @@ function ToolbarContainer() {
   )
 }
 
-function PaletteContainer() {
+interface PaletteContainerProps {
+  isOpen: boolean
+  quickAddActive: boolean
+}
+
+function PaletteContainer({ isOpen, quickAddActive }: PaletteContainerProps) {
   const nodeCount = useWorkflowStore(selectNodeCount)
   const quickAddPending = useWorkflowStore(selectQuickAddPending)
   const edgeInsertPending = useWorkflowStore(selectEdgeInsertPending)
@@ -178,7 +207,8 @@ function PaletteContainer() {
   return (
     <NodePalette
       onAddNode={addNodeAtDefaultPosition}
-      quickAddActive={Boolean(quickAddPending || edgeInsertPending)}
+      quickAddActive={quickAddActive}
+      isOpen={isOpen}
     />
   )
 }

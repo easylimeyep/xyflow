@@ -34,14 +34,17 @@ vi.mock("../node-palette", () => ({
   NodePalette: ({
     onAddNode,
     quickAddActive,
+    isOpen = true,
   }: {
     onAddNode: (kind: string) => void
     quickAddActive?: boolean
+    isOpen?: boolean
   }) => {
     paletteRenderSpy()
     return (
       <div>
         <span data-testid="palette-quick-add-active">{String(Boolean(quickAddActive))}</span>
+        <span data-testid="palette-open">{String(Boolean(isOpen))}</span>
         <button type="button" onClick={() => onAddNode("code")}>
           palette-add-node
         </button>
@@ -271,6 +274,24 @@ describe("WorkflowEditor wiring", () => {
 
     expect(afterCount).toBe(beforeCount + 1)
     expect(screen.getByTestId("palette-quick-add-active").textContent).toBe("false")
+  })
+
+  it("re-opens hidden palette when quick add starts", async () => {
+    const user = userEvent.setup()
+    renderWithStore(
+      <>
+        <QuickAddControls />
+        <WorkflowEditor />
+      </>
+    )
+
+    expect(screen.getByTestId("palette-open").textContent).toBe("true")
+    await user.click(screen.getByRole("button", { name: "Hide node palette" }))
+    expect(screen.getByTestId("palette-open").textContent).toBe("false")
+
+    await user.click(screen.getByRole("button", { name: "test-start-quick-add" }))
+    expect(screen.getByTestId("palette-open").textContent).toBe("true")
+    expect(screen.getByTestId("palette-quick-add-active").textContent).toBe("true")
   })
 
 })
