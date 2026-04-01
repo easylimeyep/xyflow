@@ -6,6 +6,7 @@ export const workflowEditorStyles = tv({
     content: "flex min-h-0 flex-1 relative",
     canvasWrap: "relative min-h-0 flex-1",
     canvasOverlay: "absolute right-3 top-3 z-20",
-    canvasToolbar: "rounded-md border bg-background/95 p-1 shadow-lg backdrop-blur",
+    canvasToolbar:
+      "rounded-md border bg-background/95 p-1 shadow-lg backdrop-blur",
   },
 })

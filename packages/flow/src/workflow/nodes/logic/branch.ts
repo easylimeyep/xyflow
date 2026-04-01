@@ -1,7 +1,7 @@
 import { GitBranch } from "lucide-react"
 
 import { defineNode } from "../../node-registry/define-node"
-import { asText } from "../shared"
+import type { BranchCondition } from "../../types"
 
 export const branch = defineNode({
   kind: "branch" as const,
@@ -9,15 +9,7 @@ export const branch = defineNode({
   description: "Split the flow by condition.",
   icon: GitBranch,
   category: "logic",
-  fields: [
-    {
-      key: "condition",
-      label: "Condition",
-      type: "textarea",
-      ui: "expression",
-      placeholder: "node.inputText contains 'access-list'",
-    },
-  ],
+  fields: [],
   outputPaths: ["conditionMatched"],
   allowedTargets: [
     "transform",
@@ -28,8 +20,22 @@ export const branch = defineNode({
     "inlineExpression",
     "extractor",
   ],
-  buildDefaultConfig: () => ({ condition: "true" }),
-  subtitle: (config) => asText(config.condition),
+  buildDefaultConfig: () => ({
+    conditions: [
+      {
+        id: crypto.randomUUID(),
+        value: "",
+        operator: "is equal to",
+        targetValue: "",
+      } satisfies BranchCondition,
+    ],
+    logicalOperator: "and" as const,
+  }),
+  subtitle: (config) => {
+    const conditions = config.conditions as BranchCondition[] | undefined
+    if (!conditions?.length) return "No conditions"
+    return `${conditions.length} condition${conditions.length > 1 ? "s" : ""}`
+  },
   outputs: [
     {
       id: "branch-true",

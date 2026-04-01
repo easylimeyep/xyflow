@@ -113,18 +113,29 @@ export function WorkflowEditor() {
       <ToolbarContainer />
 
       <div className={styles.content()}>
-        <PaletteContainer isOpen={isPaletteOpen} quickAddActive={quickAddActive} />
+        <PaletteContainer
+          isOpen={isPaletteOpen}
+          quickAddActive={quickAddActive}
+        />
         <div className={styles.canvasWrap()}>
           <div className={styles.canvasOverlay()}>
             <div className={styles.canvasToolbar()}>
               <Button
                 type="button"
-                size="icon-xs"
+                size="icon"
                 variant="outline"
-                aria-label={isPaletteOpen ? "Hide node palette" : "Show node palette"}
+                aria-label={
+                  isPaletteOpen ? "Hide node palette" : "Show node palette"
+                }
                 onClick={() => setIsPaletteOpen((open) => !open)}
               >
-                <PlusIcon className={isPaletteOpen ? "rotate-45 transition-transform" : "transition-transform"} />
+                <PlusIcon
+                  className={
+                    isPaletteOpen
+                      ? "rotate-45 transition-transform"
+                      : "transition-transform"
+                  }
+                />
               </Button>
             </div>
           </div>

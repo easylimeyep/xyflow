@@ -37,8 +37,66 @@ export type TriggerNodeConfig = {
   eventName: string
 }
 
+export type ConditionOperator =
+  | "is equal to"
+  | "is not equal to"
+  | "contains"
+  | "does not contain"
+  | "starts with"
+  | "ends with"
+  | "is greater than"
+  | "is less than"
+  | "is greater or equal"
+  | "is less or equal"
+  | "is empty"
+  | "is not empty"
+  | "is null"
+  | "is not null"
+  | "is true"
+  | "is false"
+
+export const OPERATORS_WITH_TARGET: ConditionOperator[] = [
+  "is equal to",
+  "is not equal to",
+  "contains",
+  "does not contain",
+  "starts with",
+  "ends with",
+  "is greater than",
+  "is less than",
+  "is greater or equal",
+  "is less or equal",
+]
+
+export const ALL_CONDITION_OPERATORS: ConditionOperator[] = [
+  "is equal to",
+  "is not equal to",
+  "contains",
+  "does not contain",
+  "starts with",
+  "ends with",
+  "is greater than",
+  "is less than",
+  "is greater or equal",
+  "is less or equal",
+  "is empty",
+  "is not empty",
+  "is null",
+  "is not null",
+  "is true",
+  "is false",
+]
+
+export interface BranchCondition {
+  id: string
+  value: string
+  operator: ConditionOperator
+  targetValue?: string
+}
+
 export type BranchNodeConfig = {
-  condition: string
+  conditions: BranchCondition[]
+  logicalOperator: "and" | "or"
 }
 
 export type TransformNodeConfig = {

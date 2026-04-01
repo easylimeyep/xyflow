@@ -6,7 +6,7 @@ import {
   type CompletionResult,
 } from "@codemirror/autocomplete"
 import { javascript } from "@codemirror/lang-javascript"
-import type { EditorView, ViewUpdate } from "@codemirror/view"
+import { EditorView, type ViewUpdate } from "@codemirror/view"
 import {
   Command,
   CommandEmpty,
@@ -70,6 +70,7 @@ export function ExpressionInput({
         icons: false,
         tooltipClass: () => "cm-shadcn-autocomplete",
       }),
+      EditorView.lineWrapping,
     ],
     [completionSource]
   )
@@ -183,7 +184,7 @@ export function ExpressionInput({
             <CodeMirror
               value={value}
               placeholder={placeholder}
-              minHeight="110px"
+              minHeight="26px"
               basicSetup={basicSetup}
               extensions={extensions}
               onCreateEditor={handleCreateEditor}
