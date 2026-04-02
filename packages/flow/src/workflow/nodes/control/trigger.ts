@@ -20,10 +20,7 @@ export const trigger = defineNode({
   ],
   outputPaths: ["eventName"],
   allowedTargets: [
-    "transform",
     "branch",
-    "code",
-    "customInput",
     "setVariable",
     "inlineExpression",
     "extractor",

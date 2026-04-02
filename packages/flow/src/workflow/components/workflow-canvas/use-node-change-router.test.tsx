@@ -70,7 +70,7 @@ describe("useNodeChangeRouter", () => {
     const onRouter = vi.fn()
 
     const nodeA = createWorkflowNode("trigger", { x: 0, y: 0 })
-    const nodeB = createWorkflowNode("transform", { x: 200, y: 0 })
+    const nodeB = createWorkflowNode("inlineExpression", { x: 200, y: 0 })
 
     const { rerender } = render(
       <Harness

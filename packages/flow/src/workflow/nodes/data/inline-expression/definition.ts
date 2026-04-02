@@ -19,10 +19,7 @@ export const inlineExpression = defineNode({
   ],
   outputPaths: ["template"],
   allowedTargets: [
-    "transform",
     "branch",
-    "code",
-    "customInput",
     "setVariable",
     "inlineExpression",
     "extractor",

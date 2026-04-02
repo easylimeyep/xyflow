@@ -1,17 +1,16 @@
 import { describe, expect, it } from "vitest"
 
-import { initialWorkflowGraph } from "../default-graph/default-graph"
 import { createWorkflowNode } from "../node-registry/node-factory"
 import { getKindsFromConnection, validateConnection } from "./validation"
 
 describe("validateConnection", () => {
   it("allows valid source/target combination", () => {
     const trigger = createWorkflowNode("trigger", { x: 0, y: 0 })
-    const transform = createWorkflowNode("transform", { x: 300, y: 0 })
+    const inline = createWorkflowNode("inlineExpression", { x: 300, y: 0 })
 
     const result = validateConnection(
-      { source: trigger.id, target: transform.id },
-      [trigger, transform],
+      { source: trigger.id, target: inline.id },
+      [trigger, inline],
       []
     )
 
@@ -19,12 +18,13 @@ describe("validateConnection", () => {
   })
 
   it("rejects invalid combination", () => {
-    const code = createWorkflowNode("code", { x: 0, y: 0 })
+    const inline = createWorkflowNode("inlineExpression", { x: 0, y: 0 })
     const trigger = createWorkflowNode("trigger", { x: 300, y: 0 })
 
+    // inlineExpression.allowedTargets does not include "trigger"
     const result = validateConnection(
-      { source: code.id, target: trigger.id },
-      [code, trigger],
+      { source: inline.id, target: trigger.id },
+      [inline, trigger],
       []
     )
 
@@ -33,19 +33,21 @@ describe("validateConnection", () => {
   })
 
   it("rejects duplicate edges", () => {
-    const [sourceNode, targetNode] = initialWorkflowGraph.nodes
-    const edge = initialWorkflowGraph.edges[0]
-    if (!sourceNode || !targetNode || !edge) {
-      throw new Error("default graph fixture is invalid")
+    const trigger = createWorkflowNode("trigger", { x: 0, y: 0 })
+    const inline = createWorkflowNode("inlineExpression", { x: 300, y: 0 })
+    const existingEdge = {
+      id: "trigger-inline",
+      source: trigger.id,
+      target: inline.id,
+      sourceHandle: null,
+      targetHandle: null,
+      data: { sourceKind: "trigger" as const, targetKind: "inlineExpression" as const },
     }
 
     const result = validateConnection(
-      {
-        source: sourceNode.id,
-        target: targetNode.id,
-      },
-      initialWorkflowGraph.nodes,
-      initialWorkflowGraph.edges
+      { source: trigger.id, target: inline.id },
+      [trigger, inline],
+      [existingEdge]
     )
 
     expect(result.valid).toBe(false)
@@ -54,25 +56,25 @@ describe("validateConnection", () => {
 
   it("rejects cycles", () => {
     const branch = createWorkflowNode("branch", { x: 0, y: 0 })
-    const transform = createWorkflowNode("transform", { x: 300, y: 0 })
+    const inline = createWorkflowNode("inlineExpression", { x: 300, y: 0 })
 
     const existing = [
       {
-        id: "branch-transform",
+        id: "branch-inline",
         source: branch.id,
-        target: transform.id,
+        target: inline.id,
         sourceHandle: null,
         targetHandle: null,
         data: {
           sourceKind: branch.data.kind,
-          targetKind: transform.data.kind,
+          targetKind: inline.data.kind,
         },
       },
     ]
 
     const result = validateConnection(
-      { source: transform.id, target: branch.id },
-      [branch, transform],
+      { source: inline.id, target: branch.id },
+      [branch, inline],
       existing
     )
 
@@ -82,16 +84,16 @@ describe("validateConnection", () => {
 
   it("resolves source and target kinds from valid connection", () => {
     const trigger = createWorkflowNode("trigger", { x: 0, y: 0 })
-    const transform = createWorkflowNode("transform", { x: 200, y: 0 })
+    const inline = createWorkflowNode("inlineExpression", { x: 200, y: 0 })
 
     const result = getKindsFromConnection(
-      { source: trigger.id, target: transform.id },
-      [trigger, transform]
+      { source: trigger.id, target: inline.id },
+      [trigger, inline]
     )
 
     expect(result).toEqual({
       sourceKind: "trigger",
-      targetKind: "transform",
+      targetKind: "inlineExpression",
     })
   })
 })

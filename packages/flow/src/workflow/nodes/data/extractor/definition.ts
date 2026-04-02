@@ -29,10 +29,7 @@ export const extractor = defineNode({
   ],
   outputPaths: [],
   allowedTargets: [
-    "transform",
     "branch",
-    "code",
-    "customInput",
     "setVariable",
     "inlineExpression",
     "extractor",

@@ -4,10 +4,10 @@ export const nodePaletteStyles = tv({
   slots: {
     aside: [
       "w-72 space-y-2 border-r bg-background p-3 outline-none rounded-lg",
-      "absolute z-10 top-0 bottom-0 left-0 m-4 shadow-sm border",
+      "absolute z-10 top-0 bottom-0 right-0 m-4 shadow-sm border",
       "transition-all duration-200 ease-in-out",
       "data-[state=open]:translate-x-0 data-[state=open]:opacity-100",
-      "data-[state=closed]:-translate-x-[calc(100%+1rem)] data-[state=closed]:opacity-0",
+      "data-[state=closed]:translate-x-[calc(100%-1rem)] data-[state=closed]:opacity-0",
       "data-[state=closed]:pointer-events-none",
     ],
     heading: "text-sm font-semibold",

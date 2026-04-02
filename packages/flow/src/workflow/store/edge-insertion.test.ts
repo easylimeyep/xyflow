@@ -6,7 +6,7 @@ import { computeEdgeInsertion } from "./edge-insertion"
 
 function createGraph(
   source = createWorkflowNode("trigger", { x: 0, y: 0 }),
-  target = createWorkflowNode("transform", { x: 320, y: 0 })
+  target = createWorkflowNode("inlineExpression", { x: 320, y: 0 })
 ): WorkflowGraphState {
   return {
     nodes: [source, target],
@@ -36,7 +36,7 @@ function createGraph(
 describe("computeEdgeInsertion", () => {
   it("returns failure when target edge is missing", () => {
     const graph = createGraph()
-    const result = computeEdgeInsertion(graph, "missing-edge", "code")
+    const result = computeEdgeInsertion(graph, "missing-edge", "extractor")
 
     expect(result.ok).toBe(false)
     if (!result.ok) {
@@ -46,7 +46,7 @@ describe("computeEdgeInsertion", () => {
 
   it("splits edge into two valid edges when both legs are valid", () => {
     const graph = createGraph()
-    const result = computeEdgeInsertion(graph, "edge-main", "code")
+    const result = computeEdgeInsertion(graph, "edge-main", "extractor")
 
     expect(result.ok).toBe(true)
     if (result.ok) {
@@ -57,8 +57,8 @@ describe("computeEdgeInsertion", () => {
   })
 
   it("falls back to inserted->target edge when source leg is invalid", () => {
-    const source = createWorkflowNode("code", { x: 0, y: 0 })
-    const target = createWorkflowNode("transform", { x: 320, y: 0 })
+    const source = createWorkflowNode("inlineExpression", { x: 0, y: 0 })
+    const target = createWorkflowNode("setVariable", { x: 320, y: 0 })
     const graph = createGraph(source, target)
     const result = computeEdgeInsertion(graph, "edge-main", "trigger")
 

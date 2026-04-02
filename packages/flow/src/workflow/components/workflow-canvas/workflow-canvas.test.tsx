@@ -6,7 +6,24 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { WORKFLOW_NODE_KIND_MIME } from "../../dnd"
 import { initialWorkflowGraph } from "../../default-graph"
+import { createWorkflowNode } from "../../node-registry"
 import { WorkflowCanvas } from "./workflow-canvas"
+
+const fixtureSource = createWorkflowNode("trigger", { x: 0, y: 80 })
+const fixtureTarget = createWorkflowNode("inlineExpression", { x: 360, y: 80 })
+const fixtureEdge = {
+  id: `${fixtureSource.id}-${fixtureTarget.id}`,
+  source: fixtureSource.id,
+  target: fixtureTarget.id,
+  sourceHandle: null,
+  targetHandle: null,
+  data: { sourceKind: "trigger" as const, targetKind: "inlineExpression" as const },
+}
+const fixtureGraphWithEdge = {
+  ...initialWorkflowGraph,
+  nodes: [fixtureSource, fixtureTarget],
+  edges: [fixtureEdge],
+}
 
 const reactFlowRenderSpy = vi.fn()
 
@@ -186,13 +203,13 @@ describe("WorkflowCanvas", () => {
     )
 
     const dataTransfer = {
-      getData: (key: string) => (key === WORKFLOW_NODE_KIND_MIME ? "code" : ""),
+      getData: (key: string) => (key === WORKFLOW_NODE_KIND_MIME ? "extractor" : ""),
     } as DataTransfer
     fireEvent.drop(screen.getByTestId("rf-root"), {
       dataTransfer,
     })
 
-    expect(onAddNodeAt).toHaveBeenCalledWith("code", { x: 0, y: 0 })
+    expect(onAddNodeAt).toHaveBeenCalledWith("extractor", { x: 0, y: 0 })
 
     fireEvent.click(screen.getByTestId("rf-select"))
     await waitFor(() => {
@@ -244,16 +261,16 @@ describe("WorkflowCanvas", () => {
   it("routes edge action buttons to handlers", () => {
     const onStartInsertFromEdge = vi.fn()
     const onDeleteEdge = vi.fn()
-    const edgeId = initialWorkflowGraph.edges[0]?.id
+    const edgeId = fixtureGraphWithEdge.edges[0]?.id
     if (!edgeId) {
       throw new Error("fixture edge id not found")
     }
 
     render(
       <WorkflowCanvas
-        nodes={initialWorkflowGraph.nodes}
-        edges={initialWorkflowGraph.edges}
-        viewport={initialWorkflowGraph.viewport}
+        nodes={fixtureGraphWithEdge.nodes}
+        edges={fixtureGraphWithEdge.edges}
+        viewport={fixtureGraphWithEdge.viewport}
         onNodesChange={vi.fn()}
         onEdgesChange={vi.fn()}
         onConnect={vi.fn()}
@@ -276,7 +293,7 @@ describe("WorkflowCanvas", () => {
   })
 
   it("keeps edgeTypes stable and uses latest edge handlers after rerender", () => {
-    const edgeId = initialWorkflowGraph.edges[0]?.id
+    const edgeId = fixtureGraphWithEdge.edges[0]?.id
     if (!edgeId) {
       throw new Error("fixture edge id not found")
     }
@@ -287,9 +304,9 @@ describe("WorkflowCanvas", () => {
     const onDeleteEdgeNext = vi.fn()
     const { rerender } = render(
       <WorkflowCanvas
-        nodes={initialWorkflowGraph.nodes}
-        edges={initialWorkflowGraph.edges}
-        viewport={initialWorkflowGraph.viewport}
+        nodes={fixtureGraphWithEdge.nodes}
+        edges={fixtureGraphWithEdge.edges}
+        viewport={fixtureGraphWithEdge.viewport}
         onNodesChange={vi.fn()}
         onEdgesChange={vi.fn()}
         onConnect={vi.fn()}
@@ -307,9 +324,9 @@ describe("WorkflowCanvas", () => {
     const firstEdgeTypes = reactFlowRenderSpy.mock.calls.at(-1)?.[0]?.edgeTypes
     rerender(
       <WorkflowCanvas
-        nodes={initialWorkflowGraph.nodes}
-        edges={initialWorkflowGraph.edges}
-        viewport={initialWorkflowGraph.viewport}
+        nodes={fixtureGraphWithEdge.nodes}
+        edges={fixtureGraphWithEdge.edges}
+        viewport={fixtureGraphWithEdge.viewport}
         onNodesChange={vi.fn()}
         onEdgesChange={vi.fn()}
         onConnect={vi.fn()}

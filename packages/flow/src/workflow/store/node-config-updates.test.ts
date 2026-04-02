@@ -24,9 +24,9 @@ describe("applyNodeConfigUpdate", () => {
     const graph = createGraph([triggerNode])
 
     const result = applyNodeConfigUpdate(graph, triggerNode.id, {
-      kind: "code",
-      key: "runtime",
-      value: "js",
+      kind: "extractor",
+      key: "tokenNumber",
+      value: 10,
     })
 
     expect(result.nextGraph).toBeNull()

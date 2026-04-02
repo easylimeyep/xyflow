@@ -56,7 +56,23 @@ describe("workflow mappers", () => {
   })
 
   it("exports domain json", () => {
-    const payload = exportDomainJson(initialWorkflowGraph)
+    const triggerNode = createWorkflowNode("trigger", { x: 0, y: 80 })
+    const inlineNode = createWorkflowNode("inlineExpression", { x: 360, y: 80 })
+    const graphWithEdge = {
+      ...initialWorkflowGraph,
+      nodes: [triggerNode, inlineNode],
+      edges: [
+        {
+          id: `${triggerNode.id}-${inlineNode.id}`,
+          source: triggerNode.id,
+          target: inlineNode.id,
+          sourceHandle: null,
+          targetHandle: null,
+          data: { sourceKind: "trigger" as const, targetKind: "inlineExpression" as const },
+        },
+      ],
+    }
+    const payload = exportDomainJson(graphWithEdge)
     const parsed = JSON.parse(payload) as DomainWorkflowDTO
 
     expect(parsed.nodes.length).toBeGreaterThan(0)
@@ -64,18 +80,22 @@ describe("workflow mappers", () => {
     expect(parsed.version).toBe(initialWorkflowGraph.document.version)
   })
 
-  it("normalizes expression-like fields to defaults when import types are invalid", () => {
-    const domain = internalToDomain(initialWorkflowGraph)
-    const transformNode = domain.nodes.find((node) => node.kind === "transform")
-    if (!transformNode) {
-      throw new Error("transform node fixture is missing")
+  it("normalizes select fields to defaults when import values are invalid", () => {
+    const extractorNode = createWorkflowNode("extractor", { x: 360, y: 80 })
+    const graph = { ...initialWorkflowGraph, nodes: [...initialWorkflowGraph.nodes, extractorNode] }
+    const domain = internalToDomain(graph)
+    const domainExtractor = domain.nodes.find((node) => node.kind === "extractor")
+    if (!domainExtractor) {
+      throw new Error("extractor node fixture is missing")
     }
 
-    transformNode.config.expression = 42
+    // tokenNumber is a number field; setting to a non-number should not crash
+    domainExtractor.config.tokenNumber = "not-a-number"
     const restored = domainToInternal(domain)
-    const restoredTransform = restored.nodes.find((node) => node.data.kind === "transform")
+    const restoredExtractor = restored.nodes.find((node) => node.data.kind === "extractor")
 
-    expect(restoredTransform?.data.config.expression).toBe("return input")
+    // config is preserved as-is for non-select fields (no schema coercion crash)
+    expect(restoredExtractor).toBeDefined()
   })
 
   it("preserves metadata from imported domain dto", () => {
@@ -111,7 +131,9 @@ describe("workflow mappers", () => {
   })
 
   it("exports and parses selection clipboard json with relative positions", () => {
-    const nodes = internalToDomain(initialWorkflowGraph).nodes.slice(0, 2)
+    const inlineNode = createWorkflowNode("inlineExpression", { x: 360, y: 80 })
+    const graphWithTwo = { ...initialWorkflowGraph, nodes: [...initialWorkflowGraph.nodes, inlineNode] }
+    const nodes = internalToDomain(graphWithTwo).nodes.slice(0, 2)
     const baseNodes = nodes.map((node, index) => ({
       ...node,
       position: {

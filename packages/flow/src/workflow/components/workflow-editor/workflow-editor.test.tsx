@@ -11,7 +11,6 @@ import { WorkflowEditor } from "./workflow-editor"
 
 const paletteRenderSpy = vi.fn()
 const canvasRenderSpy = vi.fn()
-const configPanelRenderSpy = vi.fn()
 
 vi.mock("../editor-toolbar", () => ({
   EditorToolbar: ({
@@ -45,7 +44,7 @@ vi.mock("../node-palette", () => ({
       <div>
         <span data-testid="palette-quick-add-active">{String(Boolean(quickAddActive))}</span>
         <span data-testid="palette-open">{String(Boolean(isOpen))}</span>
-        <button type="button" onClick={() => onAddNode("code")}>
+        <button type="button" onClick={() => onAddNode("extractor")}>
           palette-add-node
         </button>
       </div>
@@ -56,7 +55,6 @@ vi.mock("../node-palette", () => ({
 vi.mock("../workflow-canvas", () => ({
   WorkflowCanvas: ({
     nodes,
-    onSelectNodes,
     onViewportChange,
     onPointerFlowPosition,
     onPaneClick,
@@ -71,24 +69,6 @@ vi.mock("../workflow-canvas", () => ({
     return (
       <div>
         <span data-testid="canvas-node-count">{String(nodes.length)}</span>
-        <button
-          type="button"
-          onClick={() => {
-            const firstId = nodes[0]?.id ?? null
-            onSelectNodes(firstId ? [firstId] : [])
-          }}
-        >
-          canvas-select-first
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            const selectedIds = nodes.slice(0, 2).map((node) => node.id)
-            onSelectNodes(selectedIds)
-          }}
-        >
-          canvas-select-multiple
-        </button>
         <button
           type="button"
           onClick={() => onViewportChange({ x: 100, y: 50, zoom: 1.2 })}
@@ -109,34 +89,6 @@ vi.mock("../workflow-canvas", () => ({
   },
 }))
 
-vi.mock("../node-config-panel", () => ({
-  NodeConfigPanel: ({
-    selectedNode,
-    onUpdateLabel,
-  }: {
-    selectedNode: { id: string; data: { label: string } } | null
-    onUpdateLabel: (nodeId: string, value: string) => void
-  }) => {
-    configPanelRenderSpy()
-    return (
-      <div>
-        <span data-testid="selected-node-id">{selectedNode?.id ?? "none"}</span>
-        <span data-testid="selected-node-label">{selectedNode?.data.label ?? "none"}</span>
-        <button
-          type="button"
-          onClick={() => {
-            if (selectedNode) {
-              onUpdateLabel(selectedNode.id, "Changed label")
-            }
-          }}
-        >
-          panel-update-label
-        </button>
-      </div>
-    )
-  },
-}))
-
 function renderWithStore(children: ReactNode) {
   return render(<WorkflowStoreProvider>{children}</WorkflowStoreProvider>)
 }
@@ -151,9 +103,9 @@ function QuickAddControls() {
     <button
       type="button"
       onClick={() => {
-        const transformNode = nodes.find((node) => node.data.kind === "transform")
-        if (transformNode) {
-          startQuickAddFromOutput(transformNode.id)
+        const triggerNode = nodes.find((node) => node.data.kind === "trigger")
+        if (triggerNode) {
+          startQuickAddFromOutput(triggerNode.id)
         }
       }}
     >
@@ -167,7 +119,6 @@ describe("WorkflowEditor wiring", () => {
     cleanup()
     paletteRenderSpy.mockClear()
     canvasRenderSpy.mockClear()
-    configPanelRenderSpy.mockClear()
   })
 
   it("adds node from palette and reflects updated canvas node count", async () => {
@@ -182,49 +133,10 @@ describe("WorkflowEditor wiring", () => {
     expect(screen.getByTestId("toolbar-can-undo").textContent).toBe("true")
   })
 
-  it("syncs selection from canvas into config panel", async () => {
+  it("does not rerender palette on viewport-only updates", async () => {
     const user = userEvent.setup()
     renderWithStore(<WorkflowEditor />)
 
-    expect(screen.getByTestId("selected-node-id").textContent).toBe("none")
-    await user.click(screen.getByRole("button", { name: "canvas-select-first" }))
-    expect(screen.getByTestId("selected-node-id").textContent).not.toBe("none")
-  })
-
-  it("hides selected node details when multiple nodes are selected", async () => {
-    const user = userEvent.setup()
-    renderWithStore(<WorkflowEditor />)
-
-    await user.click(screen.getByRole("button", { name: "canvas-select-multiple" }))
-    expect(screen.getByTestId("selected-node-id").textContent).toBe("none")
-    expect(screen.getByTestId("selected-node-label").textContent).toBe("none")
-  })
-
-  it("clears selection on pane click", async () => {
-    const user = userEvent.setup()
-    renderWithStore(<WorkflowEditor />)
-
-    await user.click(screen.getByRole("button", { name: "canvas-select-first" }))
-    expect(screen.getByTestId("selected-node-id").textContent).not.toBe("none")
-
-    await user.click(screen.getByRole("button", { name: "canvas-pane-click" }))
-    expect(screen.getByTestId("selected-node-id").textContent).toBe("none")
-  })
-
-  it("updates selected node label through panel callback", async () => {
-    const user = userEvent.setup()
-    renderWithStore(<WorkflowEditor />)
-
-    await user.click(screen.getByRole("button", { name: "canvas-select-first" }))
-    await user.click(screen.getByRole("button", { name: "panel-update-label" }))
-    expect(screen.getByTestId("selected-node-label").textContent).toBe("Changed label")
-  })
-
-  it("does not rerender config panel and palette on viewport-only updates", async () => {
-    const user = userEvent.setup()
-    renderWithStore(<WorkflowEditor />)
-
-    const baselineConfigPanelRenders = configPanelRenderSpy.mock.calls.length
     const baselinePaletteRenders = paletteRenderSpy.mock.calls.length
     const baselineCanvasRenders = canvasRenderSpy.mock.calls.length
 
@@ -233,7 +145,6 @@ describe("WorkflowEditor wiring", () => {
     await user.click(screen.getByRole("button", { name: "canvas-update-viewport" }))
 
     expect(canvasRenderSpy.mock.calls.length).toBe(baselineCanvasRenders)
-    expect(configPanelRenderSpy.mock.calls.length).toBe(baselineConfigPanelRenders)
     expect(paletteRenderSpy.mock.calls.length).toBe(baselinePaletteRenders)
   })
 
@@ -241,7 +152,6 @@ describe("WorkflowEditor wiring", () => {
     const user = userEvent.setup()
     renderWithStore(<WorkflowEditor />)
 
-    const baselineConfigPanelRenders = configPanelRenderSpy.mock.calls.length
     const baselinePaletteRenders = paletteRenderSpy.mock.calls.length
     const baselineCanvasRenders = canvasRenderSpy.mock.calls.length
 
@@ -249,8 +159,7 @@ describe("WorkflowEditor wiring", () => {
       await user.click(screen.getByRole("button", { name: "canvas-update-pointer" }))
     }
 
-    // Perf budget: pointer tracking should not force toolbar/palette/panel rerenders.
-    expect(configPanelRenderSpy.mock.calls.length).toBe(baselineConfigPanelRenders)
+    // Perf budget: pointer tracking should not force toolbar/palette rerenders.
     expect(paletteRenderSpy.mock.calls.length).toBe(baselinePaletteRenders)
     expect(canvasRenderSpy.mock.calls.length).toBe(baselineCanvasRenders)
   })

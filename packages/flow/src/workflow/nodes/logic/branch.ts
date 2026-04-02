@@ -12,9 +12,6 @@ export const branch = defineNode({
   fields: [],
   outputPaths: ["conditionMatched"],
   allowedTargets: [
-    "transform",
-    "code",
-    "customInput",
     "branch",
     "setVariable",
     "inlineExpression",

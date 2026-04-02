@@ -28,16 +28,18 @@ describe("workflow store clipboard actions", () => {
   it("copies selected nodes into workflow selection payload", async () => {
     const store = createWorkflowStore()
     const state = store.getState()
-    const triggerNode = state.history.present.nodes.find((node: WorkflowNode) => node.data.kind === "trigger")
-    const transformNode = state.history.present.nodes.find(
-      (node: WorkflowNode) => node.data.kind === "transform"
+    state.addNode("inlineExpression", { x: 360, y: 80 })
+    const triggerNode = store.getState().history.present.nodes.find((node: WorkflowNode) => node.data.kind === "trigger")
+    const inlineNode = store.getState().history.present.nodes.find(
+      (node: WorkflowNode) => node.data.kind === "inlineExpression"
     )
-    if (!triggerNode || !transformNode) {
+    if (!triggerNode || !inlineNode) {
       throw new Error("fixture nodes not found")
     }
+    store.getState().onConnect({ source: triggerNode.id, target: inlineNode.id })
 
-    state.setSelectedNodes([triggerNode.id, transformNode.id])
-    const copied = await state.copySelectionToClipboard()
+    store.getState().setSelectedNodes([triggerNode.id, inlineNode.id])
+    const copied = await store.getState().copySelectionToClipboard()
 
     expect(copied).toBe(true)
     expect(clipboardWriteTextMock).toHaveBeenCalledTimes(1)
@@ -76,13 +78,14 @@ describe("workflow store clipboard actions", () => {
         },
       },
       {
-        id: "copy-code",
-        kind: "code",
+        id: "copy-extractor",
+        kind: "extractor",
         position: { x: 240, y: 30 },
-        label: "Code",
+        label: "Extractor",
         config: {
-          runtime: "js",
-          code: "return { ok: true }",
+          tokenNumber: 0,
+          extractExpression: "{{ $input.item.json }}",
+          unlimited: false,
         },
       },
     ]
@@ -90,7 +93,7 @@ describe("workflow store clipboard actions", () => {
       {
         id: "copy-connection",
         sourceNodeId: "copy-set-variable",
-        targetNodeId: "copy-code",
+        targetNodeId: "copy-extractor",
         sourceHandle: null,
         targetHandle: null,
       },
@@ -169,13 +172,14 @@ describe("workflow store clipboard actions", () => {
         },
       },
       {
-        id: "parallel-copy-code",
-        kind: "code",
+        id: "parallel-copy-extractor",
+        kind: "extractor",
         position: { x: 200, y: 20 },
-        label: "Code",
+        label: "Extractor",
         config: {
-          runtime: "js",
-          code: "return { ok: true }",
+          tokenNumber: 0,
+          extractExpression: "{{ $input.item.json }}",
+          unlimited: false,
         },
       },
     ]
@@ -183,7 +187,7 @@ describe("workflow store clipboard actions", () => {
       {
         id: "parallel-connection",
         sourceNodeId: "parallel-copy-set-variable",
-        targetNodeId: "parallel-copy-code",
+        targetNodeId: "parallel-copy-extractor",
         sourceHandle: null,
         targetHandle: null,
       },

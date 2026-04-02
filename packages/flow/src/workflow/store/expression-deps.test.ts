@@ -1,15 +1,37 @@
 import { cloneDeep } from "es-toolkit/object"
 import { describe, expect, it } from "vitest"
 
-import { initialWorkflowGraph } from "../default-graph/default-graph"
+import { createWorkflowNode } from "../node-registry/node-factory"
+import type { WorkflowGraphState } from "../types/types"
 import {
   computeStructuralSignature,
   projectExpressionDeps,
 } from "./expression-deps"
 
+function createTestGraph(): WorkflowGraphState {
+  const trigger = createWorkflowNode("trigger", { x: 0, y: 80 })
+  const inline = createWorkflowNode("inlineExpression", { x: 360, y: 80 })
+  return {
+    nodes: [trigger, inline],
+    edges: [
+      {
+        id: `${trigger.id}-${inline.id}`,
+        source: trigger.id,
+        target: inline.id,
+        sourceHandle: null,
+        targetHandle: null,
+        data: { sourceKind: "trigger", targetKind: "inlineExpression" },
+      },
+    ],
+    viewport: { x: 0, y: 0, zoom: 1 },
+    document: { id: "doc-1", name: "Flow", version: 1, metadata: {} },
+  }
+}
+
 describe("expression deps projection and signature", () => {
   it("projects only expression-relevant node and edge fields", () => {
-    const deps = projectExpressionDeps(initialWorkflowGraph)
+    const graph = createTestGraph()
+    const deps = projectExpressionDeps(graph)
     const firstNode = deps.nodes[0]
     const firstEdge = deps.edges[0]
     if (!firstNode) {
@@ -30,8 +52,8 @@ describe("expression deps projection and signature", () => {
   })
 
   it("keeps signature stable for positional changes", () => {
-    const baseGraph = cloneDeep(initialWorkflowGraph)
-    const movedGraph = cloneDeep(initialWorkflowGraph)
+    const baseGraph = createTestGraph()
+    const movedGraph = cloneDeep(baseGraph)
     const firstNode = movedGraph.nodes[0]
     if (!firstNode) {
       throw new Error("fixture node not found")
@@ -48,8 +70,8 @@ describe("expression deps projection and signature", () => {
   })
 
   it("changes signature for structural node and edge changes", () => {
-    const baseGraph = cloneDeep(initialWorkflowGraph)
-    const renamedGraph = cloneDeep(initialWorkflowGraph)
+    const baseGraph = createTestGraph()
+    const renamedGraph = cloneDeep(baseGraph)
     const firstNode = renamedGraph.nodes[0]
     if (!firstNode) {
       throw new Error("fixture node not found")
@@ -63,15 +85,15 @@ describe("expression deps projection and signature", () => {
     const renamedSignature = computeStructuralSignature(projectExpressionDeps(renamedGraph))
     expect(renamedSignature).not.toBe(baseSignature)
 
-    const rewiredGraph = cloneDeep(initialWorkflowGraph)
+    const rewiredGraph = cloneDeep(baseGraph)
     rewiredGraph.edges = []
     const rewiredSignature = computeStructuralSignature(projectExpressionDeps(rewiredGraph))
     expect(rewiredSignature).not.toBe(baseSignature)
   })
 
   it("is deterministic regardless of nodes/edges array order", () => {
-    const baseGraph = cloneDeep(initialWorkflowGraph)
-    const reorderedGraph = cloneDeep(initialWorkflowGraph)
+    const baseGraph = createTestGraph()
+    const reorderedGraph = cloneDeep(baseGraph)
     reorderedGraph.nodes = [...reorderedGraph.nodes].reverse()
     reorderedGraph.edges = [...reorderedGraph.edges].reverse()
 

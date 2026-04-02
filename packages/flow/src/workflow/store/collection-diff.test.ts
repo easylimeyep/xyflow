@@ -11,7 +11,7 @@ import {
 
 function createGraphState(): WorkflowGraphState {
   const source = createWorkflowNode("trigger", { x: 0, y: 0 })
-  const target = createWorkflowNode("transform", { x: 300, y: 0 })
+  const target = createWorkflowNode("inlineExpression", { x: 300, y: 0 })
   return {
     nodes: [source, target],
     edges: [

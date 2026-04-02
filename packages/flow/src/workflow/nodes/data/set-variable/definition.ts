@@ -11,10 +11,7 @@ export const setVariable = defineNode({
   fields: [],
   outputPaths: [],
   allowedTargets: [
-    "transform",
     "branch",
-    "code",
-    "customInput",
     "setVariable",
     "inlineExpression",
     "extractor",

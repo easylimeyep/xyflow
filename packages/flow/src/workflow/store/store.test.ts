@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest"
 
 import {
   selectExpressionVariablesForNode,
-  selectSelectedNodeForConfigPanel,
+  selectSelectedNode,
 } from "./selectors"
 import { createWorkflowStore } from "./store"
 import type { WorkflowNode } from "../types/types"
@@ -16,7 +16,7 @@ describe("workflow store", () => {
 
   it("adds node and updates history", () => {
     const before = store.getState().history.present.nodes.length
-    store.getState().addNode("customInput", { x: 50, y: 50 })
+    store.getState().addNode("setVariable", { x: 50, y: 50 })
     const state = store.getState()
 
     expect(state.history.present.nodes.length).toBe(before + 1)
@@ -27,7 +27,7 @@ describe("workflow store", () => {
     const workflowStore = store.getState()
     const before = workflowStore.history.present.nodes.length
 
-    workflowStore.addNode("code", { x: 120, y: 100 })
+    workflowStore.addNode("extractor", { x: 120, y: 100 })
     store.getState().undo()
     expect(store.getState().history.present.nodes.length).toBe(before)
 
@@ -52,18 +52,20 @@ describe("workflow store", () => {
 
   it("rejects invalid connections and keeps graph stable", () => {
     const state = store.getState()
-    const trigger = state.history.present.nodes.find(
+    state.addNode("inlineExpression", { x: 360, y: 80 })
+    const trigger = store.getState().history.present.nodes.find(
       (node: WorkflowNode) => node.data.kind === "trigger"
     )
-    const transform = state.history.present.nodes.find(
-      (node: WorkflowNode) => node.data.kind === "transform"
+    const inlineNode = store.getState().history.present.nodes.find(
+      (node: WorkflowNode) => node.data.kind === "inlineExpression"
     )
-    if (!trigger || !transform) {
+    if (!trigger || !inlineNode) {
       throw new Error("fixture nodes not found")
     }
 
-    const edgeCount = state.history.present.edges.length
-    state.onConnect({ source: transform.id, target: trigger.id })
+    const edgeCount = store.getState().history.present.edges.length
+    // inlineExpression.allowedTargets does not include "trigger"
+    state.onConnect({ source: inlineNode.id, target: trigger.id })
     const nextState = store.getState()
 
     expect(nextState.history.present.edges.length).toBe(edgeCount)
@@ -72,22 +74,23 @@ describe("workflow store", () => {
 
   it("creates valid connections and clears previous errors", () => {
     const state = store.getState()
-    state.addNode("code", { x: 480, y: 120 })
+    state.addNode("extractor", { x: 480, y: 120 })
     const trigger = state.history.present.nodes.find(
       (node: WorkflowNode) => node.data.kind === "trigger"
     )
-    const code = store
+    const extractor = store
       .getState()
-      .history.present.nodes.find((node: WorkflowNode) => node.data.kind === "code")
-    if (!trigger || !code) {
+      .history.present.nodes.find((node: WorkflowNode) => node.data.kind === "extractor")
+    if (!trigger || !extractor) {
       throw new Error("fixture nodes not found")
     }
 
-    state.onConnect({ source: code.id, target: trigger.id })
+    // extractor.allowedTargets does not include "trigger"
+    state.onConnect({ source: extractor.id, target: trigger.id })
     expect(store.getState().lastError?.message).toContain("cannot connect")
 
     const beforeEdgeCount = store.getState().history.present.edges.length
-    store.getState().onConnect({ source: trigger.id, target: code.id })
+    store.getState().onConnect({ source: trigger.id, target: extractor.id })
     const nextState = store.getState()
 
     expect(nextState.history.present.edges.length).toBe(beforeEdgeCount + 1)
@@ -219,7 +222,7 @@ describe("workflow store", () => {
     )
     expect(stateAfterUndo.selectedNodeIds).toEqual([targetNode.id])
     expect(selectedNodeAfterUndo?.selected).toBe(true)
-    expect(selectSelectedNodeForConfigPanel(stateAfterUndo)?.id).toBe(targetNode.id)
+    expect(selectSelectedNode(stateAfterUndo)?.id).toBe(targetNode.id)
 
     store.getState().redo()
     const stateAfterRedo = store.getState()
@@ -228,16 +231,16 @@ describe("workflow store", () => {
     )
     expect(stateAfterRedo.selectedNodeIds).toEqual([targetNode.id])
     expect(selectedNodeAfterRedo?.selected).toBe(true)
-    expect(selectSelectedNodeForConfigPanel(stateAfterRedo)?.id).toBe(targetNode.id)
+    expect(selectSelectedNode(stateAfterRedo)?.id).toBe(targetNode.id)
   })
 
   it("keeps expression catalog selector reference stable across drag-only updates", () => {
     const state = store.getState()
     const targetNode = state.history.present.nodes.find(
-      (node: WorkflowNode) => node.data.kind === "transform"
+      (node: WorkflowNode) => node.data.kind === "trigger"
     )
     if (!targetNode) {
-      throw new Error("transform fixture node not found")
+      throw new Error("trigger fixture node not found")
     }
 
     const beforeCatalog = selectExpressionVariablesForNode(
@@ -274,7 +277,7 @@ describe("workflow store", () => {
     )
     expect(afterCommitCatalog).toBe(afterTransientCatalog)
 
-    store.getState().updateNodeLabel(targetNode.id, "Transform changed")
+    store.getState().updateNodeLabel(targetNode.id, "Trigger changed")
     const afterStructuralChangeCatalog = selectExpressionVariablesForNode(
       store.getState(),
       targetNode.id
@@ -284,14 +287,21 @@ describe("workflow store", () => {
 
   it("commits structural edge changes to history", () => {
     const state = store.getState()
-    const basePastLength = state.history.past.length
+    state.addNode("inlineExpression", { x: 360, y: 80 })
+    const inlineNode = store
+      .getState()
+      .history.present.nodes.find((node: WorkflowNode) => node.data.kind === "inlineExpression")
+    const trigger = store
+      .getState()
+      .history.present.nodes.find((node: WorkflowNode) => node.data.kind === "trigger")
+    if (!trigger || !inlineNode) throw new Error("fixture nodes not found")
+    store.getState().onConnect({ source: trigger.id, target: inlineNode.id })
+    const edge = store.getState().history.present.edges[0]
+    if (!edge) throw new Error("fixture edge not found")
 
-    state.onEdgesChange([
-      {
-        type: "remove",
-        id: state.history.present.edges[0]?.id ?? "",
-      },
-    ])
+    const basePastLength = store.getState().history.past.length
+
+    store.getState().onEdgesChange([{ type: "remove", id: edge.id }])
 
     expect(store.getState().history.past.length).toBe(basePastLength + 1)
   })
@@ -345,8 +355,9 @@ describe("workflow store", () => {
 
   it("keeps selectedNodeIds in sync when selected nodes get removed", () => {
     const state = store.getState()
-    const firstNode = state.history.present.nodes[0]
-    const secondNode = state.history.present.nodes[1]
+    state.addNode("inlineExpression", { x: 360, y: 80 })
+    const firstNode = store.getState().history.present.nodes[0]
+    const secondNode = store.getState().history.present.nodes[1]
     if (!firstNode || !secondNode) {
       throw new Error("fixture node not found")
     }
@@ -363,7 +374,7 @@ describe("workflow store", () => {
   it("creates node + connection in one history step through quick add", () => {
     const state = store.getState()
     const sourceNode = state.history.present.nodes.find(
-      (node: WorkflowNode) => node.data.kind === "transform"
+      (node: WorkflowNode) => node.data.kind === "trigger"
     )
     if (!sourceNode) {
       throw new Error("source node not found")
@@ -399,14 +410,14 @@ describe("workflow store", () => {
     }
 
     state.startQuickAddFromOutput(branchNode.id, "branch-true")
-    store.getState().confirmQuickAddNode("code")
+    store.getState().confirmQuickAddNode("extractor")
     const edgeFromTrue = store.getState().history.present.edges.find(
       (edge) => edge.source === branchNode.id && edge.sourceHandle === "branch-true"
     )
     expect(edgeFromTrue).toBeDefined()
 
     store.getState().startQuickAddFromOutput(branchNode.id, "branch-false")
-    store.getState().confirmQuickAddNode("customInput")
+    store.getState().confirmQuickAddNode("setVariable")
     const edgeFromFalse = store.getState().history.present.edges.find(
       (edge) => edge.source === branchNode.id && edge.sourceHandle === "branch-false"
     )
@@ -416,7 +427,7 @@ describe("workflow store", () => {
   it("restores quick-add node and edge in a single undo after node deletion", () => {
     const state = store.getState()
     const sourceNode = state.history.present.nodes.find(
-      (node: WorkflowNode) => node.data.kind === "transform"
+      (node: WorkflowNode) => node.data.kind === "trigger"
     )
     if (!sourceNode) {
       throw new Error("source node not found")
@@ -463,7 +474,7 @@ describe("workflow store", () => {
   it("restores node and edge in one undo when edge-remove arrives before node-remove", () => {
     const state = store.getState()
     const sourceNode = state.history.present.nodes.find(
-      (node: WorkflowNode) => node.data.kind === "transform"
+      (node: WorkflowNode) => node.data.kind === "trigger"
     )
     if (!sourceNode) {
       throw new Error("source node not found")
@@ -504,33 +515,34 @@ describe("workflow store", () => {
 
   it("restores multi-node delete with connected edges in one undo step", () => {
     const state = store.getState()
-    state.addNode("code", { x: 700, y: 120 })
+    state.addNode("inlineExpression", { x: 360, y: 80 })
+    state.addNode("extractor", { x: 700, y: 120 })
 
-    const transformNode = store
+    const inlineNode = store
       .getState()
-      .history.present.nodes.find((node: WorkflowNode) => node.data.kind === "transform")
-    const addedCodeNode = store
+      .history.present.nodes.find((node: WorkflowNode) => node.data.kind === "inlineExpression")
+    const extractorNode = store
       .getState()
-      .history.present.nodes.find((node: WorkflowNode) => node.data.kind === "code")
-    if (!transformNode || !addedCodeNode) {
+      .history.present.nodes.find((node: WorkflowNode) => node.data.kind === "extractor")
+    if (!inlineNode || !extractorNode) {
       throw new Error("fixture nodes not found")
     }
 
-    store.getState().onConnect({ source: transformNode.id, target: addedCodeNode.id })
+    store.getState().onConnect({ source: inlineNode.id, target: extractorNode.id })
 
     const beforeDeleteState = store.getState()
     const pastBeforeDelete = beforeDeleteState.history.past.length
     const nodesBeforeDelete = beforeDeleteState.history.present.nodes.length
     const edgesBeforeDelete = beforeDeleteState.history.present.edges.length
 
-    const removedNodeIds = new Set([transformNode.id, addedCodeNode.id])
+    const removedNodeIds = new Set([inlineNode.id, extractorNode.id])
     const removedEdgeIds = beforeDeleteState.history.present.edges
       .filter((edge) => removedNodeIds.has(edge.source) || removedNodeIds.has(edge.target))
       .map((edge) => edge.id)
 
     store.getState().onNodesChange([
-      { id: transformNode.id, type: "remove" },
-      { id: addedCodeNode.id, type: "remove" },
+      { id: inlineNode.id, type: "remove" },
+      { id: extractorNode.id, type: "remove" },
     ])
     store
       .getState()
@@ -554,22 +566,25 @@ describe("workflow store", () => {
 
   it("does not start quick add on occupied output and allows explicit cancel", () => {
     const state = store.getState()
-    const triggerNode = state.history.present.nodes.find(
+    state.addNode("inlineExpression", { x: 360, y: 80 })
+    const triggerNode = store.getState().history.present.nodes.find(
       (node: WorkflowNode) => node.data.kind === "trigger"
     )
-    const transformNode = state.history.present.nodes.find(
-      (node: WorkflowNode) => node.data.kind === "transform"
+    const inlineNode = store.getState().history.present.nodes.find(
+      (node: WorkflowNode) => node.data.kind === "inlineExpression"
     )
-    if (!triggerNode || !transformNode) {
+    if (!triggerNode || !inlineNode) {
       throw new Error("fixture nodes not found")
     }
+    // Occupy trigger's output so quick add is blocked
+    store.getState().onConnect({ source: triggerNode.id, target: inlineNode.id })
 
     state.startQuickAddFromOutput(triggerNode.id, null)
     expect(store.getState().quickAddPending).toBeNull()
 
-    state.startQuickAddFromOutput(transformNode.id, null)
+    state.startQuickAddFromOutput(inlineNode.id, null)
     expect(store.getState().quickAddPending).toEqual({
-      sourceNodeId: transformNode.id,
+      sourceNodeId: inlineNode.id,
       sourceHandle: null,
     })
     state.cancelQuickAdd()
@@ -578,16 +593,25 @@ describe("workflow store", () => {
 
   it("splits edge into source->new and new->target in one history step", () => {
     const state = store.getState()
-    const initialEdge = state.history.present.edges[0]
+    state.addNode("inlineExpression", { x: 360, y: 80 })
+    const triggerNode = store.getState().history.present.nodes.find(
+      (node: WorkflowNode) => node.data.kind === "trigger"
+    )
+    const inlineNode = store.getState().history.present.nodes.find(
+      (node: WorkflowNode) => node.data.kind === "inlineExpression"
+    )
+    if (!triggerNode || !inlineNode) throw new Error("fixture nodes not found")
+    store.getState().onConnect({ source: triggerNode.id, target: inlineNode.id })
+    const initialEdge = store.getState().history.present.edges[0]
     if (!initialEdge) {
       throw new Error("fixture edge not found")
     }
 
-    const targetBefore = state.history.present.nodes.find((node) => node.id === initialEdge.target)
+    const targetBefore = store.getState().history.present.nodes.find((node) => node.id === initialEdge.target)
     if (!targetBefore) {
       throw new Error("target node not found")
     }
-    const basePastLength = state.history.past.length
+    const basePastLength = store.getState().history.past.length
 
     state.startEdgeInsertFromEdge(initialEdge.id)
     expect(store.getState().edgeInsertPending).toEqual({ edgeId: initialEdge.id })
@@ -616,8 +640,9 @@ describe("workflow store", () => {
 
   it("preserves sourceHandle and targetHandle when split succeeds", () => {
     const state = store.getState()
-    const triggerNode = state.history.present.nodes.find((node: WorkflowNode) => node.data.kind === "trigger")
-    const transformNode = state.history.present.nodes.find((node: WorkflowNode) => node.data.kind === "transform")
+    state.addNode("inlineExpression", { x: 360, y: 80 })
+    const triggerNode = store.getState().history.present.nodes.find((node: WorkflowNode) => node.data.kind === "trigger")
+    const transformNode = store.getState().history.present.nodes.find((node: WorkflowNode) => node.data.kind === "inlineExpression")
     if (!triggerNode || !transformNode) {
       throw new Error("fixture nodes not found")
     }
@@ -663,41 +688,44 @@ describe("workflow store", () => {
 
   it("uses target-only fallback when any leg of split is invalid", () => {
     const state = store.getState()
-    state.addNode("code", { x: 240, y: 240 })
-    const transformNode = store
+    state.addNode("inlineExpression", { x: 360, y: 80 })
+    state.addNode("setVariable", { x: 720, y: 80 })
+    const inlineNode = store
       .getState()
-      .history.present.nodes.find((node: WorkflowNode) => node.data.kind === "transform")
-    const codeNode = store
+      .history.present.nodes.find((node: WorkflowNode) => node.data.kind === "inlineExpression")
+    const setVariableNode = store
       .getState()
-      .history.present.nodes.find((node: WorkflowNode) => node.data.kind === "code")
-    if (!transformNode || !codeNode) {
+      .history.present.nodes.find((node: WorkflowNode) => node.data.kind === "setVariable")
+    if (!inlineNode || !setVariableNode) {
       throw new Error("fixture nodes not found")
     }
 
-    state.onConnect({ source: codeNode.id, target: transformNode.id })
+    store.getState().onConnect({ source: inlineNode.id, target: setVariableNode.id })
     const edgeToSplit = store
       .getState()
-      .history.present.edges.find((edge) => edge.source === codeNode.id && edge.target === transformNode.id)
+      .history.present.edges.find((edge) => edge.source === inlineNode.id && edge.target === setVariableNode.id)
     if (!edgeToSplit) {
       throw new Error("edge to split not found")
     }
 
-    state.startEdgeInsertFromEdge(edgeToSplit.id)
-    state.confirmEdgeInsertNode("code")
+    // Insert trigger: source leg (inlineExpression → trigger) is invalid since no node targets trigger
+    // Target leg (trigger → setVariable) is valid since trigger.allowedTargets includes "setVariable"
+    store.getState().startEdgeInsertFromEdge(edgeToSplit.id)
+    store.getState().confirmEdgeInsertNode("trigger")
 
     const nextState = store.getState()
     const insertedNode = nextState.history.present.nodes.find(
-      (node) => node.data.kind === "code" && node.id !== codeNode.id
+      (node) => node.data.kind === "trigger" && node.id !== state.history.present.nodes[0]?.id
     )
     if (!insertedNode) {
       throw new Error("fallback inserted node not found")
     }
 
     const sourceLeg = nextState.history.present.edges.find(
-      (edge) => edge.source === codeNode.id && edge.target === insertedNode.id
+      (edge) => edge.source === inlineNode.id && edge.target === insertedNode.id
     )
     const targetLeg = nextState.history.present.edges.find(
-      (edge) => edge.source === insertedNode.id && edge.target === transformNode.id
+      (edge) => edge.source === insertedNode.id && edge.target === setVariableNode.id
     )
 
     expect(nextState.history.present.edges.some((edge) => edge.id === edgeToSplit.id)).toBe(false)
@@ -784,29 +812,30 @@ describe("workflow store", () => {
 
   it("auto-increments duplicate labels when adding same node kind", () => {
     const state = store.getState()
-    state.addNode("code", { x: 700, y: 80 })
-    state.addNode("code", { x: 900, y: 80 })
+    state.addNode("extractor", { x: 700, y: 80 })
+    state.addNode("extractor", { x: 900, y: 80 })
 
-    const codeLabels = store
+    const extractorLabels = store
       .getState()
-      .history.present.nodes.filter((node) => node.data.kind === "code")
+      .history.present.nodes.filter((node) => node.data.kind === "extractor")
       .map((node) => node.data.label)
       .sort()
 
-    expect(codeLabels).toEqual(["Code", "Code 2"])
+    expect(extractorLabels).toEqual(["Extractor", "Extractor 2"])
   })
 
   it("renames node label with auto-increment and refactors node references", () => {
     const state = store.getState()
-    const triggerNode = state.history.present.nodes.find((node: WorkflowNode) => node.data.kind === "trigger")
-    const conflictingNode = state.history.present.nodes.find(
-      (node: WorkflowNode) => node.data.kind === "transform"
+    state.addNode("extractor", { x: 360, y: 80 })
+    const triggerNode = store.getState().history.present.nodes.find((node: WorkflowNode) => node.data.kind === "trigger")
+    const conflictingNode = store.getState().history.present.nodes.find(
+      (node: WorkflowNode) => node.data.kind === "extractor"
     )
     if (!triggerNode) {
       throw new Error("trigger node fixture not found")
     }
     if (!conflictingNode) {
-      throw new Error("transform node fixture not found")
+      throw new Error("extractor node fixture not found")
     }
 
     state.addNode("inlineExpression", { x: 900, y: 80 })

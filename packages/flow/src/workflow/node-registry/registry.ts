@@ -1,9 +1,6 @@
 import type { NodeDefinition } from "./define-node"
 import { trigger } from "../nodes/control/trigger"
 import { branch } from "../nodes/logic/branch"
-import { transform } from "../nodes/data/transform"
-import { code } from "../nodes/data/code"
-import { customInput } from "../nodes/io/custom-input"
 import { inlineExpression } from "../nodes/data/inline-expression/definition"
 import { setVariable } from "../nodes/data/set-variable/definition"
 import { extractor } from "../nodes/data/extractor/definition"
@@ -11,9 +8,6 @@ import { extractor } from "../nodes/data/extractor/definition"
 const allDefinitions = [
   trigger,
   branch,
-  transform,
-  code,
-  customInput,
   setVariable,
   inlineExpression,
   extractor,

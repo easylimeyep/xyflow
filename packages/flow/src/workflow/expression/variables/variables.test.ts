@@ -7,8 +7,8 @@ import { buildExpressionVariableCatalog } from "./variables"
 describe("expression variable catalog", () => {
   it("includes current input helpers", () => {
     const trigger = createWorkflowNode("trigger", { x: 0, y: 0 }, "TriggerA")
-    const transform = createWorkflowNode("transform", { x: 160, y: 0 }, "TransformA")
-    const options = buildExpressionVariableCatalog([trigger, transform], [], transform.id)
+    const inline = createWorkflowNode("inlineExpression", { x: 160, y: 0 }, "InlineA")
+    const options = buildExpressionVariableCatalog([trigger, inline], [], inline.id)
 
     expect(options.some((option) => option.value === "$input.item.json")).toBe(true)
     expect(options.some((option) => option.value === "$input.first().json")).toBe(true)
@@ -16,46 +16,46 @@ describe("expression variable catalog", () => {
 
   it("includes reachable upstream nodes only", () => {
     const trigger = createWorkflowNode("trigger", { x: 0, y: 0 }, "TriggerA")
-    const transform = createWorkflowNode("transform", { x: 200, y: 0 }, "TransformA")
-    const code = createWorkflowNode("code", { x: 400, y: 0 }, "CodeA")
-    const isolated = createWorkflowNode("customInput", { x: 0, y: 300 }, "Isolated")
+    const inline = createWorkflowNode("inlineExpression", { x: 200, y: 0 }, "InlineA")
+    const extractor = createWorkflowNode("extractor", { x: 400, y: 0 }, "ExtractorA")
+    const isolated = createWorkflowNode("setVariable", { x: 0, y: 300 }, "Isolated")
 
     const edges: WorkflowEdge[] = [
       {
         id: "edge-1",
         source: trigger.id,
-        target: transform.id,
+        target: inline.id,
         sourceHandle: null,
         targetHandle: null,
         data: {
           sourceKind: trigger.data.kind,
-          targetKind: transform.data.kind,
+          targetKind: inline.data.kind,
         },
       },
       {
         id: "edge-2",
-        source: transform.id,
-        target: code.id,
+        source: inline.id,
+        target: extractor.id,
         sourceHandle: null,
         targetHandle: null,
         data: {
-          sourceKind: transform.data.kind,
-          targetKind: code.data.kind,
+          sourceKind: inline.data.kind,
+          targetKind: extractor.data.kind,
         },
       },
     ]
 
     const options = buildExpressionVariableCatalog(
-      [trigger, transform, code, isolated],
+      [trigger, inline, extractor, isolated],
       edges,
-      code.id
+      extractor.id
     )
 
     expect(options.some((option) => option.value.includes(`$node("${trigger.data.label}").item.json`))).toBe(
       true
     )
     expect(
-      options.some((option) => option.value.includes(`$node("${transform.data.label}").item.json`))
+      options.some((option) => option.value.includes(`$node("${inline.data.label}").item.json`))
     ).toBe(
       true
     )
@@ -67,7 +67,7 @@ describe("expression variable catalog", () => {
   it("includes set variable outputs as $vars and node paths", () => {
     const trigger = createWorkflowNode("trigger", { x: 0, y: 0 }, "TriggerA")
     const setVariable = createWorkflowNode("setVariable", { x: 200, y: 0 }, "SetA")
-    const code = createWorkflowNode("code", { x: 400, y: 0 }, "CodeA")
+    const extractor = createWorkflowNode("extractor", { x: 400, y: 0 }, "ExtractorA")
     setVariable.data.config.variableName = "regionName"
 
     const edges: WorkflowEdge[] = [
@@ -85,17 +85,17 @@ describe("expression variable catalog", () => {
       {
         id: "edge-2",
         source: setVariable.id,
-        target: code.id,
+        target: extractor.id,
         sourceHandle: null,
         targetHandle: null,
         data: {
           sourceKind: setVariable.data.kind,
-          targetKind: code.data.kind,
+          targetKind: extractor.data.kind,
         },
       },
     ]
 
-    const options = buildExpressionVariableCatalog([trigger, setVariable, code], edges, code.id)
+    const options = buildExpressionVariableCatalog([trigger, setVariable, extractor], edges, extractor.id)
 
     expect(options.some((option) => option.value === "$vars.regionName")).toBe(true)
     expect(

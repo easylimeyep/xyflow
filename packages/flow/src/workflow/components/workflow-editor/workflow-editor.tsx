@@ -8,15 +8,11 @@ import {
   selectCanRedo,
   selectCanUndo,
   selectEdgeInsertPending,
-  selectExpressionVariablesForNode,
-  isSameSelectedNodeConfig,
   selectLastErrorMessage,
   selectNodeCount,
   selectPresentEdges,
   selectPresentNodes,
-  selectSelectedNodeForConfigPanel,
   selectQuickAddPending,
-  selectSelectedSingleNodeId,
   selectViewport,
   useWorkflowShallowStore,
   useWorkflowStore,
@@ -30,7 +26,6 @@ import {
   createHistoryHotkeyHandler,
   isEscapeHotkey,
 } from "../hotkeys"
-import { NodeConfigPanel } from "../node-config-panel"
 import { NodePalette } from "../node-palette"
 import { WorkflowCanvas } from "../workflow-canvas"
 
@@ -141,7 +136,6 @@ export function WorkflowEditor() {
           </div>
           <CanvasContainer />
         </div>
-        <ConfigPanelContainer />
       </div>
     </div>
   )
@@ -284,28 +278,3 @@ function CanvasContainer() {
   )
 }
 
-function ConfigPanelContainer() {
-  const selectedNode = useWorkflowStore(
-    selectSelectedNodeForConfigPanel,
-    isSameSelectedNodeConfig
-  )
-  const selectedNodeId = useWorkflowStore(selectSelectedSingleNodeId)
-  const expressionVariables = useWorkflowStore((state: WorkflowStoreState) =>
-    selectExpressionVariablesForNode(state, selectedNodeId)
-  )
-  const { updateNodeLabel, updateNodeConfig } = useWorkflowShallowStore(
-    (state: WorkflowStoreState) => ({
-      updateNodeLabel: state.updateNodeLabel,
-      updateNodeConfig: state.updateNodeConfig,
-    })
-  )
-
-  return (
-    <NodeConfigPanel
-      selectedNode={selectedNode}
-      expressionVariables={expressionVariables}
-      onUpdateLabel={updateNodeLabel}
-      onUpdateConfigField={updateNodeConfig}
-    />
-  )
-}
