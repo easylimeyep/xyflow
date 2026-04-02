@@ -1,5 +1,7 @@
-import { refactorVariableReferencesInGraph } from "../expression/refactor/refactor"
+import { refactorVariableReferencesInGraph } from "./graph-refactors"
 import { isValidJsIdentifier } from "../expression/variable-name/variable-name"
+import { getNodeDefinition } from "../node-registry/registry"
+import type { NodeKind } from "../node-registry/registry"
 import { createWorkflowError, type WorkflowError } from "../types/errors"
 import type { JsonObject, WorkflowGraphState, WorkflowNode } from "../types/types"
 import type { NodeConfigUpdate } from "./types"
@@ -29,12 +31,13 @@ export function applyNodeConfigUpdate(
     }
   }
 
+  const def = getNodeDefinition(targetNode.data.kind as NodeKind)
   if (
-    update.kind === "setVariable" &&
-    update.key === "variableName" &&
+    def.renameConfigKey &&
+    update.key === def.renameConfigKey &&
     typeof update.value === "string"
   ) {
-    return applySetVariableRename(currentGraph, targetNode, nodeId, update.value)
+    return applyRenameableFieldUpdate(currentGraph, targetNode, nodeId, update.value)
   }
 
   const previousRawValue = targetNode.data.config[update.key as keyof typeof targetNode.data.config]
@@ -65,13 +68,15 @@ export function applyNodeConfigUpdate(
   }
 }
 
-function applySetVariableRename(
+function applyRenameableFieldUpdate(
   currentGraph: WorkflowGraphState,
   targetNode: WorkflowNode,
   nodeId: string,
   rawName: string
 ): NodeConfigUpdateResult {
-  const previousNameValue = targetNode.data.config.variableName
+  const def = getNodeDefinition(targetNode.data.kind as NodeKind)
+  const renameKey = def.renameConfigKey!
+  const previousNameValue = targetNode.data.config[renameKey]
   const previousName = typeof previousNameValue === "string" ? previousNameValue.trim() : ""
   const nextName = rawName.trim()
   if (nextName === previousName) {
@@ -89,10 +94,10 @@ function applySetVariableRename(
   }
 
   const duplicateVariable = currentGraph.nodes.some((node) => {
-    if (node.id === nodeId || node.data.kind !== "setVariable") {
+    if (node.id === nodeId || node.data.kind !== targetNode.data.kind) {
       return false
     }
-    const variableNameValue = node.data.config.variableName
+    const variableNameValue = node.data.config[renameKey]
     if (typeof variableNameValue !== "string") return false
     return variableNameValue.trim() === nextName
   })
@@ -115,7 +120,7 @@ function applySetVariableRename(
         ...node.data,
         config: {
           ...node.data.config,
-          variableName: nextName,
+          [renameKey]: nextName,
         },
       },
     }

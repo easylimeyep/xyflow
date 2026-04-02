@@ -10,34 +10,57 @@ export function getFallbackPasteAnchor(viewport: Viewport): XYPosition {
   }
 }
 
-export function createUniqueLabel(baseLabel: string, usedLabels: Set<string>): string {
-  const trimmedBase = baseLabel.trim() || "Node"
-  if (!usedLabels.has(trimmedBase)) {
-    usedLabels.add(trimmedBase)
+function createUniqueIdentifier(
+  base: string,
+  used: Set<string>,
+  options: { fallback: string; separator: string }
+): string {
+  const trimmedBase = base.trim() || options.fallback
+  if (!used.has(trimmedBase)) {
+    used.add(trimmedBase)
     return trimmedBase
   }
   let suffix = 2
-  while (usedLabels.has(`${trimmedBase} ${suffix}`)) suffix += 1
-  const uniqueLabel = `${trimmedBase} ${suffix}`
-  usedLabels.add(uniqueLabel)
-  return uniqueLabel
+  while (used.has(`${trimmedBase}${options.separator}${suffix}`)) suffix += 1
+  const unique = `${trimmedBase}${options.separator}${suffix}`
+  used.add(unique)
+  return unique
+}
+
+export function createUniqueLabel(baseLabel: string, usedLabels: Set<string>): string {
+  return createUniqueIdentifier(baseLabel, usedLabels, { fallback: "Node", separator: " " })
 }
 
 export function createUniqueJsIdentifier(
   baseName: string,
   usedIdentifiers: Set<string>
 ): string {
-  const trimmedBase = baseName.trim()
-  const baseIdentifier = trimmedBase.length > 0 ? trimmedBase : "myVar"
-  if (!usedIdentifiers.has(baseIdentifier)) {
-    usedIdentifiers.add(baseIdentifier)
-    return baseIdentifier
-  }
-  let suffix = 2
-  while (usedIdentifiers.has(`${baseIdentifier}${suffix}`)) suffix += 1
-  const uniqueIdentifier = `${baseIdentifier}${suffix}`
-  usedIdentifiers.add(uniqueIdentifier)
-  return uniqueIdentifier
+  return createUniqueIdentifier(baseName, usedIdentifiers, { fallback: "myVar", separator: "" })
+}
+
+export function deduplicateNodeLabels<T extends { data: { label: string } }>(
+  nodes: T[],
+  existingLabels: Set<string>
+): { nodes: T[]; renames: Array<{ oldLabel: string; newLabel: string }> } {
+  const renames: Array<{ oldLabel: string; newLabel: string }> = []
+  const deduplicatedNodes = nodes.map((node) => {
+    const previousLabel = node.data.label.trim()
+    const uniqueLabel = createUniqueLabel(previousLabel, existingLabels)
+    if (previousLabel && previousLabel !== uniqueLabel) {
+      renames.push({ oldLabel: previousLabel, newLabel: uniqueLabel })
+    }
+    if (uniqueLabel === node.data.label) {
+      return node
+    }
+    return {
+      ...node,
+      data: {
+        ...node.data,
+        label: uniqueLabel,
+      },
+    }
+  })
+  return { nodes: deduplicatedNodes, renames }
 }
 
 export function getSetVariableNames(nodes: WorkflowNode[]): Set<string> {

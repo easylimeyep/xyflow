@@ -20,4 +20,6 @@ export const setVariable = defineNode({
     variableName: "myVar",
     valueExpression: "{{ $input.item.json }}",
   }),
+  extraExpressionConfigKeys: ["valueExpression"],
+  renameConfigKey: "variableName",
 })

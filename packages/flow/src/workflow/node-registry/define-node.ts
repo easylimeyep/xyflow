@@ -31,6 +31,8 @@ export interface NodeDefinition<K extends string = string> {
   subtitle?: (config: Record<string, unknown>) => string
   inlineFields?: NodeFieldSchema[]
   component?: ComponentType<NodeProps>
+  extraExpressionConfigKeys?: string[]
+  renameConfigKey?: string
 }
 
 export function defineNode<K extends string>(definition: NodeDefinition<K>): NodeDefinition<K> {

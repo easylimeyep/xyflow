@@ -51,6 +51,7 @@ export {
 export {
   createUniqueJsIdentifier,
   createUniqueLabel,
+  deduplicateNodeLabels,
   getFallbackPasteAnchor,
   getSetVariableNames,
 } from "./naming"

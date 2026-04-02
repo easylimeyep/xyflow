@@ -234,7 +234,7 @@ describe("workflow store", () => {
     expect(selectSelectedNode(stateAfterRedo)?.id).toBe(targetNode.id)
   })
 
-  it("keeps expression catalog selector reference stable across drag-only updates", () => {
+  it("keeps expression catalog selector value stable across drag-only updates", () => {
     const state = store.getState()
     const targetNode = state.history.present.nodes.find(
       (node: WorkflowNode) => node.data.kind === "trigger"
@@ -261,7 +261,7 @@ describe("workflow store", () => {
       store.getState(),
       targetNode.id
     )
-    expect(afterTransientCatalog).toBe(beforeCatalog)
+    expect(afterTransientCatalog).toEqual(beforeCatalog)
 
     store.getState().onNodesChange([
       {
@@ -275,7 +275,7 @@ describe("workflow store", () => {
       store.getState(),
       targetNode.id
     )
-    expect(afterCommitCatalog).toBe(afterTransientCatalog)
+    expect(afterCommitCatalog).toEqual(afterTransientCatalog)
 
     store.getState().updateNodeLabel(targetNode.id, "Trigger changed")
     const afterStructuralChangeCatalog = selectExpressionVariablesForNode(

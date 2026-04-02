@@ -219,10 +219,16 @@ function PaletteContainer({ isOpen, quickAddActive }: PaletteContainerProps) {
 }
 
 function CanvasContainer() {
-  const initialViewport = useWorkflowStore(selectViewport, () => true)
-  const nodes = useWorkflowStore(selectPresentNodes)
-  const edges = useWorkflowStore(selectPresentEdges)
-  const edgeInsertPending = useWorkflowStore(selectEdgeInsertPending)
+  // Read the viewport once at mount — `captureOnce` prevents re-renders on subsequent viewport changes
+  const captureOnce = () => true
+  const initialViewport = useWorkflowStore(selectViewport, captureOnce)
+  const { nodes, edges, edgeInsertPending } = useWorkflowShallowStore(
+    (state: WorkflowStoreState) => ({
+      nodes: selectPresentNodes(state),
+      edges: selectPresentEdges(state),
+      edgeInsertPending: selectEdgeInsertPending(state),
+    })
+  )
   const {
     onNodesChange,
     onEdgesChange,

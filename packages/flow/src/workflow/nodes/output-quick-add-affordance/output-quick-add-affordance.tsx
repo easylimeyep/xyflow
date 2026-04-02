@@ -10,7 +10,7 @@ import {
 import {
   selectPresentEdges,
   selectQuickAddPending,
-  useWorkflowStore,
+  useWorkflowShallowStore,
   type WorkflowStoreState,
 } from "../../store"
 import { Button } from "@workspace/ui/components/button"
@@ -31,23 +31,23 @@ export function OutputQuickAddAffordance({
   labelClassName,
 }: OutputQuickAddAffordanceProps) {
   const normalizedHandle = sourceHandle ?? null
-  const startQuickAddFromOutput = useWorkflowStore(
-    (state: WorkflowStoreState) => state.startQuickAddFromOutput
+  const { startQuickAddFromOutput, hasOutgoing, isPending } = useWorkflowShallowStore(
+    (state: WorkflowStoreState) => ({
+      startQuickAddFromOutput: state.startQuickAddFromOutput,
+      hasOutgoing: selectPresentEdges(state).some(
+        (edge) =>
+          edge.source === nodeId &&
+          (edge.sourceHandle ?? null) === normalizedHandle
+      ),
+      isPending: (() => {
+        const pending = selectQuickAddPending(state)
+        return (
+          pending?.sourceNodeId === nodeId &&
+          (pending.sourceHandle ?? null) === normalizedHandle
+        )
+      })(),
+    })
   )
-  const hasOutgoing = useWorkflowStore((state: WorkflowStoreState) =>
-    selectPresentEdges(state).some(
-      (edge) =>
-        edge.source === nodeId &&
-        (edge.sourceHandle ?? null) === (normalizedHandle ?? null)
-    )
-  )
-  const isPending = useWorkflowStore((state: WorkflowStoreState) => {
-    const pending = selectQuickAddPending(state)
-    return (
-      pending?.sourceNodeId === nodeId &&
-      (pending.sourceHandle ?? null) === (normalizedHandle ?? null)
-    )
-  })
 
   const styles = outputQuickAddAffordanceStyles({ isPending })
   const handleStyles = nodeHandlesStyles({

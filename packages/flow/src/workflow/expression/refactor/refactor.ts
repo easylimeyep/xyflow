@@ -117,12 +117,7 @@ function getExpressionConfigKeys(kind: NodeKind): string[] {
   const fieldKeys = definition.fields
     .filter((field) => field.ui === "expression" && (field.type === "text" || field.type === "textarea"))
     .map((field) => field.key)
-
-  if (kind === "setVariable") {
-    return [...fieldKeys, "valueExpression"]
-  }
-
-  return fieldKeys
+  return [...fieldKeys, ...(definition.extraExpressionConfigKeys ?? [])]
 }
 
 function escapeRegExp(input: string): string {

@@ -4,6 +4,6 @@ import type { WorkflowStoreState } from "../types"
 
 export function createExpressionSlice(
   initialGraph: WorkflowGraphState
-): Pick<WorkflowStoreState, "expressionDeps" | "expressionStructuralSignature"> {
+): Pick<WorkflowStoreState, "expressionDeps" | "expressionStructuralSignature" | "expressionCatalogCache"> {
   return buildExpressionSliceState(initialGraph)
 }

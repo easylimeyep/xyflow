@@ -4,6 +4,7 @@ import type { HistoryState } from "@workspace/store"
 
 import type { WorkflowError } from "../types/errors"
 import type {
+  ExpressionVariableOption,
   NodeKind,
   WorkflowEdge,
   WorkflowGraphState,
@@ -50,6 +51,7 @@ export interface WorkflowStoreQueries {
   history: HistoryState<WorkflowGraphState>
   expressionDeps: ExpressionDepsGraph
   expressionStructuralSignature: string
+  expressionCatalogCache: Map<string, ExpressionVariableOption[]>
   selectedNodeIds: string[]
   nodeDragOriginGraph: WorkflowGraphState | null
   lastPointerFlowPosition: XYPosition | null

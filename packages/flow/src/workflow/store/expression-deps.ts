@@ -71,20 +71,21 @@ export function computeStructuralSignature(expressionDeps: ExpressionDepsGraph):
 
 export function buildExpressionSliceState(graph: WorkflowGraphState): Pick<
   WorkflowStoreState,
-  "expressionDeps" | "expressionStructuralSignature"
+  "expressionDeps" | "expressionStructuralSignature" | "expressionCatalogCache"
 > {
   const expressionDeps = projectExpressionDeps(graph)
   const expressionStructuralSignature = computeStructuralSignature(expressionDeps)
   return {
     expressionDeps,
     expressionStructuralSignature,
+    expressionCatalogCache: new Map(),
   }
 }
 
 export function buildExpressionSlicePatch(
   state: WorkflowStoreState,
   graph: WorkflowGraphState
-): Partial<Pick<WorkflowStoreState, "expressionDeps" | "expressionStructuralSignature">> {
+): Partial<Pick<WorkflowStoreState, "expressionDeps" | "expressionStructuralSignature" | "expressionCatalogCache">> {
   const expressionDeps = projectExpressionDeps(graph)
   const expressionStructuralSignature = computeStructuralSignature(expressionDeps)
   if (state.expressionStructuralSignature === expressionStructuralSignature) {
@@ -93,5 +94,6 @@ export function buildExpressionSlicePatch(
   return {
     expressionDeps,
     expressionStructuralSignature,
+    expressionCatalogCache: new Map(),
   }
 }

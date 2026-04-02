@@ -4,6 +4,7 @@ import type { JsonObject, WorkflowNode, WorkflowNodeData } from "../types/types"
 import { nodeRegistry, type NodeKind } from "./registry"
 
 export const DEFAULT_NODE_WIDTH = 260
+export const DEFAULT_NODE_HEIGHT = 80
 
 export function createNodeId(kind: string): string {
   return `${kind}-${crypto.randomUUID()}`

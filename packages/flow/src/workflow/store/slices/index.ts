@@ -1,6 +1,8 @@
+export { createConnectionSlice } from "./connection-slice"
 export { createExpressionSlice } from "./expression-slice"
 export { createGraphSlice } from "./graph-slice"
 export { createHistorySlice } from "./history-slice"
 export { createIntentSlice } from "./intent-slice"
 export { createIoSlice } from "./io-slice"
+export { createNodeCrudSlice } from "./node-crud-slice"
 export { createSelectionSlice } from "./selection-slice"

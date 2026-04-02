@@ -55,26 +55,16 @@ export const selectSelectedNode = (
 }
 
 
-let cachedExpressionStructuralSignature = ""
-let expressionCatalogByNodeId = new Map<string, ExpressionVariableOption[]>()
-
 export const selectExpressionVariablesForNode = (
   state: WorkflowStoreState,
   nodeId: string | null
 ): ExpressionVariableOption[] => {
-  const signature = state.expressionStructuralSignature
-  if (signature !== cachedExpressionStructuralSignature) {
-    cachedExpressionStructuralSignature = signature
-    expressionCatalogByNodeId = new Map<string, ExpressionVariableOption[]>()
-  }
   const cacheKey = nodeId ?? "__global__"
-  const cached = expressionCatalogByNodeId.get(cacheKey)
+  const cached = state.expressionCatalogCache.get(cacheKey)
   if (cached) {
     return cached
   }
   const nodes = state.history.present.nodes
   const edges = state.history.present.edges
-  const value = buildExpressionVariableCatalog(nodes, edges, nodeId)
-  expressionCatalogByNodeId.set(cacheKey, value)
-  return value
+  return buildExpressionVariableCatalog(nodes, edges, nodeId)
 }

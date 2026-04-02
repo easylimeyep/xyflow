@@ -4,11 +4,13 @@ import { initialWorkflowGraph } from "../default-graph/default-graph"
 import type { WorkflowGraphState } from "../types/types"
 import { cloneGraphState } from "./helpers"
 import {
+  createConnectionSlice,
   createExpressionSlice,
   createGraphSlice,
   createHistorySlice,
   createIntentSlice,
   createIoSlice,
+  createNodeCrudSlice,
   createSelectionSlice,
 } from "./slices"
 import type { WorkflowStoreInitialProps, WorkflowStoreState } from "./types"
@@ -32,6 +34,8 @@ export function createWorkflowStore(
     ...createExpressionSlice(initialGraph),
     ...createSelectionSlice(set, get),
     ...createIntentSlice(set, get),
+    ...createNodeCrudSlice(set, get),
+    ...createConnectionSlice(set, get),
     ...createGraphSlice(set, get),
     ...createHistorySlice(set, get),
     ...createIoSlice(set, get),
