@@ -149,7 +149,6 @@ function ToolbarContainer() {
     setLastError,
     undo,
     redo,
-    exportInternal,
     exportDomain,
     importFromJson,
   } = useWorkflowShallowStore((state: WorkflowStoreState) => ({
@@ -159,7 +158,6 @@ function ToolbarContainer() {
     setLastError: state.setLastError,
     undo: state.undo,
     redo: state.redo,
-    exportInternal: state.exportInternal,
     exportDomain: state.exportDomain,
     importFromJson: state.importFromJson,
   }))
@@ -172,7 +170,6 @@ function ToolbarContainer() {
       onUndo={undo}
       onRedo={redo}
       onClearError={() => setLastError(null)}
-      onExportInternal={exportInternal}
       onExportDomain={exportDomain}
       onImportJson={importFromJson}
     />

@@ -7,7 +7,6 @@ import {
 } from "../graph-refactors"
 import {
   exportDomainJson,
-  exportInternalJson,
   exportSelectionClipboardJson,
   parseInternalGraphJson,
   parseSelectionClipboardJson,
@@ -146,9 +145,6 @@ export const createIoSlice: WorkflowSliceCreator = (set, get) => ({
       }),
     }))
     return true
-  },
-  exportInternal: () => {
-    return exportInternalJson(get().history.present)
   },
   exportDomain: () => {
     return exportDomainJson(get().history.present)

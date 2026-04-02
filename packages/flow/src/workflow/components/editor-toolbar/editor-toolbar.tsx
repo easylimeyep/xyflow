@@ -13,7 +13,6 @@ interface EditorToolbarProps {
   onUndo: () => void
   onRedo: () => void
   onClearError: () => void
-  onExportInternal: () => string
   onExportDomain: () => string
   onImportJson: (rawJson: string) => boolean
 }
@@ -38,7 +37,6 @@ export function EditorToolbar({
   onUndo,
   onRedo,
   onClearError,
-  onExportInternal,
   onExportDomain,
   onImportJson,
 }: EditorToolbarProps) {
@@ -57,16 +55,6 @@ export function EditorToolbar({
         </Button>
         <Button type="button" variant="outline" onClick={onRedo} disabled={!canRedo}>
           Redo
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={async () => {
-            const copied = await copyToClipboard(onExportInternal())
-            setStatusMessage(copied ? "Internal JSON copied." : "Failed to copy internal JSON.")
-          }}
-        >
-          Export Internal
         </Button>
         <Button
           type="button"

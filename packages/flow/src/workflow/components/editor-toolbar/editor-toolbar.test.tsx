@@ -19,7 +19,7 @@ describe("EditorToolbar", () => {
     cleanup()
   })
 
-  it("exports json to clipboard and shows status", async () => {
+  it("exports domain json to clipboard and shows status", async () => {
     const user = userEvent.setup()
     render(
       <EditorToolbar
@@ -29,16 +29,15 @@ describe("EditorToolbar", () => {
         onUndo={vi.fn()}
         onRedo={vi.fn()}
         onClearError={vi.fn()}
-        onExportInternal={() => '{"type":"internal"}'}
         onExportDomain={() => '{"type":"domain"}'}
         onImportJson={vi.fn().mockReturnValue(true)}
       />
     )
 
-    await user.click(screen.getByRole("button", { name: "Export Internal" }))
+    await user.click(screen.getByRole("button", { name: "Export Domain" }))
     expect(
-      screen.queryByText("Internal JSON copied.") ??
-        screen.queryByText("Failed to copy internal JSON.")
+      screen.queryByText("Domain JSON copied.") ??
+        screen.queryByText("Failed to copy domain JSON.")
     ).not.toBeNull()
   })
 
@@ -57,7 +56,6 @@ describe("EditorToolbar", () => {
         onUndo={vi.fn()}
         onRedo={vi.fn()}
         onClearError={vi.fn()}
-        onExportInternal={() => "{}"}
         onExportDomain={() => "{}"}
         onImportJson={onImportJson}
       />

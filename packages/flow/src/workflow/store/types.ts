@@ -91,7 +91,6 @@ export interface WorkflowStoreIOCommands {
   copySelectionToClipboard: () => Promise<boolean>
   pasteFromClipboard: () => Promise<boolean>
   importFromJson: (rawJson: string) => boolean
-  exportInternal: () => string
   exportDomain: () => string
 }
 

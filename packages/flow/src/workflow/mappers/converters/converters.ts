@@ -91,10 +91,6 @@ export function domainToInternal(dto: DomainWorkflowDTO): WorkflowGraphState {
   }
 }
 
-export function exportInternalJson(graph: WorkflowGraphState): string {
-  return JSON.stringify(graph, null, 2)
-}
-
 export function exportDomainJson(graph: WorkflowGraphState): string {
   return JSON.stringify(internalToDomain(graph), null, 2)
 }
