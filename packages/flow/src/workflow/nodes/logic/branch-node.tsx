@@ -30,6 +30,7 @@ import {
   ALL_CONDITION_OPERATORS as ALL_OPERATORS,
   OPERATORS_WITH_TARGET as WITH_TARGET,
 } from "../../types"
+import { branch } from "./branch"
 import { NodeShell } from "../node-shell/node-shell"
 import { useBaseNodeData } from "../shared"
 import { useNodeStoreData } from "../shared/use-node-store-data"
@@ -241,6 +242,7 @@ export function BranchNode({ id, data, selected }: NodeProps) {
       title={label}
       subtitle={`${conditions.length} condition${conditions.length !== 1 ? "s" : ""}`}
       selected={selected}
+      outputs={branch.outputs}
     >
       <div className={styles.root()}>
         <div className={styles.conditionList()}>
