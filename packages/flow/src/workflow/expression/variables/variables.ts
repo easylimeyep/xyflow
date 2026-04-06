@@ -48,7 +48,7 @@ export function buildExpressionVariableCatalog(
       group,
       label: `${nodeReference}.item.json.${variableName}`,
       value: `${nodeReference}.item.json.${variableName}`,
-      description: "Variable value from this Set Variable node.",
+      description: "Variable value from this Concatenate node.",
     })
     options.push({
       group: "Workflow variables",

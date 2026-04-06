@@ -13,7 +13,7 @@ import { useNodeStoreData } from "../../shared/use-node-store-data"
 
 export function SetVariableNode({ id, data, selected }: NodeProps) {
   const { label: baseLabel, config } = useBaseNodeData(data)
-  const label = baseLabel || "Set Variable"
+  const label = baseLabel || "Concatenate"
   const { expressionVariables, updateNodeConfig, isSetVariableNameUnique } = useNodeStoreData(id)
 
   const variableNameFromStore = asText(config.variableName)

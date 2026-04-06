@@ -4,7 +4,7 @@ import { defineNode } from "../../../node-registry/define-node"
 
 export const setVariable = defineNode({
   kind: "setVariable" as const,
-  title: "Set Variable",
+  title: "Concatenate",
   description: "Create reusable variable value for downstream nodes.",
   icon: Braces,
   category: "data",

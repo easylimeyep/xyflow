@@ -4,6 +4,7 @@ import { branch } from "../nodes/logic/branch"
 import { inlineExpression } from "../nodes/data/inline-expression/definition"
 import { setVariable } from "../nodes/data/set-variable/definition"
 import { extractor } from "../nodes/data/extractor/definition"
+import { result } from "../nodes/logic/result"
 
 const allDefinitions = [
   trigger,
@@ -11,6 +12,7 @@ const allDefinitions = [
   setVariable,
   inlineExpression,
   extractor,
+  result,
 ] as const
 
 type AllDefinitions = typeof allDefinitions

@@ -20,12 +20,15 @@ export function ExtractorNode({ id, data, selected }: NodeProps) {
 
   const extractExpressionFromStore = asText(config.extractExpression)
   const tokenNumberFromStore =
-    typeof config.tokenNumber === "number" && Number.isFinite(config.tokenNumber)
+    typeof config.tokenNumber === "number" &&
+    Number.isFinite(config.tokenNumber)
       ? Math.max(0, Math.trunc(config.tokenNumber))
       : 0
   const unlimitedFromStore = config.unlimited === true
 
-  const [draftTokenNumber, setDraftTokenNumber] = useState(String(tokenNumberFromStore))
+  const [draftTokenNumber, setDraftTokenNumber] = useState(
+    String(tokenNumberFromStore)
+  )
   const [isTokenNumberFocused, setIsTokenNumberFocused] = useState(false)
   const [tokenNumberError, setTokenNumberError] = useState<string | null>(null)
   const tokenInputRef = useRef<HTMLInputElement | null>(null)
@@ -64,12 +67,7 @@ export function ExtractorNode({ id, data, selected }: NodeProps) {
   }, [draftTokenNumber, id, tokenNumberFromStore, updateNodeConfig])
 
   return (
-    <NodeShell
-      nodeId={id}
-      title={label}
-      subtitle=""
-      selected={selected}
-    >
+    <NodeShell nodeId={id} title={label} subtitle="" selected={selected}>
       <div className={styles.root()}>
         <div className={styles.fieldGroup()}>
           <Label className={styles.label()}>Token Number</Label>
@@ -121,7 +119,7 @@ export function ExtractorNode({ id, data, selected }: NodeProps) {
         >
           {({ value, onChange }) => (
             <>
-              <Label className={styles.label()}>Extract Expression</Label>
+              <Label className={styles.label()}>Label</Label>
               <ExpressionInput
                 value={value}
                 placeholder='{{ $node("Trigger").item.json.eventName }}'

@@ -8,6 +8,7 @@ describe("workflow node registry", () => {
     const definition = nodeRegistry.setVariable
 
     expect(definition.kind).toBe("setVariable")
+    expect(definition.title).toBe("Concatenate")
     expect(definition.buildDefaultConfig().variableName).toBe("myVar")
   })
 
@@ -15,6 +16,7 @@ describe("workflow node registry", () => {
     const node = createWorkflowNode("setVariable", { x: 0, y: 0 })
 
     expect(node.type).toBe("setVariable")
+    expect(node.data.label).toBe("Concatenate")
     expect(node.data.config.variableName).toBe("myVar")
     expect(node.data.config.valueExpression).toBe("{{ $input.item.json }}")
   })
@@ -35,6 +37,29 @@ describe("workflow node registry", () => {
 
     expect(node.type).toBe("inlineExpression")
     expect(node.data.config.template).toBe("{{ $input.item.json }}")
+  })
+
+  it("includes result node definition", () => {
+    const definition = nodeRegistry.result
+
+    expect(definition.kind).toBe("result")
+    expect(definition.category).toBe("logic")
+
+    const categoryField = definition.fields.find((f) => f.key === "category")
+    expect(categoryField).toBeDefined()
+    expect(categoryField?.type).toBe("select")
+    expect(categoryField?.label).toBe("Category")
+    expect(categoryField?.options).toEqual([
+      { label: "true", value: "true" },
+      { label: "false", value: "false" },
+    ])
+  })
+
+  it("creates result node with default config", () => {
+    const node = createWorkflowNode("result", { x: 0, y: 0 })
+
+    expect(node.type).toBe("result")
+    expect(node.data.config.category).toBe("true")
   })
 
 })

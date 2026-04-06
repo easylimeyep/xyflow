@@ -9,10 +9,10 @@ import {
 
 describe("expression variable refactor", () => {
   it("replaces both $vars and $node references in expression text", () => {
-    const nodeLabel = "Set Variable"
+    const nodeLabel = "Concatenate"
     const source = [
       "{{ $vars.oldName }}",
-      '{{ $node("Set Variable").item.json.oldName }}',
+      '{{ $node("Concatenate").item.json.oldName }}',
       "{{ $vars.oldNameSuffix }}",
     ].join(" ")
 
@@ -23,7 +23,7 @@ describe("expression variable refactor", () => {
     })
 
     expect(nextValue).toContain("$vars.newName")
-    expect(nextValue).toContain('$node("Set Variable").item.json.newName')
+    expect(nextValue).toContain('$node("Concatenate").item.json.newName')
     expect(nextValue).toContain("$vars.oldNameSuffix")
   })
 

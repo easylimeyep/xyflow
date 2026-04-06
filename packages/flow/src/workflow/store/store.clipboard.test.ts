@@ -116,7 +116,7 @@ describe("workflow store clipboard actions", () => {
     const pastedNodeIds = [...nextState.selectedNodeIds]
     const pastedSetVariable = pastedNodes.find((node) => node.data.kind === "setVariable")
     expect(pastedSetVariable?.position).toEqual({ x: 300, y: 200 })
-    expect(pastedSetVariable?.data.label).toBe("Set Variable 2")
+    expect(pastedSetVariable?.data.label).toBe("Concatenate 2")
     expect(pastedSetVariable?.data.config.variableName).toBe("myVar2")
 
     // Regression: selection remains stable through deselect/reselect interactions after paste.
@@ -165,7 +165,7 @@ describe("workflow store clipboard actions", () => {
         id: "parallel-copy-set-variable",
         kind: "setVariable",
         position: { x: 10, y: 20 },
-        label: "Set Variable",
+        label: "Concatenate",
         config: {
           variableName: "myVar",
           valueExpression: "{{ $input.item.json }}",
@@ -216,7 +216,7 @@ describe("workflow store clipboard actions", () => {
         id: "label-copy-set-variable",
         kind: "setVariable",
         position: { x: 20, y: 20 },
-        label: "Set Variable",
+        label: "Concatenate",
         config: {
           variableName: "myVar",
           valueExpression: "{{ $input.item.json }}",
@@ -228,7 +228,7 @@ describe("workflow store clipboard actions", () => {
         position: { x: 200, y: 20 },
         label: "Keyword",
         config: {
-          template: '{{ $node("Set Variable").item.json.myVar }}',
+          template: '{{ $node("Concatenate").item.json.myVar }}',
         },
       },
     ]
@@ -253,7 +253,7 @@ describe("workflow store clipboard actions", () => {
     const pastedInlineExpression = pastedNodes.find((node) => node.data.kind === "inlineExpression")
 
     expect(pastedInlineExpression?.data.config.template).toContain(
-      '$node("Set Variable 2").item.json.myVar'
+      '$node("Concatenate 2").item.json.myVar'
     )
   })
 

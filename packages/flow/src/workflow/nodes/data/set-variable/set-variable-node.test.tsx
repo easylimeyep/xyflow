@@ -53,7 +53,7 @@ function createNodeProps(variableName: string, valueExpression: string): NodePro
     type: "setVariable",
     data: {
       kind: "setVariable",
-      label: "Set Variable",
+      label: "Concatenate",
       config: { variableName, valueExpression },
     },
     selected: false,
@@ -88,7 +88,7 @@ describe("SetVariableNode", () => {
         position: { x: 0, y: 0 },
         data: {
           kind: "setVariable",
-          label: "Set Variable",
+          label: "Concatenate",
           config: { variableName: "myVar", valueExpression: "" },
         },
       } as WorkflowNode,
@@ -159,7 +159,7 @@ describe("SetVariableNode", () => {
         position: { x: 0, y: 0 },
         data: {
           kind: "setVariable",
-          label: "Set Variable",
+          label: "Concatenate",
           config: { variableName: "myVar", valueExpression: "" },
         },
       } as WorkflowNode,
@@ -169,7 +169,7 @@ describe("SetVariableNode", () => {
         position: { x: 200, y: 0 },
         data: {
           kind: "setVariable",
-          label: "Set Variable 2",
+          label: "Concatenate 2",
           config: { variableName: "existing", valueExpression: "" },
         },
       } as WorkflowNode,

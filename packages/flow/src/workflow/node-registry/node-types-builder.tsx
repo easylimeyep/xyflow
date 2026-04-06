@@ -7,6 +7,7 @@ import { InlineExpressionNode } from "../nodes/data/inline-expression/inline-exp
 import { ExtractorNode } from "../nodes/data/extractor/extractor-node"
 import { SetVariableNode } from "../nodes/data/set-variable/set-variable-node"
 import { BranchNode } from "../nodes/logic/branch-node"
+import { ResultNode } from "../nodes/logic/result-node"
 import { DefaultNodeRenderer } from "../nodes/shared/default-node-renderer"
 import type { NodeDefinition } from "./define-node"
 
@@ -15,6 +16,7 @@ const componentOverrides: Record<string, ComponentType<NodeProps>> = {
   inlineExpression: InlineExpressionNode,
   setVariable: SetVariableNode,
   extractor: ExtractorNode,
+  result: ResultNode,
 }
 
 export function buildNodeTypes(
