@@ -15,6 +15,7 @@ export const setVariable = defineNode({
     "setVariable",
     "inlineExpression",
     "extractor",
+    "result",
   ],
   buildDefaultConfig: () => ({
     variableName: "myVar",

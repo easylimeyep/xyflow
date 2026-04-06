@@ -28,7 +28,7 @@ export const extractor = defineNode({
     },
   ],
   outputPaths: [],
-  allowedTargets: ["branch", "setVariable", "inlineExpression", "extractor"],
+  allowedTargets: ["branch", "setVariable", "inlineExpression", "extractor", "result"],
   buildDefaultConfig: () => ({
     tokenNumber: 0,
     extractExpression: "{{ $input.item.json }}",

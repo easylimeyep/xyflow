@@ -23,6 +23,7 @@ export const inlineExpression = defineNode({
     "setVariable",
     "inlineExpression",
     "extractor",
+    "result",
   ],
   buildDefaultConfig: () => ({ template: "{{ $input.item.json }}" }),
 })

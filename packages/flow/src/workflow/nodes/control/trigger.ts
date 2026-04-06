@@ -24,6 +24,7 @@ export const trigger = defineNode({
     "setVariable",
     "inlineExpression",
     "extractor",
+    "result",
   ],
   buildDefaultConfig: () => ({ eventName: "config-file-uploaded" }),
   showTarget: false,

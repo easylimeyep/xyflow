@@ -2,7 +2,10 @@
 
 import type { NodeProps } from "@xyflow/react"
 
-import { NativeSelect, NativeSelectOption } from "@workspace/ui/components/native-select"
+import {
+  NativeSelect,
+  NativeSelectOption,
+} from "@workspace/ui/components/native-select"
 
 import { resultNodeStyles } from "../../../styles/components/nodes"
 import { NodeShell } from "../node-shell/node-shell"
@@ -15,7 +18,8 @@ export function ResultNode({ id, data, selected }: NodeProps) {
     (state: WorkflowStoreState) => state.updateNodeConfig
   )
   const styles = resultNodeStyles()
-  const category = typeof config.category === "string" ? config.category : "true"
+  const category =
+    typeof config.category === "string" ? config.category : "true"
 
   return (
     <NodeShell
@@ -31,7 +35,11 @@ export function ResultNode({ id, data, selected }: NodeProps) {
           <NativeSelect
             value={category}
             onChange={(e) =>
-              updateNodeConfig(id, { kind: "result", key: "category", value: e.target.value })
+              updateNodeConfig(id, {
+                kind: "result",
+                key: "category",
+                value: e.target.value,
+              })
             }
           >
             <NativeSelectOption value="true">true</NativeSelectOption>
