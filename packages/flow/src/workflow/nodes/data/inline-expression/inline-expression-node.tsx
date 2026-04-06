@@ -1,6 +1,7 @@
 "use client"
 
 import type { NodeProps } from "@xyflow/react"
+import { Label } from "@workspace/ui/components/label"
 
 import { inlineExpressionNodeStyles } from "../../../../styles/components/nodes"
 import { ExpressionInput } from "../../../components/expression-input"
@@ -18,7 +19,7 @@ export function InlineExpressionNode({ id, data, selected }: NodeProps) {
     <NodeShell
       nodeId={id}
       title={label}
-      subtitle="Inline expression template"
+      subtitle="Template with {{ }} references"
       selected={selected}
     >
       <InlineEditField
@@ -31,6 +32,7 @@ export function InlineExpressionNode({ id, data, selected }: NodeProps) {
       >
         {({ value, onChange }) => (
           <>
+            <Label className={styles.label()}>Tokens</Label>
             <ExpressionInput
               value={value}
               placeholder='{{ $node("Trigger").item.json.eventName }}'

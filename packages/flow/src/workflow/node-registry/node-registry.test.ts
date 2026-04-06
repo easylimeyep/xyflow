@@ -23,6 +23,8 @@ describe("workflow node registry", () => {
     const definition = nodeRegistry.inlineExpression
 
     expect(definition.kind).toBe("inlineExpression")
+    expect(definition.title).toBe("Keyword")
+    expect(definition.fields.find((field) => field.key === "template")?.label).toBe("Tokens")
     expect(definition.fields.some((field) => field.key === "template" && field.ui === "expression")).toBe(
       true
     )

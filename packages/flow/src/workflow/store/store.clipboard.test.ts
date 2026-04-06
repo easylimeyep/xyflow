@@ -226,7 +226,7 @@ describe("workflow store clipboard actions", () => {
         id: "label-copy-inline-expression",
         kind: "inlineExpression",
         position: { x: 200, y: 20 },
-        label: "Inline Expression",
+        label: "Keyword",
         config: {
           template: '{{ $node("Set Variable").item.json.myVar }}',
         },
