@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useState, type ReactNode } from "react"
+import { flushSync } from "react-dom"
 
 import { inlineEditFieldStyles } from "../../../styles/components/nodes"
 import { isInsideExpressionPopover } from "./node-data-utils"
@@ -29,7 +30,11 @@ export function InlineEditField({
   const displayedValue = isFocused ? draft : storeValue
 
   const handleChange = useCallback((nextValue: string) => {
-    setDraft(nextValue)
+    // flushSync forces a synchronous render so that commitDraft's closure
+    // always captures the latest draft value, even when blur fires immediately
+    // after onChange (React 18 automatic batching would otherwise defer the
+    // render, leaving commitDraft with a stale draft).
+    flushSync(() => setDraft(nextValue))
   }, [])
 
   const commitDraft = useCallback(() => {
