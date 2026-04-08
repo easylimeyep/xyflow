@@ -8,7 +8,7 @@ import { setVariableNodeStyles } from "../../../../styles/components/nodes"
 import { ExpressionInput } from "../../../components/expression-input"
 import { isValidJsIdentifier } from "../../../expression/variable-name/variable-name"
 import { NodeShell } from "../../node-shell/node-shell"
-import { InlineEditField, asText, useBaseNodeData } from "../../shared"
+import { asText, useBaseNodeData } from "../../shared"
 import { useNodeStoreData } from "../../shared/use-node-store-data"
 
 export function SetVariableNode({ id, data, selected }: NodeProps) {
@@ -96,28 +96,23 @@ export function SetVariableNode({ id, data, selected }: NodeProps) {
           {nameError ? <p className={styles.errorText()}>{nameError}</p> : null}
         </div>
 
-        <InlineEditField
-          className={styles.inlineEditField()}
-          storeValue={valueExpressionFromStore}
-          nodeId={id}
-          configKind="setVariable"
-          configKey="valueExpression"
-          onUpdate={updateNodeConfig}
-        >
-          {({ value, onChange }) => (
-            <>
-              <label className={styles.label()}>
-                Value expression
-              </label>
-              <ExpressionInput
-                value={value}
-                placeholder='{{ $node("Trigger").item.json.eventName }}'
-                variables={expressionVariables}
-                onChange={onChange}
-              />
-            </>
-          )}
-        </InlineEditField>
+        <div className={styles.inlineEditField()}>
+          <label className={styles.label()}>
+            Value expression
+          </label>
+          <ExpressionInput
+            value={valueExpressionFromStore}
+            placeholder='{{ $node("Trigger").item.json.eventName }}'
+            variables={expressionVariables}
+            onChange={(nextValue) => {
+              updateNodeConfig(id, {
+                kind: "setVariable",
+                key: "valueExpression",
+                value: nextValue,
+              })
+            }}
+          />
+        </div>
       </div>
     </NodeShell>
   )

@@ -76,15 +76,11 @@ describe("InlineExpressionNode", () => {
     cleanup()
   })
 
-  it("commits template only on blur", () => {
+  it("forwards ExpressionInput changes to node config", () => {
     render(<InlineExpressionNode {...createNodeProps("{{ $input.item.json }}")} />)
 
     const input = screen.getByTestId("inline-expression-input")
     fireEvent.change(input, { target: { value: "{{ $input.item.json.name }}" } })
-
-    expect(mockUpdateNodeConfig).not.toHaveBeenCalled()
-
-    fireEvent.blur(input)
 
     expect(mockUpdateNodeConfig).toHaveBeenCalledTimes(1)
     expect(mockUpdateNodeConfig).toHaveBeenCalledWith("inline-node-1", {
@@ -94,12 +90,11 @@ describe("InlineExpressionNode", () => {
     })
   })
 
-  it("commits template on Enter key", () => {
+  it("uses inlineExpression template key for updates", () => {
     render(<InlineExpressionNode {...createNodeProps("{{ $input.item.json }}")} />)
 
     const input = screen.getByTestId("inline-expression-input")
     fireEvent.change(input, { target: { value: "{{ $input.item.json.id }}" } })
-    fireEvent.keyDown(input, { key: "Enter" })
 
     expect(mockUpdateNodeConfig).toHaveBeenCalledTimes(1)
     expect(mockUpdateNodeConfig).toHaveBeenCalledWith("inline-node-1", {

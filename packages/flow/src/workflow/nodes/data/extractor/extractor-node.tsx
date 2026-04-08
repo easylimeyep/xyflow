@@ -10,7 +10,7 @@ import { useCallback, useRef, useState } from "react"
 import { setVariableNodeStyles } from "../../../../styles/components/nodes"
 import { ExpressionInput } from "../../../components/expression-input"
 import { NodeShell } from "../../node-shell/node-shell"
-import { InlineEditField, asText, useBaseNodeData } from "../../shared"
+import { asText, useBaseNodeData } from "../../shared"
 import { useNodeStoreData } from "../../shared/use-node-store-data"
 
 export function ExtractorNode({ id, data, selected }: NodeProps) {
@@ -109,26 +109,21 @@ export function ExtractorNode({ id, data, selected }: NodeProps) {
           ) : null}
         </div>
 
-        <InlineEditField
-          className={styles.inlineEditField()}
-          storeValue={extractExpressionFromStore}
-          nodeId={id}
-          configKind="extractor"
-          configKey="extractExpression"
-          onUpdate={updateNodeConfig}
-        >
-          {({ value, onChange }) => (
-            <>
-              <Label className={styles.label()}>Label</Label>
-              <ExpressionInput
-                value={value}
-                placeholder='{{ $node("Trigger").item.json.eventName }}'
-                variables={expressionVariables}
-                onChange={onChange}
-              />
-            </>
-          )}
-        </InlineEditField>
+        <div className={styles.inlineEditField()}>
+          <Label className={styles.label()}>Label</Label>
+          <ExpressionInput
+            value={extractExpressionFromStore}
+            placeholder='{{ $node("Trigger").item.json.eventName }}'
+            variables={expressionVariables}
+            onChange={(nextValue) => {
+              updateNodeConfig(id, {
+                kind: "extractor",
+                key: "extractExpression",
+                value: nextValue,
+              })
+            }}
+          />
+        </div>
 
         <FieldGroup>
           <Field>

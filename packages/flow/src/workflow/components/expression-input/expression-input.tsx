@@ -22,7 +22,7 @@ import {
   PopoverContent,
 } from "@workspace/ui/components/popover"
 import CodeMirror from "@uiw/react-codemirror"
-import { useCallback, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 import { createExpressionCompletionSource } from "../../expression/autocomplete"
 import {
@@ -52,16 +52,60 @@ export function ExpressionInput({
   const editorViewRef = useRef<EditorView | null>(null)
   const [pickerOpen, setPickerOpen] = useState(false)
 
+  // Internal live value for validation display — updated on every keystroke.
+  // The committed `value` prop is only updated on blur/Enter, so we need a
+  // separate state to show validation errors while typing.
+  const [liveValue, setLiveValue] = useState(value)
+
+  // Sync liveValue when value changes from an external source (e.g. undo/redo).
+  useEffect(() => {
+    setLiveValue(value)
+  }, [value])
+
+  // Stable ref to the latest commit callback. The CodeMirror extensions below
+  // use this ref so they can be created once (empty deps) without stale closures.
+  const commitRef = useRef<() => void>(() => {})
+  commitRef.current = () => {
+    const currentDoc = editorViewRef.current?.state.doc.toString()
+    if (currentDoc !== undefined && currentDoc !== value) {
+      onChange(currentDoc)
+    }
+  }
+
   const groupedVariables = useMemo(
     () => groupVariablesBySection(variables),
     [variables]
   )
-  const validation = useMemo(() => validateTemplateExpression(value), [value])
+  const validation = useMemo(() => validateTemplateExpression(liveValue), [liveValue])
   const styles = expressionInputStyles()
   const completionSource = useMemo<ExpressionCompletionSource>(
     () => createExpressionCompletionSource(variables),
     [variables]
   )
+
+  // Stable extension that commits on blur and on Enter (without Shift).
+  // Empty deps: reads commitRef.current at call-time, never stale.
+  const commitExtension = useMemo(
+    () => [
+      EditorView.updateListener.of((vu: ViewUpdate) => {
+        if (vu.focusChanged && !vu.view.hasFocus) {
+          commitRef.current()
+        }
+      }),
+      EditorView.domEventHandlers({
+        keydown(event, view) {
+          if (event.key === "Enter" && !event.shiftKey) {
+            event.preventDefault()
+            commitRef.current()
+            view.dom.blur()
+            return true
+          }
+        },
+      }),
+    ],
+    []
+  )
+
   const extensions = useMemo(
     () => [
       javascript(),
@@ -71,8 +115,9 @@ export function ExpressionInput({
         tooltipClass: () => "cm-shadcn-autocomplete",
       }),
       EditorView.lineWrapping,
+      commitExtension,
     ],
-    [completionSource]
+    [completionSource, commitExtension]
   )
   const basicSetup = useMemo(
     () => ({
@@ -152,10 +197,10 @@ export function ExpressionInput({
     editorViewRef.current = nextEditorView
   }, [])
 
+  // onChange is NOT called here — commits happen on blur/Enter via commitExtension.
+  // liveValue is updated on every keystroke for live validation display.
   const handleChange = useCallback((nextValue: string, viewUpdate: ViewUpdate) => {
-    if (nextValue !== value) {
-      onChange(nextValue)
-    }
+    setLiveValue(nextValue)
 
     if (pickerOpen) {
       return
@@ -174,7 +219,7 @@ export function ExpressionInput({
     if (justTypedWrappedTrigger) {
       setPickerOpen(true)
     }
-  }, [onChange, pickerOpen, value])
+  }, [pickerOpen])
 
   return (
     <div className={styles.root()}>
