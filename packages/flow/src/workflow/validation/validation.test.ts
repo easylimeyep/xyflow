@@ -5,12 +5,13 @@ import { getKindsFromConnection, validateConnection } from "./validation"
 
 describe("validateConnection", () => {
   it("allows valid source/target combination", () => {
-    const trigger = createWorkflowNode("trigger", { x: 0, y: 0 })
+    const rootKeyword = createWorkflowNode("inlineExpression", { x: 0, y: 0 })
+    rootKeyword.data.config.isRoot = true
     const inline = createWorkflowNode("inlineExpression", { x: 300, y: 0 })
 
     const result = validateConnection(
-      { source: trigger.id, target: inline.id },
-      [trigger, inline],
+      { source: rootKeyword.id, target: inline.id },
+      [rootKeyword, inline],
       []
     )
 
@@ -19,34 +20,38 @@ describe("validateConnection", () => {
 
   it("rejects invalid combination", () => {
     const inline = createWorkflowNode("inlineExpression", { x: 0, y: 0 })
-    const trigger = createWorkflowNode("trigger", { x: 300, y: 0 })
+    const rootKeyword = createWorkflowNode("inlineExpression", { x: 300, y: 0 })
+    rootKeyword.data.config.isRoot = true
 
-    // inlineExpression.allowedTargets does not include "trigger"
     const result = validateConnection(
-      { source: inline.id, target: trigger.id },
-      [inline, trigger],
+      { source: inline.id, target: rootKeyword.id },
+      [inline, rootKeyword],
       []
     )
 
     expect(result.valid).toBe(false)
-    expect(result.reason).toContain("cannot connect")
+    expect(result.reason).toContain("Root Keyword")
   })
 
   it("rejects duplicate edges", () => {
-    const trigger = createWorkflowNode("trigger", { x: 0, y: 0 })
+    const rootKeyword = createWorkflowNode("inlineExpression", { x: 0, y: 0 })
+    rootKeyword.data.config.isRoot = true
     const inline = createWorkflowNode("inlineExpression", { x: 300, y: 0 })
     const existingEdge = {
-      id: "trigger-inline",
-      source: trigger.id,
+      id: "keyword-inline",
+      source: rootKeyword.id,
       target: inline.id,
       sourceHandle: null,
       targetHandle: null,
-      data: { sourceKind: "trigger" as const, targetKind: "inlineExpression" as const },
+      data: {
+        sourceKind: "inlineExpression" as const,
+        targetKind: "inlineExpression" as const,
+      },
     }
 
     const result = validateConnection(
-      { source: trigger.id, target: inline.id },
-      [trigger, inline],
+      { source: rootKeyword.id, target: inline.id },
+      [rootKeyword, inline],
       [existingEdge]
     )
 
@@ -83,16 +88,17 @@ describe("validateConnection", () => {
   })
 
   it("resolves source and target kinds from valid connection", () => {
-    const trigger = createWorkflowNode("trigger", { x: 0, y: 0 })
+    const rootKeyword = createWorkflowNode("inlineExpression", { x: 0, y: 0 })
+    rootKeyword.data.config.isRoot = true
     const inline = createWorkflowNode("inlineExpression", { x: 200, y: 0 })
 
     const result = getKindsFromConnection(
-      { source: trigger.id, target: inline.id },
-      [trigger, inline]
+      { source: rootKeyword.id, target: inline.id },
+      [rootKeyword, inline]
     )
 
     expect(result).toEqual({
-      sourceKind: "trigger",
+      sourceKind: "inlineExpression",
       targetKind: "inlineExpression",
     })
   })

@@ -33,10 +33,6 @@ export interface ExpressionVariableOption {
   group: string
 }
 
-export type TriggerNodeConfig = {
-  eventName: string
-}
-
 export type ConditionOperator =
   | "is equal to"
   | "is not equal to"
@@ -117,6 +113,7 @@ export type CustomInputNodeConfig = {
 
 export type InlineExpressionNodeConfig = {
   template: string
+  isRoot: boolean
 }
 
 export type SetVariableNodeConfig = {
@@ -131,7 +128,6 @@ export type ExtractorNodeConfig = {
 }
 
 export interface NodeConfigByKind {
-  trigger: TriggerNodeConfig
   branch: BranchNodeConfig
   transform: TransformNodeConfig
   code: CodeNodeConfig

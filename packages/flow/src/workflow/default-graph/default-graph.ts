@@ -5,10 +5,11 @@ import type { WorkflowGraphState } from "../types/types"
 
 export const DEFAULT_VIEWPORT: Viewport = { x: 0, y: 0, zoom: 1 }
 
-const triggerNode = createWorkflowNode("trigger", { x: 0, y: 80 }, "File Trigger")
+const keywordNode = createWorkflowNode("inlineExpression", { x: 0, y: 80 }, "Keyword")
+keywordNode.data.config.isRoot = true
 
 export const initialWorkflowGraph: WorkflowGraphState = {
-  nodes: [triggerNode],
+  nodes: [keywordNode],
   edges: [],
   viewport: DEFAULT_VIEWPORT,
   document: {

@@ -10,7 +10,8 @@ import {
 } from "./collection-diff"
 
 function createGraphState(): WorkflowGraphState {
-  const source = createWorkflowNode("trigger", { x: 0, y: 0 })
+  const source = createWorkflowNode("inlineExpression", { x: 0, y: 0 })
+  source.data.config.isRoot = true
   const target = createWorkflowNode("inlineExpression", { x: 300, y: 0 })
   return {
     nodes: [source, target],

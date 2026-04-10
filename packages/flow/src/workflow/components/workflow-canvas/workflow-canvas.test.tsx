@@ -9,7 +9,8 @@ import { initialWorkflowGraph } from "../../default-graph"
 import { createWorkflowNode } from "../../node-registry"
 import { WorkflowCanvas } from "./workflow-canvas"
 
-const fixtureSource = createWorkflowNode("trigger", { x: 0, y: 80 })
+const fixtureSource = createWorkflowNode("inlineExpression", { x: 0, y: 80 })
+fixtureSource.data.config.isRoot = true
 const fixtureTarget = createWorkflowNode("inlineExpression", { x: 360, y: 80 })
 const fixtureEdge = {
   id: `${fixtureSource.id}-${fixtureTarget.id}`,
@@ -17,7 +18,10 @@ const fixtureEdge = {
   target: fixtureTarget.id,
   sourceHandle: null,
   targetHandle: null,
-  data: { sourceKind: "trigger" as const, targetKind: "inlineExpression" as const },
+  data: {
+    sourceKind: "inlineExpression" as const,
+    targetKind: "inlineExpression" as const,
+  },
 }
 const fixtureGraphWithEdge = {
   ...initialWorkflowGraph,

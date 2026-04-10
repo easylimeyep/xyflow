@@ -45,6 +45,12 @@ export function applyNodeConfigUpdate(
     return { nextGraph: null, error: null }
   }
 
+  const shouldPruneIncomingEdges =
+    targetNode.data.kind === "inlineExpression" &&
+    update.key === "isRoot" &&
+    previousRawValue !== true &&
+    update.value === true
+
   const nextNodes = currentGraph.nodes.map((node) => {
     if (node.id !== nodeId) return node
     return {
@@ -63,6 +69,9 @@ export function applyNodeConfigUpdate(
     nextGraph: {
       ...currentGraph,
       nodes: nextNodes,
+      edges: shouldPruneIncomingEdges
+        ? currentGraph.edges.filter((edge) => edge.target !== nodeId)
+        : currentGraph.edges,
     },
     error: null,
   }

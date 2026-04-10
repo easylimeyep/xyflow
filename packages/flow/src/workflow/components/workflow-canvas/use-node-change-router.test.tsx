@@ -39,8 +39,9 @@ describe("useNodeChangeRouter", () => {
     const onSelectionChange = vi.fn()
     const onRouter = vi.fn()
 
-    const triggerNode = createWorkflowNode("trigger", { x: 0, y: 0 })
-    const initialNodes = [{ ...triggerNode, selected: false }]
+    const rootKeywordNode = createWorkflowNode("inlineExpression", { x: 0, y: 0 })
+    rootKeywordNode.data.config.isRoot = true
+    const initialNodes = [{ ...rootKeywordNode, selected: false }]
 
     const { rerender } = render(
       <Harness
@@ -69,7 +70,8 @@ describe("useNodeChangeRouter", () => {
     const onSelectionChange = vi.fn()
     const onRouter = vi.fn()
 
-    const nodeA = createWorkflowNode("trigger", { x: 0, y: 0 })
+    const nodeA = createWorkflowNode("inlineExpression", { x: 0, y: 0 })
+    nodeA.data.config.isRoot = true
     const nodeB = createWorkflowNode("inlineExpression", { x: 200, y: 0 })
 
     const { rerender } = render(

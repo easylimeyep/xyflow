@@ -4,7 +4,9 @@ import { createWorkflowNode } from "../node-registry/node-factory"
 import type { WorkflowGraphState } from "../types/types"
 import { applyNodeConfigUpdate } from "./node-config-updates"
 
-function createGraph(nodes = [createWorkflowNode("trigger", { x: 0, y: 0 })]): WorkflowGraphState {
+function createGraph(
+  nodes = [createWorkflowNode("inlineExpression", { x: 0, y: 0 })]
+): WorkflowGraphState {
   return {
     nodes,
     edges: [],
@@ -20,10 +22,10 @@ function createGraph(nodes = [createWorkflowNode("trigger", { x: 0, y: 0 })]): W
 
 describe("applyNodeConfigUpdate", () => {
   it("returns error for mismatched node kind payload", () => {
-    const triggerNode = createWorkflowNode("trigger", { x: 0, y: 0 })
-    const graph = createGraph([triggerNode])
+    const inlineNode = createWorkflowNode("inlineExpression", { x: 0, y: 0 })
+    const graph = createGraph([inlineNode])
 
-    const result = applyNodeConfigUpdate(graph, triggerNode.id, {
+    const result = applyNodeConfigUpdate(graph, inlineNode.id, {
       kind: "extractor",
       key: "tokenNumber",
       value: 10,
@@ -52,5 +54,36 @@ describe("applyNodeConfigUpdate", () => {
     expect(result.nextGraph?.nodes[1]?.data.config.template).toContain(
       `$node("${setVariableNode.data.label}").item.json.newName`
     )
+  })
+
+  it("prunes incoming edges when inlineExpression becomes root", () => {
+    const sourceNode = createWorkflowNode("setVariable", { x: 0, y: 0 })
+    const targetNode = createWorkflowNode("inlineExpression", { x: 200, y: 0 })
+    const graph = createGraph([sourceNode, targetNode])
+    graph.edges = [
+      {
+        id: "edge-1",
+        source: sourceNode.id,
+        target: targetNode.id,
+        sourceHandle: null,
+        targetHandle: null,
+        data: {
+          sourceKind: sourceNode.data.kind,
+          targetKind: targetNode.data.kind,
+        },
+      },
+    ]
+
+    const result = applyNodeConfigUpdate(graph, targetNode.id, {
+      kind: "inlineExpression",
+      key: "isRoot",
+      value: true,
+    })
+
+    expect(result.error).toBeNull()
+    expect(result.nextGraph?.nodes.find((node) => node.id === targetNode.id)?.data.config.isRoot).toBe(
+      true
+    )
+    expect(result.nextGraph?.edges).toHaveLength(0)
   })
 })

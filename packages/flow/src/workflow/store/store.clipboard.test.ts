@@ -6,6 +6,18 @@ import { exportSelectionClipboardJson, parseSelectionClipboardJson } from "../ma
 import { createWorkflowStore } from "./store"
 import type { DomainWorkflowNodeDTO, WorkflowNode } from "../types/types"
 
+function findRootKeywordNode(nodes: WorkflowNode[]): WorkflowNode | undefined {
+  return nodes.find(
+    (node) => node.data.kind === "inlineExpression" && node.data.config.isRoot === true
+  )
+}
+
+function findNonRootKeywordNode(nodes: WorkflowNode[]): WorkflowNode | undefined {
+  return nodes.find(
+    (node) => node.data.kind === "inlineExpression" && node.data.config.isRoot !== true
+  )
+}
+
 describe("workflow store clipboard actions", () => {
   const clipboardWriteTextMock = vi.fn()
   const clipboardReadTextMock = vi.fn()
@@ -29,10 +41,8 @@ describe("workflow store clipboard actions", () => {
     const store = createWorkflowStore()
     const state = store.getState()
     state.addNode("inlineExpression", { x: 360, y: 80 })
-    const triggerNode = store.getState().history.present.nodes.find((node: WorkflowNode) => node.data.kind === "trigger")
-    const inlineNode = store.getState().history.present.nodes.find(
-      (node: WorkflowNode) => node.data.kind === "inlineExpression"
-    )
+    const triggerNode = findRootKeywordNode(store.getState().history.present.nodes)
+    const inlineNode = findNonRootKeywordNode(store.getState().history.present.nodes)
     if (!triggerNode || !inlineNode) {
       throw new Error("fixture nodes not found")
     }
@@ -142,9 +152,7 @@ describe("workflow store clipboard actions", () => {
 
   it("returns false when clipboard write fails", async () => {
     const store = createWorkflowStore()
-    const triggerNode = store
-      .getState()
-      .history.present.nodes.find((node: WorkflowNode) => node.data.kind === "trigger")
+    const triggerNode = findRootKeywordNode(store.getState().history.present.nodes)
     if (!triggerNode) {
       throw new Error("fixture node not found")
     }
@@ -260,22 +268,22 @@ describe("workflow store clipboard actions", () => {
   it("does not commit graph for unchanged config updates", () => {
     const store = createWorkflowStore()
     const initialState = store.getState()
-    const node = initialState.history.present.nodes.find((candidate) => candidate.data.kind === "trigger")
+    const node = findRootKeywordNode(initialState.history.present.nodes)
     if (!node) {
-      throw new Error("trigger node fixture not found")
+      throw new Error("root keyword fixture not found")
     }
 
     const previousHistory = initialState.history
     const previousNodesRef = initialState.history.present.nodes
     const previousNode = node
-    const sameEventName =
-      typeof node.data.config.eventName === "string"
-        ? node.data.config.eventName
+    const sameTemplate =
+      typeof node.data.config.template === "string"
+        ? node.data.config.template
         : ""
     store.getState().updateNodeConfig(node.id, {
-      kind: "trigger",
-      key: "eventName",
-      value: sameEventName,
+      kind: "inlineExpression",
+      key: "template",
+      value: sameTemplate,
     })
 
     const nextState = store.getState()

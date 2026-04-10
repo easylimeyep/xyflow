@@ -101,6 +101,13 @@ export function validateConnection(
     }
   }
 
+  if (targetNode.data.kind === "inlineExpression" && targetNode.data.config.isRoot === true) {
+    return {
+      valid: false,
+      reason: "Root Keyword node cannot accept incoming connections.",
+    }
+  }
+
   const duplicate = edges.some(
     (edge) =>
       edge.source === connection.source &&

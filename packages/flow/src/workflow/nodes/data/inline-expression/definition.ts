@@ -16,6 +16,11 @@ export const inlineExpression = defineNode({
       ui: "expression",
       placeholder: '{{ $input.item.json.value || "fallback" }}',
     },
+    {
+      key: "isRoot",
+      label: "Root",
+      type: "boolean",
+    },
   ],
   outputPaths: ["template"],
   allowedTargets: [
@@ -25,5 +30,8 @@ export const inlineExpression = defineNode({
     "extractor",
     "result",
   ],
-  buildDefaultConfig: () => ({ template: "{{ $input.item.json }}" }),
+  buildDefaultConfig: () => ({
+    template: "{{ $input.item.json }}",
+    isRoot: false,
+  }),
 })

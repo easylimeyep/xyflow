@@ -19,7 +19,7 @@ export const extractor = defineNode({
       label: "Extract ",
       type: "text",
       ui: "expression",
-      placeholder: '{{ $node("Trigger").item.json.eventName }}',
+      placeholder: "{{ $input.item.json }}",
     },
     {
       key: "unlimited",

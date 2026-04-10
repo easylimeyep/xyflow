@@ -2,6 +2,7 @@
 
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 import type { NodeProps } from "@xyflow/react"
+import type { ReactNode } from "react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { InlineExpressionNode } from "./inline-expression-node"
@@ -22,6 +23,23 @@ vi.mock("../../shared/use-node-store-data", () => ({
     updateNodeConfig: mockUpdateNodeConfig,
     isSetVariableNameUnique: () => true,
   }),
+}))
+
+vi.mock("../../node-shell/node-shell", () => ({
+  NodeShell: ({
+    showTarget = true,
+    headerAccessory,
+    children,
+  }: {
+    showTarget?: boolean
+    headerAccessory?: ReactNode
+    children?: ReactNode
+  }) => (
+    <div data-testid="node-shell" data-show-target={String(showTarget)}>
+      {headerAccessory}
+      {children}
+    </div>
+  ),
 }))
 
 vi.mock("../../../components/expression-input", () => ({
@@ -51,7 +69,7 @@ function createNodeProps(template: string): NodeProps {
     data: {
       kind: "inlineExpression",
       label: "Inline Node",
-      config: { template },
+      config: { template, isRoot: false },
     },
     selected: false,
     dragging: false,
@@ -117,5 +135,35 @@ describe("InlineExpressionNode", () => {
     expect(
       (screen.getByTestId("inline-expression-input") as HTMLInputElement).value
     ).toBe("{{ new }}")
+  })
+
+  it("updates isRoot config when Root checkbox toggles", () => {
+    render(<InlineExpressionNode {...createNodeProps("{{ $input.item.json }}")} />)
+
+    fireEvent.click(screen.getByRole("checkbox", { name: /Root/i }))
+
+    expect(mockUpdateNodeConfig).toHaveBeenCalledWith("inline-node-1", {
+      kind: "inlineExpression",
+      key: "isRoot",
+      value: true,
+    })
+  })
+
+  it("hides target handle when node is root", () => {
+    const rootNodeProps = createNodeProps("{{ $input.item.json }}")
+    rootNodeProps.data = {
+      kind: "inlineExpression",
+      label: "Inline Node",
+      config: {
+        template: "{{ $input.item.json }}",
+        isRoot: true,
+      },
+    }
+
+    render(<InlineExpressionNode {...rootNodeProps} />)
+
+    expect(screen.getByTestId("node-shell").getAttribute("data-show-target")).toBe(
+      "false"
+    )
   })
 })

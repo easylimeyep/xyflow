@@ -103,7 +103,11 @@ function QuickAddControls() {
     <button
       type="button"
       onClick={() => {
-        const triggerNode = nodes.find((node) => node.data.kind === "trigger")
+        const triggerNode = nodes.find(
+          (node) =>
+            node.data.kind === "inlineExpression" &&
+            node.data.config.isRoot === true
+        )
         if (triggerNode) {
           startQuickAddFromOutput(triggerNode.id)
         }

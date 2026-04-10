@@ -74,7 +74,8 @@ describe("createHistoryHotkeyHandler integration", () => {
     const workflowStore = createWorkflowStore()
     const state = workflowStore.getState()
     const sourceNode = state.history.present.nodes.find(
-      (node: WorkflowNode) => node.data.kind === "trigger"
+      (node: WorkflowNode) =>
+        node.data.kind === "inlineExpression" && node.data.config.isRoot === true
     )
     if (!sourceNode) {
       throw new Error("source node not found")
@@ -142,7 +143,8 @@ describe("createHistoryHotkeyHandler integration", () => {
     const workflowStore = createWorkflowStore()
     const state = workflowStore.getState()
     const sourceNode = state.history.present.nodes.find(
-      (node: WorkflowNode) => node.data.kind === "trigger"
+      (node: WorkflowNode) =>
+        node.data.kind === "inlineExpression" && node.data.config.isRoot === true
     )
     if (!sourceNode) {
       throw new Error("source node not found")

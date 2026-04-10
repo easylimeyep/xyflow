@@ -55,8 +55,33 @@ describe("workflow mappers", () => {
     expect(parsed.error).toContain("domain workflow schema")
   })
 
+  it("rejects legacy payload containing trigger node kind", () => {
+    const legacyPayload = {
+      id: "wf-legacy",
+      name: "Legacy",
+      version: 1,
+      metadata: {},
+      viewport: { x: 0, y: 0, zoom: 1 },
+      nodes: [
+        {
+          id: "node-1",
+          kind: "trigger",
+          position: { x: 0, y: 0 },
+          label: "Trigger",
+          config: { eventName: "legacy-event" },
+        },
+      ],
+      connections: [],
+    }
+
+    const parsed = parseInternalGraphJson(JSON.stringify(legacyPayload))
+    expect(parsed.success).toBe(false)
+    expect(parsed.error).toContain("domain workflow schema")
+  })
+
   it("exports domain json", () => {
-    const triggerNode = createWorkflowNode("trigger", { x: 0, y: 80 })
+    const triggerNode = createWorkflowNode("inlineExpression", { x: 0, y: 80 })
+    triggerNode.data.config.isRoot = true
     const inlineNode = createWorkflowNode("inlineExpression", { x: 360, y: 80 })
     const graphWithEdge = {
       ...initialWorkflowGraph,
@@ -68,7 +93,10 @@ describe("workflow mappers", () => {
           target: inlineNode.id,
           sourceHandle: null,
           targetHandle: null,
-          data: { sourceKind: "trigger" as const, targetKind: "inlineExpression" as const },
+          data: {
+            sourceKind: "inlineExpression" as const,
+            targetKind: "inlineExpression" as const,
+          },
         },
       ],
     }

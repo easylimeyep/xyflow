@@ -6,7 +6,8 @@ import { buildExpressionVariableCatalog } from "./variables"
 
 describe("expression variable catalog", () => {
   it("includes current input helpers", () => {
-    const trigger = createWorkflowNode("trigger", { x: 0, y: 0 }, "TriggerA")
+    const trigger = createWorkflowNode("inlineExpression", { x: 0, y: 0 }, "KeywordA")
+    trigger.data.config.isRoot = true
     const inline = createWorkflowNode("inlineExpression", { x: 160, y: 0 }, "InlineA")
     const options = buildExpressionVariableCatalog([trigger, inline], [], inline.id)
 
@@ -15,7 +16,8 @@ describe("expression variable catalog", () => {
   })
 
   it("includes reachable upstream nodes only", () => {
-    const trigger = createWorkflowNode("trigger", { x: 0, y: 0 }, "TriggerA")
+    const trigger = createWorkflowNode("inlineExpression", { x: 0, y: 0 }, "KeywordA")
+    trigger.data.config.isRoot = true
     const inline = createWorkflowNode("inlineExpression", { x: 200, y: 0 }, "InlineA")
     const extractor = createWorkflowNode("extractor", { x: 400, y: 0 }, "ExtractorA")
     const isolated = createWorkflowNode("setVariable", { x: 0, y: 300 }, "Isolated")
@@ -65,7 +67,8 @@ describe("expression variable catalog", () => {
   })
 
   it("includes set variable outputs as $vars and node paths", () => {
-    const trigger = createWorkflowNode("trigger", { x: 0, y: 0 }, "TriggerA")
+    const trigger = createWorkflowNode("inlineExpression", { x: 0, y: 0 }, "KeywordA")
+    trigger.data.config.isRoot = true
     const setVariable = createWorkflowNode("setVariable", { x: 200, y: 0 }, "SetA")
     const extractor = createWorkflowNode("extractor", { x: 400, y: 0 }, "ExtractorA")
     setVariable.data.config.variableName = "regionName"

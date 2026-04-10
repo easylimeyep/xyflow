@@ -102,7 +102,7 @@ export function SetVariableNode({ id, data, selected }: NodeProps) {
           </label>
           <ExpressionInput
             value={valueExpressionFromStore}
-            placeholder='{{ $node("Trigger").item.json.eventName }}'
+            placeholder="{{ $input.item.json }}"
             variables={expressionVariables}
             onChange={(nextValue) => {
               updateNodeConfig(id, {

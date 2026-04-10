@@ -9,7 +9,8 @@ import {
 } from "./expression-deps"
 
 function createTestGraph(): WorkflowGraphState {
-  const trigger = createWorkflowNode("trigger", { x: 0, y: 80 })
+  const trigger = createWorkflowNode("inlineExpression", { x: 0, y: 80 })
+  trigger.data.config.isRoot = true
   const inline = createWorkflowNode("inlineExpression", { x: 360, y: 80 })
   return {
     nodes: [trigger, inline],
@@ -20,7 +21,7 @@ function createTestGraph(): WorkflowGraphState {
         target: inline.id,
         sourceHandle: null,
         targetHandle: null,
-        data: { sourceKind: "trigger", targetKind: "inlineExpression" },
+        data: { sourceKind: "inlineExpression", targetKind: "inlineExpression" },
       },
     ],
     viewport: { x: 0, y: 0, zoom: 1 },

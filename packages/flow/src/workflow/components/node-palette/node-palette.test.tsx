@@ -23,12 +23,12 @@ describe("NodePalette", () => {
     const onAddNode = vi.fn()
     render(<NodePalette onAddNode={onAddNode} />)
 
-    const triggerButtons = screen.getAllByRole("button", { name: /Trigger/i })
-    triggerButtons.forEach((button) => {
+    const keywordButtons = screen.getAllByRole("button", { name: /Keyword/i })
+    keywordButtons.forEach((button) => {
       fireEvent.click(button)
     })
 
-    expect(onAddNode).toHaveBeenCalledWith("trigger")
+    expect(onAddNode).toHaveBeenCalledWith("inlineExpression")
   })
 
   it("marks palette as closed when isOpen is false", () => {

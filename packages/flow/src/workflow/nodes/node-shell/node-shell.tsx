@@ -19,6 +19,7 @@ interface NodeShellProps {
   selected?: boolean
   showTarget?: boolean
   outputs?: OutputHandle[]
+  headerAccessory?: ReactNode
   children?: ReactNode
 }
 
@@ -28,6 +29,7 @@ export function NodeShell({
   selected = false,
   showTarget = true,
   outputs = DEFAULT_OUTPUTS,
+  headerAccessory,
   children,
 }: NodeShellProps) {
   const styles = nodeShellStyles({ selected })
@@ -44,7 +46,12 @@ export function NodeShell({
           />
         ) : null}
 
-        <div className={styles.title()}>{title}</div>
+        <div className={styles.header()}>
+          <div className={styles.title()}>{title}</div>
+          {headerAccessory ? (
+            <div className={styles.headerAccessory()}>{headerAccessory}</div>
+          ) : null}
+        </div>
         {children}
       </div>
 

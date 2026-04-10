@@ -5,9 +5,10 @@ import type { WorkflowGraphState } from "../types/types"
 import { computeEdgeInsertion } from "./edge-insertion"
 
 function createGraph(
-  source = createWorkflowNode("trigger", { x: 0, y: 0 }),
+  source = createWorkflowNode("inlineExpression", { x: 0, y: 0 }),
   target = createWorkflowNode("inlineExpression", { x: 320, y: 0 })
 ): WorkflowGraphState {
+  source.data.config.isRoot = true
   return {
     nodes: [source, target],
     edges: [
@@ -57,10 +58,10 @@ describe("computeEdgeInsertion", () => {
   })
 
   it("falls back to inserted->target edge when source leg is invalid", () => {
-    const source = createWorkflowNode("inlineExpression", { x: 0, y: 0 })
+    const source = createWorkflowNode("result", { x: 0, y: 0 })
     const target = createWorkflowNode("setVariable", { x: 320, y: 0 })
     const graph = createGraph(source, target)
-    const result = computeEdgeInsertion(graph, "edge-main", "trigger")
+    const result = computeEdgeInsertion(graph, "edge-main", "branch")
 
     expect(result.ok).toBe(true)
     if (result.ok) {

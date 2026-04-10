@@ -37,6 +37,11 @@ describe("workflow node registry", () => {
 
     expect(node.type).toBe("inlineExpression")
     expect(node.data.config.template).toBe("{{ $input.item.json }}")
+    expect(node.data.config.isRoot).toBe(false)
+  })
+
+  it("does not expose trigger node in registry", () => {
+    expect(Object.keys(nodeRegistry)).not.toContain("trigger")
   })
 
   it("includes result node definition", () => {
