@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { SetVariableNode } from "./set-variable-node"
 
 const mockUpdateNodeConfig = vi.fn()
+const mockUpdateNodeLabel = vi.fn()
 
 vi.mock("@xyflow/react", () => ({
   Handle: () => null,
@@ -20,6 +21,7 @@ vi.mock("../../shared/use-node-store-data", () => ({
   useNodeStoreData: () => ({
     expressionVariables: [],
     updateNodeConfig: mockUpdateNodeConfig,
+    updateNodeLabel: mockUpdateNodeLabel,
   }),
 }))
 
@@ -43,13 +45,13 @@ vi.mock("../../output-quick-add-affordance/output-quick-add-affordance", () => (
   OutputQuickAddAffordance: () => null,
 }))
 
-function createNodeProps(valueExpression: string): NodeProps {
+function createNodeProps(label: string, valueExpression: string): NodeProps {
   return {
     id: "set-variable-1",
     type: "setVariable",
     data: {
       kind: "setVariable",
-      label: "Setter",
+      label,
       config: { valueExpression },
     },
     selected: false,
@@ -75,8 +77,39 @@ describe("SetVariableNode", () => {
     cleanup()
   })
 
+  it("renders variable name input with current label", () => {
+    render(<SetVariableNode {...createNodeProps("myVar", "")} />)
+
+    const nameInput = screen.getByPlaceholderText("myVar")
+    expect(nameInput).toBeDefined()
+    expect((nameInput as HTMLInputElement).value).toBe("myVar")
+  })
+
+  it("calls updateNodeLabel with valid identifier on blur", () => {
+    render(<SetVariableNode {...createNodeProps("myVar", "")} />)
+
+    const nameInput = screen.getByPlaceholderText("myVar")
+    fireEvent.focus(nameInput)
+    fireEvent.change(nameInput, { target: { value: "newVar" } })
+    fireEvent.blur(nameInput)
+
+    expect(mockUpdateNodeLabel).toHaveBeenCalledWith("set-variable-1", "newVar")
+  })
+
+  it("shows error and does not commit for invalid JS identifier", () => {
+    render(<SetVariableNode {...createNodeProps("myVar", "")} />)
+
+    const nameInput = screen.getByPlaceholderText("myVar")
+    fireEvent.focus(nameInput)
+    fireEvent.change(nameInput, { target: { value: "my var!" } })
+    fireEvent.blur(nameInput)
+
+    expect(mockUpdateNodeLabel).not.toHaveBeenCalled()
+    expect(screen.getByText("Variable name must be a valid JavaScript identifier.")).toBeDefined()
+  })
+
   it("commits value expression on change", () => {
-    render(<SetVariableNode {...createNodeProps("{{ myVar }}")} />)
+    render(<SetVariableNode {...createNodeProps("myVar", "{{ myVar }}")} />)
 
     const expressionInput = screen.getByTestId("set-variable-expression-input")
     fireEvent.change(expressionInput, { target: { value: "{{ newVar }}" } })
@@ -86,12 +119,5 @@ describe("SetVariableNode", () => {
       key: "valueExpression",
       value: "{{ newVar }}",
     })
-  })
-
-  it("does not render a variable name input field", () => {
-    render(<SetVariableNode {...createNodeProps("")} />)
-
-    expect(screen.queryByPlaceholderText("myVar")).toBeNull()
-    expect(screen.queryByText("Variable name")).toBeNull()
   })
 })

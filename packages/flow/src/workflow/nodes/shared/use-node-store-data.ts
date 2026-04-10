@@ -12,6 +12,9 @@ export function useNodeStoreData(nodeId: string) {
   const updateNodeConfig = useWorkflowShallowStore(
     (state: WorkflowStoreState) => state.updateNodeConfig
   )
+  const updateNodeLabel = useWorkflowShallowStore(
+    (state: WorkflowStoreState) => state.updateNodeLabel
+  )
 
-  return { expressionVariables, updateNodeConfig }
+  return { expressionVariables, updateNodeConfig, updateNodeLabel }
 }
