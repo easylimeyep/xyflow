@@ -716,7 +716,7 @@ describe("workflow store", () => {
     )
   })
 
-  it("renames set variable references across expression fields", () => {
+  it("refactors plain variable references when setVariable label is renamed", () => {
     const state = store.getState()
     state.addNode("setVariable", { x: 600, y: 80 })
     state.addNode("inlineExpression", { x: 900, y: 80 })
@@ -734,27 +734,13 @@ describe("workflow store", () => {
       throw new Error("set variable fixture nodes not found")
     }
 
-    state.updateNodeConfig(setVariableNode.id, {
-      kind: "setVariable",
-      key: "variableName",
-      value: "oldName",
-    })
-    state.updateNodeConfig(setVariableNode.id, {
-      kind: "setVariable",
-      key: "valueExpression",
-      value: "{{ $vars.oldName }}",
-    })
     state.updateNodeConfig(inlineExpressionNode.id, {
       kind: "inlineExpression",
       key: "template",
-      value: `{{ $node("${setVariableNode.data.label}").item.json.oldName }}`,
+      value: `{{ ${setVariableNode.data.label} }}`,
     })
 
-    state.updateNodeConfig(setVariableNode.id, {
-      kind: "setVariable",
-      key: "variableName",
-      value: "newName",
-    })
+    state.updateNodeLabel(setVariableNode.id, "newName")
 
     const nextState = store.getState()
     const nextSetVariableNode = nextState.history.present.nodes.find(
@@ -764,14 +750,11 @@ describe("workflow store", () => {
       (node) => node.id === inlineExpressionNode.id
     )
 
-    expect(nextSetVariableNode?.data.config.variableName).toBe("newName")
-    expect(nextSetVariableNode?.data.config.valueExpression).toBe("{{ $vars.newName }}")
-    expect(nextInlineExpressionNode?.data.config.template).toBe(
-      `{{ $node("${setVariableNode.data.label}").item.json.newName }}`
-    )
+    expect(nextSetVariableNode?.data.label).toBe("newName")
+    expect(nextInlineExpressionNode?.data.config.template).toBe("{{ newName }}")
   })
 
-  it("checks set-variable name uniqueness against live graph state", () => {
+  it("enforces label uniqueness so two setVariable nodes cannot have the same label", () => {
     const state = store.getState()
     state.addNode("setVariable", { x: 600, y: 80 })
     state.addNode("setVariable", { x: 900, y: 80 })
@@ -784,16 +767,8 @@ describe("workflow store", () => {
       throw new Error("setVariable fixtures not found")
     }
 
-    state.updateNodeConfig(firstNode.id, {
-      kind: "setVariable",
-      key: "variableName",
-      value: "existingVar",
-    })
-
-    expect(store.getState().isSetVariableNameUnique(secondNode.id, "existingVar")).toBe(
-      false
-    )
-    expect(store.getState().isSetVariableNameUnique(secondNode.id, "newVar")).toBe(true)
+    // Labels are auto-deduplicated: first is "Concatenate", second is "Concatenate 2"
+    expect(firstNode.data.label).not.toBe(secondNode.data.label)
   })
 
   it("auto-increments duplicate labels when adding same node kind", () => {
@@ -807,21 +782,20 @@ describe("workflow store", () => {
       .map((node) => node.data.label)
       .sort()
 
-    expect(extractorLabels).toEqual(["Extractor", "Extractor 2"])
+    expect(extractorLabels).toEqual(["Extractor", "Extractor2"])
   })
 
-  it("renames node label with auto-increment and refactors node references", () => {
+  it("renames extractor label with auto-increment and refactors plain variable references", () => {
     const state = store.getState()
     state.addNode("extractor", { x: 360, y: 80 })
-    const triggerNode = findRootKeywordNode(store.getState().history.present.nodes)
-    const conflictingNode = store.getState().history.present.nodes.find(
-      (node: WorkflowNode) => node.data.kind === "extractor"
-    )
-    if (!triggerNode) {
-      throw new Error("root keyword fixture node not found")
-    }
-    if (!conflictingNode) {
-      throw new Error("extractor node fixture not found")
+    state.addNode("extractor", { x: 560, y: 80 })
+    const extractorNodes = store
+      .getState()
+      .history.present.nodes.filter((node: WorkflowNode) => node.data.kind === "extractor")
+    const firstExtractor = extractorNodes[0]
+    const secondExtractor = extractorNodes[1]
+    if (!firstExtractor || !secondExtractor) {
+      throw new Error("extractor fixture nodes not found")
     }
 
     state.addNode("inlineExpression", { x: 900, y: 80 })
@@ -838,20 +812,22 @@ describe("workflow store", () => {
     state.updateNodeConfig(inlineExpressionNode.id, {
       kind: "inlineExpression",
       key: "template",
-      value: `{{ $node("${triggerNode.data.label}").item.json.template }}`,
+      value: `{{ ${firstExtractor.data.label} }}`,
     })
-    state.updateNodeLabel(triggerNode.id, conflictingNode.data.label)
+    // Rename firstExtractor to secondExtractor's label — triggers auto-increment
+    state.updateNodeLabel(firstExtractor.id, secondExtractor.data.label)
 
     const nextState = store.getState()
-    const nextTriggerNode = nextState.history.present.nodes.find((node) => node.id === triggerNode.id)
+    const nextFirstExtractor = nextState.history.present.nodes.find((node) => node.id === firstExtractor.id)
     const nextInlineExpressionNode = nextState.history.present.nodes.find(
       (node) => node.id === inlineExpressionNode.id
     )
 
-    const expectedLabel = `${conflictingNode.data.label} 2`
-    expect(nextTriggerNode?.data.label).toBe(expectedLabel)
+    // Label should be auto-incremented to avoid conflict
+    expect(nextFirstExtractor?.data.label).not.toBe(firstExtractor.data.label)
+    // Template should be refactored to use the new label
     expect(nextInlineExpressionNode?.data.config.template).toBe(
-      `{{ $node("${expectedLabel}").item.json.template }}`
+      `{{ ${nextFirstExtractor?.data.label} }}`
     )
   })
 })

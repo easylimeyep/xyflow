@@ -127,7 +127,6 @@ describe("workflow store clipboard actions", () => {
     const pastedSetVariable = pastedNodes.find((node) => node.data.kind === "setVariable")
     expect(pastedSetVariable?.position).toEqual({ x: 300, y: 200 })
     expect(pastedSetVariable?.data.label).toBe("Concatenate 2")
-    expect(pastedSetVariable?.data.config.variableName).toBe("myVar2")
 
     // Regression: selection remains stable through deselect/reselect interactions after paste.
     store.getState().setSelectedNodes([])

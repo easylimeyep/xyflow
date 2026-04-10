@@ -1,4 +1,4 @@
-import { buildExpressionVariableCatalog } from "../expression/variables/variables"
+import { collectWorkflowVariables } from "../expression/variables/variables"
 import type {
   ExpressionVariableOption,
   WorkflowEdge,
@@ -66,5 +66,5 @@ export const selectExpressionVariablesForNode = (
   }
   const nodes = state.history.present.nodes
   const edges = state.history.present.edges
-  return buildExpressionVariableCatalog(nodes, edges, nodeId)
+  return collectWorkflowVariables(nodes, edges, nodeId)
 }

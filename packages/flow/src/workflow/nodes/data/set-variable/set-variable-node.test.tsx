@@ -4,12 +4,9 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 import type { NodeProps } from "@xyflow/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-import type { WorkflowNode } from "../../../types"
 import { SetVariableNode } from "./set-variable-node"
 
 const mockUpdateNodeConfig = vi.fn()
-const mockIsSetVariableNameUnique = vi.fn()
-let mockAllNodes: WorkflowNode[] = []
 
 vi.mock("@xyflow/react", () => ({
   Handle: () => null,
@@ -23,7 +20,6 @@ vi.mock("../../shared/use-node-store-data", () => ({
   useNodeStoreData: () => ({
     expressionVariables: [],
     updateNodeConfig: mockUpdateNodeConfig,
-    isSetVariableNameUnique: mockIsSetVariableNameUnique,
   }),
 }))
 
@@ -47,14 +43,14 @@ vi.mock("../../output-quick-add-affordance/output-quick-add-affordance", () => (
   OutputQuickAddAffordance: () => null,
 }))
 
-function createNodeProps(variableName: string, valueExpression: string): NodeProps {
+function createNodeProps(valueExpression: string): NodeProps {
   return {
     id: "set-variable-1",
     type: "setVariable",
     data: {
       kind: "setVariable",
       label: "Concatenate",
-      config: { variableName, valueExpression },
+      config: { valueExpression },
     },
     selected: false,
     dragging: false,
@@ -73,126 +69,29 @@ function createNodeProps(variableName: string, valueExpression: string): NodePro
 describe("SetVariableNode", () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockIsSetVariableNameUnique.mockImplementation((nodeId: string, variableName: string) => {
-      const normalizedName = variableName.trim()
-      return !mockAllNodes.some((node) => {
-        if (node.id === nodeId || node.data.kind !== "setVariable") return false
-        const candidateVariableName = node.data.config.variableName
-        return typeof candidateVariableName === "string" && candidateVariableName.trim() === normalizedName
-      })
-    })
-    mockAllNodes = [
-      {
-        id: "set-variable-1",
-        type: "setVariable",
-        position: { x: 0, y: 0 },
-        data: {
-          kind: "setVariable",
-          label: "Concatenate",
-          config: { variableName: "myVar", valueExpression: "" },
-        },
-      } as WorkflowNode,
-    ]
   })
 
   afterEach(() => {
     cleanup()
   })
 
-  it("commits variable name and value expression on blur", () => {
-    render(
-      <SetVariableNode {...createNodeProps("myVar", "{{ $input.item.json }}")} />
-    )
-
-    const variableInput = screen.getByDisplayValue("myVar")
-    fireEvent.focus(variableInput)
-    fireEvent.change(variableInput, { target: { value: "regionName" } })
-    fireEvent.blur(variableInput)
+  it("commits value expression on change", () => {
+    render(<SetVariableNode {...createNodeProps("{{ myVar }}")} />)
 
     const expressionInput = screen.getByTestId("set-variable-expression-input")
-    fireEvent.focus(expressionInput)
-    fireEvent.change(expressionInput, {
-      target: { value: "{{ $vars.regionName }}" },
-    })
-    fireEvent.blur(expressionInput)
+    fireEvent.change(expressionInput, { target: { value: "{{ newVar }}" } })
 
-    expect(mockUpdateNodeConfig).toHaveBeenCalledWith("set-variable-1", {
-      kind: "setVariable",
-      key: "variableName",
-      value: "regionName",
-    })
     expect(mockUpdateNodeConfig).toHaveBeenCalledWith("set-variable-1", {
       kind: "setVariable",
       key: "valueExpression",
-      value: "{{ $vars.regionName }}",
+      value: "{{ newVar }}",
     })
   })
 
-  it("rejects invalid identifier and shows inline error", () => {
-    render(
-      <SetVariableNode {...createNodeProps("myVar", "{{ $input.item.json }}")} />
-    )
+  it("does not render a variable name input field", () => {
+    render(<SetVariableNode {...createNodeProps("")} />)
 
-    const variableInput = screen.getByDisplayValue("myVar")
-    fireEvent.focus(variableInput)
-    fireEvent.change(variableInput, { target: { value: "bad name" } })
-    fireEvent.blur(variableInput)
-
-    expect(mockUpdateNodeConfig).not.toHaveBeenCalledWith(
-      "set-variable-1",
-      expect.objectContaining({
-        kind: "setVariable",
-        key: "variableName",
-        value: "bad name",
-      })
-    )
-    expect(
-      screen.getByText("Variable name must be a valid JavaScript identifier.")
-    ).toBeTruthy()
-  })
-
-  it("rejects duplicate variable names", () => {
-    mockAllNodes = [
-      {
-        id: "set-variable-1",
-        type: "setVariable",
-        position: { x: 0, y: 0 },
-        data: {
-          kind: "setVariable",
-          label: "Concatenate",
-          config: { variableName: "myVar", valueExpression: "" },
-        },
-      } as WorkflowNode,
-      {
-        id: "set-variable-2",
-        type: "setVariable",
-        position: { x: 200, y: 0 },
-        data: {
-          kind: "setVariable",
-          label: "Concatenate 2",
-          config: { variableName: "existing", valueExpression: "" },
-        },
-      } as WorkflowNode,
-    ]
-
-    render(
-      <SetVariableNode {...createNodeProps("myVar", "{{ $input.item.json }}")} />
-    )
-    const variableInput = screen.getByDisplayValue("myVar")
-    fireEvent.focus(variableInput)
-    fireEvent.change(variableInput, { target: { value: "existing" } })
-    fireEvent.blur(variableInput)
-
-    expect(mockUpdateNodeConfig).not.toHaveBeenCalledWith(
-      "set-variable-1",
-      expect.objectContaining({
-        kind: "setVariable",
-        key: "variableName",
-        value: "existing",
-      })
-    )
-    expect(
-      screen.getByText("Variable name must be unique in this workflow.")
-    ).toBeTruthy()
+    expect(screen.queryByPlaceholderText("myVar")).toBeNull()
+    expect(screen.queryByText("Variable name")).toBeNull()
   })
 })

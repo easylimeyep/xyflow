@@ -1,10 +1,7 @@
 import { createHistoryState } from "@workspace/store"
 import { addEdge, type XYPosition } from "@xyflow/react"
 
-import {
-  refactorNodeReferencesInGraph,
-  refactorVariableReferencesInGraph,
-} from "../graph-refactors"
+import { refactorPlainVariableReferencesInGraph } from "../graph-refactors"
 import {
   exportDomainJson,
   exportSelectionClipboardJson,
@@ -24,15 +21,15 @@ import {
   buildExpressionSlicePatch,
   cloneGraphState,
   commitGraphState,
-  createUniqueJsIdentifier,
   deduplicateNodeLabels,
   getFallbackPasteAnchor,
-  getSetVariableNames,
   readTextFromClipboard,
   writeTextToClipboard,
 } from "../helpers"
 import { projectSelectionToNodes } from "../selection-sync"
 import type { WorkflowSliceCreator } from "../types"
+
+const VARIABLE_LABEL_KINDS = new Set(["extractor", "setVariable"])
 
 export const createIoSlice: WorkflowSliceCreator = (set, get) => ({
   copySelectionToClipboard: async () => {
@@ -80,13 +77,11 @@ export const createIoSlice: WorkflowSliceCreator = (set, get) => ({
     const currentGraph = get().history.present
     const anchor = get().lastPointerFlowPosition ?? getFallbackPasteAnchor(currentGraph.viewport)
     const usedLabels = new Set(currentGraph.nodes.map((n) => n.data.label.trim()).filter(Boolean))
-    const usedVariableNames = getSetVariableNames(currentGraph.nodes)
 
     const { nodes: nextNodesWithRefactors, nodeIdMap } = buildPastedNodes(
       parsed.value.nodes,
       anchor,
-      usedLabels,
-      usedVariableNames
+      usedLabels
     )
     const nextEdges = buildPastedEdges(
       parsed.value.connections,
@@ -126,9 +121,18 @@ export const createIoSlice: WorkflowSliceCreator = (set, get) => ({
     const importedGraph = cloneGraphState(parsed.value)
     const { nodes: nodesWithUniqueLabels, renames: labelRenames } =
       deduplicateNodeLabels(importedGraph.nodes, new Set<string>())
+
+    const kindByOldLabel = new Map(importedGraph.nodes.map((n) => [n.data.label, n.data.kind]))
     let normalizedNodes = nodesWithUniqueLabels
     labelRenames.forEach((rename) => {
-      normalizedNodes = refactorNodeReferencesInGraph(normalizedNodes, rename)
+      const kind = kindByOldLabel.get(rename.oldLabel) ?? ""
+      if (VARIABLE_LABEL_KINDS.has(kind)) {
+        normalizedNodes = refactorPlainVariableReferencesInGraph(
+          normalizedNodes,
+          rename.oldLabel,
+          rename.newLabel
+        )
+      }
     })
 
     set((state) => ({
@@ -154,8 +158,7 @@ export const createIoSlice: WorkflowSliceCreator = (set, get) => ({
 function buildPastedNodes(
   parsedNodes: DomainWorkflowNodeDTO[],
   anchor: XYPosition,
-  existingLabels: Set<string>,
-  existingVariableNames: Set<string>
+  existingLabels: Set<string>
 ): { nodes: WorkflowNode[]; nodeIdMap: Map<string, string> } {
   const nodeIdMap = new Map<string, string>()
   const createdNodes: WorkflowNode[] = parsedNodes.map((nodeDto) => {
@@ -173,25 +176,17 @@ function buildPastedNodes(
     return nextNode
   })
 
+  const kindByOldLabel = new Map(createdNodes.map((n) => [n.data.label, n.data.kind]))
   const { nodes: nodesWithUniqueLabels, renames: labelRenames } =
     deduplicateNodeLabels(createdNodes, existingLabels)
 
-  const variableRenames: Array<{ sourceNodeLabel: string; oldName: string; newName: string }> = []
-  const nodesWithUniqueVars = nodesWithUniqueLabels.map((node) => {
-    if (node.data.kind !== "setVariable") return node
-    const rawVariableName = node.data.config.variableName
-    const previousName = typeof rawVariableName === "string" ? rawVariableName.trim() : ""
-    const uniqueName = createUniqueJsIdentifier(previousName, existingVariableNames)
-    if (previousName && previousName !== uniqueName) {
-      variableRenames.push({ sourceNodeLabel: node.data.label, oldName: previousName, newName: uniqueName })
+  let nodes = nodesWithUniqueLabels
+  labelRenames.forEach((rename) => {
+    const kind = kindByOldLabel.get(rename.oldLabel) ?? ""
+    if (VARIABLE_LABEL_KINDS.has(kind)) {
+      nodes = refactorPlainVariableReferencesInGraph(nodes, rename.oldLabel, rename.newLabel)
     }
-    if (uniqueName === previousName) return node
-    return { ...node, data: { ...node.data, config: { ...node.data.config, variableName: uniqueName } } }
   })
-
-  let nodes = nodesWithUniqueVars
-  labelRenames.forEach((rename) => { nodes = refactorNodeReferencesInGraph(nodes, rename) })
-  variableRenames.forEach((rename) => { nodes = refactorVariableReferencesInGraph(nodes, rename) })
 
   return { nodes, nodeIdMap }
 }

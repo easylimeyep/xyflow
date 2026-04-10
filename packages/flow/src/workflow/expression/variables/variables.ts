@@ -1,101 +1,38 @@
-import { getNodeDefinition, type NodeKind } from "../../node-registry/registry"
-import { getBuiltinExpressionVariables } from "../builtins/builtins"
-import { isValidJsIdentifier } from "../variable-name/variable-name"
 import type { ExpressionVariableOption, WorkflowEdge, WorkflowNode } from "../../types/types"
 
-export function buildExpressionVariableCatalog(
+const VARIABLE_NODE_KINDS = new Set(["extractor", "setVariable"])
+
+export function collectWorkflowVariables(
   nodes: WorkflowNode[],
   edges: WorkflowEdge[],
   selectedNodeId: string | null
 ): ExpressionVariableOption[] {
-  const options: ExpressionVariableOption[] = getBuiltinExpressionVariables()
-
   if (!selectedNodeId) {
-    return options
+    return []
   }
 
   const upstreamNodes = getReachableUpstreamNodes(nodes, edges, selectedNodeId)
+  const options: ExpressionVariableOption[] = []
+
   upstreamNodes.forEach((node) => {
-    const nodeReference = buildNodeReference(node.data.label)
-    const definition = getNodeDefinition(node.data.kind as NodeKind)
-    const group = `Upstream: ${node.data.label}`
-    options.push({
-      group,
-      label: `${nodeReference}.item.json`,
-      value: `${nodeReference}.item.json`,
-      description: `${definition.title} node output item.`,
-    })
-
-    definition.outputPaths.forEach((path) => {
-      options.push({
-        group,
-        label: `${nodeReference}.item.json.${path}`,
-        value: `${nodeReference}.item.json.${path}`,
-        description: `${definition.title} output field.`,
-      })
-    })
-
-    if (node.data.kind !== "setVariable") {
+    if (!VARIABLE_NODE_KINDS.has(node.data.kind)) {
       return
     }
 
-    const variableName = getSetVariableName(node)
+    const variableName = node.data.label.trim()
     if (!variableName) {
       return
     }
 
     options.push({
-      group,
-      label: `${nodeReference}.item.json.${variableName}`,
-      value: `${nodeReference}.item.json.${variableName}`,
-      description: "Variable value from this Concatenate node.",
-    })
-    options.push({
-      group: "Workflow variables",
-      label: `$vars.${variableName}`,
-      value: `$vars.${variableName}`,
-      description: `Variable from node "${node.data.label}".`,
+      group: "Variables",
+      label: variableName,
+      value: variableName,
+      description: `Variable from "${node.data.label}" node.`,
     })
   })
 
-  return dedupeVariableOptions(options)
-}
-
-function getSetVariableName(node: WorkflowNode): string | null {
-  if (node.data.kind !== "setVariable") {
-    return null
-  }
-
-  const variableNameValue = node.data.config.variableName
-  if (typeof variableNameValue !== "string") {
-    return null
-  }
-
-  const variableName = variableNameValue.trim()
-  if (!variableName || !isValidJsIdentifier(variableName)) {
-    return null
-  }
-
-  return variableName
-}
-
-export function buildNodeReference(nodeLabel: string): string {
-  return `$node("${escapeNodeLabel(nodeLabel)}")`
-}
-
-function escapeNodeLabel(nodeLabel: string): string {
-  return nodeLabel.replaceAll("\\", "\\\\").replaceAll('"', '\\"')
-}
-
-function dedupeVariableOptions(options: ExpressionVariableOption[]): ExpressionVariableOption[] {
-  const seenValues = new Set<string>()
-  return options.filter((option) => {
-    if (seenValues.has(option.value)) {
-      return false
-    }
-    seenValues.add(option.value)
-    return true
-  })
+  return options
 }
 
 function getReachableUpstreamNodes(

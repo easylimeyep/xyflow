@@ -102,6 +102,24 @@ export function validateTemplateExpression(template: string): TemplateValidation
 
     const leadingWhitespace = rawExpression.length - rawExpression.trimStart().length
 
+    if (/\$input\b/.test(expression)) {
+      errors.push({
+        message: "$input references are not supported. Use node labels as variables.",
+        start: segment.start,
+        end: segment.end,
+      })
+      return
+    }
+
+    if (/\$node\b/.test(expression)) {
+      errors.push({
+        message: "$node references are not supported. Use node labels as variables.",
+        start: segment.start,
+        end: segment.end,
+      })
+      return
+    }
+
     try {
       const astNode = parseExpressionAt(expression, 0, { ecmaVersion: "latest" })
       if (astNode.end !== expression.length) {

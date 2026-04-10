@@ -113,7 +113,7 @@ export function ExtractorNode({ id, data, selected }: NodeProps) {
           <Label className={styles.label()}>Label</Label>
           <ExpressionInput
             value={extractExpressionFromStore}
-            placeholder="{{ $input.item.json }}"
+            placeholder="{{ myVariable }}"
             variables={expressionVariables}
             onChange={(nextValue) => {
               updateNodeConfig(id, {

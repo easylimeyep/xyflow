@@ -19,7 +19,7 @@ export const extractor = defineNode({
       label: "Extract ",
       type: "text",
       ui: "expression",
-      placeholder: "{{ $input.item.json }}",
+      placeholder: "{{ myVariable }}",
     },
     {
       key: "unlimited",
@@ -31,7 +31,7 @@ export const extractor = defineNode({
   allowedTargets: ["branch", "setVariable", "inlineExpression", "extractor", "result"],
   buildDefaultConfig: () => ({
     tokenNumber: 0,
-    extractExpression: "{{ $input.item.json }}",
+    extractExpression: "",
     unlimited: false,
   }),
 })

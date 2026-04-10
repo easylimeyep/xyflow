@@ -12,9 +12,6 @@ export function useNodeStoreData(nodeId: string) {
   const updateNodeConfig = useWorkflowShallowStore(
     (state: WorkflowStoreState) => state.updateNodeConfig
   )
-  const isSetVariableNameUnique = useWorkflowShallowStore(
-    (state: WorkflowStoreState) => state.isSetVariableNameUnique
-  )
 
-  return { expressionVariables, updateNodeConfig, isSetVariableNameUnique }
+  return { expressionVariables, updateNodeConfig }
 }

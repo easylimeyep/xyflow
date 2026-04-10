@@ -45,7 +45,7 @@ export function InlineExpressionNode({ id, data, selected }: NodeProps) {
         <Label className={styles.label()}>Tokens</Label>
         <ExpressionInput
           value={templateFromStore}
-          placeholder="{{ $input.item.json }}"
+          placeholder="{{ myVariable }}"
           variables={expressionVariables}
           onChange={(nextValue) => {
             updateNodeConfig(id, {

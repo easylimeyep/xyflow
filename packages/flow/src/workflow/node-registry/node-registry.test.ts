@@ -9,7 +9,8 @@ describe("workflow node registry", () => {
 
     expect(definition.kind).toBe("setVariable")
     expect(definition.title).toBe("Concatenate")
-    expect(definition.buildDefaultConfig().variableName).toBe("myVar")
+    expect(definition.buildDefaultConfig().variableName).toBeUndefined()
+    expect(definition.buildDefaultConfig().valueExpression).toBeDefined()
   })
 
   it("creates set variable node with default config", () => {
@@ -17,8 +18,8 @@ describe("workflow node registry", () => {
 
     expect(node.type).toBe("setVariable")
     expect(node.data.label).toBe("Concatenate")
-    expect(node.data.config.variableName).toBe("myVar")
-    expect(node.data.config.valueExpression).toBe("{{ $input.item.json }}")
+    expect(node.data.config.variableName).toBeUndefined()
+    expect(node.data.config.valueExpression).toBeDefined()
   })
 
   it("includes inline expression definition", () => {
@@ -36,7 +37,7 @@ describe("workflow node registry", () => {
     const node = createWorkflowNode("inlineExpression", { x: 0, y: 0 })
 
     expect(node.type).toBe("inlineExpression")
-    expect(node.data.config.template).toBe("{{ $input.item.json }}")
+    expect(node.data.config.template).toBe("")
     expect(node.data.config.isRoot).toBe(false)
   })
 

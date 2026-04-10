@@ -35,25 +35,19 @@ describe("applyNodeConfigUpdate", () => {
     expect(result.error?.code).toBe("INVALID_NODE_CONFIG_KIND")
   })
 
-  it("renames set-variable references across graph", () => {
+  it("updates set-variable expression config field", () => {
     const setVariableNode = createWorkflowNode("setVariable", { x: 0, y: 0 })
-    setVariableNode.data.config.variableName = "oldName"
-    const inlineExpressionNode = createWorkflowNode("inlineExpression", { x: 200, y: 0 })
-    inlineExpressionNode.data.config.template = "{{ $vars.oldName }} + {{ $node(\"" + setVariableNode.data.label + "\").item.json.oldName }}"
+    setVariableNode.data.config.valueExpression = "{{ oldValue }}"
 
-    const graph = createGraph([setVariableNode, inlineExpressionNode])
+    const graph = createGraph([setVariableNode])
     const result = applyNodeConfigUpdate(graph, setVariableNode.id, {
       kind: "setVariable",
-      key: "variableName",
-      value: "newName",
+      key: "valueExpression",
+      value: "{{ newValue }}",
     })
 
     expect(result.error).toBeNull()
-    expect(result.nextGraph?.nodes[0]?.data.config.variableName).toBe("newName")
-    expect(result.nextGraph?.nodes[1]?.data.config.template).toContain("$vars.newName")
-    expect(result.nextGraph?.nodes[1]?.data.config.template).toContain(
-      `$node("${setVariableNode.data.label}").item.json.newName`
-    )
+    expect(result.nextGraph?.nodes[0]?.data.config.valueExpression).toBe("{{ newValue }}")
   })
 
   it("prunes incoming edges when inlineExpression becomes root", () => {

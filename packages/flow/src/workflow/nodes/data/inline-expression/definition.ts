@@ -14,7 +14,7 @@ export const inlineExpression = defineNode({
       label: "Tokens",
       type: "text",
       ui: "expression",
-      placeholder: '{{ $input.item.json.value || "fallback" }}',
+      placeholder: "{{ myVariable }}",
     },
     {
       key: "isRoot",
@@ -31,7 +31,7 @@ export const inlineExpression = defineNode({
     "result",
   ],
   buildDefaultConfig: () => ({
-    template: "{{ $input.item.json }}",
+    template: "",
     isRoot: false,
   }),
 })

@@ -1,4 +1,1 @@
-export {
-  refactorNodeReferencesInGraph,
-  refactorVariableReferencesInGraph,
-} from "../expression/refactor/refactor"
+export { refactorPlainVariableReferencesInGraph } from "../expression/refactor/refactor"

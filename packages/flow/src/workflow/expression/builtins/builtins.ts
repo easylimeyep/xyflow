@@ -8,23 +8,7 @@ interface BuiltinExpressionVariable {
   completionType: Completion["type"]
 }
 
-const BUILTIN_VARIABLES: BuiltinExpressionVariable[] = [
-  {
-    value: "$input.item.json",
-    description: "Current item payload.",
-    completionType: "variable",
-  },
-  {
-    value: "$input.first().json",
-    description: "First input item payload.",
-    completionType: "function",
-  },
-  {
-    value: "$input.all()",
-    description: "All input items for current node.",
-    completionType: "function",
-  },
-]
+const BUILTIN_VARIABLES: BuiltinExpressionVariable[] = []
 
 export function getBuiltinExpressionVariables(): ExpressionVariableOption[] {
   return BUILTIN_VARIABLES.map((item) => ({

@@ -1,61 +1,65 @@
 import { describe, expect, it } from "vitest"
 
 import { createWorkflowNode } from "../../node-registry/node-factory"
-import {
-  refactorNodeReferencesInExpression,
-  refactorVariableReferencesInExpression,
-  refactorVariableReferencesInGraph,
-} from "./refactor"
+import { refactorPlainVariableReferencesInGraph } from "./refactor"
 
-describe("expression variable refactor", () => {
-  it("replaces both $vars and $node references in expression text", () => {
-    const nodeLabel = "Concatenate"
-    const source = [
-      "{{ $vars.oldName }}",
-      '{{ $node("Concatenate").item.json.oldName }}',
-      "{{ $vars.oldNameSuffix }}",
-    ].join(" ")
+describe("plain variable refactor", () => {
+  it("replaces plain identifier in expression segments across graph nodes", () => {
+    const extractor = createWorkflowNode("extractor", { x: 0, y: 0 })
+    extractor.data.config.extractExpression = "{{ price }}"
 
-    const nextValue = refactorVariableReferencesInExpression(source, {
-      sourceNodeLabel: nodeLabel,
-      oldName: "oldName",
-      newName: "newName",
-    })
+    const inline = createWorkflowNode("inlineExpression", { x: 100, y: 0 })
+    inline.data.config.template = "some text {{ price }} and more"
 
-    expect(nextValue).toContain("$vars.newName")
-    expect(nextValue).toContain('$node("Concatenate").item.json.newName')
-    expect(nextValue).toContain("$vars.oldNameSuffix")
-  })
-
-  it("updates all expression config fields in graph nodes", () => {
-    const setVariable = createWorkflowNode("setVariable", { x: 0, y: 0 })
-    setVariable.data.config.variableName = "oldName"
-    setVariable.data.config.valueExpression = "{{ $vars.oldName }}"
-
-    const inlineExpression = createWorkflowNode("inlineExpression", { x: 100, y: 0 })
-    inlineExpression.data.config.template = `{{ $node("${setVariable.data.label}").item.json.oldName }}`
-
-    const nextNodes = refactorVariableReferencesInGraph([setVariable, inlineExpression], {
-      sourceNodeLabel: setVariable.data.label,
-      oldName: "oldName",
-      newName: "newName",
-    })
-    const nextSetVariable = nextNodes.find((node) => node.id === setVariable.id)
-    const nextInlineExpression = nextNodes.find((node) => node.id === inlineExpression.id)
-
-    expect(nextSetVariable?.data.config.valueExpression).toBe("{{ $vars.newName }}")
-    expect(nextInlineExpression?.data.config.template).toBe(
-      `{{ $node("${setVariable.data.label}").item.json.newName }}`
+    const nextNodes = refactorPlainVariableReferencesInGraph(
+      [extractor, inline],
+      "price",
+      "cost"
     )
+
+    const nextExtractor = nextNodes.find((n) => n.id === extractor.id)
+    const nextInline = nextNodes.find((n) => n.id === inline.id)
+
+    expect(nextExtractor?.data.config.extractExpression).toBe("{{ cost }}")
+    expect(nextInline?.data.config.template).toBe("some text {{ cost }} and more")
   })
 
-  it("replaces node references by label in expression text", () => {
-    const source = '{{ $node("Trigger").item.json.eventName }}'
-    const nextValue = refactorNodeReferencesInExpression(source, {
-      oldLabel: "Trigger",
-      newLabel: "Trigger 2",
-    })
+  it("does not replace partial identifier matches", () => {
+    const inline = createWorkflowNode("inlineExpression", { x: 0, y: 0 })
+    inline.data.config.template = "{{ priceList }}"
 
-    expect(nextValue).toBe('{{ $node("Trigger 2").item.json.eventName }}')
+    const nextNodes = refactorPlainVariableReferencesInGraph([inline], "price", "cost")
+
+    const nextInline = nextNodes.find((n) => n.id === inline.id)
+    expect(nextInline?.data.config.template).toBe("{{ priceList }}")
+  })
+
+  it("does not replace identifier inside literal segments", () => {
+    const inline = createWorkflowNode("inlineExpression", { x: 0, y: 0 })
+    inline.data.config.template = "the price is {{ price }}"
+
+    const nextNodes = refactorPlainVariableReferencesInGraph([inline], "price", "cost")
+
+    const nextInline = nextNodes.find((n) => n.id === inline.id)
+    expect(nextInline?.data.config.template).toBe("the price is {{ cost }}")
+  })
+
+  it("replaces multiple occurrences in different expression segments", () => {
+    const inline = createWorkflowNode("inlineExpression", { x: 0, y: 0 })
+    inline.data.config.template = "{{ price }} and {{ price }}"
+
+    const nextNodes = refactorPlainVariableReferencesInGraph([inline], "price", "cost")
+
+    const nextInline = nextNodes.find((n) => n.id === inline.id)
+    expect(nextInline?.data.config.template).toBe("{{ cost }} and {{ cost }}")
+  })
+
+  it("returns nodes unchanged when old and new names are equal", () => {
+    const inline = createWorkflowNode("inlineExpression", { x: 0, y: 0 })
+    inline.data.config.template = "{{ price }}"
+
+    const nextNodes = refactorPlainVariableReferencesInGraph([inline], "price", "price")
+
+    expect(nextNodes[0]).toBe(inline)
   })
 })

@@ -2,109 +2,118 @@ import { describe, expect, it } from "vitest"
 
 import { createWorkflowNode } from "../../node-registry/node-factory"
 import type { WorkflowEdge } from "../../types/types"
-import { buildExpressionVariableCatalog } from "./variables"
+import { collectWorkflowVariables } from "./variables"
 
-describe("expression variable catalog", () => {
-  it("includes current input helpers", () => {
-    const trigger = createWorkflowNode("inlineExpression", { x: 0, y: 0 }, "KeywordA")
-    trigger.data.config.isRoot = true
-    const inline = createWorkflowNode("inlineExpression", { x: 160, y: 0 }, "InlineA")
-    const options = buildExpressionVariableCatalog([trigger, inline], [], inline.id)
-
-    expect(options.some((option) => option.value === "$input.item.json")).toBe(true)
-    expect(options.some((option) => option.value === "$input.first().json")).toBe(true)
+describe("collectWorkflowVariables", () => {
+  it("returns empty list when no selectedNodeId", () => {
+    const inline = createWorkflowNode("inlineExpression", { x: 0, y: 0 }, "InlineA")
+    const options = collectWorkflowVariables([inline], [], null)
+    expect(options).toHaveLength(0)
   })
 
-  it("includes reachable upstream nodes only", () => {
-    const trigger = createWorkflowNode("inlineExpression", { x: 0, y: 0 }, "KeywordA")
-    trigger.data.config.isRoot = true
+  it("exposes upstream extractor label as plain variable", () => {
+    const extractor = createWorkflowNode("extractor", { x: 0, y: 0 }, "price")
     const inline = createWorkflowNode("inlineExpression", { x: 200, y: 0 }, "InlineA")
-    const extractor = createWorkflowNode("extractor", { x: 400, y: 0 }, "ExtractorA")
-    const isolated = createWorkflowNode("setVariable", { x: 0, y: 300 }, "Isolated")
 
     const edges: WorkflowEdge[] = [
       {
         id: "edge-1",
-        source: trigger.id,
+        source: extractor.id,
         target: inline.id,
         sourceHandle: null,
         targetHandle: null,
-        data: {
-          sourceKind: trigger.data.kind,
-          targetKind: inline.data.kind,
-        },
-      },
-      {
-        id: "edge-2",
-        source: inline.id,
-        target: extractor.id,
-        sourceHandle: null,
-        targetHandle: null,
-        data: {
-          sourceKind: inline.data.kind,
-          targetKind: extractor.data.kind,
-        },
+        data: { sourceKind: extractor.data.kind, targetKind: inline.data.kind },
       },
     ]
 
-    const options = buildExpressionVariableCatalog(
-      [trigger, inline, extractor, isolated],
-      edges,
-      extractor.id
-    )
+    const options = collectWorkflowVariables([extractor, inline], edges, inline.id)
 
-    expect(options.some((option) => option.value.includes(`$node("${trigger.data.label}").item.json`))).toBe(
-      true
-    )
-    expect(
-      options.some((option) => option.value.includes(`$node("${inline.data.label}").item.json`))
-    ).toBe(
-      true
-    )
-    expect(options.some((option) => option.value.includes(`$node("${isolated.data.label}").item.json`))).toBe(
-      false
-    )
+    expect(options).toHaveLength(1)
+    expect(options[0]?.value).toBe("price")
+    expect(options[0]?.label).toBe("price")
   })
 
-  it("includes set variable outputs as $vars and node paths", () => {
-    const trigger = createWorkflowNode("inlineExpression", { x: 0, y: 0 }, "KeywordA")
-    trigger.data.config.isRoot = true
-    const setVariable = createWorkflowNode("setVariable", { x: 200, y: 0 }, "SetA")
-    const extractor = createWorkflowNode("extractor", { x: 400, y: 0 }, "ExtractorA")
-    setVariable.data.config.variableName = "regionName"
+  it("exposes upstream setVariable label as plain variable", () => {
+    const setVar = createWorkflowNode("setVariable", { x: 0, y: 0 }, "total")
+    const inline = createWorkflowNode("inlineExpression", { x: 200, y: 0 }, "InlineA")
 
     const edges: WorkflowEdge[] = [
       {
         id: "edge-1",
-        source: trigger.id,
-        target: setVariable.id,
+        source: setVar.id,
+        target: inline.id,
         sourceHandle: null,
         targetHandle: null,
-        data: {
-          sourceKind: trigger.data.kind,
-          targetKind: setVariable.data.kind,
-        },
-      },
-      {
-        id: "edge-2",
-        source: setVariable.id,
-        target: extractor.id,
-        sourceHandle: null,
-        targetHandle: null,
-        data: {
-          sourceKind: setVariable.data.kind,
-          targetKind: extractor.data.kind,
-        },
+        data: { sourceKind: setVar.data.kind, targetKind: inline.data.kind },
       },
     ]
 
-    const options = buildExpressionVariableCatalog([trigger, setVariable, extractor], edges, extractor.id)
+    const options = collectWorkflowVariables([setVar, inline], edges, inline.id)
 
-    expect(options.some((option) => option.value === "$vars.regionName")).toBe(true)
-    expect(
-      options.some(
-        (option) => option.value === `$node("${setVariable.data.label}").item.json.regionName`
-      )
-    ).toBe(true)
+    expect(options).toHaveLength(1)
+    expect(options[0]?.value).toBe("total")
+  })
+
+  it("does not expose other node kinds as variables", () => {
+    const inline = createWorkflowNode("inlineExpression", { x: 0, y: 0 }, "InlineA")
+    const inline2 = createWorkflowNode("inlineExpression", { x: 200, y: 0 }, "InlineB")
+
+    const edges: WorkflowEdge[] = [
+      {
+        id: "edge-1",
+        source: inline.id,
+        target: inline2.id,
+        sourceHandle: null,
+        targetHandle: null,
+        data: { sourceKind: inline.data.kind, targetKind: inline2.data.kind },
+      },
+    ]
+
+    const options = collectWorkflowVariables([inline, inline2], edges, inline2.id)
+    expect(options).toHaveLength(0)
+  })
+
+  it("only includes upstream nodes, not isolated ones", () => {
+    const extractor = createWorkflowNode("extractor", { x: 0, y: 0 }, "price")
+    const isolated = createWorkflowNode("extractor", { x: 0, y: 300 }, "isolated")
+    const inline = createWorkflowNode("inlineExpression", { x: 200, y: 0 }, "InlineA")
+
+    const edges: WorkflowEdge[] = [
+      {
+        id: "edge-1",
+        source: extractor.id,
+        target: inline.id,
+        sourceHandle: null,
+        targetHandle: null,
+        data: { sourceKind: extractor.data.kind, targetKind: inline.data.kind },
+      },
+    ]
+
+    const options = collectWorkflowVariables([extractor, isolated, inline], edges, inline.id)
+
+    expect(options.map((o) => o.value)).toContain("price")
+    expect(options.map((o) => o.value)).not.toContain("isolated")
+  })
+
+  it("does not include $input or $node style variables", () => {
+    const extractor = createWorkflowNode("extractor", { x: 0, y: 0 }, "price")
+    const inline = createWorkflowNode("inlineExpression", { x: 200, y: 0 }, "InlineA")
+
+    const edges: WorkflowEdge[] = [
+      {
+        id: "edge-1",
+        source: extractor.id,
+        target: inline.id,
+        sourceHandle: null,
+        targetHandle: null,
+        data: { sourceKind: extractor.data.kind, targetKind: inline.data.kind },
+      },
+    ]
+
+    const options = collectWorkflowVariables([extractor, inline], edges, inline.id)
+
+    expect(options.every((o) => !o.value.includes("$input"))).toBe(true)
+    expect(options.every((o) => !o.value.includes("$node"))).toBe(true)
+    expect(options.every((o) => !o.value.includes("$vars"))).toBe(true)
   })
 })

@@ -1,11 +1,14 @@
-import { refactorNodeReferencesInGraph } from "../graph-refactors"
+import { refactorPlainVariableReferencesInGraph } from "../graph-refactors"
 import { createWorkflowNode } from "../../node-registry/node-factory"
+import { isValidJsIdentifier } from "../../expression/variable-name/variable-name"
 import { createWorkflowError } from "../../types/errors"
 import type { WorkflowNode } from "../../types/types"
 import { commitGraphState } from "../history-helpers"
 import { applyNodeConfigUpdate } from "../node-config-updates"
-import { createUniqueLabel } from "../naming"
+import { createUniqueJsIdentifier, createUniqueLabel } from "../naming"
 import type { WorkflowSliceCreator } from "../types"
+
+const VARIABLE_LABEL_KINDS = new Set(["extractor", "setVariable"])
 
 export const createNodeCrudSlice: WorkflowSliceCreator = (set, get) => ({
   addNode: (kind, position) => {
@@ -22,13 +25,28 @@ export const createNodeCrudSlice: WorkflowSliceCreator = (set, get) => ({
     if (!targetNode) return
 
     const normalizedLabel = nextLabel.trim() || targetNode.data.label.trim() || "Node"
+
+    if (VARIABLE_LABEL_KINDS.has(targetNode.data.kind)) {
+      if (!isValidJsIdentifier(normalizedLabel)) {
+        set({
+          lastError: createWorkflowError(
+            "INVALID_VARIABLE_NAME",
+            "Node label must be a valid JavaScript identifier (no spaces or special characters)."
+          ),
+        })
+        return
+      }
+    }
+
     const usedLabels = new Set(
       currentGraph.nodes
         .filter((node) => node.id !== nodeId)
         .map((node) => node.data.label.trim())
         .filter((label) => label.length > 0)
     )
-    const uniqueLabel = createUniqueLabel(normalizedLabel, usedLabels)
+    const uniqueLabel = VARIABLE_LABEL_KINDS.has(targetNode.data.kind)
+      ? createUniqueJsIdentifier(normalizedLabel, usedLabels)
+      : createUniqueLabel(normalizedLabel, usedLabels)
     if (targetNode.data.label === uniqueLabel) return
 
     const nextNodesWithLabel = currentGraph.nodes.map((node) =>
@@ -36,11 +54,17 @@ export const createNodeCrudSlice: WorkflowSliceCreator = (set, get) => ({
         ? { ...node, data: { ...node.data, label: uniqueLabel } }
         : node
     )
-    const nextNodes = refactorNodeReferencesInGraph(nextNodesWithLabel, {
-      oldLabel: targetNode.data.label,
-      newLabel: uniqueLabel,
-    })
+
+    const nextNodes = VARIABLE_LABEL_KINDS.has(targetNode.data.kind)
+      ? refactorPlainVariableReferencesInGraph(
+          nextNodesWithLabel,
+          targetNode.data.label,
+          uniqueLabel
+        )
+      : nextNodesWithLabel
+
     commitGraphState(set, { ...currentGraph, nodes: nextNodes })
+    set({ lastError: null })
   },
   updateNodeConfig: (nodeId, update) => {
     const currentGraph = get().history.present
@@ -52,23 +76,6 @@ export const createNodeCrudSlice: WorkflowSliceCreator = (set, get) => ({
     if (!result.nextGraph) return
     commitGraphState(set, result.nextGraph)
     set({ lastError: null })
-  },
-  isSetVariableNameUnique: (nodeId, variableName) => {
-    const normalizedVariableName = variableName.trim()
-    if (!normalizedVariableName) {
-      return false
-    }
-    const nodes = get().history.present.nodes
-    return !nodes.some((node) => {
-      if (node.id === nodeId || node.data.kind !== "setVariable") {
-        return false
-      }
-      const candidateVariableName = node.data.config.variableName
-      return (
-        typeof candidateVariableName === "string" &&
-        candidateVariableName.trim() === normalizedVariableName
-      )
-    })
   },
 })
 
@@ -83,7 +90,9 @@ export function createNodeWithUniqueLabel(
       .map((node) => node.data.label.trim())
       .filter((label) => label.length > 0)
   )
-  const uniqueLabel = createUniqueLabel(nextNode.data.label, usedLabels)
+  const uniqueLabel = VARIABLE_LABEL_KINDS.has(kind)
+    ? createUniqueJsIdentifier(nextNode.data.label, usedLabels)
+    : createUniqueLabel(nextNode.data.label, usedLabels)
   if (uniqueLabel === nextNode.data.label) {
     return nextNode
   }
