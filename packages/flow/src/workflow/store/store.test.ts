@@ -767,7 +767,7 @@ describe("workflow store", () => {
       throw new Error("setVariable fixtures not found")
     }
 
-    // Labels are auto-deduplicated: first is "Concatenate", second is "Concatenate 2"
+    // Labels are auto-deduplicated: first is "Setter", second is "Setter 2"
     expect(firstNode.data.label).not.toBe(secondNode.data.label)
   })
 

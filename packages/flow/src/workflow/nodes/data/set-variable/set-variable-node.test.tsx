@@ -49,7 +49,7 @@ function createNodeProps(valueExpression: string): NodeProps {
     type: "setVariable",
     data: {
       kind: "setVariable",
-      label: "Concatenate",
+      label: "Setter",
       config: { valueExpression },
     },
     selected: false,

@@ -8,7 +8,7 @@ describe("workflow node registry", () => {
     const definition = nodeRegistry.setVariable
 
     expect(definition.kind).toBe("setVariable")
-    expect(definition.title).toBe("Concatenate")
+    expect(definition.title).toBe("Setter")
     expect(definition.buildDefaultConfig().variableName).toBeUndefined()
     expect(definition.buildDefaultConfig().valueExpression).toBeDefined()
   })
@@ -17,7 +17,7 @@ describe("workflow node registry", () => {
     const node = createWorkflowNode("setVariable", { x: 0, y: 0 })
 
     expect(node.type).toBe("setVariable")
-    expect(node.data.label).toBe("Concatenate")
+    expect(node.data.label).toBe("Setter")
     expect(node.data.config.variableName).toBeUndefined()
     expect(node.data.config.valueExpression).toBeDefined()
   })

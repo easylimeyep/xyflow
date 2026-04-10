@@ -10,7 +10,7 @@ import { useNodeStoreData } from "../../shared/use-node-store-data"
 
 export function SetVariableNode({ id, data, selected }: NodeProps) {
   const { label: baseLabel, config } = useBaseNodeData(data)
-  const label = baseLabel || "Concatenate"
+  const label = baseLabel || "Setter"
   const { expressionVariables, updateNodeConfig } = useNodeStoreData(id)
 
   const valueExpressionFromStore = asText(config.valueExpression)
