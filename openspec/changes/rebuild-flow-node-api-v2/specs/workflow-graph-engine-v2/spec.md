@@ -1,0 +1,34 @@
+## ADDED Requirements
+
+### Requirement: Graph operations are implemented as pure engine commands
+The workflow graph mutation layer SHALL expose pure command handlers that accept current graph state plus typed command payloads and return deterministic next state plus domain errors.
+
+#### Scenario: Command evaluation is deterministic
+- **WHEN** the same graph state and command payload are evaluated multiple times
+- **THEN** the graph engine MUST return equivalent outputs each time
+
+#### Scenario: Store layer delegates graph mutation to engine
+- **WHEN** UI triggers a graph mutation command
+- **THEN** the store MUST delegate mutation logic to graph engine handlers instead of embedding cross-cutting business rules inline
+
+### Requirement: Typed command contracts enforce node-kind-safe updates
+The graph engine SHALL use typed command payloads for node config updates and MUST reject invalid kind/key/value combinations.
+
+#### Scenario: Invalid config command is rejected
+- **WHEN** a command targets a node kind with an unsupported config key
+- **THEN** the engine MUST return a validation error and MUST NOT mutate graph state
+
+#### Scenario: Valid config command mutates exactly one semantic unit
+- **WHEN** a valid node config command is applied
+- **THEN** the engine MUST mutate only the intended semantic state and preserve unrelated graph state
+
+### Requirement: Interaction history semantics remain stable under engine orchestration
+The engine/store integration SHALL preserve interaction semantics where drag updates are transient and history commits occur at semantic boundaries.
+
+#### Scenario: Drag movement does not spam history
+- **WHEN** node position updates arrive during drag in progress
+- **THEN** transient updates MUST NOT create one history entry per pointer tick
+
+#### Scenario: Drag release commits semantic history step
+- **WHEN** drag operation ends with final node position
+- **THEN** exactly one semantic history step MUST be committed for that drag sequence
