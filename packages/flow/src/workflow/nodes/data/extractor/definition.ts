@@ -16,10 +16,9 @@ export const extractor = defineNode({
     },
     {
       key: "extractExpression",
-      label: "Extract ",
+      label: "Label",
       type: "text",
-      ui: "expression",
-      placeholder: "{{ myVariable }}",
+      placeholder: "myVar",
     },
     {
       key: "unlimited",
@@ -34,4 +33,5 @@ export const extractor = defineNode({
     extractExpression: "",
     unlimited: false,
   }),
+  renameConfigKey: "extractExpression",
 })

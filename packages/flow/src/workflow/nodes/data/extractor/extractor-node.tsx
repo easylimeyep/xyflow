@@ -8,17 +8,19 @@ import { Label } from "@workspace/ui/components/label"
 import { useCallback, useRef, useState } from "react"
 
 import { setVariableNodeStyles } from "../../../../styles/components/nodes"
-import { ExpressionInput } from "../../../components/expression-input"
+import { isValidJsIdentifier } from "../../../expression/variable-name/variable-name"
 import { NodeShell } from "../../node-shell/node-shell"
-import { asText, useBaseNodeData } from "../../shared"
+import { asText, useBaseNodeData, useVariableIdentifierField } from "../../shared"
 import { useNodeStoreData } from "../../shared/use-node-store-data"
 
 export function ExtractorNode({ id, data, selected }: NodeProps) {
   const { label: baseLabel, config } = useBaseNodeData(data)
   const label = baseLabel || "Extractor"
-  const { expressionVariables, updateNodeConfig } = useNodeStoreData(id)
+  const { updateNodeConfig } = useNodeStoreData(id)
 
-  const extractExpressionFromStore = asText(config.extractExpression)
+  const variableLabelFromConfig = asText(config.extractExpression).trim()
+  const fallbackVariableLabel = isValidJsIdentifier(label) ? label : "myVar"
+  const variableLabel = variableLabelFromConfig || fallbackVariableLabel
   const tokenNumberFromStore =
     typeof config.tokenNumber === "number" &&
     Number.isFinite(config.tokenNumber)
@@ -34,6 +36,16 @@ export function ExtractorNode({ id, data, selected }: NodeProps) {
   const tokenInputRef = useRef<HTMLInputElement | null>(null)
   const styles = setVariableNodeStyles()
   const unlimitedId = `${id}-unlimited`
+  const variableLabelField = useVariableIdentifierField({
+    value: variableLabel,
+    onCommit: (nextLabel) => {
+      updateNodeConfig(id, {
+        kind: "extractor",
+        key: "extractExpression",
+        value: nextLabel,
+      })
+    },
+  })
 
   const shownTokenNumber = isTokenNumberFocused
     ? draftTokenNumber
@@ -111,18 +123,18 @@ export function ExtractorNode({ id, data, selected }: NodeProps) {
 
         <div className={styles.inlineEditField()}>
           <Label className={styles.label()}>Label</Label>
-          <ExpressionInput
-            value={extractExpressionFromStore}
-            placeholder="{{ myVariable }}"
-            variables={expressionVariables}
-            onChange={(nextValue) => {
-              updateNodeConfig(id, {
-                kind: "extractor",
-                key: "extractExpression",
-                value: nextValue,
-              })
-            }}
+          <Input
+            ref={variableLabelField.inputRef}
+            value={variableLabelField.shownValue}
+            placeholder="myVar"
+            onFocus={variableLabelField.onFocus}
+            onChange={(event) => variableLabelField.onChange(event.target.value)}
+            onBlur={variableLabelField.onBlur}
+            onKeyDown={variableLabelField.onKeyDown}
           />
+          {variableLabelField.errorText ? (
+            <p className={styles.errorText()}>{variableLabelField.errorText}</p>
+          ) : null}
         </div>
 
         <FieldGroup>

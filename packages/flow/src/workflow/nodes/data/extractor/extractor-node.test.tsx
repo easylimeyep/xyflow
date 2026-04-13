@@ -18,25 +18,8 @@ vi.mock("@xyflow/react", () => ({
 
 vi.mock("../../shared/use-node-store-data", () => ({
   useNodeStoreData: () => ({
-    expressionVariables: [],
     updateNodeConfig: mockUpdateNodeConfig,
   }),
-}))
-
-vi.mock("../../../components/expression-input", () => ({
-  ExpressionInput: ({
-    value,
-    onChange,
-  }: {
-    value: string
-    onChange: (nextValue: string) => void
-  }) => (
-    <input
-      data-testid="extractor-expression-input"
-      value={value}
-      onChange={(event) => onChange(event.target.value)}
-    />
-  ),
 }))
 
 vi.mock("../../output-quick-add-affordance/output-quick-add-affordance", () => ({
@@ -84,7 +67,7 @@ describe("ExtractorNode", () => {
   })
 
   it("commits token number as non-negative integer on blur", () => {
-    render(<ExtractorNode {...createNodeProps(0, "{{ $input.item.json }}")} />)
+    render(<ExtractorNode {...createNodeProps(0, "myVar")} />)
 
     const tokenNumberInput = screen.getByDisplayValue("0")
     fireEvent.focus(tokenNumberInput)
@@ -98,25 +81,52 @@ describe("ExtractorNode", () => {
     })
   })
 
-  it("commits extract expression on blur", () => {
-    render(<ExtractorNode {...createNodeProps(3, "{{ $input.item.json }}")} />)
+  it("renders Label input independently from node title", () => {
+    render(<ExtractorNode {...createNodeProps(3, "myVar")} />)
 
-    const expressionInput = screen.getByTestId("extractor-expression-input")
-    fireEvent.focus(expressionInput)
-    fireEvent.change(expressionInput, {
-      target: { value: "{{ $node(\"Trigger\").item.json.eventName }}" },
+    const labelInput = screen.getByPlaceholderText("myVar")
+    expect(screen.getByText("Extractor")).toBeDefined()
+    expect(labelInput).toBeDefined()
+    expect((labelInput as HTMLInputElement).value).toBe("myVar")
+  })
+
+  it("commits Label via updateNodeConfig on blur", () => {
+    render(<ExtractorNode {...createNodeProps(3, "myVar")} />)
+
+    const labelInput = screen.getByPlaceholderText("myVar")
+    fireEvent.focus(labelInput)
+    fireEvent.change(labelInput, {
+      target: { value: "newVar" },
     })
-    fireEvent.blur(expressionInput)
+    fireEvent.blur(labelInput)
 
     expect(mockUpdateNodeConfig).toHaveBeenCalledWith("extractor-node-1", {
       kind: "extractor",
       key: "extractExpression",
-      value: "{{ $node(\"Trigger\").item.json.eventName }}",
+      value: "newVar",
     })
   })
 
+  it("shows error and does not commit for invalid JS identifier", () => {
+    render(<ExtractorNode {...createNodeProps(3, "myVar")} />)
+
+    const labelInput = screen.getByPlaceholderText("myVar")
+    fireEvent.focus(labelInput)
+    fireEvent.change(labelInput, {
+      target: { value: "my var!" },
+    })
+    fireEvent.blur(labelInput)
+
+    expect(mockUpdateNodeConfig).not.toHaveBeenCalledWith("extractor-node-1", {
+      kind: "extractor",
+      key: "extractExpression",
+      value: "my var!",
+    })
+    expect(screen.getByText("Label must be a valid JavaScript identifier.")).toBeDefined()
+  })
+
   it("toggles unlimited flag", () => {
-    render(<ExtractorNode {...createNodeProps(3, "{{ $input.item.json }}", false)} />)
+    render(<ExtractorNode {...createNodeProps(3, "myVar", false)} />)
 
     const checkbox = screen.getByRole("checkbox")
     fireEvent.click(checkbox)

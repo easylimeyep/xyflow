@@ -716,7 +716,7 @@ describe("workflow store", () => {
     )
   })
 
-  it("refactors plain variable references when setVariable label is renamed", () => {
+  it("refactors plain variable references when setVariable variableName is renamed", () => {
     const state = store.getState()
     state.addNode("setVariable", { x: 600, y: 80 })
     state.addNode("inlineExpression", { x: 900, y: 80 })
@@ -733,14 +733,19 @@ describe("workflow store", () => {
     if (!setVariableNode || !inlineExpressionNode) {
       throw new Error("set variable fixture nodes not found")
     }
+    const initialVariableName = String(setVariableNode.data.config.variableName ?? "")
 
     state.updateNodeConfig(inlineExpressionNode.id, {
       kind: "inlineExpression",
       key: "template",
-      value: `{{ ${setVariableNode.data.label} }}`,
+      value: `{{ ${initialVariableName} }}`,
     })
 
-    state.updateNodeLabel(setVariableNode.id, "newName")
+    state.updateNodeConfig(setVariableNode.id, {
+      kind: "setVariable",
+      key: "variableName",
+      value: "newName",
+    })
 
     const nextState = store.getState()
     const nextSetVariableNode = nextState.history.present.nodes.find(
@@ -750,7 +755,54 @@ describe("workflow store", () => {
       (node) => node.id === inlineExpressionNode.id
     )
 
-    expect(nextSetVariableNode?.data.label).toBe("newName")
+    expect(nextSetVariableNode?.data.config.variableName).toBe("newName")
+    expect(nextSetVariableNode?.data.label).toBe(setVariableNode.data.label)
+    expect(nextInlineExpressionNode?.data.config.template).toBe("{{ newName }}")
+  })
+
+  it("refactors plain variable references when extractor Label is renamed via config", () => {
+    const state = store.getState()
+    state.addNode("extractor", { x: 600, y: 80 })
+    state.addNode("inlineExpression", { x: 900, y: 80 })
+
+    const extractorNode = store
+      .getState()
+      .history.present.nodes.find((node: WorkflowNode) => node.data.kind === "extractor")
+    const inlineExpressionNode = store
+      .getState()
+      .history.present.nodes.find(
+        (node: WorkflowNode) =>
+          node.data.kind === "inlineExpression" && node.data.config.isRoot !== true
+      )
+    if (!extractorNode || !inlineExpressionNode) {
+      throw new Error("extractor fixture nodes not found")
+    }
+
+    state.updateNodeConfig(extractorNode.id, {
+      kind: "extractor",
+      key: "extractExpression",
+      value: "oldName",
+    })
+    state.updateNodeConfig(inlineExpressionNode.id, {
+      kind: "inlineExpression",
+      key: "template",
+      value: "{{ oldName }}",
+    })
+
+    state.updateNodeConfig(extractorNode.id, {
+      kind: "extractor",
+      key: "extractExpression",
+      value: "newName",
+    })
+
+    const nextState = store.getState()
+    const nextExtractorNode = nextState.history.present.nodes.find((node) => node.id === extractorNode.id)
+    const nextInlineExpressionNode = nextState.history.present.nodes.find(
+      (node) => node.id === inlineExpressionNode.id
+    )
+
+    expect(nextExtractorNode?.data.config.extractExpression).toBe("newName")
+    expect(nextExtractorNode?.data.label).toBe(extractorNode.data.label)
     expect(nextInlineExpressionNode?.data.config.template).toBe("{{ newName }}")
   })
 

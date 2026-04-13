@@ -1,24 +1,4 @@
-# store-expression-cache Specification
-
-## Purpose
-Define requirements for expression variable cache isolation and selector behavior so variable suggestions remain deterministic and consistent with store state.
-
-## Requirements
-
-### Requirement: Expression variable catalog cache is scoped per store instance
-The expression variable catalog cache SHALL be stored inside Zustand store state, not in module-level variables. Each store instance MUST maintain its own independent cache. The cache MUST be reset whenever the expression structural signature changes.
-
-#### Scenario: Separate stores do not share cache
-- **WHEN** two workflow store instances are created in the same process
-- **THEN** each store MUST maintain its own independent expression variable catalog cache
-
-#### Scenario: Cache is cleared on structural graph change
-- **WHEN** nodes or edges are added, removed, or renamed such that the expression structural signature changes
-- **THEN** the expression catalog cache MUST be reset to an empty map
-
-#### Scenario: Cache survives position-only changes
-- **WHEN** a node is moved (position-only change, no structural change)
-- **THEN** the expression structural signature MUST remain unchanged and the cache MUST not be cleared
+## MODIFIED Requirements
 
 ### Requirement: Expression variable selector is a pure read-only function
 `selectExpressionVariablesForNode` SHALL compute and return expression variables without any module-level side effects. It MUST read only from Zustand store state.

@@ -1,4 +1,9 @@
-## ADDED Requirements
+# store-slice-decomposition Specification
+
+## Purpose
+Define required decomposition boundaries and behavior guarantees for workflow store graph slices.
+
+## Requirements
 
 ### Requirement: Graph slice commands are organized into focused sub-slices
 The graph commands SHALL be split across focused sub-slices: node CRUD operations in `node-crud-slice`, connection operations in `connection-slice`, and node change handling in `nodes-change-slice`. All commands MUST remain available on the composed store without API changes.

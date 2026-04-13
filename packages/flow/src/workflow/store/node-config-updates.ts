@@ -2,6 +2,7 @@ import { getNodeDefinition } from "../node-registry/registry"
 import type { NodeKind } from "../node-registry/registry"
 import { createWorkflowError, type WorkflowError } from "../types/errors"
 import type { JsonObject, WorkflowGraphState } from "../types/types"
+import { refactorPlainVariableReferencesInGraph } from "./graph-refactors"
 import type { NodeConfigUpdate } from "./types"
 
 interface NodeConfigUpdateResult {
@@ -39,8 +40,15 @@ export function applyNodeConfigUpdate(
     update.key === "isRoot" &&
     previousRawValue !== true &&
     update.value === true
+  const definition = getNodeDefinition(targetNode.data.kind as NodeKind)
+  const oldName = typeof previousRawValue === "string" ? previousRawValue : null
+  const newName = typeof update.value === "string" ? update.value : null
+  const isRenameFieldUpdate =
+    definition.renameConfigKey === update.key &&
+    oldName !== null &&
+    newName !== null
 
-  const nextNodes = currentGraph.nodes.map((node) => {
+  const nextNodesWithConfig = currentGraph.nodes.map((node) => {
     if (node.id !== nodeId) return node
     return {
       ...node,
@@ -53,6 +61,13 @@ export function applyNodeConfigUpdate(
       },
     }
   })
+  const nextNodes = isRenameFieldUpdate
+    ? refactorPlainVariableReferencesInGraph(
+        nextNodesWithConfig,
+        oldName,
+        newName
+      )
+    : nextNodesWithConfig
 
   return {
     nextGraph: {

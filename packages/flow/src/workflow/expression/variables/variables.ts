@@ -1,4 +1,5 @@
 import type { ExpressionVariableOption, WorkflowEdge, WorkflowNode } from "../../types/types"
+import { isValidJsIdentifier } from "../variable-name/variable-name"
 
 const VARIABLE_NODE_KINDS = new Set(["extractor", "setVariable"])
 
@@ -19,7 +20,10 @@ export function collectWorkflowVariables(
       return
     }
 
-    const variableName = node.data.label.trim()
+    const variableName =
+      node.data.kind === "setVariable"
+        ? readSetVariableName(node)
+        : readExtractorVariableName(node)
     if (!variableName) {
       return
     }
@@ -33,6 +37,28 @@ export function collectWorkflowVariables(
   })
 
   return options
+}
+
+function readSetVariableName(node: WorkflowNode): string {
+  const fromConfig = node.data.config.variableName
+  if (typeof fromConfig === "string") {
+    const trimmedConfig = fromConfig.trim()
+    if (trimmedConfig.length > 0 && isValidJsIdentifier(trimmedConfig)) {
+      return trimmedConfig
+    }
+  }
+  return node.data.label.trim()
+}
+
+function readExtractorVariableName(node: WorkflowNode): string {
+  const fromConfig = node.data.config.extractExpression
+  if (typeof fromConfig === "string") {
+    const trimmedConfig = fromConfig.trim()
+    if (trimmedConfig.length > 0 && isValidJsIdentifier(trimmedConfig)) {
+      return trimmedConfig
+    }
+  }
+  return node.data.label.trim()
 }
 
 function getReachableUpstreamNodes(

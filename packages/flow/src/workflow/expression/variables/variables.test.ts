@@ -11,8 +11,9 @@ describe("collectWorkflowVariables", () => {
     expect(options).toHaveLength(0)
   })
 
-  it("exposes upstream extractor label as plain variable", () => {
-    const extractor = createWorkflowNode("extractor", { x: 0, y: 0 }, "price")
+  it("exposes upstream extractor extractExpression as plain variable", () => {
+    const extractor = createWorkflowNode("extractor", { x: 0, y: 0 }, "Extractor Title")
+    extractor.data.config.extractExpression = "price"
     const inline = createWorkflowNode("inlineExpression", { x: 200, y: 0 }, "InlineA")
 
     const edges: WorkflowEdge[] = [
@@ -33,8 +34,31 @@ describe("collectWorkflowVariables", () => {
     expect(options[0]?.label).toBe("price")
   })
 
-  it("exposes upstream setVariable label as plain variable", () => {
-    const setVar = createWorkflowNode("setVariable", { x: 0, y: 0 }, "total")
+  it("falls back to extractor label when extractExpression is invalid", () => {
+    const extractor = createWorkflowNode("extractor", { x: 0, y: 0 }, "fallbackLabel")
+    extractor.data.config.extractExpression = "{{ invalid }}"
+    const inline = createWorkflowNode("inlineExpression", { x: 200, y: 0 }, "InlineA")
+
+    const edges: WorkflowEdge[] = [
+      {
+        id: "edge-1",
+        source: extractor.id,
+        target: inline.id,
+        sourceHandle: null,
+        targetHandle: null,
+        data: { sourceKind: extractor.data.kind, targetKind: inline.data.kind },
+      },
+    ]
+
+    const options = collectWorkflowVariables([extractor, inline], edges, inline.id)
+
+    expect(options).toHaveLength(1)
+    expect(options[0]?.value).toBe("fallbackLabel")
+  })
+
+  it("exposes upstream setVariable variableName as plain variable", () => {
+    const setVar = createWorkflowNode("setVariable", { x: 0, y: 0 }, "Setter")
+    setVar.data.config.variableName = "total"
     const inline = createWorkflowNode("inlineExpression", { x: 200, y: 0 }, "InlineA")
 
     const edges: WorkflowEdge[] = [
@@ -52,6 +76,28 @@ describe("collectWorkflowVariables", () => {
 
     expect(options).toHaveLength(1)
     expect(options[0]?.value).toBe("total")
+  })
+
+  it("falls back to setVariable label when variableName is missing", () => {
+    const setVar = createWorkflowNode("setVariable", { x: 0, y: 0 }, "fallbackLabel")
+    setVar.data.config.variableName = ""
+    const inline = createWorkflowNode("inlineExpression", { x: 200, y: 0 }, "InlineA")
+
+    const edges: WorkflowEdge[] = [
+      {
+        id: "edge-1",
+        source: setVar.id,
+        target: inline.id,
+        sourceHandle: null,
+        targetHandle: null,
+        data: { sourceKind: setVar.data.kind, targetKind: inline.data.kind },
+      },
+    ]
+
+    const options = collectWorkflowVariables([setVar, inline], edges, inline.id)
+
+    expect(options).toHaveLength(1)
+    expect(options[0]?.value).toBe("fallbackLabel")
   })
 
   it("does not expose other node kinds as variables", () => {

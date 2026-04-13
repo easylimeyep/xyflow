@@ -18,7 +18,9 @@ export const setVariable = defineNode({
     "result",
   ],
   buildDefaultConfig: () => ({
+    variableName: "myVar",
     valueExpression: "",
   }),
   extraExpressionConfigKeys: ["valueExpression"],
+  renameConfigKey: "variableName",
 })
