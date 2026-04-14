@@ -3,6 +3,17 @@ import { GitBranch } from "lucide-react"
 import { defineNode } from "../../node-registry/define-node"
 import type { BranchCondition } from "../../types"
 
+function isBranchCondition(value: unknown): value is BranchCondition {
+  if (typeof value !== "object" || value === null) return false
+  const candidate = value as Partial<BranchCondition>
+  return (
+    typeof candidate.id === "string" &&
+    typeof candidate.value === "string" &&
+    typeof candidate.operator === "string" &&
+    (candidate.targetValue === undefined || typeof candidate.targetValue === "string")
+  )
+}
+
 export const branch = defineNode({
   kind: "branch" as const,
   title: "Branch",
@@ -46,4 +57,14 @@ export const branch = defineNode({
       label: "false",
     },
   ],
+  validateConfigValue: (key, value) => {
+    switch (key) {
+      case "conditions":
+        return Array.isArray(value) && value.every(isBranchCondition)
+      case "logicalOperator":
+        return value === "and" || value === "or"
+      default:
+        return false
+    }
+  },
 })

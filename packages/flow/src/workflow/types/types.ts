@@ -95,22 +95,6 @@ export type BranchNodeConfig = {
   logicalOperator: "and" | "or"
 }
 
-export type TransformNodeConfig = {
-  expression: string
-}
-
-export type CodeNodeConfig = {
-  code: string
-  runtime: "js"
-}
-
-export type CustomInputNodeConfig = {
-  inputText: string
-  retryCount: number
-  required: boolean
-  inputKind: "config" | "policy" | "metadata"
-}
-
 export type InlineExpressionNodeConfig = {
   template: string
   isRoot: boolean
@@ -127,14 +111,16 @@ export type ExtractorNodeConfig = {
   unlimited: boolean
 }
 
+export type ResultNodeConfig = {
+  category: "true" | "false"
+}
+
 export interface NodeConfigByKind {
   branch: BranchNodeConfig
-  transform: TransformNodeConfig
-  code: CodeNodeConfig
-  customInput: CustomInputNodeConfig
   setVariable: SetVariableNodeConfig
   inlineExpression: InlineExpressionNodeConfig
   extractor: ExtractorNodeConfig
+  result: ResultNodeConfig
 }
 
 export interface BaseWorkflowNodeData {

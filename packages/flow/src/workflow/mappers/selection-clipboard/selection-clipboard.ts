@@ -1,8 +1,8 @@
 import type { XYPosition } from "@xyflow/react"
 
-import { isRecordJsonObject } from "../../node-registry/node-config-normalization"
+import { decodeNodeConfig } from "../../node-registry/node-config-normalization"
 import { isNodeKind } from "../../types/types"
-import type { DomainWorkflowConnectionDTO, DomainWorkflowNodeDTO, JsonObject } from "../../types/types"
+import type { DomainWorkflowConnectionDTO, DomainWorkflowNodeDTO } from "../../types/types"
 import type { ParseResult } from "../parser/parser"
 import { asRecord, isNumber, isString } from "../utils/utils"
 
@@ -14,18 +14,12 @@ export interface WorkflowSelectionClipboardPayload {
   connections: DomainWorkflowConnectionDTO[]
 }
 
-function toJsonObject(value: unknown): JsonObject | null {
-  if (!isRecordJsonObject(value)) {
-    return null
-  }
-
-  return value
-}
-
-function toNodeDTO(value: unknown): DomainWorkflowNodeDTO | null {
+function toNodeDTO(
+  value: unknown
+): { success: true; value: DomainWorkflowNodeDTO } | { success: false; error: string } {
   const record = asRecord(value)
   if (!record) {
-    return null
+    return { success: false, error: "Clipboard node must be an object." }
   }
 
   const position = asRecord(record.position)
@@ -37,20 +31,23 @@ function toNodeDTO(value: unknown): DomainWorkflowNodeDTO | null {
     !isNumber(position.y) ||
     !isString(record.label)
   ) {
-    return null
+    return { success: false, error: "Clipboard node must include valid id, kind, position, and label." }
   }
 
-  const config = toJsonObject(record.config)
-  if (!config) {
-    return null
+  const configResult = decodeNodeConfig(record.kind, record.config)
+  if (!configResult.success) {
+    return { success: false, error: configResult.error }
   }
 
   return {
-    id: record.id,
-    kind: record.kind,
-    position: { x: position.x, y: position.y },
-    label: record.label,
-    config,
+    success: true,
+    value: {
+      id: record.id,
+      kind: record.kind,
+      position: { x: position.x, y: position.y },
+      label: record.label,
+      config: configResult.config,
+    },
   }
 }
 
@@ -151,14 +148,24 @@ export function parseSelectionClipboardJson(
 
     const nodes = record.nodes.map(toNodeDTO)
     const connections = record.connections.map(toConnectionDTO)
-    if (nodes.some((node) => node === null) || connections.some((connection) => connection === null)) {
+    const nodeFailure = nodes.find((node) => !node.success)
+    if (nodeFailure && !nodeFailure.success) {
+      return {
+        success: false,
+        error: nodeFailure.error,
+      }
+    }
+    if (connections.some((connection) => connection === null)) {
       return {
         success: false,
         error: "Clipboard JSON must match workflow selection schema.",
       }
     }
 
-    const nodeIds = new Set(nodes.filter((node): node is DomainWorkflowNodeDTO => node !== null).map((node) => node.id))
+    const decodedNodes = nodes
+      .filter((node): node is { success: true; value: DomainWorkflowNodeDTO } => node.success)
+      .map((node) => node.value)
+    const nodeIds = new Set(decodedNodes.map((node) => node.id))
     const hasExternalReferences = connections
       .filter((connection): connection is DomainWorkflowConnectionDTO => connection !== null)
       .some(
@@ -176,7 +183,7 @@ export function parseSelectionClipboardJson(
       success: true,
       value: {
         kind: WORKFLOW_SELECTION_CLIPBOARD_KIND,
-        nodes: nodes.filter((node): node is DomainWorkflowNodeDTO => node !== null),
+        nodes: decodedNodes,
         connections: connections.filter(
           (connection): connection is DomainWorkflowConnectionDTO => connection !== null
         ),

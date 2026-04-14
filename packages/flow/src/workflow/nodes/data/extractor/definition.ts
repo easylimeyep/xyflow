@@ -34,4 +34,16 @@ export const extractor = defineNode({
     unlimited: false,
   }),
   renameConfigKey: "extractExpression",
+  validateConfigValue: (key, value) => {
+    switch (key) {
+      case "tokenNumber":
+        return typeof value === "number"
+      case "extractExpression":
+        return typeof value === "string"
+      case "unlimited":
+        return typeof value === "boolean"
+      default:
+        return false
+    }
+  },
 })

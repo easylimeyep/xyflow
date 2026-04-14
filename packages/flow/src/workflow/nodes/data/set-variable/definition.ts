@@ -23,4 +23,7 @@ export const setVariable = defineNode({
   }),
   extraExpressionConfigKeys: ["valueExpression"],
   renameConfigKey: "variableName",
+  validateConfigValue: (key, value) =>
+    (key === "variableName" || key === "valueExpression") &&
+    typeof value === "string",
 })

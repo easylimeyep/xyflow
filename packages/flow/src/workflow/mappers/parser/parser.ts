@@ -20,16 +20,16 @@ export function parseInternalGraphJson(rawJson: string): ParseResult<WorkflowGra
     }
 
     const domainDTO = toDomainDTO(parsed)
-    if (!domainDTO) {
+    if (!domainDTO.success) {
       return {
         success: false,
-        error: "Workflow JSON must match domain workflow schema.",
+        error: domainDTO.error ?? "Workflow JSON must match domain workflow schema.",
       }
     }
 
     return {
       success: true,
-      value: domainToInternal(domainDTO),
+      value: domainToInternal(domainDTO.value),
     }
   } catch {
     return {
@@ -40,5 +40,6 @@ export function parseInternalGraphJson(rawJson: string): ParseResult<WorkflowGra
 }
 
 export function isValidDomainDto(value: unknown): value is DomainWorkflowDTO {
-  return toDomainDTO(value) !== null
+  const result = toDomainDTO(value)
+  return result.success
 }

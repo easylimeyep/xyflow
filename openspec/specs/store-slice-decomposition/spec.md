@@ -2,23 +2,21 @@
 
 ## Purpose
 Define required decomposition boundaries and behavior guarantees for workflow store graph slices.
-
 ## Requirements
-
 ### Requirement: Graph slice commands are organized into focused sub-slices
-The graph commands SHALL be split across focused sub-slices: node CRUD operations in `node-crud-slice`, connection operations in `connection-slice`, and node change handling in `nodes-change-slice`. All commands MUST remain available on the composed store without API changes.
+Workflow editor command orchestration SHALL expose focused responsibilities where UI/store wiring delegates graph mutation semantics to graph-engine command handlers. Public store command surface MUST remain behaviorally compatible for editor consumers.
 
-#### Scenario: Node CRUD commands are accessible on store
-- **WHEN** a consumer calls `addNode`, `updateNodeLabel`, `updateNodeConfig`, or `isSetVariableNameUnique` on the store
-- **THEN** the commands MUST execute with identical behavior as before the split
+#### Scenario: Node CRUD command entry points remain available to editor consumers
+- **WHEN** editor UI invokes add/update node command entry points on the store
+- **THEN** command invocation MUST remain available while mutation semantics execute through graph-engine handlers
 
-#### Scenario: Connection commands are accessible on store
-- **WHEN** a consumer calls `onConnect` or `onEdgesChange` on the store
-- **THEN** the commands MUST execute with identical behavior as before the split
+#### Scenario: Connection command entry points remain available to editor consumers
+- **WHEN** editor UI invokes connect/edge-change command entry points on the store
+- **THEN** command invocation MUST remain available while validation/mutation semantics execute through graph-engine handlers
 
-#### Scenario: Node change handler is accessible on store
-- **WHEN** a consumer calls `onNodesChange` on the store
-- **THEN** drag tracking, edge cleanup, selection sync, and history commits MUST all behave identically
+#### Scenario: Node change entry point preserves behavior contracts
+- **WHEN** editor UI invokes node-change command entry points
+- **THEN** selection sync, edge cleanup, and history semantics MUST remain behaviorally equivalent to editor expectations
 
 ### Requirement: Graph slices do not directly import from the expression domain
 Graph slice files (`graph-slice.ts`, `node-crud-slice.ts`, `connection-slice.ts`, `nodes-change-slice.ts`, `io-slice.ts`, `node-config-updates.ts`) MUST NOT import directly from `workflow/expression/refactor/`. All expression refactoring calls SHALL be routed through `store/graph-refactors.ts`.
@@ -32,23 +30,24 @@ Graph slice files (`graph-slice.ts`, `node-crud-slice.ts`, `connection-slice.ts`
 - **THEN** expression references within pasted nodes MUST be remapped to new node IDs
 
 ### Requirement: `onNodesChange` logic is decomposed into named helper functions
-The `onNodesChange` implementation MUST delegate distinct concerns to named private helper functions: computing next graph state, classifying change types, and determining history commit strategy. The handler body MUST NOT exceed 40 lines.
+Node change orchestration SHALL be decomposed into explicit helper and/or engine handlers for change projection, interaction classification, and commit policy determination.
 
-#### Scenario: Drag-and-release creates a single history entry
-- **WHEN** a node is dragged and released
-- **THEN** exactly one history entry MUST be committed (drag start squashes intermediate positions)
+#### Scenario: Drag-and-release creates a single semantic history entry
+- **WHEN** node drag interaction starts, updates, and ends
+- **THEN** history MUST record one semantic commit for the completed drag interaction
 
-#### Scenario: Node deletion removes associated edges from history
-- **WHEN** a node is deleted via keyboard or delete action
-- **THEN** edges connected to the deleted node MUST be removed and the combined change MUST be a single history entry
+#### Scenario: Node deletion removes associated edges in a single semantic change
+- **WHEN** nodes are removed
+- **THEN** incident edges MUST be removed as part of the same semantic graph transition
 
 ### Requirement: `pasteFromClipboard` is decomposed into named helper functions
-The paste operation MUST delegate node remapping, label deduplication, and edge reconstruction to named private helper functions. The main `pasteFromClipboard` body MUST NOT exceed 40 lines.
+Clipboard paste orchestration SHALL delegate payload parsing, node remapping, label reconciliation, and edge reconstruction to explicit helper or engine modules.
 
-#### Scenario: Pasted nodes get unique labels
-- **WHEN** a node with an existing label is pasted
-- **THEN** the pasted node MUST receive a new unique label suffixed with a number
+#### Scenario: Pasted nodes receive deterministic unique labels
+- **WHEN** pasted node labels conflict with existing graph labels
+- **THEN** pasted labels MUST be deterministically deduplicated
 
-#### Scenario: Pasted edges are correctly reconnected
-- **WHEN** a selection of connected nodes is pasted
-- **THEN** edges between pasted nodes MUST be recreated with remapped IDs
+#### Scenario: Pasted edges reconnect using remapped node IDs
+- **WHEN** a connected node selection is pasted
+- **THEN** edges between pasted nodes MUST be recreated using the new node ID mapping
+

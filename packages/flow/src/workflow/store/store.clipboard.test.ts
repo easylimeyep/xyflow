@@ -149,6 +149,32 @@ describe("workflow store clipboard actions", () => {
     expect(store.getState().lastError?.message).toContain("workflow selection schema")
   })
 
+  it("rejects clipboard payloads with invalid config values deterministically", async () => {
+    const store = createWorkflowStore()
+    clipboardReadTextMock.mockResolvedValue(
+      JSON.stringify({
+        kind: "workflow-selection-v1",
+        nodes: [
+          {
+            id: "invalid-result",
+            kind: "result",
+            position: { x: 0, y: 0 },
+            label: "Result",
+            config: {
+              category: "maybe",
+            },
+          },
+        ],
+        connections: [],
+      })
+    )
+
+    const pasted = await store.getState().pasteFromClipboard()
+
+    expect(pasted).toBe(false)
+    expect(store.getState().lastError?.message).toContain("invalid value")
+  })
+
   it("returns false when clipboard write fails", async () => {
     const store = createWorkflowStore()
     const triggerNode = findRootKeywordNode(store.getState().history.present.nodes)
@@ -262,6 +288,77 @@ describe("workflow store clipboard actions", () => {
     expect(pastedInlineExpression?.data.config.template).toContain(
       '$node("Setter 2").item.json.myVar'
     )
+  })
+
+  it("preserves setVariable and branch semantic config across clipboard roundtrip", async () => {
+    const store = createWorkflowStore()
+    const payload = exportSelectionClipboardJson(
+      [
+        {
+          id: "copy-set-variable",
+          kind: "setVariable",
+          position: { x: 0, y: 0 },
+          label: "Setter",
+          config: {
+            variableName: "customerName",
+            valueExpression: "{{ $json.customer.name }}",
+          },
+        },
+        {
+          id: "copy-branch",
+          kind: "branch",
+          position: { x: 220, y: 0 },
+          label: "Branch",
+          config: {
+            conditions: [
+              {
+                id: "cond-1",
+                value: "{{ customerName }}",
+                operator: "is equal to",
+                targetValue: "Alice",
+              },
+            ],
+            logicalOperator: "or",
+          },
+        },
+      ],
+      [
+        {
+          id: "copy-connection",
+          sourceNodeId: "copy-set-variable",
+          targetNodeId: "copy-branch",
+          sourceHandle: null,
+          targetHandle: null,
+        },
+      ]
+    )
+    clipboardReadTextMock.mockResolvedValue(payload)
+    store.getState().setLastPointerPosition({ x: 400, y: 220 })
+
+    const pasted = await store.getState().pasteFromClipboard()
+
+    expect(pasted).toBe(true)
+    const pastedNodes = store
+      .getState()
+      .history.present.nodes.filter((node) => store.getState().selectedNodeIds.includes(node.id))
+    const pastedSetVariable = pastedNodes.find((node) => node.data.kind === "setVariable")
+    const pastedBranch = pastedNodes.find((node) => node.data.kind === "branch")
+
+    expect(pastedSetVariable?.data.config).toEqual({
+      variableName: "customerName",
+      valueExpression: "{{ $json.customer.name }}",
+    })
+    expect(pastedBranch?.data.config).toEqual({
+      conditions: [
+        {
+          id: "cond-1",
+          value: "{{ customerName }}",
+          operator: "is equal to",
+          targetValue: "Alice",
+        },
+      ],
+      logicalOperator: "or",
+    })
   })
 
   it("does not commit graph for unchanged config updates", () => {

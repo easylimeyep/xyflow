@@ -1,10 +1,8 @@
-import { addEdge, applyEdgeChanges } from "@xyflow/react"
+import { applyEdgeChanges } from "@xyflow/react"
 
-import { createWorkflowError } from "../../types/errors"
+import { applyConnectNodesCommand } from "../../graph-engine"
 import type { WorkflowEdge } from "../../types/types"
-import { getKindsFromConnection, validateConnection, type ConnectionLike } from "../../validation/validation"
 import { hasEdgeCollectionChanged, shouldCommitEdgeHistory } from "../collection-diff"
-import { toEdgeConnectionWithKind } from "../dto-mappers"
 import { commitGraphState, replacePresentGraphState } from "../history-helpers"
 import type { WorkflowSliceCreator } from "../types"
 
@@ -22,21 +20,12 @@ export const createConnectionSlice: WorkflowSliceCreator = (set, get) => ({
   },
   onConnect: (connection) => {
     const currentGraph = get().history.present
-    const validation = validateConnection(connection, currentGraph.nodes, currentGraph.edges)
-    if (!validation.valid) {
-      set({ lastError: createWorkflowError("INVALID_CONNECTION", validation.reason ?? "Invalid connection.") })
+    const result = applyConnectNodesCommand(currentGraph, { connection })
+    if (!result.ok) {
+      set({ lastError: result.error })
       return
     }
-    const kinds = getKindsFromConnection(connection, currentGraph.nodes)
-    if (!kinds) {
-      set({ lastError: createWorkflowError("KIND_RESOLUTION_FAILED", "Failed to resolve node kinds for connection.") })
-      return
-    }
-    const nextEdges = addEdge(
-      toEdgeConnectionWithKind(connection, kinds.sourceKind, kinds.targetKind),
-      currentGraph.edges
-    ) as WorkflowEdge[]
-    commitGraphState(set, { ...currentGraph, edges: nextEdges })
+    commitGraphState(set, result.nextGraph)
     set({ lastError: null })
   },
 })

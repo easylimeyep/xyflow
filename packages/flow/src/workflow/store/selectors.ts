@@ -1,4 +1,3 @@
-import { collectWorkflowVariables } from "../expression/variables/variables"
 import type {
   ExpressionVariableOption,
   WorkflowEdge,
@@ -64,7 +63,5 @@ export const selectExpressionVariablesForNode = (
   if (cached) {
     return cached
   }
-  const nodes = state.history.present.nodes
-  const edges = state.history.present.edges
-  return collectWorkflowVariables(nodes, edges, nodeId)
+  return []
 }

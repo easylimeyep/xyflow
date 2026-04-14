@@ -207,4 +207,23 @@ describe("WorkflowEditor wiring", () => {
     expect(screen.getByTestId("palette-quick-add-active").textContent).toBe("true")
   })
 
+  it("cancels quick add through escape without changing canvas graph", async () => {
+    const user = userEvent.setup()
+    renderWithStore(
+      <>
+        <QuickAddControls />
+        <WorkflowEditor />
+      </>
+    )
+
+    const beforeCount = Number(screen.getByTestId("canvas-node-count").textContent)
+    await user.click(screen.getByRole("button", { name: "test-start-quick-add" }))
+    expect(screen.getByTestId("palette-quick-add-active").textContent).toBe("true")
+
+    await user.keyboard("{Escape}")
+
+    expect(screen.getByTestId("palette-quick-add-active").textContent).toBe("false")
+    expect(Number(screen.getByTestId("canvas-node-count").textContent)).toBe(beforeCount)
+  })
+
 })

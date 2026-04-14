@@ -38,7 +38,7 @@ export function ResultNode({ id, data, selected }: NodeProps) {
               updateNodeConfig(id, {
                 kind: "result",
                 key: "category",
-                value: e.target.value,
+                value: e.target.value as "true" | "false",
               })
             }
           >

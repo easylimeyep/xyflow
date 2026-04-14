@@ -178,6 +178,8 @@ describe("WorkflowCanvas", () => {
   afterEach(() => {
     cleanup()
     reactFlowRenderSpy.mockClear()
+    vi.unstubAllGlobals()
+    vi.useRealTimers()
   })
 
   it("handles drop, viewport and selection interactions", async () => {
@@ -226,7 +228,9 @@ describe("WorkflowCanvas", () => {
     expect(onPaneClick).toHaveBeenCalledTimes(1)
 
     fireEvent.click(screen.getByTestId("rf-mousemove"))
-    expect(onPointerFlowPosition).toHaveBeenCalledWith({ x: 200, y: 100 })
+    await waitFor(() => {
+      expect(onPointerFlowPosition).toHaveBeenCalledWith({ x: 200, y: 100 })
+    })
 
     fireEvent.click(screen.getByTestId("rf-move"))
     expect(onViewportChange).toHaveBeenCalledWith({ x: 12, y: 34, zoom: 1.25 })
@@ -356,5 +360,45 @@ describe("WorkflowCanvas", () => {
     expect(onDeleteEdgeInitial).not.toHaveBeenCalled()
     expect(onStartInsertNext).toHaveBeenCalledWith(edgeId)
     expect(onDeleteEdgeNext).toHaveBeenCalledWith(edgeId)
+  })
+
+  it("batches pointer updates to one store write per animation frame", () => {
+    vi.useFakeTimers()
+    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) =>
+      window.setTimeout(() => callback(performance.now()), 16)
+    )
+    vi.stubGlobal("cancelAnimationFrame", (handle: number) => {
+      window.clearTimeout(handle)
+    })
+    const onPointerFlowPosition = vi.fn()
+
+    render(
+      <WorkflowCanvas
+        nodes={initialWorkflowGraph.nodes}
+        edges={initialWorkflowGraph.edges}
+        viewport={initialWorkflowGraph.viewport}
+        onNodesChange={vi.fn()}
+        onEdgesChange={vi.fn()}
+        onConnect={vi.fn()}
+        onViewportChange={vi.fn()}
+        onSelectNodes={vi.fn()}
+        onPaneClick={vi.fn()}
+        onAddNodeAt={vi.fn()}
+        onStartInsertFromEdge={vi.fn()}
+        onDeleteEdge={vi.fn()}
+        onPointerFlowPosition={onPointerFlowPosition}
+        edgeInsertPendingId={null}
+      />
+    )
+
+    fireEvent.click(screen.getByTestId("rf-mousemove"))
+    fireEvent.click(screen.getByTestId("rf-mousemove"))
+
+    expect(onPointerFlowPosition).not.toHaveBeenCalled()
+
+    vi.advanceTimersByTime(16)
+
+    expect(onPointerFlowPosition).toHaveBeenCalledTimes(1)
+    expect(onPointerFlowPosition).toHaveBeenCalledWith({ x: 200, y: 100 })
   })
 })

@@ -34,4 +34,14 @@ export const inlineExpression = defineNode({
     template: "",
     isRoot: false,
   }),
+  validateConfigValue: (key, value) => {
+    switch (key) {
+      case "template":
+        return typeof value === "string"
+      case "isRoot":
+        return typeof value === "boolean"
+      default:
+        return false
+    }
+  },
 })

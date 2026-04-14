@@ -153,6 +153,7 @@ describe("workflow store", () => {
     ])
     expect(store.getState().history.past.length).toBe(basePastLength)
     const signatureAfterTransientDrag = store.getState().expressionStructuralSignature
+    const versionAfterTransientDrag = store.getState().expressionStructuralVersion
 
     store.getState().onNodesChange([
       {
@@ -166,6 +167,7 @@ describe("workflow store", () => {
     expect(store.getState().expressionStructuralSignature).toBe(
       signatureAfterTransientDrag
     )
+    expect(store.getState().expressionStructuralVersion).toBe(versionAfterTransientDrag)
   })
 
   it("undoes node drag from the first hotkey press", () => {
@@ -296,6 +298,63 @@ describe("workflow store", () => {
       targetNode.id
     )
     expect(afterStructuralChangeCatalog).not.toBe(afterCommitCatalog)
+  })
+
+  it("keeps cache scoped per store instance", () => {
+    const firstStore = createWorkflowStore()
+    const secondStore = createWorkflowStore()
+
+    firstStore.getState().addNode("setVariable", { x: 320, y: 80 })
+    firstStore.getState().addNode("inlineExpression", { x: 620, y: 80 })
+    const firstInlineNode = findNonRootKeywordNode(firstStore.getState().history.present.nodes)
+    const firstSetVariable = firstStore
+      .getState()
+      .history.present.nodes.find((node) => node.data.kind === "setVariable")
+    if (!firstInlineNode || !firstSetVariable) {
+      throw new Error("first store fixtures not found")
+    }
+    firstStore.getState().onConnect({ source: firstSetVariable.id, target: firstInlineNode.id })
+
+    const firstCatalog = selectExpressionVariablesForNode(firstStore.getState(), firstInlineNode.id)
+    const secondInlineNode = findRootKeywordNode(secondStore.getState().history.present.nodes)
+    if (!secondInlineNode) {
+      throw new Error("second store root fixture not found")
+    }
+    const secondCatalog = selectExpressionVariablesForNode(secondStore.getState(), secondInlineNode.id)
+
+    expect(firstCatalog).not.toBe(secondCatalog)
+    expect(firstCatalog.some((option) => option.value === "myVar")).toBe(true)
+    expect(secondCatalog).toEqual([])
+  })
+
+  it("increments structural version only on structural graph changes", () => {
+    const state = store.getState()
+    const targetNode = state.history.present.nodes[0]
+    if (!targetNode) {
+      throw new Error("fixture node not found")
+    }
+
+    const initialVersion = store.getState().expressionStructuralVersion
+
+    state.setViewport({ x: 10, y: 20, zoom: 1.2 })
+    expect(store.getState().expressionStructuralVersion).toBe(initialVersion)
+
+    state.onNodesChange([
+      {
+        id: targetNode.id,
+        type: "position",
+        position: { x: targetNode.position.x + 10, y: targetNode.position.y + 10 },
+        dragging: true,
+      },
+    ])
+    expect(store.getState().expressionStructuralVersion).toBe(initialVersion)
+
+    state.updateNodeConfig(targetNode.id, {
+      kind: "inlineExpression",
+      key: "template",
+      value: "{{ renamed }}",
+    })
+    expect(store.getState().expressionStructuralVersion).toBe(initialVersion + 1)
   })
 
   it("commits structural edge changes to history", () => {

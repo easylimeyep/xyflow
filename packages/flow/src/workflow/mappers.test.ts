@@ -76,7 +76,7 @@ describe("workflow mappers", () => {
 
     const parsed = parseInternalGraphJson(JSON.stringify(legacyPayload))
     expect(parsed.success).toBe(false)
-    expect(parsed.error).toContain("domain workflow schema")
+    expect(parsed.error).toContain("valid id, kind, position, and label")
   })
 
   it("exports domain json", () => {
@@ -119,11 +119,10 @@ describe("workflow mappers", () => {
 
     // tokenNumber is a number field; setting to a non-number should not crash
     domainExtractor.config.tokenNumber = "not-a-number"
-    const restored = domainToInternal(domain)
-    const restoredExtractor = restored.nodes.find((node) => node.data.kind === "extractor")
+    const restored = parseInternalGraphJson(JSON.stringify(domain))
 
-    // config is preserved as-is for non-select fields (no schema coercion crash)
-    expect(restoredExtractor).toBeDefined()
+    expect(restored.success).toBe(false)
+    expect(restored.error).toContain("invalid value")
   })
 
   it("preserves metadata from imported domain dto", () => {
@@ -156,6 +155,38 @@ describe("workflow mappers", () => {
 
     expect(restoredInlineNode?.data.kind).toBe("inlineExpression")
     expect(restoredInlineNode?.data.config.template).toBe("{{ $input.item.json.hostname }}")
+  })
+
+  it("preserves setVariable and branch config semantics across domain roundtrip", () => {
+    const setVariableNode = createWorkflowNode("setVariable", { x: 300, y: 120 }, "Setter")
+    setVariableNode.data.config.variableName = "customerName"
+    setVariableNode.data.config.valueExpression = "{{ $json.customer.name }}"
+
+    const branchNode = createWorkflowNode("branch", { x: 620, y: 120 }, "Branch")
+    branchNode.data.config.conditions = [
+      {
+        id: "cond-1",
+        value: "{{ customerName }}",
+        operator: "is equal to",
+        targetValue: "Alice",
+      },
+    ]
+    branchNode.data.config.logicalOperator = "or"
+
+    const graph = {
+      ...initialWorkflowGraph,
+      nodes: [...initialWorkflowGraph.nodes, setVariableNode, branchNode],
+    }
+
+    const raw = exportDomainJson(graph)
+    const parsed = parseInternalGraphJson(raw)
+
+    expect(parsed.success).toBe(true)
+    const restoredSetVariable = parsed.value?.nodes.find((node) => node.id === setVariableNode.id)
+    const restoredBranch = parsed.value?.nodes.find((node) => node.id === branchNode.id)
+
+    expect(restoredSetVariable?.data.config).toEqual(setVariableNode.data.config)
+    expect(restoredBranch?.data.config).toEqual(branchNode.data.config)
   })
 
   it("exports and parses selection clipboard json with relative positions", () => {
@@ -200,5 +231,29 @@ describe("workflow mappers", () => {
 
     expect(parsed.success).toBe(false)
     expect(parsed.error).toContain("outside copied selection")
+  })
+
+  it("rejects clipboard payload with schema-invalid config", () => {
+    const node = internalToDomain(initialWorkflowGraph).nodes[0]
+    if (!node) {
+      throw new Error("fixture node not found")
+    }
+
+    const payload = JSON.stringify({
+      kind: "workflow-selection-v1",
+      nodes: [
+        {
+          ...node,
+          kind: "result",
+          config: { category: "maybe" },
+        },
+      ],
+      connections: [],
+    })
+
+    const parsed = parseSelectionClipboardJson(payload)
+
+    expect(parsed.success).toBe(false)
+    expect(parsed.error).toContain("invalid value")
   })
 })

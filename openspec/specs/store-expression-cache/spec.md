@@ -2,39 +2,34 @@
 
 ## Purpose
 Define requirements for expression variable cache isolation and selector behavior so variable suggestions remain deterministic and consistent with store state.
-
 ## Requirements
-
 ### Requirement: Expression variable catalog cache is scoped per store instance
-The expression variable catalog cache SHALL be stored inside Zustand store state, not in module-level variables. Each store instance MUST maintain its own independent cache. The cache MUST be reset whenever the expression structural signature changes.
+The expression variable catalog cache SHALL remain store-instance scoped and SHALL persist computed entries for each target node key until structural graph version changes invalidate them.
 
 #### Scenario: Separate stores do not share cache
 - **WHEN** two workflow store instances are created in the same process
-- **THEN** each store MUST maintain its own independent expression variable catalog cache
+- **THEN** each store MUST maintain independent expression variable cache entries
 
 #### Scenario: Cache is cleared on structural graph change
-- **WHEN** nodes or edges are added, removed, or renamed such that the expression structural signature changes
-- **THEN** the expression catalog cache MUST be reset to an empty map
+- **WHEN** nodes/edges/config semantics change structural graph version
+- **THEN** the expression variable cache MUST be invalidated for the affected structural version
 
-#### Scenario: Cache survives position-only changes
-- **WHEN** a node is moved (position-only change, no structural change)
-- **THEN** the expression structural signature MUST remain unchanged and the cache MUST not be cleared
+#### Scenario: Cache survives non-structural updates
+- **WHEN** pointer, viewport, or position-only updates occur without structural changes
+- **THEN** existing expression cache entries MUST remain reusable
 
 ### Requirement: Expression variable selector is a pure read-only function
-`selectExpressionVariablesForNode` SHALL compute and return expression variables without any module-level side effects. It MUST read only from Zustand store state.
+`selectExpressionVariablesForNode` SHALL remain a pure read path over store state and SHALL return stable references for unchanged structural inputs.
 
-#### Scenario: Selector returns updated extractor variable after extractor Label config change
-- **WHEN** an upstream `extractor` node `config.extractExpression` is updated and `selectExpressionVariablesForNode` is called for a downstream node
-- **THEN** the returned variables MUST reflect the updated `config.extractExpression`
+#### Scenario: Selector returns stable reference when structure is unchanged
+- **WHEN** selector is called repeatedly for the same node key and unchanged structural version
+- **THEN** selector MUST return the same cached reference
 
-#### Scenario: Selector prioritizes extractor config variable over node title
-- **WHEN** an upstream `extractor` node has `config.extractExpression = "price"` and `node.data.label` differs from `"price"`
-- **THEN** the returned extractor variable MUST be `"price"` and MUST NOT be derived from `node.data.label`
+#### Scenario: Selector returns updated value after upstream variable semantics change
+- **WHEN** upstream variable-providing node semantics change and structural version updates
+- **THEN** selector MUST return recomputed expression variables that reflect latest semantics
 
-#### Scenario: Selector returns updated setVariable variable after variableName change
-- **WHEN** an upstream `setVariable` node `config.variableName` is updated and `selectExpressionVariablesForNode` is called for a downstream node
-- **THEN** the returned variables MUST reflect the updated `config.variableName`
+#### Scenario: Selector remains test-isolated across store instances
+- **WHEN** tests create fresh store instances and query expression selectors
+- **THEN** results MUST be unaffected by previous test store cache state
 
-#### Scenario: Selector is callable in tests without shared state pollution
-- **WHEN** a test creates a fresh store and calls `selectExpressionVariablesForNode`
-- **THEN** the result MUST NOT be influenced by any previously run test's store state

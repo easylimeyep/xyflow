@@ -43,7 +43,7 @@ function refactorExpressionFieldsInGraph(
   refactorExpression: (expression: string) => string
 ): WorkflowNode[] {
   return nodes.map((node) => {
-    const expressionKeys = getExpressionConfigKeys(node.data.kind as NodeKind)
+    const expressionKeys = getRefactorableConfigKeys(node)
     if (expressionKeys.length === 0) {
       return node
     }
@@ -79,12 +79,20 @@ function refactorExpressionFieldsInGraph(
   })
 }
 
-function getExpressionConfigKeys(kind: NodeKind): string[] {
+function getRefactorableConfigKeys(node: WorkflowNode): string[] {
+  const kind = node.data.kind as NodeKind
   const definition = getNodeDefinition(kind)
   const fieldKeys = definition.fields
     .filter((field) => field.ui === "expression" && (field.type === "text" || field.type === "textarea"))
     .map((field) => field.key)
-  return [...fieldKeys, ...(definition.extraExpressionConfigKeys ?? [])]
+  const templateLikeRenameKey =
+    definition.renameConfigKey &&
+    typeof node.data.config[definition.renameConfigKey] === "string" &&
+    String(node.data.config[definition.renameConfigKey]).includes("{{")
+      ? [definition.renameConfigKey]
+      : []
+
+  return [...fieldKeys, ...(definition.extraExpressionConfigKeys ?? []), ...templateLikeRenameKey]
 }
 
 function escapeRegExp(input: string): string {

@@ -1,27 +1,25 @@
-import { addEdge, applyNodeChanges, type NodeChange } from "@xyflow/react"
+import type { NodeChange } from "@xyflow/react"
 import { pushHistoryState } from "@workspace/store"
 
-import { createWorkflowError } from "../../types/errors"
-import type { WorkflowEdge, WorkflowGraphState, WorkflowNode } from "../../types/types"
-import { getKindsFromConnection, validateConnection, type ConnectionLike } from "../../validation/validation"
 import {
-  filterEdgesForRemovedNodes,
-  getRemovedNodeIds,
-  hasEdgeCollectionChanged,
-  hasNodeCollectionChanged,
+  applyConnectNodesCommand,
+  applyInsertNodeOnEdgeCommand,
+  applyNodeChangesCommand,
+  createNodeWithUniqueLabel,
+} from "../../graph-engine"
+import { createWorkflowError } from "../../types/errors"
+import type { WorkflowNode } from "../../types/types"
+import type { ConnectionLike } from "../../validation/validation"
+import {
   hasOutgoingConnection,
-  haveSameIdSet,
   shouldCommitNodeHistory,
   shouldSquashPreviousEdgeRemovalWithNodeRemoval,
 } from "../collection-diff"
-import { toEdgeConnectionWithKind } from "../dto-mappers"
-import { computeEdgeInsertion } from "../edge-insertion"
 import { buildExpressionSlicePatch } from "../expression-deps"
 import { createSmartQuickAddPosition } from "../geometry"
 import { cloneGraphState, commitGraphState } from "../history-helpers"
 import { projectSelectionToNodes } from "../selection-sync"
 import type { WorkflowSliceCreator } from "../types"
-import { createNodeWithUniqueLabel } from "./node-crud-slice"
 
 export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
   confirmQuickAddNode: (kind) => {
@@ -51,32 +49,24 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
       sourceNode,
       pending.sourceHandle
     )
-    const nextNode = createNodeWithUniqueLabel(currentGraph.nodes, kind, nextNodePosition)
-    const nextNodes = [...currentGraph.nodes, nextNode]
     const connection: ConnectionLike = {
       source: pending.sourceNodeId,
-      target: nextNode.id,
+      target: "",
       sourceHandle: pending.sourceHandle,
       targetHandle: null,
     }
-    const validation = validateConnection(connection, nextNodes, currentGraph.edges)
-    if (!validation.valid) {
-      set({ lastError: createWorkflowError("INVALID_CONNECTION", validation.reason ?? "Invalid quick add connection.") })
+    const nextNode = createNodeWithUniqueLabel(currentGraph.nodes, kind, nextNodePosition)
+    connection.target = nextNode.id
+    const connectResult = applyConnectNodesCommand(
+      { ...currentGraph, nodes: [...currentGraph.nodes, nextNode] },
+      { connection }
+    )
+    if (!connectResult.ok) {
+      set({ lastError: connectResult.error })
       return
     }
 
-    const kinds = getKindsFromConnection(connection, nextNodes)
-    if (!kinds) {
-      set({ lastError: createWorkflowError("KIND_RESOLUTION_FAILED", "Failed to resolve node kinds for quick add connection.") })
-      return
-    }
-
-    const nextEdges = addEdge(
-      toEdgeConnectionWithKind(connection, kinds.sourceKind, kinds.targetKind),
-      currentGraph.edges
-    ) as WorkflowEdge[]
-
-    commitGraphState(set, { ...currentGraph, nodes: nextNodes, edges: nextEdges })
+    commitGraphState(set, connectResult.nextGraph)
     set((state) => ({
       quickAddPending: null,
       selectedNodeIds: [nextNode.id],
@@ -95,21 +85,36 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
     const pending = get().edgeInsertPending
     if (!pending) return
 
-    const result = computeEdgeInsertion(currentGraph, pending.edgeId, kind, createNodeWithUniqueLabel)
+    const result = applyInsertNodeOnEdgeCommand(currentGraph, {
+      edgeId: pending.edgeId,
+      kind,
+    })
     if (!result.ok) {
-      set({ edgeInsertPending: null, lastError: createWorkflowError("EDGE_INSERT_FAILED", result.error) })
+      set({ edgeInsertPending: null, lastError: result.error })
       return
     }
 
-    commitGraphState(set, { ...currentGraph, nodes: result.nextNodes, edges: result.nextEdges })
+    const insertedNodeId = result.nextGraph.nodes.at(-1)?.id
+    if (!insertedNodeId) {
+      set({
+        edgeInsertPending: null,
+        lastError: createWorkflowError(
+          "EDGE_INSERT_FAILED",
+          "Inserted node could not be resolved after edge insertion."
+        ),
+      })
+      return
+    }
+
+    commitGraphState(set, result.nextGraph)
     set((state) => ({
       edgeInsertPending: null,
-      selectedNodeIds: [result.insertedNodeId],
+      selectedNodeIds: [insertedNodeId],
       history: {
         ...state.history,
         present: {
           ...state.history.present,
-          nodes: projectSelectionToNodes(state.history.present.nodes, [result.insertedNodeId]),
+          nodes: projectSelectionToNodes(state.history.present.nodes, [insertedNodeId]),
         },
       },
       lastError: null,
@@ -118,7 +123,10 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
   onNodesChange: (changes) => {
     const history = get().history
     const currentGraph = history.present
-    const computed = computeNextGraphFromNodeChanges(currentGraph, changes, get().selectedNodeIds)
+    const computed = applyNodeChangesCommand(currentGraph, {
+      changes,
+      selectedNodeIds: get().selectedNodeIds,
+    })
     const { nextGraph, removedNodeIds, nodeCollectionChanged, edgeCollectionChanged, selectionChanged, nextSelectedNodeIds } = computed
     const hasDraggingPositionChanges = hasDraggingPositionChange(changes)
 
@@ -209,34 +217,6 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
     })
   },
 })
-
-function computeNextGraphFromNodeChanges(
-  currentGraph: WorkflowGraphState,
-  changes: NodeChange<WorkflowNode>[],
-  selectedNodeIds: string[]
-): {
-  nextGraph: WorkflowGraphState
-  removedNodeIds: Set<string>
-  nodeCollectionChanged: boolean
-  edgeCollectionChanged: boolean
-  nextSelectedNodeIds: string[]
-  selectionChanged: boolean
-} {
-  const rawNextNodes = applyNodeChanges(changes, currentGraph.nodes)
-  const removedNodeIds = getRemovedNodeIds(changes)
-  const nextEdges = filterEdgesForRemovedNodes(currentGraph.edges, removedNodeIds)
-  const remainingNodeIds = new Set(rawNextNodes.map((node) => node.id))
-  const nextSelectedNodeIds = selectedNodeIds.filter((id) => remainingNodeIds.has(id))
-  const nextNodes = projectSelectionToNodes(rawNextNodes, nextSelectedNodeIds)
-  return {
-    nextGraph: { ...currentGraph, nodes: nextNodes, edges: nextEdges },
-    removedNodeIds,
-    nodeCollectionChanged: hasNodeCollectionChanged(currentGraph.nodes, nextNodes),
-    edgeCollectionChanged: hasEdgeCollectionChanged(currentGraph.edges, nextEdges),
-    nextSelectedNodeIds,
-    selectionChanged: !haveSameIdSet(selectedNodeIds, nextSelectedNodeIds),
-  }
-}
 
 function hasDraggingPositionChange(changes: NodeChange<WorkflowNode>[]): boolean {
   return changes.some((change) => change.type === "position" && change.dragging)

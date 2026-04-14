@@ -1,4 +1,9 @@
-import type { WorkflowGraphState, WorkflowNodeData } from "../types/types"
+import type {
+  ExpressionVariableOption,
+  WorkflowGraphState,
+  WorkflowNodeData,
+} from "../types/types"
+import { collectWorkflowVariables } from "../expression/variables/variables"
 import type {
   ExpressionDepsEdge,
   ExpressionDepsGraph,
@@ -71,21 +76,34 @@ export function computeStructuralSignature(expressionDeps: ExpressionDepsGraph):
 
 export function buildExpressionSliceState(graph: WorkflowGraphState): Pick<
   WorkflowStoreState,
-  "expressionDeps" | "expressionStructuralSignature" | "expressionCatalogCache"
+  | "expressionDeps"
+  | "expressionStructuralVersion"
+  | "expressionStructuralSignature"
+  | "expressionCatalogCache"
 > {
   const expressionDeps = projectExpressionDeps(graph)
   const expressionStructuralSignature = computeStructuralSignature(expressionDeps)
+  const expressionCatalogCache = buildExpressionCatalogCache(graph)
   return {
     expressionDeps,
+    expressionStructuralVersion: 0,
     expressionStructuralSignature,
-    expressionCatalogCache: new Map(),
+    expressionCatalogCache,
   }
 }
 
 export function buildExpressionSlicePatch(
   state: WorkflowStoreState,
   graph: WorkflowGraphState
-): Partial<Pick<WorkflowStoreState, "expressionDeps" | "expressionStructuralSignature" | "expressionCatalogCache">> {
+): Partial<
+  Pick<
+    WorkflowStoreState,
+    | "expressionDeps"
+    | "expressionStructuralVersion"
+    | "expressionStructuralSignature"
+    | "expressionCatalogCache"
+  >
+> {
   const expressionDeps = projectExpressionDeps(graph)
   const expressionStructuralSignature = computeStructuralSignature(expressionDeps)
   if (state.expressionStructuralSignature === expressionStructuralSignature) {
@@ -93,7 +111,24 @@ export function buildExpressionSlicePatch(
   }
   return {
     expressionDeps,
+    expressionStructuralVersion: state.expressionStructuralVersion + 1,
     expressionStructuralSignature,
-    expressionCatalogCache: new Map(),
+    expressionCatalogCache: buildExpressionCatalogCache(graph),
   }
+}
+
+function buildExpressionCatalogCache(
+  graph: WorkflowGraphState
+): Map<string, ExpressionVariableOption[]> {
+  const cache = new Map<string, ExpressionVariableOption[]>()
+  cache.set("__global__", [])
+
+  graph.nodes.forEach((node) => {
+    cache.set(
+      node.id,
+      collectWorkflowVariables(graph.nodes, graph.edges, node.id)
+    )
+  })
+
+  return cache
 }

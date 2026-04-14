@@ -5,6 +5,7 @@ import type { HistoryState } from "@workspace/store"
 import type { WorkflowError } from "../types/errors"
 import type {
   ExpressionVariableOption,
+  NodeConfigByKind,
   NodeKind,
   WorkflowEdge,
   WorkflowGraphState,
@@ -21,11 +22,15 @@ export interface PendingEdgeInsert {
   edgeId: string
 }
 
-export interface NodeConfigUpdate {
-  kind: string
-  key: string
-  value: unknown
-}
+export type NodeConfigUpdate = {
+  [K in keyof NodeConfigByKind]: {
+    [P in keyof NodeConfigByKind[K] & string]: {
+      kind: K
+      key: P
+      value: NodeConfigByKind[K][P]
+    }
+  }[keyof NodeConfigByKind[K] & string]
+}[keyof NodeConfigByKind]
 
 export interface ExpressionDepsNode {
   id: string
@@ -50,6 +55,7 @@ export interface ExpressionDepsGraph {
 export interface WorkflowStoreQueries {
   history: HistoryState<WorkflowGraphState>
   expressionDeps: ExpressionDepsGraph
+  expressionStructuralVersion: number
   expressionStructuralSignature: string
   expressionCatalogCache: Map<string, ExpressionVariableOption[]>
   selectedNodeIds: string[]

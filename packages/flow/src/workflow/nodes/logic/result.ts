@@ -22,4 +22,6 @@ export const result = defineNode({
   outputPaths: [],
   allowedTargets: [],
   buildDefaultConfig: () => ({ category: "true" }),
+  validateConfigValue: (key, value) =>
+    key === "category" && (value === "true" || value === "false"),
 })

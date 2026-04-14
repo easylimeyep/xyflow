@@ -1,7 +1,8 @@
 "use client"
 
-import { useCallback, useLayoutEffect, useMemo, useRef } from "react"
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react"
 
+import { useEventCallback } from "@workspace/ui/hooks/use-event-callback"
 import {
   Background,
   Controls,
@@ -93,16 +94,40 @@ function WorkflowCanvasInner({
     },
     [onAddNodeAt, reactFlow]
   )
+  const onPointerFlowPositionEvent = useEventCallback(onPointerFlowPosition)
+  const pendingPointerRef = useRef<XYPosition | null>(null)
+  const pointerFrameRef = useRef<number | null>(null)
+  const flushPointerFrame = useCallback(() => {
+    pointerFrameRef.current = null
+    const nextPointerPosition = pendingPointerRef.current
+    if (!nextPointerPosition) {
+      return
+    }
+
+    pendingPointerRef.current = null
+    onPointerFlowPositionEvent(nextPointerPosition)
+  }, [onPointerFlowPositionEvent])
   const onMouseMove = useCallback(
     (event: React.MouseEvent) => {
-      onPointerFlowPosition(
-        reactFlow.screenToFlowPosition({
-          x: event.clientX,
-          y: event.clientY,
-        })
-      )
+      pendingPointerRef.current = reactFlow.screenToFlowPosition({
+        x: event.clientX,
+        y: event.clientY,
+      })
+      if (pointerFrameRef.current !== null) {
+        return
+      }
+
+      pointerFrameRef.current = window.requestAnimationFrame(flushPointerFrame)
     },
-    [onPointerFlowPosition, reactFlow]
+    [flushPointerFrame, reactFlow]
+  )
+  useEffect(
+    () => () => {
+      if (pointerFrameRef.current !== null) {
+        window.cancelAnimationFrame(pointerFrameRef.current)
+      }
+    },
+    []
   )
   const edgeInteractionRef = useRef({
     onStartInsertFromEdge,
