@@ -1,6 +1,7 @@
 export { DOMAIN_WORKFLOW_VERSION } from "./constants"
 export {
   domainToInternal,
+  exportDomainDto,
   exportDomainJson,
   internalToDomain,
 } from "./converters"

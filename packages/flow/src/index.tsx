@@ -1,11 +1,21 @@
 "use client"
 
 import { WorkflowEditor } from "./workflow/components/workflow-editor"
-import { WorkflowStoreProvider } from "./workflow/store"
+import {
+  WorkflowStoreProvider,
+  type WorkflowRuntimeConfig,
+  type WorkflowStoreInitialProps,
+} from "./workflow/store"
 
-export const Flow = () => {
+export type { WorkflowRuntimeConfig, WorkflowStoreInitialProps } from "./workflow/store"
+
+export interface FlowProps extends WorkflowStoreInitialProps {
+  runtime?: WorkflowRuntimeConfig
+}
+
+export const Flow = ({ initialGraph, runtime }: FlowProps = {}) => {
   return (
-    <WorkflowStoreProvider>
+    <WorkflowStoreProvider initialGraph={initialGraph} runtime={runtime}>
       <WorkflowEditor />
     </WorkflowStoreProvider>
   )

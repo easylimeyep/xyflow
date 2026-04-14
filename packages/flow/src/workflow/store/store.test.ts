@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest"
 
+import { exportDomainDto, exportDomainJson } from "../mappers"
 import {
   selectExpressionVariablesForNode,
   selectSelectedNode,
@@ -62,6 +63,44 @@ describe("workflow store", () => {
 
     expect(imported).toBe(true)
     expect(store.getState().lastError).toBeNull()
+  })
+
+  it("keeps default exportDomain output when runtime mapper is not provided", () => {
+    const expected = exportDomainJson(store.getState().history.present)
+
+    expect(store.getState().exportDomain()).toBe(expected)
+  })
+
+  it("applies runtime exportDomain mapper after base serialization", () => {
+    const runtimeStore = createWorkflowStore({
+      runtime: {
+        exportDomain: {
+          mapper: (payload) => ({
+            ...payload,
+            metadata: {
+              ...payload.metadata,
+              customExport: true,
+            },
+          }),
+        },
+      },
+    })
+
+    const basePayload = exportDomainDto(runtimeStore.getState().history.present)
+
+    expect(runtimeStore.getState().exportDomain()).toBe(
+      JSON.stringify(
+        {
+          ...basePayload,
+          metadata: {
+            ...basePayload.metadata,
+            customExport: true,
+          },
+        },
+        null,
+        2
+      )
+    )
   })
 
   it("sets error for invalid import json", () => {

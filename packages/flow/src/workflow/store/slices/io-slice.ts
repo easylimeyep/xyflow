@@ -3,7 +3,7 @@ import { addEdge, type XYPosition } from "@xyflow/react"
 
 import { refactorPlainVariableReferencesInGraph } from "../graph-refactors"
 import {
-  exportDomainJson,
+  exportDomainDto,
   exportSelectionClipboardJson,
   parseInternalGraphJson,
   parseSelectionClipboardJson,
@@ -151,7 +151,11 @@ export const createIoSlice: WorkflowSliceCreator = (set, get) => ({
     return true
   },
   exportDomain: () => {
-    return exportDomainJson(get().history.present)
+    const state = get()
+    const payload = exportDomainDto(state.history.present)
+    const nextPayload = state.runtime.exportDomain?.mapper?.(payload) ?? payload
+
+    return JSON.stringify(nextPayload, null, 2)
   },
 })
 

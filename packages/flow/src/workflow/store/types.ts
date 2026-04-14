@@ -4,6 +4,7 @@ import type { HistoryState } from "@workspace/store"
 
 import type { WorkflowError } from "../types/errors"
 import type {
+  DomainWorkflowDTO,
   ExpressionVariableOption,
   NodeConfigByKind,
   NodeKind,
@@ -52,8 +53,21 @@ export interface ExpressionDepsGraph {
   edges: ExpressionDepsEdge[]
 }
 
+export type WorkflowExportDomainMapper = (
+  payload: DomainWorkflowDTO
+) => DomainWorkflowDTO
+
+export interface WorkflowRuntimeExportDomainConfig {
+  mapper?: WorkflowExportDomainMapper
+}
+
+export interface WorkflowRuntimeConfig {
+  exportDomain?: WorkflowRuntimeExportDomainConfig
+}
+
 export interface WorkflowStoreQueries {
   history: HistoryState<WorkflowGraphState>
+  runtime: WorkflowRuntimeConfig
   expressionDeps: ExpressionDepsGraph
   expressionStructuralVersion: number
   expressionStructuralSignature: string
@@ -113,6 +127,7 @@ export interface WorkflowStoreState
 
 export interface WorkflowStoreInitialProps {
   initialGraph?: WorkflowGraphState
+  runtime?: WorkflowRuntimeConfig
 }
 
 export type WorkflowStoreSetState = StoreApi<WorkflowStoreState>["setState"]

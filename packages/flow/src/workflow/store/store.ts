@@ -18,7 +18,9 @@ import type { WorkflowStoreInitialProps, WorkflowStoreState } from "./types"
 export type {
   PendingEdgeInsert,
   PendingQuickAdd,
+  WorkflowExportDomainMapper,
   WorkflowStoreInitialProps,
+  WorkflowRuntimeConfig,
   WorkflowStoreState,
 } from "./types"
 
@@ -28,8 +30,10 @@ export function createWorkflowStore(
   const initialGraph = cloneGraphState(
     initialProps.initialGraph ?? initialWorkflowGraph
   )
+  const runtime = initialProps.runtime ?? {}
 
   return createStore<WorkflowStoreState>()((set, get) => ({
+    runtime,
     history: createHistoryState(initialGraph),
     ...createExpressionSlice(initialGraph),
     ...createSelectionSlice(set, get),
