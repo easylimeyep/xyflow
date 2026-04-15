@@ -15,15 +15,23 @@ const canvasRenderSpy = vi.fn()
 vi.mock("../editor-toolbar", () => ({
   EditorToolbar: ({
     canUndo,
+    canRedo,
     onUndo,
+    onRedo,
   }: {
     canUndo: boolean
+    canRedo: boolean
     onUndo: () => void
+    onRedo: () => void
   }) => (
     <div>
       <span data-testid="toolbar-can-undo">{String(canUndo)}</span>
+      <span data-testid="toolbar-can-redo">{String(canRedo)}</span>
       <button type="button" onClick={onUndo}>
         toolbar-undo
+      </button>
+      <button type="button" onClick={onRedo}>
+        toolbar-redo
       </button>
     </div>
   ),
@@ -55,11 +63,20 @@ vi.mock("../node-palette", () => ({
 vi.mock("../workflow-canvas", () => ({
   WorkflowCanvas: ({
     nodes,
+    onNodesChange,
     onViewportChange,
     onPointerFlowPosition,
     onPaneClick,
   }: {
     nodes: Array<{ id: string }>
+    onNodesChange: (
+      changes: Array<{
+        id: string
+        type: "dimensions"
+        dimensions: { width: number; height: number }
+        setAttributes: boolean
+      }>
+    ) => void
     onSelectNodes: (nodeIds: string[]) => void
     onViewportChange: (viewport: { x: number; y: number; zoom: number }) => void
     onPointerFlowPosition: (position: { x: number; y: number }) => void
@@ -83,6 +100,23 @@ vi.mock("../workflow-canvas", () => ({
         </button>
         <button type="button" onClick={onPaneClick}>
           canvas-pane-click
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            const addedNode = nodes.find((node) => node.id !== nodes[0]?.id)
+            if (!addedNode) return
+            onNodesChange([
+              {
+                id: addedNode.id,
+                type: "dimensions",
+                dimensions: { width: 260, height: 195 },
+                setAttributes: true,
+              },
+            ])
+          }}
+        >
+          canvas-measure-added-node
         </button>
       </div>
     )
@@ -135,6 +169,39 @@ describe("WorkflowEditor wiring", () => {
 
     expect(afterCount).toBe(beforeCount + 1)
     expect(screen.getByTestId("toolbar-can-undo").textContent).toBe("true")
+  })
+
+  it("removes palette-added node with one undo after measurement update", async () => {
+    const user = userEvent.setup()
+    renderWithStore(<WorkflowEditor />)
+
+    const beforeCount = Number(screen.getByTestId("canvas-node-count").textContent)
+    await user.click(screen.getByRole("button", { name: "palette-add-node" }))
+    await user.click(screen.getByRole("button", { name: "canvas-measure-added-node" }))
+    expect(Number(screen.getByTestId("canvas-node-count").textContent)).toBe(beforeCount + 1)
+
+    await user.click(screen.getByRole("button", { name: "toolbar-undo" }))
+    expect(Number(screen.getByTestId("canvas-node-count").textContent)).toBe(beforeCount)
+  })
+
+  it("updates toolbar canUndo/canRedo across undo-redo history steps", async () => {
+    const user = userEvent.setup()
+    renderWithStore(<WorkflowEditor />)
+
+    expect(screen.getByTestId("toolbar-can-undo").textContent).toBe("false")
+    expect(screen.getByTestId("toolbar-can-redo").textContent).toBe("false")
+
+    await user.click(screen.getByRole("button", { name: "palette-add-node" }))
+    expect(screen.getByTestId("toolbar-can-undo").textContent).toBe("true")
+    expect(screen.getByTestId("toolbar-can-redo").textContent).toBe("false")
+
+    await user.click(screen.getByRole("button", { name: "toolbar-undo" }))
+    expect(screen.getByTestId("toolbar-can-undo").textContent).toBe("false")
+    expect(screen.getByTestId("toolbar-can-redo").textContent).toBe("true")
+
+    await user.click(screen.getByRole("button", { name: "toolbar-redo" }))
+    expect(screen.getByTestId("toolbar-can-undo").textContent).toBe("true")
+    expect(screen.getByTestId("toolbar-can-redo").textContent).toBe("false")
   })
 
   it("does not rerender palette on viewport-only updates", async () => {

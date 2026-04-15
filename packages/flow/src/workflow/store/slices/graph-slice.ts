@@ -129,6 +129,7 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
     })
     const { nextGraph, removedNodeIds, nodeCollectionChanged, edgeCollectionChanged, selectionChanged, nextSelectedNodeIds } = computed
     const hasDraggingPositionChanges = hasDraggingPositionChange(changes)
+    const shouldCommitSemanticHistory = shouldCommitNodeHistory(changes)
 
     if (!nodeCollectionChanged && !edgeCollectionChanged && !selectionChanged) {
       if (!hasDraggingPositionChanges && get().nodeDragOriginGraph) {
@@ -137,7 +138,7 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
       return
     }
 
-    if (shouldCommitNodeHistory(changes)) {
+    if (shouldCommitSemanticHistory) {
       if (shouldSquashPreviousEdgeRemovalWithNodeRemoval(history, removedNodeIds)) {
         set((state) => ({
           history: { ...state.history, present: cloneGraphState(nextGraph), future: [] },

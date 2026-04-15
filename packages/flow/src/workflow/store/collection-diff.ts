@@ -3,6 +3,10 @@ import type { HistoryState } from "@workspace/store"
 
 import type { WorkflowEdge, WorkflowGraphState, WorkflowNode } from "../types/types"
 
+function isTransientNodeChange(change: NodeChange<WorkflowNode>): boolean {
+  return change.type === "dimensions"
+}
+
 export function shouldCommitNodeHistory(
   changes: NodeChange<WorkflowNode>[]
 ): boolean {
@@ -10,6 +14,9 @@ export function shouldCommitNodeHistory(
   let hasPositionChange = false
   let hasDraggingPosition = false
   for (const change of changes) {
+    if (isTransientNodeChange(change)) {
+      continue
+    }
     if (change.type !== "position") {
       hasStructuralChange = true
       continue

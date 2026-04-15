@@ -57,6 +57,38 @@ describe("workflow store", () => {
     expect(store.getState().history.present.nodes.length).toBe(before + 1)
   })
 
+  it("keeps node add + measurement update as a single undo step", () => {
+    const state = store.getState()
+    const before = state.history.present.nodes.length
+
+    state.addNode("extractor", { x: 120, y: 100 })
+    const addedNode = store
+      .getState()
+      .history.present.nodes.find((node: WorkflowNode) => node.data.kind === "extractor")
+    if (!addedNode) {
+      throw new Error("added node not found")
+    }
+
+    const historyAfterAdd = store.getState().history.past.length
+    store.getState().onNodesChange([
+      {
+        id: addedNode.id,
+        type: "dimensions",
+        dimensions: { width: 260, height: 195 },
+        setAttributes: true,
+      },
+    ])
+
+    const measuredNode = store
+      .getState()
+      .history.present.nodes.find((node) => node.id === addedNode.id)
+    expect(measuredNode?.measured).toEqual({ width: 260, height: 195 })
+    expect(store.getState().history.past.length).toBe(historyAfterAdd)
+
+    store.getState().undo()
+    expect(store.getState().history.present.nodes.length).toBe(before)
+  })
+
   it("imports workflow from domain json", () => {
     const exportDomain = store.getState().exportDomain()
     const imported = store.getState().importFromJson(exportDomain)
@@ -149,6 +181,38 @@ describe("workflow store", () => {
 
     expect(nextState.history.present.edges.length).toBe(beforeEdgeCount + 1)
     expect(nextState.lastError).toBeNull()
+  })
+
+  it("undoes and redoes a created connection", () => {
+    const state = store.getState()
+    state.addNode("extractor", { x: 480, y: 120 })
+    const trigger = findRootKeywordNode(store.getState().history.present.nodes)
+    const extractor = store
+      .getState()
+      .history.present.nodes.find((node: WorkflowNode) => node.data.kind === "extractor")
+    if (!trigger || !extractor) {
+      throw new Error("fixture nodes not found")
+    }
+
+    const basePastLength = store.getState().history.past.length
+    store.getState().onConnect({ source: trigger.id, target: extractor.id })
+    const afterConnectState = store.getState()
+
+    expect(afterConnectState.history.present.edges).toHaveLength(1)
+    expect(afterConnectState.history.past.length).toBe(basePastLength + 1)
+
+    store.getState().undo()
+    const afterUndoState = store.getState()
+    expect(afterUndoState.history.present.edges).toHaveLength(0)
+
+    store.getState().redo()
+    const afterRedoState = store.getState()
+    expect(afterRedoState.history.present.edges).toHaveLength(1)
+    expect(
+      afterRedoState.history.present.edges.some(
+        (edge) => edge.source === trigger.id && edge.target === extractor.id
+      )
+    ).toBe(true)
   })
 
   it("updates label and config fields as committed history changes", () => {
@@ -244,6 +308,98 @@ describe("workflow store", () => {
       .getState()
       .history.present.nodes.find((node) => node.id === targetNode.id)
     expect(nodeAfterUndo?.position).toEqual(initialPosition)
+  })
+
+  it("reapplies committed node drag with redo", () => {
+    const state = store.getState()
+    const targetNode = state.history.present.nodes[0]
+    if (!targetNode) {
+      throw new Error("fixture node not found")
+    }
+
+    const initialPosition = { ...targetNode.position }
+    const draggedPosition = {
+      x: initialPosition.x + 60,
+      y: initialPosition.y + 40,
+    }
+
+    state.onNodesChange([
+      {
+        id: targetNode.id,
+        type: "position",
+        position: draggedPosition,
+        dragging: true,
+      },
+    ])
+    state.onNodesChange([
+      {
+        id: targetNode.id,
+        type: "position",
+        position: draggedPosition,
+        dragging: false,
+      },
+    ])
+
+    store.getState().undo()
+    expect(
+      store.getState().history.present.nodes.find((node) => node.id === targetNode.id)?.position
+    ).toEqual(initialPosition)
+
+    store.getState().redo()
+    expect(
+      store.getState().history.present.nodes.find((node) => node.id === targetNode.id)?.position
+    ).toEqual(draggedPosition)
+  })
+
+  it("walks through multiple committed drag positions with undo and redo", () => {
+    const state = store.getState()
+    const targetNode = state.history.present.nodes[0]
+    if (!targetNode) {
+      throw new Error("fixture node not found")
+    }
+
+    const initialPosition = { ...targetNode.position }
+    const middlePosition = {
+      x: initialPosition.x + 40,
+      y: initialPosition.y + 20,
+    }
+    const finalPosition = {
+      x: initialPosition.x + 100,
+      y: initialPosition.y + 60,
+    }
+
+    state.onNodesChange([
+      { id: targetNode.id, type: "position", position: middlePosition, dragging: true },
+    ])
+    state.onNodesChange([
+      { id: targetNode.id, type: "position", position: middlePosition, dragging: false },
+    ])
+    state.onNodesChange([
+      { id: targetNode.id, type: "position", position: finalPosition, dragging: true },
+    ])
+    state.onNodesChange([
+      { id: targetNode.id, type: "position", position: finalPosition, dragging: false },
+    ])
+
+    store.getState().undo()
+    expect(
+      store.getState().history.present.nodes.find((node) => node.id === targetNode.id)?.position
+    ).toEqual(middlePosition)
+
+    store.getState().undo()
+    expect(
+      store.getState().history.present.nodes.find((node) => node.id === targetNode.id)?.position
+    ).toEqual(initialPosition)
+
+    store.getState().redo()
+    expect(
+      store.getState().history.present.nodes.find((node) => node.id === targetNode.id)?.position
+    ).toEqual(middlePosition)
+
+    store.getState().redo()
+    expect(
+      store.getState().history.present.nodes.find((node) => node.id === targetNode.id)?.position
+    ).toEqual(finalPosition)
   })
 
   it("keeps selected node highlight and panel selection in sync after undo/redo", () => {
@@ -428,6 +584,27 @@ describe("workflow store", () => {
     expect(nextState.history.present.edges).toBe(previousEdgesRef)
   })
 
+  it("does not seed undo history when initial nodes receive measurement updates", () => {
+    const state = store.getState()
+    const initialNode = state.history.present.nodes[0]
+    if (!initialNode) {
+      throw new Error("initial node not found")
+    }
+
+    const basePastLength = state.history.past.length
+    state.onNodesChange([
+      {
+        id: initialNode.id,
+        type: "dimensions",
+        dimensions: { width: 260, height: 116 },
+        setAttributes: true,
+      },
+    ])
+
+    expect(store.getState().history.past.length).toBe(basePastLength)
+    expect(store.getState().history.future).toHaveLength(0)
+  })
+
   it("skips viewport writes when viewport does not change", () => {
     const state = store.getState()
     const previousHistoryRef = state.history
@@ -502,6 +679,41 @@ describe("workflow store", () => {
     expect(nextState.history.present.nodes.length).toBe(baseNodeCount + 1)
     expect(nextState.history.present.edges.length).toBe(baseEdgeCount + 1)
     expect(nextState.history.past.length).toBe(basePastLength + 1)
+  })
+
+  it("undoes add-node and connect steps in reverse order", () => {
+    const state = store.getState()
+    const initialNodeCount = state.history.present.nodes.length
+    const initialEdgeCount = state.history.present.edges.length
+
+    state.addNode("extractor", { x: 480, y: 120 })
+    const trigger = findRootKeywordNode(store.getState().history.present.nodes)
+    const extractor = store
+      .getState()
+      .history.present.nodes.find((node: WorkflowNode) => node.data.kind === "extractor")
+    if (!trigger || !extractor) {
+      throw new Error("fixture nodes not found")
+    }
+
+    store.getState().onConnect({ source: trigger.id, target: extractor.id })
+    expect(store.getState().history.present.nodes.length).toBe(initialNodeCount + 1)
+    expect(store.getState().history.present.edges.length).toBe(initialEdgeCount + 1)
+
+    store.getState().undo()
+    expect(store.getState().history.present.nodes.length).toBe(initialNodeCount + 1)
+    expect(store.getState().history.present.edges.length).toBe(initialEdgeCount)
+
+    store.getState().undo()
+    expect(store.getState().history.present.nodes.length).toBe(initialNodeCount)
+    expect(store.getState().history.present.edges.length).toBe(initialEdgeCount)
+
+    store.getState().redo()
+    expect(store.getState().history.present.nodes.length).toBe(initialNodeCount + 1)
+    expect(store.getState().history.present.edges.length).toBe(initialEdgeCount)
+
+    store.getState().redo()
+    expect(store.getState().history.present.nodes.length).toBe(initialNodeCount + 1)
+    expect(store.getState().history.present.edges.length).toBe(initialEdgeCount + 1)
   })
 
   it("supports quick add from branch outputs with source handle", () => {
@@ -780,6 +992,58 @@ describe("workflow store", () => {
 
     expect(sourceLeg?.sourceHandle).toBe("source-handle-a")
     expect(targetLeg?.targetHandle).toBe("target-handle-b")
+  })
+
+  it("undoes and redoes edge insert as a single history step", () => {
+    const state = store.getState()
+    state.addNode("inlineExpression", { x: 360, y: 80 })
+    const triggerNode = findRootKeywordNode(store.getState().history.present.nodes)
+    const inlineNode = findNonRootKeywordNode(store.getState().history.present.nodes)
+    if (!triggerNode || !inlineNode) {
+      throw new Error("fixture nodes not found")
+    }
+
+    store.getState().onConnect({ source: triggerNode.id, target: inlineNode.id })
+    const initialEdge = store.getState().history.present.edges[0]
+    if (!initialEdge) {
+      throw new Error("fixture edge not found")
+    }
+
+    const beforeInsertState = store.getState()
+    state.startEdgeInsertFromEdge(initialEdge.id)
+    state.confirmEdgeInsertNode("branch")
+
+    const insertedState = store.getState()
+    expect(insertedState.history.present.nodes.length).toBe(
+      beforeInsertState.history.present.nodes.length + 1
+    )
+    expect(insertedState.history.present.edges.length).toBe(
+      beforeInsertState.history.present.edges.length + 1
+    )
+
+    store.getState().undo()
+    const afterUndoState = store.getState()
+    expect(afterUndoState.history.present.nodes.length).toBe(
+      beforeInsertState.history.present.nodes.length
+    )
+    expect(afterUndoState.history.present.edges.length).toBe(
+      beforeInsertState.history.present.edges.length
+    )
+    expect(
+      afterUndoState.history.present.edges.some((edge) => edge.id === initialEdge.id)
+    ).toBe(true)
+
+    store.getState().redo()
+    const afterRedoState = store.getState()
+    expect(afterRedoState.history.present.nodes.length).toBe(
+      beforeInsertState.history.present.nodes.length + 1
+    )
+    expect(afterRedoState.history.present.edges.length).toBe(
+      beforeInsertState.history.present.edges.length + 1
+    )
+    expect(
+      afterRedoState.history.present.edges.some((edge) => edge.id === initialEdge.id)
+    ).toBe(false)
   })
 
   it("fails edge insert when inserted->target leg is invalid", () => {

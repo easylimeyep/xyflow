@@ -113,4 +113,35 @@ describe("useNodeChangeRouter", () => {
 
     expect(onSelectionChange).toHaveBeenCalledWith([nodeA.id, nodeB.id])
   })
+
+  it("routes selection-only changes without emitting structural changes", () => {
+    const onStructuralChanges = vi.fn()
+    const onSelectionChange = vi.fn()
+    const onRouter = vi.fn()
+
+    const nodeA = createWorkflowNode("inlineExpression", { x: 0, y: 0 })
+    nodeA.data.config.isRoot = true
+    const nodeB = createWorkflowNode("extractor", { x: 200, y: 0 })
+
+    render(
+      <Harness
+        nodes={[
+          { ...nodeA, selected: false },
+          { ...nodeB, selected: false },
+        ]}
+        onStructuralChanges={onStructuralChanges}
+        onSelectionChange={onSelectionChange}
+        onRouter={onRouter}
+      />
+    )
+
+    const routeChanges = onRouter.mock.calls[0]?.[0] as
+      | ((changes: NodeChange<WorkflowNode>[]) => void)
+      | undefined
+
+    routeChanges?.([{ id: nodeB.id, type: "select", selected: true }])
+
+    expect(onSelectionChange).toHaveBeenCalledWith([nodeB.id])
+    expect(onStructuralChanges).not.toHaveBeenCalled()
+  })
 })
