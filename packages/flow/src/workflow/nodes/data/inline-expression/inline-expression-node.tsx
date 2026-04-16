@@ -15,6 +15,7 @@ export function InlineExpressionNode({ id, data, selected }: NodeProps) {
   const { expressionVariables, updateNodeConfig } = useNodeStoreData(id)
   const templateFromStore = asText(config.template)
   const isRootFromStore = config.isRoot === true
+  const isRepeatableFromStore = config.repeatable === true
   const styles = inlineExpressionNodeStyles()
 
   return (
@@ -58,6 +59,20 @@ export function InlineExpressionNode({ id, data, selected }: NodeProps) {
         <p className={styles.helperText()}>
           Press Enter or blur to commit one history step.
         </p>
+        <label className={styles.rootToggleWrap()}>
+          <Checkbox
+            checked={isRepeatableFromStore}
+            className={styles.rootToggle()}
+            onCheckedChange={(checked) => {
+              updateNodeConfig(id, {
+                kind: "inlineExpression",
+                key: "repeatable",
+                value: checked === true,
+              })
+            }}
+          />
+          <span className={styles.rootToggleLabel()}>Repeatable</span>
+        </label>
       </div>
     </NodeShell>
   )

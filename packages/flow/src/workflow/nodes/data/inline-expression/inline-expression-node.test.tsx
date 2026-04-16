@@ -69,7 +69,7 @@ function createNodeProps(template: string): NodeProps {
     data: {
       kind: "inlineExpression",
       label: "Inline Node",
-      config: { template, isRoot: false },
+      config: { template, isRoot: false, repeatable: false },
     },
     selected: false,
     dragging: false,
@@ -149,6 +149,27 @@ describe("InlineExpressionNode", () => {
     })
   })
 
+  it("renders Repeatable checkbox below tokens input", () => {
+    render(<InlineExpressionNode {...createNodeProps("{{ $input.item.json }}")} />)
+
+    const input = screen.getByTestId("inline-expression-input")
+    const repeatableCheckbox = screen.getByRole("checkbox", { name: /Repeatable/i })
+
+    expect(input.compareDocumentPosition(repeatableCheckbox) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it("updates repeatable config when Repeatable checkbox toggles", () => {
+    render(<InlineExpressionNode {...createNodeProps("{{ $input.item.json }}")} />)
+
+    fireEvent.click(screen.getByRole("checkbox", { name: /Repeatable/i }))
+
+    expect(mockUpdateNodeConfig).toHaveBeenCalledWith("inline-node-1", {
+      kind: "inlineExpression",
+      key: "repeatable",
+      value: true,
+    })
+  })
+
   it("hides target handle when node is root", () => {
     const rootNodeProps = createNodeProps("{{ $input.item.json }}")
     rootNodeProps.data = {
@@ -157,6 +178,7 @@ describe("InlineExpressionNode", () => {
       config: {
         template: "{{ $input.item.json }}",
         isRoot: true,
+        repeatable: false,
       },
     }
 

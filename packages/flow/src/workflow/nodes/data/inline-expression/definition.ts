@@ -21,6 +21,11 @@ export const inlineExpression = defineNode({
       label: "Root",
       type: "boolean",
     },
+    {
+      key: "repeatable",
+      label: "Repeatable",
+      type: "boolean",
+    },
   ],
   outputPaths: ["template"],
   allowedTargets: [
@@ -33,12 +38,14 @@ export const inlineExpression = defineNode({
   buildDefaultConfig: () => ({
     template: "",
     isRoot: false,
+    repeatable: false,
   }),
   validateConfigValue: (key, value) => {
     switch (key) {
       case "template":
         return typeof value === "string"
       case "isRoot":
+      case "repeatable":
         return typeof value === "boolean"
       default:
         return false

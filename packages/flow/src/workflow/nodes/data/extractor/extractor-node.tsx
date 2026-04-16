@@ -10,7 +10,11 @@ import { useCallback, useRef, useState } from "react"
 import { setVariableNodeStyles } from "../../../../styles/components/nodes"
 import { isValidJsIdentifier } from "../../../expression/variable-name/variable-name"
 import { NodeShell } from "../../node-shell/node-shell"
-import { asText, useBaseNodeData, useVariableIdentifierField } from "../../shared"
+import {
+  asText,
+  useBaseNodeData,
+  useVariableIdentifierField,
+} from "../../shared"
 import { useNodeStoreData } from "../../shared/use-node-store-data"
 
 export function ExtractorNode({ id, data, selected }: NodeProps) {
@@ -24,8 +28,8 @@ export function ExtractorNode({ id, data, selected }: NodeProps) {
   const tokenNumberFromStore =
     typeof config.tokenNumber === "number" &&
     Number.isFinite(config.tokenNumber)
-      ? Math.max(0, Math.trunc(config.tokenNumber))
-      : 0
+      ? Math.max(1, Math.trunc(config.tokenNumber))
+      : 1
   const unlimitedFromStore = config.unlimited === true
 
   const [draftTokenNumber, setDraftTokenNumber] = useState(
@@ -85,11 +89,11 @@ export function ExtractorNode({ id, data, selected }: NodeProps) {
           <Label className={styles.label()}>Token Number</Label>
           <Input
             type="number"
-            min={0}
+            min={1}
             step={1}
             ref={tokenInputRef}
             value={shownTokenNumber}
-            placeholder="0"
+            placeholder="1"
             onFocus={() => {
               setDraftTokenNumber(String(tokenNumberFromStore))
               setIsTokenNumberFocused(true)
@@ -128,7 +132,9 @@ export function ExtractorNode({ id, data, selected }: NodeProps) {
             value={variableLabelField.shownValue}
             placeholder="myVar"
             onFocus={variableLabelField.onFocus}
-            onChange={(event) => variableLabelField.onChange(event.target.value)}
+            onChange={(event) =>
+              variableLabelField.onChange(event.target.value)
+            }
             onBlur={variableLabelField.onBlur}
             onKeyDown={variableLabelField.onKeyDown}
           />

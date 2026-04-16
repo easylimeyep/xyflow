@@ -5,13 +5,14 @@ import { defineNode } from "../../node-registry/define-node"
 export const result = defineNode({
   kind: "result" as const,
   title: "Result",
-  description: "Terminal node that marks the classified outcome of a workflow path.",
+  description:
+    "Terminal node that marks the classified outcome of a workflow path.",
   icon: CheckCircle,
   category: "logic",
   fields: [
     {
-      key: "category",
-      label: "Category",
+      key: "value",
+      label: "Value",
       type: "select",
       options: [
         { label: "true", value: "true" },
@@ -21,7 +22,7 @@ export const result = defineNode({
   ],
   outputPaths: [],
   allowedTargets: [],
-  buildDefaultConfig: () => ({ category: "true" }),
+  buildDefaultConfig: () => ({ value: "true" }),
   validateConfigValue: (key, value) =>
-    key === "category" && (value === "true" || value === "false"),
+    key === "value" && (value === "true" || value === "false"),
 })

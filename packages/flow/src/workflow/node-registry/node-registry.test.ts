@@ -32,6 +32,7 @@ describe("workflow node registry", () => {
     expect(definition.fields.some((field) => field.key === "template" && field.ui === "expression")).toBe(
       true
     )
+    expect(definition.fields.find((field) => field.key === "repeatable")?.label).toBe("Repeatable")
   })
 
   it("creates inline expression node with default config", () => {
@@ -40,6 +41,7 @@ describe("workflow node registry", () => {
     expect(node.type).toBe("inlineExpression")
     expect(node.data.config.template).toBe("")
     expect(node.data.config.isRoot).toBe(false)
+    expect(node.data.config.repeatable).toBe(false)
   })
 
   it("does not expose trigger node in registry", () => {
