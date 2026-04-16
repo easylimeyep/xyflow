@@ -1,8 +1,5 @@
-# workflow-runtime-context Specification
+## MODIFIED Requirements
 
-## Purpose
-Define the mount-scoped runtime configuration contract for workflow consumers so external integrations can extend workflow behavior through a typed, namespaced API.
-## Requirements
 ### Requirement: Workflow store accepts namespaced runtime configuration
 The workflow runtime SHALL accept an optional typed runtime configuration object during `WorkflowEditor` initialization. This configuration MUST be namespaced under a single runtime contract rather than exposed as unrelated top-level provider props.
 
@@ -24,4 +21,3 @@ Runtime configuration SHALL be treated as mount-time initialization data for a w
 #### Scenario: New provider mount gets a fresh runtime config
 - **WHEN** a new `WorkflowEditor` instance mounts with a different runtime configuration
 - **THEN** the new store instance MUST use the new runtime configuration without leaking settings from the previous instance
-

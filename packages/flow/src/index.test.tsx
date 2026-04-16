@@ -1,39 +1,35 @@
 // @vitest-environment jsdom
 
 import { cleanup, render, screen } from "@testing-library/react"
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, it } from "vitest"
 
-import { Flow } from "./index"
+import { WorkflowEditor } from "./index"
 import type { DomainWorkflowDTO } from "./workflow/types"
 
-vi.mock("./workflow/components/workflow-editor", async () => {
-  const { useWorkflowStore } = await import("./workflow/store")
+function RuntimeProbe() {
+  const exportDomain = WorkflowEditor.use.store((state) => state.exportDomain)
+  const hasRuntimeMapper = WorkflowEditor.use.store((state) =>
+    Boolean(state.runtime.exportDomain?.mapper)
+  )
 
-  return {
-    WorkflowEditor: () => {
-      const exportDomain = useWorkflowStore((state) => state.exportDomain)
-      const hasRuntimeMapper = useWorkflowStore((state) =>
-        Boolean(state.runtime.exportDomain?.mapper)
-      )
+  return (
+    <div>
+      <span data-testid="workflow-editor-export-domain">{exportDomain()}</span>
+      <span data-testid="workflow-editor-has-runtime-mapper">
+        {String(hasRuntimeMapper)}
+      </span>
+    </div>
+  )
+}
 
-      return (
-        <div>
-          <span data-testid="flow-export-domain">{exportDomain()}</span>
-          <span data-testid="flow-has-runtime-mapper">{String(hasRuntimeMapper)}</span>
-        </div>
-      )
-    },
-  }
-})
-
-describe("Flow", () => {
+describe("WorkflowEditor package root", () => {
   afterEach(() => {
     cleanup()
   })
 
   it("lets consumers pass a runtime export mapper", () => {
     render(
-      <Flow
+      <WorkflowEditor
         runtime={{
           exportDomain: {
             mapper: (payload: DomainWorkflowDTO) => ({
@@ -45,16 +41,20 @@ describe("Flow", () => {
             }),
           },
         }}
-      />
+      >
+        <RuntimeProbe />
+      </WorkflowEditor>
     )
 
-    expect(screen.getByTestId("flow-has-runtime-mapper").textContent).toBe("true")
-    expect(screen.getByTestId("flow-export-domain").textContent).toContain(
-      "\"consumerMapper\": true"
-    )
+    expect(
+      screen.getByTestId("workflow-editor-has-runtime-mapper").textContent
+    ).toBe("true")
+    expect(
+      screen.getByTestId("workflow-editor-export-domain").textContent
+    ).toContain("\"consumerMapper\": true")
   })
 
-  it("keeps the initial runtime config when Flow rerenders", () => {
+  it("keeps the initial runtime config when WorkflowEditor rerenders", () => {
     const firstRuntime = {
       exportDomain: {
         mapper: (payload: DomainWorkflowDTO) => ({
@@ -78,25 +78,37 @@ describe("Flow", () => {
       },
     }
 
-    const view = render(<Flow runtime={firstRuntime} />)
-    expect(screen.getByTestId("flow-export-domain").textContent).toContain(
-      "\"runtimeLabel\": \"first-runtime\""
+    const view = render(
+      <WorkflowEditor runtime={firstRuntime}>
+        <RuntimeProbe />
+      </WorkflowEditor>
+    )
+    expect(
+      screen.getByTestId("workflow-editor-export-domain").textContent
+    ).toContain("\"runtimeLabel\": \"first-runtime\"")
+
+    view.rerender(
+      <WorkflowEditor runtime={secondRuntime}>
+        <RuntimeProbe />
+      </WorkflowEditor>
     )
 
-    view.rerender(<Flow runtime={secondRuntime} />)
-
-    expect(screen.getByTestId("flow-export-domain").textContent).toContain(
-      "\"runtimeLabel\": \"first-runtime\""
-    )
-    expect(screen.getByTestId("flow-export-domain").textContent).not.toContain(
-      "\"runtimeLabel\": \"second-runtime\""
-    )
+    expect(
+      screen.getByTestId("workflow-editor-export-domain").textContent
+    ).toContain("\"runtimeLabel\": \"first-runtime\"")
+    expect(
+      screen.getByTestId("workflow-editor-export-domain").textContent
+    ).not.toContain("\"runtimeLabel\": \"second-runtime\"")
 
     view.unmount()
-    render(<Flow runtime={secondRuntime} />)
-
-    expect(screen.getByTestId("flow-export-domain").textContent).toContain(
-      "\"runtimeLabel\": \"second-runtime\""
+    render(
+      <WorkflowEditor runtime={secondRuntime}>
+        <RuntimeProbe />
+      </WorkflowEditor>
     )
+
+    expect(
+      screen.getByTestId("workflow-editor-export-domain").textContent
+    ).toContain("\"runtimeLabel\": \"second-runtime\"")
   })
 })

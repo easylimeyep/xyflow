@@ -3,6 +3,7 @@ import { createContextStore, createStore, createHistoryState, type StoreApi } fr
 import { initialWorkflowGraph } from "../default-graph/default-graph"
 import type { WorkflowGraphState } from "../types/types"
 import { cloneGraphState } from "./helpers"
+import { selectSelectedNode, selectSelectedNodeIds } from "./selectors"
 import {
   createConnectionSlice,
   createExpressionSlice,
@@ -57,4 +58,28 @@ export const useWorkflowShallowStore = workflowStore.useShallowStore
 
 export function useWorkflowGraph(): WorkflowGraphState {
   return useWorkflowStore((state) => state.history.present)
+}
+
+export function useWorkflowSelection() {
+  return useWorkflowShallowStore((state) => ({
+    selectedNodeIds: selectSelectedNodeIds(state),
+    selectedNode: selectSelectedNode(state),
+  }))
+}
+
+export function useWorkflowActions() {
+  return useWorkflowShallowStore((state) => ({
+    undo: state.undo,
+    redo: state.redo,
+    addNode: state.addNode,
+    setSelectedNodes: state.setSelectedNodes,
+    copySelectionToClipboard: state.copySelectionToClipboard,
+    pasteFromClipboard: state.pasteFromClipboard,
+    importFromJson: state.importFromJson,
+    exportDomain: state.exportDomain,
+    startQuickAddFromOutput: state.startQuickAddFromOutput,
+    cancelQuickAdd: state.cancelQuickAdd,
+    startEdgeInsertFromEdge: state.startEdgeInsertFromEdge,
+    cancelEdgeInsert: state.cancelEdgeInsert,
+  }))
 }

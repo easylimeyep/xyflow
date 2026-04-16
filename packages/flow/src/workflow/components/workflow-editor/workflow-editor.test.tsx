@@ -5,8 +5,6 @@ import userEvent from "@testing-library/user-event"
 import type { ReactNode } from "react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import { useWorkflowStore, type WorkflowStoreState } from "../../store"
-import { WorkflowStoreProvider } from "../../store"
 import { WorkflowEditor } from "./workflow-editor"
 
 const paletteRenderSpy = vi.fn()
@@ -50,7 +48,9 @@ vi.mock("../node-palette", () => ({
     paletteRenderSpy()
     return (
       <div>
-        <span data-testid="palette-quick-add-active">{String(Boolean(quickAddActive))}</span>
+        <span data-testid="palette-quick-add-active">
+          {String(Boolean(quickAddActive))}
+        </span>
         <span data-testid="palette-open">{String(Boolean(isOpen))}</span>
         <button type="button" onClick={() => onAddNode("extractor")}>
           palette-add-node
@@ -67,6 +67,7 @@ vi.mock("../workflow-canvas", () => ({
     onViewportChange,
     onPointerFlowPosition,
     onPaneClick,
+    onSelectNodes,
   }: {
     nodes: Array<{ id: string }>
     onNodesChange: (
@@ -101,6 +102,9 @@ vi.mock("../workflow-canvas", () => ({
         <button type="button" onClick={onPaneClick}>
           canvas-pane-click
         </button>
+        <button type="button" onClick={() => onSelectNodes([nodes[0]?.id ?? ""])}>
+          canvas-select-first-node
+        </button>
         <button
           type="button"
           onClick={() => {
@@ -123,15 +127,11 @@ vi.mock("../workflow-canvas", () => ({
   },
 }))
 
-function renderWithStore(children: ReactNode) {
-  return render(<WorkflowStoreProvider>{children}</WorkflowStoreProvider>)
-}
-
 function QuickAddControls() {
-  const startQuickAddFromOutput = useWorkflowStore(
-    (state: WorkflowStoreState) => state.startQuickAddFromOutput
+  const startQuickAddFromOutput = WorkflowEditor.use.store(
+    (state) => state.startQuickAddFromOutput
   )
-  const nodes = useWorkflowStore((state: WorkflowStoreState) => state.history.present.nodes)
+  const nodes = WorkflowEditor.use.store((state) => state.history.present.nodes)
 
   return (
     <button
@@ -152,6 +152,38 @@ function QuickAddControls() {
   )
 }
 
+function HookProbe() {
+  const graph = WorkflowEditor.use.graph()
+  const selection = WorkflowEditor.use.selection()
+  const actions = WorkflowEditor.use.actions()
+
+  return (
+    <div>
+      <span data-testid="hook-graph-node-count">{graph.nodes.length}</span>
+      <span data-testid="hook-selection-count">
+        {selection.selectedNodeIds.length}
+      </span>
+      <span data-testid="hook-actions-has-export">
+        {String(typeof actions.exportDomain === "function")}
+      </span>
+    </div>
+  )
+}
+
+function renderCustomEditor(extraChildren?: ReactNode) {
+  return render(
+    <WorkflowEditor>
+      {extraChildren}
+      <WorkflowEditor.Toolbar />
+      <WorkflowEditor.Body>
+        <WorkflowEditor.Palette />
+        <WorkflowEditor.Canvas />
+        <WorkflowEditor.ConfigPanel />
+      </WorkflowEditor.Body>
+    </WorkflowEditor>
+  )
+}
+
 describe("WorkflowEditor wiring", () => {
   afterEach(() => {
     cleanup()
@@ -159,9 +191,26 @@ describe("WorkflowEditor wiring", () => {
     canvasRenderSpy.mockClear()
   })
 
+  it("renders the default composition without custom children", () => {
+    render(<WorkflowEditor />)
+
+    expect(screen.getByTestId("toolbar-can-undo")).toBeTruthy()
+    expect(screen.getByTestId("palette-open").textContent).toBe("true")
+    expect(screen.getByTestId("canvas-node-count")).toBeTruthy()
+    expect(screen.getByText("Config Panel")).toBeTruthy()
+  })
+
+  it("supports custom composition with compound parts", () => {
+    renderCustomEditor(<div data-testid="custom-marker">custom-layout</div>)
+
+    expect(screen.getByTestId("custom-marker")).toBeTruthy()
+    expect(screen.getByTestId("toolbar-can-undo")).toBeTruthy()
+    expect(screen.getByText("Config Panel")).toBeTruthy()
+  })
+
   it("adds node from palette and reflects updated canvas node count", async () => {
     const user = userEvent.setup()
-    renderWithStore(<WorkflowEditor />)
+    render(<WorkflowEditor />)
 
     const beforeCount = Number(screen.getByTestId("canvas-node-count").textContent)
     await user.click(screen.getByRole("button", { name: "palette-add-node" }))
@@ -173,12 +222,14 @@ describe("WorkflowEditor wiring", () => {
 
   it("removes palette-added node with one undo after measurement update", async () => {
     const user = userEvent.setup()
-    renderWithStore(<WorkflowEditor />)
+    render(<WorkflowEditor />)
 
     const beforeCount = Number(screen.getByTestId("canvas-node-count").textContent)
     await user.click(screen.getByRole("button", { name: "palette-add-node" }))
     await user.click(screen.getByRole("button", { name: "canvas-measure-added-node" }))
-    expect(Number(screen.getByTestId("canvas-node-count").textContent)).toBe(beforeCount + 1)
+    expect(Number(screen.getByTestId("canvas-node-count").textContent)).toBe(
+      beforeCount + 1
+    )
 
     await user.click(screen.getByRole("button", { name: "toolbar-undo" }))
     expect(Number(screen.getByTestId("canvas-node-count").textContent)).toBe(beforeCount)
@@ -186,7 +237,7 @@ describe("WorkflowEditor wiring", () => {
 
   it("updates toolbar canUndo/canRedo across undo-redo history steps", async () => {
     const user = userEvent.setup()
-    renderWithStore(<WorkflowEditor />)
+    render(<WorkflowEditor />)
 
     expect(screen.getByTestId("toolbar-can-undo").textContent).toBe("false")
     expect(screen.getByTestId("toolbar-can-redo").textContent).toBe("false")
@@ -206,7 +257,7 @@ describe("WorkflowEditor wiring", () => {
 
   it("does not rerender palette on viewport-only updates", async () => {
     const user = userEvent.setup()
-    renderWithStore(<WorkflowEditor />)
+    render(<WorkflowEditor />)
 
     const baselinePaletteRenders = paletteRenderSpy.mock.calls.length
     const baselineCanvasRenders = canvasRenderSpy.mock.calls.length
@@ -221,7 +272,7 @@ describe("WorkflowEditor wiring", () => {
 
   it("keeps non-canvas render budget stable on pointer updates", async () => {
     const user = userEvent.setup()
-    renderWithStore(<WorkflowEditor />)
+    render(<WorkflowEditor />)
 
     const baselinePaletteRenders = paletteRenderSpy.mock.calls.length
     const baselineCanvasRenders = canvasRenderSpy.mock.calls.length
@@ -230,19 +281,13 @@ describe("WorkflowEditor wiring", () => {
       await user.click(screen.getByRole("button", { name: "canvas-update-pointer" }))
     }
 
-    // Perf budget: pointer tracking should not force toolbar/palette rerenders.
     expect(paletteRenderSpy.mock.calls.length).toBe(baselinePaletteRenders)
     expect(canvasRenderSpy.mock.calls.length).toBe(baselineCanvasRenders)
   })
 
   it("routes palette click to quick add confirmation when quick add is active", async () => {
     const user = userEvent.setup()
-    renderWithStore(
-      <>
-        <QuickAddControls />
-        <WorkflowEditor />
-      </>
-    )
+    renderCustomEditor(<QuickAddControls />)
 
     expect(screen.getByTestId("palette-quick-add-active").textContent).toBe("false")
     await user.click(screen.getByRole("button", { name: "test-start-quick-add" }))
@@ -258,12 +303,7 @@ describe("WorkflowEditor wiring", () => {
 
   it("re-opens hidden palette when quick add starts", async () => {
     const user = userEvent.setup()
-    renderWithStore(
-      <>
-        <QuickAddControls />
-        <WorkflowEditor />
-      </>
-    )
+    renderCustomEditor(<QuickAddControls />)
 
     expect(screen.getByTestId("palette-open").textContent).toBe("true")
     await user.click(screen.getByRole("button", { name: "Hide node palette" }))
@@ -276,12 +316,7 @@ describe("WorkflowEditor wiring", () => {
 
   it("cancels quick add through escape without changing canvas graph", async () => {
     const user = userEvent.setup()
-    renderWithStore(
-      <>
-        <QuickAddControls />
-        <WorkflowEditor />
-      </>
-    )
+    renderCustomEditor(<QuickAddControls />)
 
     const beforeCount = Number(screen.getByTestId("canvas-node-count").textContent)
     await user.click(screen.getByRole("button", { name: "test-start-quick-add" }))
@@ -293,4 +328,25 @@ describe("WorkflowEditor wiring", () => {
     expect(Number(screen.getByTestId("canvas-node-count").textContent)).toBe(beforeCount)
   })
 
+  it("updates the config panel when a node is selected", async () => {
+    const user = userEvent.setup()
+    render(<WorkflowEditor />)
+
+    expect(
+      screen.getByText("Select a node on the canvas to inspect it here.")
+    ).toBeTruthy()
+
+    await user.click(screen.getByRole("button", { name: "canvas-select-first-node" }))
+
+    expect(screen.getByLabelText("Label")).toBeTruthy()
+    expect(screen.getByLabelText("Config preview")).toBeTruthy()
+  })
+
+  it("exposes the curated hooks namespace through WorkflowEditor.use", () => {
+    renderCustomEditor(<HookProbe />)
+
+    expect(screen.getByTestId("hook-graph-node-count").textContent).not.toBe("0")
+    expect(screen.getByTestId("hook-selection-count").textContent).toBe("0")
+    expect(screen.getByTestId("hook-actions-has-export").textContent).toBe("true")
+  })
 })

@@ -1,6 +1,14 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+  type PropsWithChildren,
+  type ReactNode,
+} from "react"
 
 import { Button } from "@workspace/ui/components/button"
 import { PlusIcon } from "lucide-react"
@@ -14,8 +22,14 @@ import {
   selectPresentNodes,
   selectQuickAddPending,
   selectViewport,
+  useWorkflowActions,
+  useWorkflowGraph,
+  useWorkflowSelection,
   useWorkflowShallowStore,
   useWorkflowStore,
+  WorkflowStoreProvider,
+  type WorkflowRuntimeConfig,
+  type WorkflowStoreInitialProps,
   type WorkflowStoreState,
 } from "../../store"
 import type { NodeKind } from "../../types"
@@ -26,8 +40,22 @@ import {
   createHistoryHotkeyHandler,
   isEscapeHotkey,
 } from "../hotkeys"
+import { WorkflowEditorConfigPanel } from "../node-config-panel"
 import { NodePalette } from "../node-palette"
 import { WorkflowCanvas } from "../workflow-canvas"
+
+interface WorkflowEditorLayoutContextValue {
+  isPaletteOpen: boolean
+  setIsPaletteOpen: (nextOpen: boolean) => void
+  quickAddActive: boolean
+}
+
+const WorkflowEditorLayoutContext =
+  createContext<WorkflowEditorLayoutContextValue | null>(null)
+
+function useWorkflowEditorLayoutContext() {
+  return useContext(WorkflowEditorLayoutContext)
+}
 
 function useUndoRedoHotkeys(onUndo: () => void, onRedo: () => void): void {
   useEffect(() => {
@@ -70,7 +98,7 @@ function useClipboardHotkeys(
   }, [onCopy, onPaste])
 }
 
-export function WorkflowEditor() {
+function WorkflowEditorLayoutProvider({ children }: PropsWithChildren) {
   const quickAddPending = useWorkflowStore(selectQuickAddPending)
   const edgeInsertPending = useWorkflowStore(selectEdgeInsertPending)
   const quickAddActive = Boolean(quickAddPending || edgeInsertPending)
@@ -90,58 +118,65 @@ export function WorkflowEditor() {
     cancelQuickAdd: state.cancelQuickAdd,
     cancelEdgeInsert: state.cancelEdgeInsert,
   }))
+
   useUndoRedoHotkeys(undo, redo)
   useClipboardHotkeys(copySelectionToClipboard, pasteFromClipboard)
   useCancelInsertHotkey(() => {
     cancelQuickAdd()
     cancelEdgeInsert()
   })
+
   useEffect(() => {
     if (quickAddActive) {
       setIsPaletteOpen(true)
     }
   }, [quickAddActive])
-  const styles = workflowEditorStyles()
 
   return (
-    <div className={styles.root()}>
-      <ToolbarContainer />
-
-      <div className={styles.content()}>
-        <PaletteContainer
-          isOpen={isPaletteOpen}
-          quickAddActive={quickAddActive}
-        />
-        <div className={styles.canvasWrap()}>
-          <div className={styles.canvasOverlay()}>
-            <div className={styles.canvasToolbar()}>
-              <Button
-                type="button"
-                size="icon"
-                variant="outline"
-                aria-label={
-                  isPaletteOpen ? "Hide node palette" : "Show node palette"
-                }
-                onClick={() => setIsPaletteOpen((open) => !open)}
-              >
-                <PlusIcon
-                  className={
-                    isPaletteOpen
-                      ? "rotate-45 transition-transform"
-                      : "transition-transform"
-                  }
-                />
-              </Button>
-            </div>
-          </div>
-          <CanvasContainer />
-        </div>
-      </div>
-    </div>
+    <WorkflowEditorLayoutContext.Provider
+      value={{ isPaletteOpen, setIsPaletteOpen, quickAddActive }}
+    >
+      {children}
+    </WorkflowEditorLayoutContext.Provider>
   )
 }
 
-function ToolbarContainer() {
+export interface WorkflowEditorProps extends WorkflowStoreInitialProps {
+  runtime?: WorkflowRuntimeConfig
+  children?: ReactNode
+}
+
+function DefaultWorkflowEditorComposition() {
+  return (
+    <>
+      <WorkflowEditorToolbar />
+      <WorkflowEditorBody>
+        <WorkflowEditorPalette />
+        <WorkflowEditorCanvas />
+      </WorkflowEditorBody>
+    </>
+  )
+}
+
+function WorkflowEditorRoot({
+  initialGraph,
+  runtime,
+  children,
+}: WorkflowEditorProps = {}) {
+  const styles = workflowEditorStyles()
+
+  return (
+    <WorkflowStoreProvider initialGraph={initialGraph} runtime={runtime}>
+      <WorkflowEditorLayoutProvider>
+        <div className={styles.root()}>
+          {children == null ? <DefaultWorkflowEditorComposition /> : children}
+        </div>
+      </WorkflowEditorLayoutProvider>
+    </WorkflowStoreProvider>
+  )
+}
+
+export function WorkflowEditorToolbar() {
   const {
     canUndo,
     canRedo,
@@ -176,12 +211,18 @@ function ToolbarContainer() {
   )
 }
 
-interface PaletteContainerProps {
-  isOpen: boolean
-  quickAddActive: boolean
+export function WorkflowEditorBody({ children }: PropsWithChildren) {
+  const styles = workflowEditorStyles()
+
+  return <div className={styles.content()}>{children}</div>
 }
 
-function PaletteContainer({ isOpen, quickAddActive }: PaletteContainerProps) {
+export interface WorkflowEditorPaletteProps {
+  open?: boolean
+}
+
+export function WorkflowEditorPalette({ open }: WorkflowEditorPaletteProps) {
+  const layout = useWorkflowEditorLayoutContext()
   const nodeCount = useWorkflowStore(selectNodeCount)
   const quickAddPending = useWorkflowStore(selectQuickAddPending)
   const edgeInsertPending = useWorkflowStore(selectEdgeInsertPending)
@@ -209,14 +250,17 @@ function PaletteContainer({ isOpen, quickAddActive }: PaletteContainerProps) {
   return (
     <NodePalette
       onAddNode={addNodeAtDefaultPosition}
-      quickAddActive={quickAddActive}
-      isOpen={isOpen}
+      quickAddActive={
+        layout?.quickAddActive ?? Boolean(quickAddPending || edgeInsertPending)
+      }
+      isOpen={open ?? layout?.isPaletteOpen ?? true}
     />
   )
 }
 
-function CanvasContainer() {
-  // Read the viewport once at mount — `captureOnce` prevents re-renders on subsequent viewport changes
+export function WorkflowEditorCanvas() {
+  const layout = useWorkflowEditorLayoutContext()
+  const styles = workflowEditorStyles()
   const captureOnce = () => true
   const initialViewport = useWorkflowStore(selectViewport, captureOnce)
   const { nodes, edges, edgeInsertPending } = useWorkflowShallowStore(
@@ -260,24 +304,64 @@ function CanvasContainer() {
     },
     [onEdgesChange]
   )
+  const isPaletteOpen = layout?.isPaletteOpen ?? true
 
   return (
-    <WorkflowCanvas
-      nodes={nodes}
-      edges={edges}
-      viewport={initialViewport}
-      onNodesChange={onNodesChange}
-      onEdgesChange={onEdgesChange}
-      onConnect={onConnect}
-      onViewportChange={setViewport}
-      onSelectNodes={setSelectedNodes}
-      onPaneClick={handlePaneClick}
-      onAddNodeAt={addNode}
-      onStartInsertFromEdge={startEdgeInsertFromEdge}
-      onDeleteEdge={handleDeleteEdge}
-      onPointerFlowPosition={setLastPointerPosition}
-      edgeInsertPendingId={edgeInsertPending?.edgeId ?? null}
-    />
+    <div className={styles.canvasWrap()}>
+      <div className={styles.canvasOverlay()}>
+        <div className={styles.canvasToolbar()}>
+          <Button
+            type="button"
+            size="icon"
+            variant="outline"
+            aria-label={
+              isPaletteOpen ? "Hide node palette" : "Show node palette"
+            }
+            onClick={() => layout?.setIsPaletteOpen(!isPaletteOpen)}
+          >
+            <PlusIcon
+              className={
+                isPaletteOpen
+                  ? "rotate-45 transition-transform"
+                  : "transition-transform"
+              }
+            />
+          </Button>
+        </div>
+      </div>
+      <WorkflowCanvas
+        nodes={nodes}
+        edges={edges}
+        viewport={initialViewport}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        onConnect={onConnect}
+        onViewportChange={setViewport}
+        onSelectNodes={setSelectedNodes}
+        onPaneClick={handlePaneClick}
+        onAddNodeAt={addNode}
+        onStartInsertFromEdge={startEdgeInsertFromEdge}
+        onDeleteEdge={handleDeleteEdge}
+        onPointerFlowPosition={setLastPointerPosition}
+        edgeInsertPendingId={edgeInsertPending?.edgeId ?? null}
+      />
+    </div>
   )
 }
 
+export { WorkflowEditorConfigPanel }
+
+export const WorkflowEditor = Object.assign(WorkflowEditorRoot, {
+  Toolbar: WorkflowEditorToolbar,
+  Body: WorkflowEditorBody,
+  Palette: WorkflowEditorPalette,
+  Canvas: WorkflowEditorCanvas,
+  ConfigPanel: WorkflowEditorConfigPanel,
+  use: {
+    store: useWorkflowStore,
+    shallowStore: useWorkflowShallowStore,
+    graph: useWorkflowGraph,
+    selection: useWorkflowSelection,
+    actions: useWorkflowActions,
+  },
+})
