@@ -57,11 +57,20 @@ export type WorkflowExportDomainMapper = (
   payload: DomainWorkflowDTO
 ) => DomainWorkflowDTO
 
+export type WorkflowImportDomainMapper = (
+  payload: DomainWorkflowDTO
+) => DomainWorkflowDTO
+
 export interface WorkflowRuntimeExportDomainConfig {
   mapper?: WorkflowExportDomainMapper
 }
 
+export interface WorkflowRuntimeImportDomainConfig {
+  mapper?: WorkflowImportDomainMapper
+}
+
 export interface WorkflowRuntimeConfig {
+  importDomain?: WorkflowRuntimeImportDomainConfig
   exportDomain?: WorkflowRuntimeExportDomainConfig
 }
 

@@ -6,7 +6,7 @@ import {
   selectSelectedNode,
 } from "./selectors"
 import { createWorkflowStore } from "./store"
-import type { WorkflowNode } from "../types/types"
+import type { DomainWorkflowDTO, WorkflowNode } from "../types/types"
 
 let store: ReturnType<typeof createWorkflowStore>
 
@@ -97,6 +97,49 @@ describe("workflow store", () => {
     expect(store.getState().lastError).toBeNull()
   })
 
+  it("applies runtime importDomain mapper before graph conversion", () => {
+    const runtimeStore = createWorkflowStore({
+      runtime: {
+        importDomain: {
+          mapper: (payload) => ({
+            ...payload,
+            name: "mapped-import",
+            metadata: {
+              ...payload.metadata,
+              importedByMapper: true,
+            },
+            nodes: payload.nodes.map((node, index) =>
+              index === 0
+                ? {
+                    ...node,
+                    label: "Mapped Root",
+                  }
+                : node
+            ),
+          }),
+        },
+      },
+    })
+
+    const imported = runtimeStore
+      .getState()
+      .importFromJson(store.getState().exportDomain())
+
+    expect(imported).toBe(true)
+    expect(runtimeStore.getState().lastError).toBeNull()
+    expect(runtimeStore.getState().history.present.document.name).toBe(
+      "mapped-import"
+    )
+    expect(runtimeStore.getState().history.present.document.metadata).toMatchObject(
+      {
+        importedByMapper: true,
+      }
+    )
+    expect(runtimeStore.getState().history.present.nodes[0]?.data.label).toBe(
+      "Mapped Root"
+    )
+  })
+
   it("keeps default exportDomain output when runtime mapper is not provided", () => {
     const expected = exportDomainJson(store.getState().history.present)
 
@@ -140,6 +183,40 @@ describe("workflow store", () => {
 
     expect(imported).toBe(false)
     expect(store.getState().lastError?.message).toContain("domain workflow schema")
+  })
+
+  it("rejects invalid runtime importDomain mapper output", () => {
+    const runtimeStore = createWorkflowStore({
+      runtime: {
+        importDomain: {
+          mapper: (payload): DomainWorkflowDTO => ({
+            ...payload,
+            nodes: payload.nodes.map((node, index) =>
+              index === 0
+                ? {
+                    id: node.id,
+                    position: node.position,
+                    label: node.label,
+                    config: node.config,
+                    kind: "not-a-real-kind" as never,
+                  }
+                : node
+            ),
+          }),
+        },
+      },
+    })
+
+    const beforeGraph = runtimeStore.getState().history.present
+    const imported = runtimeStore
+      .getState()
+      .importFromJson(store.getState().exportDomain())
+
+    expect(imported).toBe(false)
+    expect(runtimeStore.getState().lastError?.message).toContain(
+      "invalid schema"
+    )
+    expect(runtimeStore.getState().history.present).toEqual(beforeGraph)
   })
 
   it("rejects invalid connections and keeps graph stable", () => {

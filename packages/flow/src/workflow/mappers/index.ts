@@ -5,7 +5,12 @@ export {
   exportDomainJson,
   internalToDomain,
 } from "./converters"
-export { isValidDomainDto, parseInternalGraphJson, type ParseResult } from "./parser"
+export {
+  isValidDomainDto,
+  parseDomainGraphJson,
+  parseInternalGraphJson,
+  type ParseResult,
+} from "./parser"
 export {
   WORKFLOW_SELECTION_CLIPBOARD_KIND,
   exportSelectionClipboardJson,

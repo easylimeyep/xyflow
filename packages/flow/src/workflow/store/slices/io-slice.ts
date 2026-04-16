@@ -3,9 +3,11 @@ import { addEdge, type XYPosition } from "@xyflow/react"
 
 import { refactorPlainVariableReferencesInGraph } from "../graph-refactors"
 import {
+  domainToInternal,
   exportDomainDto,
   exportSelectionClipboardJson,
-  parseInternalGraphJson,
+  isValidDomainDto,
+  parseDomainGraphJson,
   parseSelectionClipboardJson,
 } from "../../mappers"
 import {
@@ -110,7 +112,8 @@ export const createIoSlice: WorkflowSliceCreator = (set, get) => ({
     return true
   },
   importFromJson: (rawJson) => {
-    const parsed = parseInternalGraphJson(rawJson)
+    const state = get()
+    const parsed = parseDomainGraphJson(rawJson)
     if (!parsed.success || !parsed.value) {
       set({
         lastError: createWorkflowError("IMPORT_INVALID_SCHEMA", parsed.error ?? "Import failed due to invalid schema."),
@@ -118,7 +121,19 @@ export const createIoSlice: WorkflowSliceCreator = (set, get) => ({
       return false
     }
 
-    const importedGraph = cloneGraphState(parsed.value)
+    const mappedPayload =
+      state.runtime.importDomain?.mapper?.(parsed.value) ?? parsed.value
+    if (!isValidDomainDto(mappedPayload)) {
+      set({
+        lastError: createWorkflowError(
+          "IMPORT_INVALID_SCHEMA",
+          "Import failed due to invalid schema."
+        ),
+      })
+      return false
+    }
+
+    const importedGraph = cloneGraphState(domainToInternal(mappedPayload))
     const { nodes: nodesWithUniqueLabels, renames: labelRenames } =
       deduplicateNodeLabels(importedGraph.nodes, new Set<string>())
 

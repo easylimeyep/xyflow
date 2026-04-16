@@ -9,7 +9,7 @@ export interface ParseResult<T> {
   error?: string
 }
 
-export function parseInternalGraphJson(rawJson: string): ParseResult<WorkflowGraphState> {
+export function parseDomainGraphJson(rawJson: string): ParseResult<DomainWorkflowDTO> {
   try {
     const parsed: unknown = JSON.parse(rawJson)
     if (!asRecord(parsed)) {
@@ -29,13 +29,28 @@ export function parseInternalGraphJson(rawJson: string): ParseResult<WorkflowGra
 
     return {
       success: true,
-      value: domainToInternal(domainDTO.value),
+      value: domainDTO.value,
     }
   } catch {
     return {
       success: false,
       error: "Invalid JSON payload.",
     }
+  }
+}
+
+export function parseInternalGraphJson(rawJson: string): ParseResult<WorkflowGraphState> {
+  const domainDTO = parseDomainGraphJson(rawJson)
+  if (!domainDTO.success || !domainDTO.value) {
+    return {
+      success: false,
+      error: domainDTO.error,
+    }
+  }
+
+  return {
+    success: true,
+    value: domainToInternal(domainDTO.value),
   }
 }
 
