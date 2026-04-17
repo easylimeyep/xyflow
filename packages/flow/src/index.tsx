@@ -9,4 +9,8 @@ export {
   WorkflowEditorToolbar,
   type WorkflowEditorProps,
 } from "./workflow/components/workflow-editor"
-export type { WorkflowRuntimeConfig, WorkflowStoreInitialProps } from "./workflow/store"
+export { initialWorkflowGraph } from "./workflow/default-graph"
+export type {
+  WorkflowRuntimeConfig,
+  WorkflowStoreInitialProps,
+} from "./workflow/store"
