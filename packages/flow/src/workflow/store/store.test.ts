@@ -304,14 +304,14 @@ describe("workflow store", () => {
     state.updateNodeConfig(targetNode.id, {
       kind: "inlineExpression",
       key: "template",
-      value: "{{ updated-value }}",
+      value: ["{{ updated-value }}"],
     })
 
     const nextState = store.getState()
     const updatedNode = nextState.history.present.nodes.find((node) => node.id === targetNode.id)
 
     expect(updatedNode?.data.label).toBe("Updated label")
-    expect(updatedNode?.data.config.template).toBe("{{ updated-value }}")
+    expect(updatedNode?.data.config.template).toEqual(["{{ updated-value }}"])
     expect(nextState.history.past.length).toBeGreaterThan(initialPastLength)
   })
 
@@ -624,7 +624,7 @@ describe("workflow store", () => {
     state.updateNodeConfig(targetNode.id, {
       kind: "inlineExpression",
       key: "template",
-      value: "{{ renamed }}",
+      value: ["{{ renamed }}"],
     })
     expect(store.getState().expressionStructuralVersion).toBe(initialVersion + 1)
   })
@@ -1177,7 +1177,7 @@ describe("workflow store", () => {
     state.updateNodeConfig(inlineExpressionNode.id, {
       kind: "inlineExpression",
       key: "template",
-      value: `{{ ${initialVariableName} }}`,
+      value: [`{{ ${initialVariableName} }}`],
     })
 
     state.updateNodeConfig(setVariableNode.id, {
@@ -1196,7 +1196,7 @@ describe("workflow store", () => {
 
     expect(nextSetVariableNode?.data.config.variableName).toBe("newName")
     expect(nextSetVariableNode?.data.label).toBe(setVariableNode.data.label)
-    expect(nextInlineExpressionNode?.data.config.template).toBe("{{ newName }}")
+    expect(nextInlineExpressionNode?.data.config.template).toEqual(["{{ newName }}"])
   })
 
   it("refactors plain variable references when extractor Label is renamed via config", () => {
@@ -1225,7 +1225,7 @@ describe("workflow store", () => {
     state.updateNodeConfig(inlineExpressionNode.id, {
       kind: "inlineExpression",
       key: "template",
-      value: "{{ oldName }}",
+      value: ["{{ oldName }}"],
     })
 
     state.updateNodeConfig(extractorNode.id, {
@@ -1242,7 +1242,7 @@ describe("workflow store", () => {
 
     expect(nextExtractorNode?.data.config.extractExpression).toBe("newName")
     expect(nextExtractorNode?.data.label).toBe(extractorNode.data.label)
-    expect(nextInlineExpressionNode?.data.config.template).toBe("{{ newName }}")
+    expect(nextInlineExpressionNode?.data.config.template).toEqual(["{{ newName }}"])
   })
 
   it("enforces label uniqueness so two setVariable nodes cannot have the same label", () => {
@@ -1303,7 +1303,7 @@ describe("workflow store", () => {
     state.updateNodeConfig(inlineExpressionNode.id, {
       kind: "inlineExpression",
       key: "template",
-      value: `{{ ${firstExtractor.data.label} }}`,
+      value: [`{{ ${firstExtractor.data.label} }}`],
     })
     // Rename firstExtractor to secondExtractor's label — triggers auto-increment
     state.updateNodeLabel(firstExtractor.id, secondExtractor.data.label)
@@ -1317,8 +1317,8 @@ describe("workflow store", () => {
     // Label should be auto-incremented to avoid conflict
     expect(nextFirstExtractor?.data.label).not.toBe(firstExtractor.data.label)
     // Template should be refactored to use the new label
-    expect(nextInlineExpressionNode?.data.config.template).toBe(
-      `{{ ${nextFirstExtractor?.data.label} }}`
-    )
+    expect(nextInlineExpressionNode?.data.config.template).toEqual([
+      `{{ ${nextFirstExtractor?.data.label} }}`,
+    ])
   })
 })

@@ -20,7 +20,10 @@ export function normalizeNodeConfig(
     }
 
     if (isConfigValueAccepted(definition.validateConfigValue, key, rawValue)) {
-      result[key] = sanitizeJsonValue(rawValue)
+      const normalizedValue = definition.normalizeConfigValue
+        ? definition.normalizeConfigValue(key, rawValue)
+        : rawValue
+      result[key] = sanitizeJsonValue(normalizedValue)
     }
   })
 

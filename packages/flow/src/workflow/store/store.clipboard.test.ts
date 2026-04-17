@@ -261,7 +261,7 @@ describe("workflow store clipboard actions", () => {
         position: { x: 200, y: 20 },
         label: "Keyword",
         config: {
-          template: '{{ $node("Setter").item.json.myVar }}',
+          template: ['{{ $node("Setter").item.json.myVar }}'],
         },
       },
     ]
@@ -285,9 +285,9 @@ describe("workflow store clipboard actions", () => {
     )
     const pastedInlineExpression = pastedNodes.find((node) => node.data.kind === "inlineExpression")
 
-    expect(pastedInlineExpression?.data.config.template).toContain(
-      '$node("Setter 2").item.json.myVar'
-    )
+    expect(pastedInlineExpression?.data.config.template).toEqual([
+      '{{ $node("Setter 2").item.json.myVar }}',
+    ])
   })
 
   it("preserves setVariable and branch semantic config across clipboard roundtrip", async () => {
@@ -373,9 +373,10 @@ describe("workflow store clipboard actions", () => {
     const previousNodesRef = initialState.history.present.nodes
     const previousNode = node
     const sameTemplate =
-      typeof node.data.config.template === "string"
+      Array.isArray(node.data.config.template) &&
+      node.data.config.template.every((entry): entry is string => typeof entry === "string")
         ? node.data.config.template
-        : ""
+        : []
     store.getState().updateNodeConfig(node.id, {
       kind: "inlineExpression",
       key: "template",

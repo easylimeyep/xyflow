@@ -66,7 +66,7 @@ describe("graph-engine commands", () => {
     if (!result.ok) {
       expect(result.error.code).toBe("INVALID_NODE_CONFIG_KIND")
     }
-    expect(graph.nodes[0]?.data.config.template).toBe("")
+    expect(graph.nodes[0]?.data.config.template).toEqual([])
   })
 
   it("rejects unsupported config keys for a node kind", () => {
@@ -111,7 +111,7 @@ describe("graph-engine commands", () => {
     const setVariableNode = createWorkflowNode("setVariable", { x: 0, y: 0 })
     const inlineNode = createWorkflowNode("inlineExpression", { x: 300, y: 0 })
     setVariableNode.data.config.variableName = "oldName"
-    inlineNode.data.config.template = "{{ oldName }}"
+    inlineNode.data.config.template = ["{{ oldName }}"]
 
     const graph = createGraph([setVariableNode, inlineNode])
     const result = applyUpdateNodeConfigCommand(graph, {
@@ -126,14 +126,14 @@ describe("graph-engine commands", () => {
     expect(result.ok).toBe(true)
     if (result.ok) {
       expect(result.nextGraph.nodes[0]?.data.config.variableName).toBe("newName")
-      expect(result.nextGraph.nodes[1]?.data.config.template).toBe("{{ newName }}")
+      expect(result.nextGraph.nodes[1]?.data.config.template).toEqual(["{{ newName }}"])
     }
   })
 
   it("refactors plain variable references when rename-aware node labels change", () => {
     const extractorNode = createWorkflowNode("extractor", { x: 0, y: 0 }, "oldName")
     const inlineNode = createWorkflowNode("inlineExpression", { x: 300, y: 0 })
-    inlineNode.data.config.template = "{{ oldName }}"
+    inlineNode.data.config.template = ["{{ oldName }}"]
 
     const graph = createGraph([extractorNode, inlineNode])
     const result = applyUpdateNodeLabelCommand(graph, {
@@ -144,7 +144,7 @@ describe("graph-engine commands", () => {
     expect(result.ok).toBe(true)
     if (result.ok) {
       expect(result.nextGraph.nodes[0]?.data.label).toBe("newName")
-      expect(result.nextGraph.nodes[1]?.data.config.template).toBe("{{ newName }}")
+      expect(result.nextGraph.nodes[1]?.data.config.template).toEqual(["{{ newName }}"])
     }
   })
 

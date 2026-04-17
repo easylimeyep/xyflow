@@ -52,12 +52,23 @@ function refactorExpressionFieldsInGraph(
     const nextConfig = { ...node.data.config }
     expressionKeys.forEach((key) => {
       const value = nextConfig[key]
-      if (typeof value !== "string") {
+      if (typeof value === "string") {
+        const nextValue = refactorExpression(value)
+        if (nextValue === value) {
+          return
+        }
+
+        nextConfig[key] = nextValue
+        configChanged = true
         return
       }
 
-      const nextValue = refactorExpression(value)
-      if (nextValue === value) {
+      if (!Array.isArray(value) || !value.every((entry) => typeof entry === "string")) {
+        return
+      }
+
+      const nextValue = value.map((entry) => refactorExpression(entry))
+      if (nextValue.every((entry, index) => entry === value[index])) {
         return
       }
 

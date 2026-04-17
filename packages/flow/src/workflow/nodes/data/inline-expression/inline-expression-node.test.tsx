@@ -62,7 +62,7 @@ vi.mock("../../output-quick-add-affordance/output-quick-add-affordance", () => (
   OutputQuickAddAffordance: () => null,
 }))
 
-function createNodeProps(template: string): NodeProps {
+function createNodeProps(template: string[] = []): NodeProps {
   return {
     id: "inline-node-1",
     type: "inlineExpression",
@@ -95,7 +95,7 @@ describe("InlineExpressionNode", () => {
   })
 
   it("forwards ExpressionInput changes to node config", () => {
-    render(<InlineExpressionNode {...createNodeProps("{{ $input.item.json }}")} />)
+    render(<InlineExpressionNode {...createNodeProps(["{{ $input.item.json }}"])} />)
 
     const input = screen.getByTestId("inline-expression-input")
     fireEvent.change(input, { target: { value: "{{ $input.item.json.name }}" } })
@@ -104,12 +104,12 @@ describe("InlineExpressionNode", () => {
     expect(mockUpdateNodeConfig).toHaveBeenCalledWith("inline-node-1", {
       kind: "inlineExpression",
       key: "template",
-      value: "{{ $input.item.json.name }}",
+      value: ["{{ $input.item.json.name }}"],
     })
   })
 
   it("uses inlineExpression template key for updates", () => {
-    render(<InlineExpressionNode {...createNodeProps("{{ $input.item.json }}")} />)
+    render(<InlineExpressionNode {...createNodeProps(["{{ $input.item.json }}"])} />)
 
     const input = screen.getByTestId("inline-expression-input")
     fireEvent.change(input, { target: { value: "{{ $input.item.json.id }}" } })
@@ -118,19 +118,17 @@ describe("InlineExpressionNode", () => {
     expect(mockUpdateNodeConfig).toHaveBeenCalledWith("inline-node-1", {
       kind: "inlineExpression",
       key: "template",
-      value: "{{ $input.item.json.id }}",
+      value: ["{{ $input.item.json.id }}"],
     })
   })
 
   it("syncs draft from store when not focused", () => {
-    const rendered = render(
-      <InlineExpressionNode {...createNodeProps("{{ old }}")} />
-    )
+    const rendered = render(<InlineExpressionNode {...createNodeProps(["{{ old }}"])} />)
 
     const input = screen.getByTestId("inline-expression-input") as HTMLInputElement
     expect(input.value).toBe("{{ old }}")
 
-    rendered.rerender(<InlineExpressionNode {...createNodeProps("{{ new }}")} />)
+    rendered.rerender(<InlineExpressionNode {...createNodeProps(["{{ new }}"])} />)
 
     expect(
       (screen.getByTestId("inline-expression-input") as HTMLInputElement).value
@@ -138,7 +136,7 @@ describe("InlineExpressionNode", () => {
   })
 
   it("updates isRoot config when Root checkbox toggles", () => {
-    render(<InlineExpressionNode {...createNodeProps("{{ $input.item.json }}")} />)
+    render(<InlineExpressionNode {...createNodeProps(["{{ $input.item.json }}"])} />)
 
     fireEvent.click(screen.getByRole("checkbox", { name: /Root/i }))
 
@@ -150,7 +148,7 @@ describe("InlineExpressionNode", () => {
   })
 
   it("renders Repeatable checkbox below tokens input", () => {
-    render(<InlineExpressionNode {...createNodeProps("{{ $input.item.json }}")} />)
+    render(<InlineExpressionNode {...createNodeProps(["{{ $input.item.json }}"])} />)
 
     const input = screen.getByTestId("inline-expression-input")
     const repeatableCheckbox = screen.getByRole("checkbox", { name: /Repeatable/i })
@@ -159,7 +157,7 @@ describe("InlineExpressionNode", () => {
   })
 
   it("updates repeatable config when Repeatable checkbox toggles", () => {
-    render(<InlineExpressionNode {...createNodeProps("{{ $input.item.json }}")} />)
+    render(<InlineExpressionNode {...createNodeProps(["{{ $input.item.json }}"])} />)
 
     fireEvent.click(screen.getByRole("checkbox", { name: /Repeatable/i }))
 
@@ -171,12 +169,12 @@ describe("InlineExpressionNode", () => {
   })
 
   it("hides target handle when node is root", () => {
-    const rootNodeProps = createNodeProps("{{ $input.item.json }}")
+    const rootNodeProps = createNodeProps(["{{ $input.item.json }}"])
     rootNodeProps.data = {
       kind: "inlineExpression",
       label: "Inline Node",
       config: {
-        template: "{{ $input.item.json }}",
+        template: ["{{ $input.item.json }}"],
         isRoot: true,
         repeatable: false,
       },
@@ -187,5 +185,64 @@ describe("InlineExpressionNode", () => {
     expect(screen.getByTestId("node-shell").getAttribute("data-show-target")).toBe(
       "false"
     )
+  })
+
+  it("renders one empty input row when template array is empty", () => {
+    render(<InlineExpressionNode {...createNodeProps([])} />)
+
+    expect(screen.getAllByTestId("inline-expression-input")).toHaveLength(1)
+    expect((screen.getByTestId("inline-expression-input") as HTMLInputElement).value).toBe("")
+  })
+
+  it("appends a new token row from the add button", () => {
+    render(<InlineExpressionNode {...createNodeProps(["{{ first }}"])} />)
+
+    fireEvent.click(screen.getByRole("button", { name: /Add token/i }))
+
+    expect(mockUpdateNodeConfig).toHaveBeenCalledWith("inline-node-1", {
+      kind: "inlineExpression",
+      key: "template",
+      value: ["{{ first }}", ""],
+    })
+  })
+
+  it("appends two visible rows when adding from the empty visual state", () => {
+    render(<InlineExpressionNode {...createNodeProps([])} />)
+
+    fireEvent.click(screen.getByRole("button", { name: /Add token/i }))
+
+    expect(mockUpdateNodeConfig).toHaveBeenCalledWith("inline-node-1", {
+      kind: "inlineExpression",
+      key: "template",
+      value: ["", ""],
+    })
+  })
+
+  it("removes a token row from the hover delete affordance", () => {
+    render(
+      <InlineExpressionNode
+        {...createNodeProps(["{{ first }}", "{{ second }}"])}
+      />
+    )
+
+    fireEvent.click(screen.getByRole("button", { name: /Delete token 2/i }))
+
+    expect(mockUpdateNodeConfig).toHaveBeenCalledWith("inline-node-1", {
+      kind: "inlineExpression",
+      key: "template",
+      value: ["{{ first }}"],
+    })
+  })
+
+  it("removing the final token row collapses to the empty visual state", () => {
+    render(<InlineExpressionNode {...createNodeProps(["{{ only }}"])} />)
+
+    fireEvent.click(screen.getByRole("button", { name: /Delete token 1/i }))
+
+    expect(mockUpdateNodeConfig).toHaveBeenCalledWith("inline-node-1", {
+      kind: "inlineExpression",
+      key: "template",
+      value: [],
+    })
   })
 })

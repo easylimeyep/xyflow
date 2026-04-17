@@ -96,7 +96,7 @@ export type BranchNodeConfig = {
 }
 
 export type InlineExpressionNodeConfig = {
-  template: string
+  template: string[]
   isRoot: boolean
   repeatable: boolean
 }

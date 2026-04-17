@@ -36,19 +36,35 @@ export const inlineExpression = defineNode({
     "result",
   ],
   buildDefaultConfig: () => ({
-    template: "",
+    template: [],
     isRoot: false,
     repeatable: false,
   }),
   validateConfigValue: (key, value) => {
     switch (key) {
       case "template":
-        return typeof value === "string"
+        return (
+          typeof value === "string" ||
+          (Array.isArray(value) && value.every((entry) => typeof entry === "string"))
+        )
       case "isRoot":
       case "repeatable":
         return typeof value === "boolean"
       default:
         return false
     }
+  },
+  normalizeConfigValue: (key, value) => {
+    if (key !== "template") {
+      return value
+    }
+
+    if (typeof value === "string") {
+      return [value]
+    }
+
+    return Array.isArray(value)
+      ? value.filter((entry): entry is string => typeof entry === "string")
+      : []
   },
 })

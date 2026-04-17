@@ -40,7 +40,7 @@ describe("applyNodeConfigUpdate", () => {
     const inlineNode = createWorkflowNode("inlineExpression", { x: 300, y: 0 })
     setVariableNode.data.config.variableName = "oldName"
     setVariableNode.data.config.valueExpression = "{{ oldValue }}"
-    inlineNode.data.config.template = "{{ oldName }}"
+    inlineNode.data.config.template = ["{{ oldName }}"]
 
     const graph = createGraph([setVariableNode, inlineNode])
     const result = applyNodeConfigUpdate(graph, setVariableNode.id, {
@@ -51,14 +51,14 @@ describe("applyNodeConfigUpdate", () => {
 
     expect(result.error).toBeNull()
     expect(result.nextGraph?.nodes[0]?.data.config.valueExpression).toBe("{{ newValue }}")
-    expect(result.nextGraph?.nodes[1]?.data.config.template).toBe("{{ oldName }}")
+    expect(result.nextGraph?.nodes[1]?.data.config.template).toEqual(["{{ oldName }}"])
   })
 
   it("refactors plain variable references for rename-aware config key updates", () => {
     const setVariableNode = createWorkflowNode("setVariable", { x: 0, y: 0 })
     const inlineNode = createWorkflowNode("inlineExpression", { x: 300, y: 0 })
     setVariableNode.data.config.variableName = "oldName"
-    inlineNode.data.config.template = "{{ oldName }}"
+    inlineNode.data.config.template = ["{{ oldName }}"]
 
     const graph = createGraph([setVariableNode, inlineNode])
     const result = applyNodeConfigUpdate(graph, setVariableNode.id, {
@@ -69,14 +69,14 @@ describe("applyNodeConfigUpdate", () => {
 
     expect(result.error).toBeNull()
     expect(result.nextGraph?.nodes[0]?.data.config.variableName).toBe("newName")
-    expect(result.nextGraph?.nodes[1]?.data.config.template).toBe("{{ newName }}")
+    expect(result.nextGraph?.nodes[1]?.data.config.template).toEqual(["{{ newName }}"])
   })
 
   it("refactors plain variable references when extractor Label is renamed", () => {
     const extractorNode = createWorkflowNode("extractor", { x: 0, y: 0 })
     const inlineNode = createWorkflowNode("inlineExpression", { x: 300, y: 0 })
     extractorNode.data.config.extractExpression = "oldName"
-    inlineNode.data.config.template = "{{ oldName }}"
+    inlineNode.data.config.template = ["{{ oldName }}"]
 
     const graph = createGraph([extractorNode, inlineNode])
     const result = applyNodeConfigUpdate(graph, extractorNode.id, {
@@ -87,14 +87,14 @@ describe("applyNodeConfigUpdate", () => {
 
     expect(result.error).toBeNull()
     expect(result.nextGraph?.nodes[0]?.data.config.extractExpression).toBe("newName")
-    expect(result.nextGraph?.nodes[1]?.data.config.template).toBe("{{ newName }}")
+    expect(result.nextGraph?.nodes[1]?.data.config.template).toEqual(["{{ newName }}"])
   })
 
   it("does not refactor references on extractor non-rename config updates", () => {
     const extractorNode = createWorkflowNode("extractor", { x: 0, y: 0 })
     const inlineNode = createWorkflowNode("inlineExpression", { x: 300, y: 0 })
     extractorNode.data.config.extractExpression = "oldName"
-    inlineNode.data.config.template = "{{ oldName }}"
+    inlineNode.data.config.template = ["{{ oldName }}"]
 
     const graph = createGraph([extractorNode, inlineNode])
     const result = applyNodeConfigUpdate(graph, extractorNode.id, {
@@ -105,7 +105,7 @@ describe("applyNodeConfigUpdate", () => {
 
     expect(result.error).toBeNull()
     expect(result.nextGraph?.nodes[0]?.data.config.tokenNumber).toBe(10)
-    expect(result.nextGraph?.nodes[1]?.data.config.template).toBe("{{ oldName }}")
+    expect(result.nextGraph?.nodes[1]?.data.config.template).toEqual(["{{ oldName }}"])
   })
 
   it("prunes incoming edges when inlineExpression becomes root", () => {

@@ -4,11 +4,11 @@
 TBD - created by archiving change add-keyword-repeatable-toggle. Update Purpose after archive.
 ## Requirements
 ### Requirement: Keyword exposes a Repeatable toggle below Tokens
-The system SHALL render a `Repeatable` checkbox in the `Keyword` node body directly below the `Tokens` input.
+The system SHALL render a `Repeatable` checkbox in the `Keyword` node body directly below the custom `Tokens` expression-list input.
 
-#### Scenario: Repeatable toggle is visible in keyword body
+#### Scenario: Repeatable toggle is visible below keyword token list
 - **WHEN** a `Keyword` node is rendered on canvas
-- **THEN** a checkbox labeled `Repeatable` SHALL be visible below the `Tokens` input
+- **THEN** a checkbox labeled `Repeatable` SHALL be visible below the `Tokens` expression-list input
 
 ### Requirement: Repeatable toggle updates stored keyword config
 The system SHALL persist the `Repeatable` checkbox state in `Keyword` node config as the boolean key `repeatable`.

@@ -34,6 +34,7 @@ export interface NodeDefinition<K extends string = string> {
   extraExpressionConfigKeys?: string[]
   renameConfigKey?: string
   validateConfigValue?: (key: string, value: unknown) => boolean
+  normalizeConfigValue?: (key: string, value: unknown) => unknown
 }
 
 export function defineNode<K extends string>(definition: NodeDefinition<K>): NodeDefinition<K> {

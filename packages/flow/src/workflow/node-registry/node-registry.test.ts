@@ -39,7 +39,7 @@ describe("workflow node registry", () => {
     const node = createWorkflowNode("inlineExpression", { x: 0, y: 0 })
 
     expect(node.type).toBe("inlineExpression")
-    expect(node.data.config.template).toBe("")
+    expect(node.data.config.template).toEqual([])
     expect(node.data.config.isRoot).toBe(false)
     expect(node.data.config.repeatable).toBe(false)
   })

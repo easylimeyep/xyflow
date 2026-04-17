@@ -69,7 +69,7 @@ describe("ExtractorNode", () => {
   it("commits token number as non-negative integer on blur", () => {
     render(<ExtractorNode {...createNodeProps(0, "myVar")} />)
 
-    const tokenNumberInput = screen.getByDisplayValue("0")
+    const tokenNumberInput = screen.getByDisplayValue("1")
     fireEvent.focus(tokenNumberInput)
     fireEvent.change(tokenNumberInput, { target: { value: "42" } })
     fireEvent.blur(tokenNumberInput)

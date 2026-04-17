@@ -153,6 +153,7 @@ function DefaultWorkflowEditorComposition() {
       <WorkflowEditorBody>
         <WorkflowEditorPalette />
         <WorkflowEditorCanvas />
+        <WorkflowEditorConfigPanel />
       </WorkflowEditorBody>
     </>
   )

@@ -143,7 +143,7 @@ describe("workflow mappers", () => {
 
   it("roundtrips inline expression node config", () => {
     const inlineNode = createWorkflowNode("inlineExpression", { x: 500, y: 180 }, "Inline Expr")
-    inlineNode.data.config.template = "{{ $input.item.json.hostname }}"
+    inlineNode.data.config.template = ["{{ $input.item.json.hostname }}"]
     const graph = {
       ...initialWorkflowGraph,
       nodes: [...initialWorkflowGraph.nodes, inlineNode],
@@ -154,7 +154,23 @@ describe("workflow mappers", () => {
     const restoredInlineNode = restored.nodes.find((node) => node.id === inlineNode.id)
 
     expect(restoredInlineNode?.data.kind).toBe("inlineExpression")
-    expect(restoredInlineNode?.data.config.template).toBe("{{ $input.item.json.hostname }}")
+    expect(restoredInlineNode?.data.config.template).toEqual(["{{ $input.item.json.hostname }}"])
+  })
+
+  it("normalizes legacy scalar inline expression templates during import", () => {
+    const domain = internalToDomain(initialWorkflowGraph)
+    const inlineNode = domain.nodes.find((node) => node.kind === "inlineExpression")
+    if (!inlineNode) {
+      throw new Error("inline expression fixture is missing")
+    }
+
+    inlineNode.config.template = "{{ $input.item.json.hostname }}"
+    const restored = domainToInternal(domain)
+    const restoredInlineNode = restored.nodes.find((node) => node.id === inlineNode.id)
+
+    expect(restoredInlineNode?.data.config.template).toEqual([
+      "{{ $input.item.json.hostname }}",
+    ])
   })
 
   it("preserves setVariable and branch config semantics across domain roundtrip", () => {

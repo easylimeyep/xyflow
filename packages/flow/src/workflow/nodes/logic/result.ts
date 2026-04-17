@@ -11,8 +11,8 @@ export const result = defineNode({
   category: "logic",
   fields: [
     {
-      key: "value",
-      label: "Value",
+      key: "category",
+      label: "Category",
       type: "select",
       options: [
         { label: "true", value: "true" },
@@ -22,7 +22,7 @@ export const result = defineNode({
   ],
   outputPaths: [],
   allowedTargets: [],
-  buildDefaultConfig: () => ({ value: "true" }),
+  buildDefaultConfig: () => ({ category: "true" }),
   validateConfigValue: (key, value) =>
-    key === "value" && (value === "true" || value === "false"),
+    key === "category" && (value === "true" || value === "false"),
 })
