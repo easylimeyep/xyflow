@@ -1,4 +1,16 @@
-import { beforeEach, describe, expect, it } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
+
+const { computeWorkflowAutoLayoutMock } = vi.hoisted(() => ({
+  computeWorkflowAutoLayoutMock: vi.fn(),
+}))
+
+vi.mock("../layout", async () => {
+  const actual = await vi.importActual<typeof import("../layout")>("../layout")
+  return {
+    ...actual,
+    computeWorkflowAutoLayout: computeWorkflowAutoLayoutMock,
+  }
+})
 
 import { exportDomainDto, exportDomainJson } from "../mappers"
 import {
@@ -26,6 +38,7 @@ function findNonRootKeywordNode(nodes: WorkflowNode[]): WorkflowNode | undefined
 
 describe("workflow store", () => {
   beforeEach(() => {
+    computeWorkflowAutoLayoutMock.mockReset()
     store = createWorkflowStore()
   })
 
@@ -55,6 +68,48 @@ describe("workflow store", () => {
 
     store.getState().redo()
     expect(store.getState().history.present.nodes.length).toBe(before + 1)
+  })
+
+  it("auto-layout commits as a single undoable history step", async () => {
+    const state = store.getState()
+    const targetNode = state.history.present.nodes[0]
+    if (!targetNode) {
+      throw new Error("fixture node not found")
+    }
+
+    const nextPosition = { x: targetNode.position.x + 240, y: targetNode.position.y + 40 }
+    computeWorkflowAutoLayoutMock.mockResolvedValue({
+      ...state.history.present,
+      nodes: state.history.present.nodes.map((node) =>
+        node.id === targetNode.id ? { ...node, position: nextPosition } : node
+      ),
+    })
+
+    const didLayout = await state.autoLayout()
+
+    expect(didLayout).toBe(true)
+    expect(store.getState().history.present.nodes[0]?.position).toEqual(nextPosition)
+    expect(store.getState().history.past.length).toBe(1)
+
+    store.getState().undo()
+    expect(store.getState().history.present.nodes[0]?.position).toEqual(targetNode.position)
+
+    store.getState().redo()
+    expect(store.getState().history.present.nodes[0]?.position).toEqual(nextPosition)
+  })
+
+  it("keeps graph stable and reports an error when auto-layout fails", async () => {
+    const state = store.getState()
+    const beforeGraph = state.history.present
+    computeWorkflowAutoLayoutMock.mockRejectedValue(new Error("ELK exploded"))
+
+    const didLayout = await state.autoLayout()
+
+    expect(didLayout).toBe(false)
+    expect(store.getState().history.present).toEqual(beforeGraph)
+    expect(store.getState().history.past).toHaveLength(0)
+    expect(store.getState().lastError?.code).toBe("AUTO_LAYOUT_FAILED")
+    expect(store.getState().lastError?.message).toContain("ELK exploded")
   })
 
   it("keeps node add + measurement update as a single undo step", () => {

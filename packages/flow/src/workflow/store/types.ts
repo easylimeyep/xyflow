@@ -93,6 +93,7 @@ export interface WorkflowStoreGraphCommands {
   addNode: (kind: NodeKind, position: XYPosition) => void
   updateNodeLabel: (nodeId: string, nextLabel: string) => void
   updateNodeConfig: (nodeId: string, update: NodeConfigUpdate) => void
+  autoLayout: () => Promise<boolean>
   onNodesChange: (changes: NodeChange<WorkflowNode>[]) => void
   onEdgesChange: (changes: EdgeChange<WorkflowEdge>[]) => void
   onConnect: (connection: ConnectionLike) => void

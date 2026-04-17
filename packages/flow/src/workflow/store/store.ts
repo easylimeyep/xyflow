@@ -11,6 +11,7 @@ import {
   createHistorySlice,
   createIntentSlice,
   createIoSlice,
+  createLayoutSlice,
   createNodeCrudSlice,
   createSelectionSlice,
 } from "./slices"
@@ -40,6 +41,7 @@ export function createWorkflowStore(
     ...createSelectionSlice(set, get),
     ...createIntentSlice(set, get),
     ...createNodeCrudSlice(set, get),
+    ...createLayoutSlice(set, get),
     ...createConnectionSlice(set, get),
     ...createGraphSlice(set, get),
     ...createHistorySlice(set, get),
@@ -72,6 +74,7 @@ export function useWorkflowActions() {
     undo: state.undo,
     redo: state.redo,
     addNode: state.addNode,
+    autoLayout: state.autoLayout,
     setSelectedNodes: state.setSelectedNodes,
     copySelectionToClipboard: state.copySelectionToClipboard,
     pasteFromClipboard: state.pasteFromClipboard,

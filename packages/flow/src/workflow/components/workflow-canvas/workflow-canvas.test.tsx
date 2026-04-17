@@ -30,6 +30,7 @@ const fixtureGraphWithEdge = {
 }
 
 const reactFlowRenderSpy = vi.fn()
+const fitViewSpy = vi.fn()
 
 vi.mock("../workflow-edge", () => {
   return {
@@ -54,9 +55,22 @@ vi.mock("@xyflow/react", () => {
   return {
     ReactFlowProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
     Background: () => null,
-    Controls: () => null,
+    Controls: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+    ControlButton: ({
+      children,
+      onClick,
+      ...props
+    }: {
+      children: ReactNode
+      onClick: () => void
+    }) => (
+      <button type="button" onClick={onClick} {...props}>
+        {children}
+      </button>
+    ),
     MiniMap: () => null,
     useReactFlow: () => ({
+      fitView: fitViewSpy,
       screenToFlowPosition: ({ x, y }: { x: number; y: number }) => {
         const safeX = Number.isFinite(x) ? x : 10
         const safeY = Number.isFinite(y) ? y : 20
@@ -178,6 +192,7 @@ describe("WorkflowCanvas", () => {
   afterEach(() => {
     cleanup()
     reactFlowRenderSpy.mockClear()
+    fitViewSpy.mockReset()
     vi.unstubAllGlobals()
     vi.useRealTimers()
   })
@@ -205,6 +220,7 @@ describe("WorkflowCanvas", () => {
         onDeleteEdge={vi.fn()}
         onPointerFlowPosition={onPointerFlowPosition}
         edgeInsertPendingId={null}
+        onAutoLayout={vi.fn(async () => true)}
       />
     )
 
@@ -243,6 +259,44 @@ describe("WorkflowCanvas", () => {
     expect(screen.getByTestId("rf-zoom-on-scroll").textContent).toBe("false")
   })
 
+  it("renders auto-layout control and refits viewport after success", async () => {
+    vi.useFakeTimers()
+    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) =>
+      window.setTimeout(() => callback(performance.now()), 16)
+    )
+    vi.stubGlobal("cancelAnimationFrame", (handle: number) => {
+      window.clearTimeout(handle)
+    })
+    const onAutoLayout = vi.fn(async () => true)
+
+    render(
+      <WorkflowCanvas
+        nodes={initialWorkflowGraph.nodes}
+        edges={initialWorkflowGraph.edges}
+        viewport={initialWorkflowGraph.viewport}
+        onNodesChange={vi.fn()}
+        onEdgesChange={vi.fn()}
+        onConnect={vi.fn()}
+        onViewportChange={vi.fn()}
+        onSelectNodes={vi.fn()}
+        onPaneClick={vi.fn()}
+        onAddNodeAt={vi.fn()}
+        onStartInsertFromEdge={vi.fn()}
+        onDeleteEdge={vi.fn()}
+        onPointerFlowPosition={vi.fn()}
+        edgeInsertPendingId={null}
+        onAutoLayout={onAutoLayout}
+      />
+    )
+
+    fireEvent.click(screen.getByRole("button", { name: "Auto layout workflow" }))
+    await Promise.resolve()
+    expect(onAutoLayout).toHaveBeenCalledTimes(1)
+
+    vi.runAllTimers()
+    expect(fitViewSpy).toHaveBeenCalledWith({ padding: 0.2 })
+  })
+
   it("uses shared connection validation for preview checks", () => {
     render(
       <WorkflowCanvas
@@ -260,6 +314,7 @@ describe("WorkflowCanvas", () => {
         onDeleteEdge={vi.fn()}
         onPointerFlowPosition={vi.fn()}
         edgeInsertPendingId={null}
+        onAutoLayout={vi.fn(async () => true)}
       />
     )
 
@@ -290,6 +345,7 @@ describe("WorkflowCanvas", () => {
         onDeleteEdge={onDeleteEdge}
         onPointerFlowPosition={vi.fn()}
         edgeInsertPendingId={null}
+        onAutoLayout={vi.fn(async () => true)}
       />
     )
 
@@ -326,6 +382,7 @@ describe("WorkflowCanvas", () => {
         onDeleteEdge={onDeleteEdgeInitial}
         onPointerFlowPosition={vi.fn()}
         edgeInsertPendingId={null}
+        onAutoLayout={vi.fn(async () => true)}
       />
     )
 
@@ -346,6 +403,7 @@ describe("WorkflowCanvas", () => {
         onDeleteEdge={onDeleteEdgeNext}
         onPointerFlowPosition={vi.fn()}
         edgeInsertPendingId={edgeId}
+        onAutoLayout={vi.fn(async () => true)}
       />
     )
     const secondEdgeTypes = reactFlowRenderSpy.mock.calls.at(-1)?.[0]?.edgeTypes
@@ -388,6 +446,7 @@ describe("WorkflowCanvas", () => {
         onDeleteEdge={vi.fn()}
         onPointerFlowPosition={onPointerFlowPosition}
         edgeInsertPendingId={null}
+        onAutoLayout={vi.fn(async () => true)}
       />
     )
 

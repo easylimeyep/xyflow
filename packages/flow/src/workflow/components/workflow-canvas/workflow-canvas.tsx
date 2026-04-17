@@ -1,11 +1,12 @@
 "use client"
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react"
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 
 import { useEventCallback } from "@workspace/ui/hooks/use-event-callback"
 import {
   Background,
   Controls,
+  ControlButton,
   MiniMap,
   ReactFlow,
   ReactFlowProvider,
@@ -17,6 +18,7 @@ import {
   type Viewport,
   type XYPosition,
 } from "@xyflow/react"
+import { LayoutTemplate } from "lucide-react"
 
 import { WORKFLOW_NODE_KIND_MIME } from "../../dnd"
 import { buildNodeTypes } from "../../node-registry/node-types-builder"
@@ -32,6 +34,7 @@ const workflowNodeTypes = buildNodeTypes(allDefinitions)
 import { validateConnection } from "../../validation"
 import { WorkflowEdgeComponent } from "../workflow-edge"
 import { useNodeChangeRouter } from "./use-node-change-router"
+import { WORKFLOW_ELK_PADDING } from "../../layout"
 
 interface WorkflowCanvasProps {
   nodes: WorkflowNode[]
@@ -48,6 +51,7 @@ interface WorkflowCanvasProps {
   onDeleteEdge: (edgeId: string) => void
   onPointerFlowPosition: (position: XYPosition) => void
   edgeInsertPendingId: string | null
+  onAutoLayout?: () => Promise<boolean>
 }
 
 function WorkflowCanvasInner({
@@ -65,8 +69,10 @@ function WorkflowCanvasInner({
   onDeleteEdge,
   onPointerFlowPosition,
   edgeInsertPendingId,
+  onAutoLayout,
 }: WorkflowCanvasProps) {
   const reactFlow = useReactFlow<WorkflowNode, WorkflowEdge>()
+  const [layoutPending, setLayoutPending] = useState(false)
   const onReactFlowNodesChange = useNodeChangeRouter({
     nodes,
     onStructuralChanges: onNodesChange,
@@ -163,6 +169,26 @@ function WorkflowCanvasInner({
     }),
     []
   )
+  const handleAutoLayout = useCallback(async () => {
+    if (!onAutoLayout || layoutPending) {
+      return
+    }
+
+    setLayoutPending(true)
+
+    try {
+      const didLayout = await onAutoLayout()
+      if (!didLayout) {
+        return
+      }
+
+      window.requestAnimationFrame(() => {
+        void reactFlow.fitView({ padding: WORKFLOW_ELK_PADDING })
+      })
+    } finally {
+      setLayoutPending(false)
+    }
+  }, [layoutPending, onAutoLayout, reactFlow])
 
   return (
     <ReactFlow
@@ -191,7 +217,18 @@ function WorkflowCanvasInner({
       connectionLineStyle={{ strokeWidth: 2, stroke: "var(--border)" }}
     >
       <MiniMap />
-      <Controls />
+      <Controls>
+        <ControlButton
+          onClick={() => {
+            void handleAutoLayout()
+          }}
+          aria-label="Auto layout workflow"
+          title="Auto layout workflow"
+          disabled={layoutPending}
+        >
+          <LayoutTemplate size={16} />
+        </ControlButton>
+      </Controls>
       <Background />
     </ReactFlow>
   )

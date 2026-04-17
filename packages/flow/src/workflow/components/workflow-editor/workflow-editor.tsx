@@ -278,6 +278,7 @@ export function WorkflowEditorCanvas() {
     setViewport,
     setSelectedNodes,
     addNode,
+    autoLayout,
     cancelQuickAdd,
     cancelEdgeInsert,
     startEdgeInsertFromEdge,
@@ -289,6 +290,7 @@ export function WorkflowEditorCanvas() {
     setViewport: state.setViewport,
     setSelectedNodes: state.setSelectedNodes,
     addNode: state.addNode,
+    autoLayout: state.autoLayout,
     cancelQuickAdd: state.cancelQuickAdd,
     cancelEdgeInsert: state.cancelEdgeInsert,
     startEdgeInsertFromEdge: state.startEdgeInsertFromEdge,
@@ -345,6 +347,7 @@ export function WorkflowEditorCanvas() {
         onDeleteEdge={handleDeleteEdge}
         onPointerFlowPosition={setLastPointerPosition}
         edgeInsertPendingId={edgeInsertPending?.edgeId ?? null}
+        onAutoLayout={autoLayout}
       />
     </div>
   )
