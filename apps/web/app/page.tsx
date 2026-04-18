@@ -1,14 +1,32 @@
 "use client"
 
-import type { ReactNode } from "react"
+import { useEffect, useState, type ReactNode } from "react"
+import { ChevronDownIcon, Code2Icon } from "lucide-react"
 
-import { WorkflowEditor, type WorkflowEditorProps } from "@workspace/flow"
+import {
+  WorkflowEditor,
+  createInitialGraph,
+  createInitialGraphElk,
+  type WorkflowEditorProps,
+} from "@workspace/flow"
+import { Button } from "@workspace/ui/components/button"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@workspace/ui/components/collapsible"
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
 } from "@workspace/ui/components/tabs"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@workspace/ui/components/tooltip"
 
 const baseExample = `import { WorkflowEditor } from "@workspace/flow"
 
@@ -16,84 +34,139 @@ export function Example() {
   return <WorkflowEditor />
 }`
 
-const exampleInitialGraph: NonNullable<WorkflowEditorProps["initialGraph"]> = {
+const exampleElkGraphInput = {
+  nodes: [
+    {
+      id: "demo-elk-inline-expression",
+      kind: "inlineExpression" as const,
+      config: {
+        template: ["lead"],
+        isRoot: true,
+        repeatable: false,
+      },
+    },
+    {
+      id: "demo-elk-extractor",
+      kind: "extractor" as const,
+      config: {
+        tokenNumber: 1,
+        extractExpression: "email",
+        unlimited: false,
+      },
+    },
+    {
+      id: "demo-elk-branch",
+      kind: "branch" as const,
+      config: {
+        conditions: [
+          {
+            id: "demo-elk-branch-condition",
+            value: "{{ email }}",
+            operator: "contains" as const,
+            targetValue: "@",
+          },
+        ],
+        logicalOperator: "and" as const,
+      },
+    },
+    {
+      id: "demo-elk-true-result",
+      kind: "result" as const,
+      label: "Valid Email",
+      config: {
+        category: "true" as const,
+      },
+    },
+    {
+      id: "demo-elk-false-result",
+      kind: "result" as const,
+      label: "Needs Review",
+      config: {
+        category: "false" as const,
+      },
+    },
+  ],
+  edges: [
+    {
+      id: "demo-elk-edge-inline-to-extractor",
+      source: "demo-elk-inline-expression",
+      target: "demo-elk-extractor",
+    },
+    {
+      id: "demo-elk-edge-extractor-to-branch",
+      source: "demo-elk-extractor",
+      target: "demo-elk-branch",
+    },
+    {
+      id: "demo-elk-edge-branch-to-true-result",
+      source: "demo-elk-branch",
+      sourceHandle: "branch-true",
+      target: "demo-elk-true-result",
+    },
+    {
+      id: "demo-elk-edge-branch-to-false-result",
+      source: "demo-elk-branch",
+      sourceHandle: "branch-false",
+      target: "demo-elk-false-result",
+    },
+  ],
+  viewport: { x: 40, y: 40, zoom: 0.8 },
+  document: {
+    id: "workflow-demo-elk-graph",
+    name: "Workflow ELK Demo",
+    metadata: { source: "docs-demo-elk" },
+  },
+}
+
+const exampleInitialGraph = createInitialGraph({
   nodes: [
     {
       id: "demo-inline-expression",
-      type: "inlineExpression",
-      position: { x: 0, y: 120 },
-      width: 260,
-      data: {
-        kind: "inlineExpression",
-        label: "Keyword",
-        config: {
-          template: ["lead"],
-          isRoot: true,
-          repeatable: false,
-        },
+      kind: "inlineExpression",
+      config: {
+        template: ["lead"],
+        isRoot: true,
+        repeatable: false,
       },
     },
     {
       id: "demo-extractor",
-      type: "extractor",
-      position: { x: 320, y: 120 },
-      width: 260,
-      data: {
-        kind: "extractor",
-        label: "Extractor",
-        config: {
-          tokenNumber: 1,
-          extractExpression: "email",
-          unlimited: false,
-        },
+      kind: "extractor",
+      config: {
+        tokenNumber: 1,
+        extractExpression: "email",
+        unlimited: false,
       },
     },
     {
       id: "demo-set-variable",
-      type: "setVariable",
-      position: { x: 640, y: 120 },
-      width: 260,
-      data: {
-        kind: "setVariable",
-        label: "Setter",
-        config: {
-          variableName: "email",
-          valueExpression: "{{ email }}",
-        },
+      kind: "setVariable",
+      label: "Setter",
+      config: {
+        variableName: "email",
+        valueExpression: "{{ email }}",
       },
     },
     {
       id: "demo-branch",
-      type: "branch",
-      position: { x: 960, y: 120 },
-      width: 260,
-      data: {
-        kind: "branch",
-        label: "Branch",
-        config: {
-          conditions: [
-            {
-              id: "demo-branch-condition",
-              value: "{{ email }}",
-              operator: "contains",
-              targetValue: "@",
-            },
-          ],
-          logicalOperator: "and",
-        },
+      kind: "branch",
+      config: {
+        conditions: [
+          {
+            id: "demo-branch-condition",
+            value: "{{ email }}",
+            operator: "contains",
+            targetValue: "@",
+          },
+        ],
+        logicalOperator: "and",
       },
     },
     {
       id: "demo-result",
-      type: "result",
-      position: { x: 1280, y: 120 },
-      width: 260,
-      data: {
-        kind: "result",
-        label: "Result",
-        config: {
-          category: "true",
-        },
+      kind: "result",
+      config: {
+        category: "true",
       },
     },
   ],
@@ -102,80 +175,83 @@ const exampleInitialGraph: NonNullable<WorkflowEditorProps["initialGraph"]> = {
       id: "demo-edge-inline-to-extractor",
       source: "demo-inline-expression",
       target: "demo-extractor",
-      sourceHandle: null,
-      targetHandle: null,
-      data: {
-        sourceKind: "inlineExpression",
-        targetKind: "extractor",
-      },
     },
     {
       id: "demo-edge-extractor-to-setter",
       source: "demo-extractor",
       target: "demo-set-variable",
-      sourceHandle: null,
-      targetHandle: null,
-      data: {
-        sourceKind: "extractor",
-        targetKind: "setVariable",
-      },
     },
     {
       id: "demo-edge-setter-to-branch",
       source: "demo-set-variable",
       target: "demo-branch",
-      sourceHandle: null,
-      targetHandle: null,
-      data: {
-        sourceKind: "setVariable",
-        targetKind: "branch",
-      },
     },
     {
       id: "demo-edge-branch-to-result",
       source: "demo-branch",
-      target: "demo-result",
       sourceHandle: "branch-true",
-      targetHandle: null,
-      data: {
-        sourceKind: "branch",
-        targetKind: "result",
-      },
+      target: "demo-result",
     },
   ],
   viewport: { x: 40, y: 40, zoom: 0.8 },
   document: {
     id: "workflow-demo-all-node-kinds",
     name: "Workflow Demo",
-    version: 1,
     metadata: { source: "docs-demo" },
   },
-}
+})
 
-const defaultGraphExample = `import { WorkflowEditor } from "@workspace/flow"
+const defaultGraphExample = `import { WorkflowEditor, createInitialGraph } from "@workspace/flow"
 
-const initialGraph = {
+const initialGraph = createInitialGraph({
   nodes: [
-    { id: "demo-inline-expression", type: "inlineExpression", position: { x: 0, y: 120 }, data: { kind: "inlineExpression", label: "Keyword", config: { template: ["lead"], isRoot: true, repeatable: false } } },
-    { id: "demo-extractor", type: "extractor", position: { x: 320, y: 120 }, data: { kind: "extractor", label: "Extractor", config: { tokenNumber: 1, extractExpression: "email", unlimited: false } } },
-    { id: "demo-set-variable", type: "setVariable", position: { x: 640, y: 120 }, data: { kind: "setVariable", label: "Setter", config: { variableName: "email", valueExpression: "{{ email }}" } } },
-    { id: "demo-branch", type: "branch", position: { x: 960, y: 120 }, data: { kind: "branch", label: "Branch", config: { conditions: [{ id: "demo-branch-condition", value: "{{ email }}", operator: "contains", targetValue: "@" }], logicalOperator: "and" } } },
-    { id: "demo-result", type: "result", position: { x: 1280, y: 120 }, data: { kind: "result", label: "Result", config: { category: "true" } } },
+    { id: "demo-inline-expression", kind: "inlineExpression", config: { template: ["lead"], isRoot: true, repeatable: false } },
+    { id: "demo-extractor", kind: "extractor", config: { tokenNumber: 1, extractExpression: "email", unlimited: false } },
+    { id: "demo-set-variable", kind: "setVariable", label: "Setter", config: { variableName: "email", valueExpression: "{{ email }}" } },
+    { id: "demo-branch", kind: "branch", config: { conditions: [{ id: "demo-branch-condition", value: "{{ email }}", operator: "contains", targetValue: "@" }], logicalOperator: "and" } },
+    { id: "demo-result", kind: "result", config: { category: "true" } },
   ],
   edges: [
-    { id: "demo-edge-inline-to-extractor", source: "demo-inline-expression", target: "demo-extractor", sourceHandle: null, targetHandle: null, data: { sourceKind: "inlineExpression", targetKind: "extractor" } },
-    { id: "demo-edge-extractor-to-setter", source: "demo-extractor", target: "demo-set-variable", sourceHandle: null, targetHandle: null, data: { sourceKind: "extractor", targetKind: "setVariable" } },
-    { id: "demo-edge-setter-to-branch", source: "demo-set-variable", target: "demo-branch", sourceHandle: null, targetHandle: null, data: { sourceKind: "setVariable", targetKind: "branch" } },
-    { id: "demo-edge-branch-to-result", source: "demo-branch", target: "demo-result", sourceHandle: "branch-true", targetHandle: null, data: { sourceKind: "branch", targetKind: "result" } },
+    { id: "demo-edge-inline-to-extractor", source: "demo-inline-expression", target: "demo-extractor" },
+    { id: "demo-edge-extractor-to-setter", source: "demo-extractor", target: "demo-set-variable" },
+    { id: "demo-edge-setter-to-branch", source: "demo-set-variable", target: "demo-branch" },
+    { id: "demo-edge-branch-to-result", source: "demo-branch", sourceHandle: "branch-true", target: "demo-result" },
   ],
   viewport: { x: 40, y: 40, zoom: 0.8 },
   document: {
     id: "workflow-demo-all-node-kinds",
     name: "Workflow Demo",
-    version: 1,
     metadata: { source: "docs-demo" },
   },
-}
+})
+
+export function Example() {
+  return <WorkflowEditor initialGraph={initialGraph} />
+}`
+
+const elkGraphExample = `import { WorkflowEditor, createInitialGraphElk } from "@workspace/flow"
+
+const initialGraph = await createInitialGraphElk({
+  nodes: [
+    { id: "demo-elk-inline-expression", kind: "inlineExpression", config: { template: ["lead"], isRoot: true, repeatable: false } },
+    { id: "demo-elk-extractor", kind: "extractor", config: { tokenNumber: 1, extractExpression: "email", unlimited: false } },
+    { id: "demo-elk-branch", kind: "branch", config: { conditions: [{ id: "demo-elk-branch-condition", value: "{{ email }}", operator: "contains", targetValue: "@" }], logicalOperator: "and" } },
+    { id: "demo-elk-true-result", kind: "result", label: "Valid Email", config: { category: "true" } },
+    { id: "demo-elk-false-result", kind: "result", label: "Needs Review", config: { category: "false" } },
+  ],
+  edges: [
+    { id: "demo-elk-edge-inline-to-extractor", source: "demo-elk-inline-expression", target: "demo-elk-extractor" },
+    { id: "demo-elk-edge-extractor-to-branch", source: "demo-elk-extractor", target: "demo-elk-branch" },
+    { id: "demo-elk-edge-branch-to-true-result", source: "demo-elk-branch", sourceHandle: "branch-true", target: "demo-elk-true-result" },
+    { id: "demo-elk-edge-branch-to-false-result", source: "demo-elk-branch", sourceHandle: "branch-false", target: "demo-elk-false-result" },
+  ],
+  viewport: { x: 40, y: 40, zoom: 0.8 },
+  document: {
+    id: "workflow-demo-elk-graph",
+    name: "Workflow ELK Demo",
+    metadata: { source: "docs-demo-elk" },
+  },
+})
 
 export function Example() {
   return <WorkflowEditor initialGraph={initialGraph} />
@@ -206,6 +282,7 @@ export default function Page() {
             <TabsTrigger value="with-default-graph">
               with default graph
             </TabsTrigger>
+            <TabsTrigger value="with-elk-graph">with elk graph</TabsTrigger>
           </TabsList>
         </div>
 
@@ -228,15 +305,57 @@ export default function Page() {
         >
           <ExamplePreview
             title="With default graph"
-            description="Пример `initialGraph` с одной нодой каждого вида, соединённых в цепочку, где последняя нода — `result`."
+            description="Пример `initialGraph`, собранного через `createInitialGraph`, где размер нод, edge metadata и позиции подставляются автоматически. Для более сложных схем можно использовать async `createInitialGraphElk`."
             code={defaultGraphExample}
           >
             <WorkflowEditor initialGraph={exampleInitialGraph} />
           </ExamplePreview>
         </TabsContent>
+
+        <TabsContent
+          value="with-elk-graph"
+          className="flex min-h-0 flex-1 flex-col gap-4"
+        >
+          <ExamplePreview
+            title="With ELK graph"
+            description="Пример `initialGraph`, собранного через async `createInitialGraphElk`, когда стартовую схему удобнее сразу разложить ELK-алгоритмом."
+            code={elkGraphExample}
+          >
+            <ElkGraphExample />
+          </ExamplePreview>
+        </TabsContent>
       </Tabs>
     </div>
   )
+}
+
+function ElkGraphExample() {
+  const [graph, setGraph] =
+    useState<WorkflowEditorProps["initialGraph"] | null>(null)
+
+  useEffect(() => {
+    let active = true
+
+    void createInitialGraphElk(exampleElkGraphInput).then((nextGraph) => {
+      if (active) {
+        setGraph(nextGraph)
+      }
+    })
+
+    return () => {
+      active = false
+    }
+  }, [])
+
+  if (graph == null) {
+    return (
+      <div className="flex min-h-0 flex-1 items-center justify-center bg-gray-50 text-sm text-gray-500">
+        Computing ELK layout...
+      </div>
+    )
+  }
+
+  return <WorkflowEditor initialGraph={graph} />
 }
 
 function ExamplePreview({
@@ -253,16 +372,42 @@ function ExamplePreview({
   return (
     <section className="flex min-h-0 flex-1 flex-col gap-4">
       <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-        <div className="mb-3">
-          <h2 className="text-sm font-semibold text-gray-950">{title}</h2>
-          <p className="text-sm text-gray-600">{description}</p>
-        </div>
-        <pre className="overflow-x-auto rounded-xl bg-gray-950 p-4 text-xs leading-6 text-gray-100">
-          <code>{code}</code>
-        </pre>
+        <Collapsible className="group flex flex-col gap-3">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-semibold text-gray-950">{title}</h2>
+              <p className="text-sm text-gray-600">{description}</p>
+            </div>
+
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <CollapsibleTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon-sm"
+                      className="shrink-0"
+                      aria-label={`Toggle ${title} code example`}
+                    >
+                      <Code2Icon />
+                      <ChevronDownIcon className="transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                    </Button>
+                  </CollapsibleTrigger>
+                </TooltipTrigger>
+                <TooltipContent sideOffset={6}>Show code example</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+
+          <CollapsibleContent>
+            <pre className="overflow-x-auto rounded-xl bg-gray-950 p-4 text-xs leading-6 text-gray-100">
+              <code>{code}</code>
+            </pre>
+          </CollapsibleContent>
+        </Collapsible>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+      <div className="flex min-h-0 min-h-screen flex-1 flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
         {children}
       </div>
     </section>
