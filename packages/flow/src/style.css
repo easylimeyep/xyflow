@@ -34,7 +34,6 @@
 
 .react-flow__controls {
   @apply flex flex-row items-center;
-  border: 1px solid var(--border);
   gap: 0.5rem;
   box-shadow: none;
 }

@@ -2,7 +2,7 @@
 
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
-import { Plus, X } from "lucide-react"
+import { Delete, DeleteIcon, Plus, Trash2Icon, X } from "lucide-react"
 import { useMemo } from "react"
 
 import { inlineExpressionNodeStyles } from "../../../../styles/components/nodes"
@@ -56,18 +56,16 @@ export function KeywordExpressionListInput({
         return (
           <div key={`${index}-${rowValue}`} className={styles.tokenRow()}>
             {canDelete ? (
-              <Badge variant="outline" className={styles.tokenDeleteBadge()}>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-xs"
-                  className={styles.tokenDeleteButton()}
-                  aria-label={`Delete token ${index + 1}`}
-                  onClick={() => removeRow(index)}
-                >
-                  <X />
-                </Button>
-              </Badge>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon-xs"
+                className={styles.tokenDeleteButton()}
+                aria-label={`Delete token ${index + 1}`}
+                onClick={() => removeRow(index)}
+              >
+                <Trash2Icon />
+              </Button>
             ) : null}
 
             <div className={styles.tokenRowMain()}>

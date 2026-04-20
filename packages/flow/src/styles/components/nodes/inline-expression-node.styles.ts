@@ -13,8 +13,7 @@ export const inlineExpressionNodeStyles = tv({
     tokenRowMain: "flex items-start gap-2",
     tokenRowInput: "min-w-0 flex-1",
     tokenAddButton: "shrink-0 self-start",
-    tokenDeleteBadge:
-      "pointer-events-none absolute -top-2 -right-2 z-10 opacity-0 transition-opacity duration-150 group-hover/token-row:opacity-100 group-focus-within/token-row:opacity-100",
-    tokenDeleteButton: "pointer-events-auto",
+    tokenDeleteButton:
+      "pointer-events-auto group-hover/token-row:hover:text-destructive absolute -top-2 -right-2 z-10 opacity-0 transition-opacity duration-150  group-hover/token-row:opacity-100 group-focus-within/token-row:opacity-100",
   },
 })
