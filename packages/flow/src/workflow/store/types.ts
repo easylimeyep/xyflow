@@ -8,6 +8,7 @@ import type {
   ExpressionVariableOption,
   NodeConfigByKind,
   NodeKind,
+  WorkflowBranchOperatorOption,
   WorkflowEdge,
   WorkflowGraphState,
   WorkflowNode,
@@ -69,7 +70,12 @@ export interface WorkflowRuntimeImportDomainConfig {
   mapper?: WorkflowImportDomainMapper
 }
 
+export interface WorkflowRuntimeBranchConfig {
+  operators?: WorkflowBranchOperatorOption[]
+}
+
 export interface WorkflowRuntimeConfig {
+  branch?: WorkflowRuntimeBranchConfig
   importDomain?: WorkflowRuntimeImportDomainConfig
   exportDomain?: WorkflowRuntimeExportDomainConfig
 }

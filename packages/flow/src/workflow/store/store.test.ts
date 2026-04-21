@@ -13,6 +13,7 @@ vi.mock("../layout", async () => {
 })
 
 import { exportDomainDto } from "../mappers"
+import { DEFAULT_BRANCH_OPERATOR_OPTIONS } from "../types/types"
 import {
   selectExpressionVariablesForNode,
   selectSelectedNode,
@@ -228,6 +229,48 @@ describe("workflow store", () => {
           customExport: true,
         },
       }
+    )
+  })
+
+  it("uses the default branch operator catalog when runtime branch operators are omitted", () => {
+    expect(store.getState().runtime.branch?.operators).toEqual(
+      DEFAULT_BRANCH_OPERATOR_OPTIONS
+    )
+  })
+
+  it("normalizes custom runtime branch operators before storing them", () => {
+    const runtimeStore = createWorkflowStore({
+      runtime: {
+        branch: {
+          operators: [
+            { id: "  matches  ", value: "  Matches  ", requiresTarget: 1 as never },
+            { id: "matches", value: "Duplicate", requiresTarget: false },
+            { id: "missing", value: "Is Missing", requiresTarget: false },
+          ],
+        },
+      },
+    })
+
+    expect(runtimeStore.getState().runtime.branch?.operators).toEqual([
+      { id: "matches", value: "Matches", requiresTarget: true },
+      { id: "missing", value: "Is Missing", requiresTarget: false },
+    ])
+  })
+
+  it("falls back to the default branch operator catalog when runtime branch operators are invalid", () => {
+    const runtimeStore = createWorkflowStore({
+      runtime: {
+        branch: {
+          operators: [
+            { id: " ", value: "Missing id", requiresTarget: true },
+            { id: "missing-value", value: " ", requiresTarget: false },
+          ],
+        },
+      },
+    })
+
+    expect(runtimeStore.getState().runtime.branch?.operators).toEqual(
+      DEFAULT_BRANCH_OPERATOR_OPTIONS
     )
   })
 

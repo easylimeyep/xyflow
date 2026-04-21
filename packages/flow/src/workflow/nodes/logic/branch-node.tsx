@@ -25,11 +25,9 @@ import type {
   BranchCondition,
   ConditionOperator,
   ExpressionVariableOption,
+  WorkflowBranchOperatorOption,
 } from "../../types"
-import {
-  ALL_CONDITION_OPERATORS as ALL_OPERATORS,
-  OPERATORS_WITH_TARGET as WITH_TARGET,
-} from "../../types"
+import { DEFAULT_BRANCH_OPERATOR_ID } from "../../types"
 import { branch } from "./branch"
 import { NodeShell } from "../node-shell/node-shell"
 import { useBaseNodeData } from "../shared"
@@ -42,6 +40,7 @@ const styles = branchNodeStyles()
 interface ConditionRowProps {
   condition: BranchCondition
   variables: ExpressionVariableOption[]
+  operators: WorkflowBranchOperatorOption[]
   canDelete: boolean
   showDragHandle: boolean
   isOverlay?: boolean
@@ -52,15 +51,31 @@ interface ConditionRowProps {
 function ConditionRow({
   condition,
   variables,
+  operators,
   canDelete,
   showDragHandle,
   isOverlay,
   onUpdate,
   onDelete,
 }: ConditionRowProps) {
-  const needsTarget = (WITH_TARGET as readonly string[]).includes(
-    condition.operator
-  )
+  const activeOperators = useMemo(() => {
+    const hasCurrentOperator = operators.some((op) => op.id === condition.operator)
+    if (hasCurrentOperator) {
+      return operators
+    }
+
+    return [
+      ...operators,
+      {
+        id: condition.operator,
+        value: condition.operator,
+        requiresTarget: condition.targetValue !== undefined,
+      },
+    ]
+  }, [condition.operator, condition.targetValue, operators])
+
+  const selectedOperator = activeOperators.find((op) => op.id === condition.operator)
+  const needsTarget = selectedOperator?.requiresTarget ?? false
 
   return (
     <div className={styles.conditionRow()}>
@@ -106,9 +121,13 @@ function ConditionRow({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {ALL_OPERATORS.map((op) => (
-                  <SelectItem key={op} value={op} className="text-[11px]">
-                    {op}
+                {activeOperators.map((operator) => (
+                  <SelectItem
+                    key={operator.id}
+                    value={operator.id}
+                    className="text-[11px]"
+                  >
+                    {operator.value}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -175,7 +194,8 @@ function LogicalOperatorRow({
 export function BranchNode({ id, data, selected }: NodeProps) {
   const { label: baseLabel, config } = useBaseNodeData(data)
   const label = baseLabel || "Branch"
-  const { expressionVariables, updateNodeConfig } = useNodeStoreData(id)
+  const { expressionVariables, branchOperators, updateNodeConfig } =
+    useNodeStoreData(id)
 
   const conditions = useMemo(
     () => (config.conditions as BranchCondition[] | undefined) ?? [],
@@ -192,16 +212,19 @@ export function BranchNode({ id, data, selected }: NodeProps) {
   )
 
   const handleAddCondition = useCallback(() => {
+    const defaultOperatorId =
+      branchOperators[0]?.id ?? DEFAULT_BRANCH_OPERATOR_ID
+
     setConditions([
       ...conditions,
       {
         id: crypto.randomUUID(),
         value: "",
-        operator: "is equal to",
+        operator: defaultOperatorId,
         targetValue: "",
       },
     ])
-  }, [conditions, setConditions])
+  }, [branchOperators, conditions, setConditions])
 
   const handleUpdateCondition = useCallback(
     (conditionId: string, patch: Partial<Omit<BranchCondition, "id">>) => {
@@ -265,6 +288,7 @@ export function BranchNode({ id, data, selected }: NodeProps) {
                   <ConditionRow
                     condition={condition}
                     variables={expressionVariables}
+                    operators={branchOperators}
                     canDelete={conditions.length > 1}
                     showDragHandle={showDragHandle}
                     onUpdate={handleUpdateCondition}
@@ -283,6 +307,7 @@ export function BranchNode({ id, data, selected }: NodeProps) {
                     <ConditionRow
                       condition={overlayCondition}
                       variables={expressionVariables}
+                      operators={branchOperators}
                       canDelete={false}
                       showDragHandle={true}
                       isOverlay

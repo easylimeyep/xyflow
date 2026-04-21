@@ -33,54 +33,33 @@ export interface ExpressionVariableOption {
   group: string
 }
 
-export type ConditionOperator =
-  | "is equal to"
-  | "is not equal to"
-  | "contains"
-  | "does not contain"
-  | "starts with"
-  | "ends with"
-  | "is greater than"
-  | "is less than"
-  | "is greater or equal"
-  | "is less or equal"
-  | "is empty"
-  | "is not empty"
-  | "is null"
-  | "is not null"
-  | "is true"
-  | "is false"
+export type ConditionOperator = string
 
-export const OPERATORS_WITH_TARGET: ConditionOperator[] = [
-  "is equal to",
-  "is not equal to",
-  "contains",
-  "does not contain",
-  "starts with",
-  "ends with",
-  "is greater than",
-  "is less than",
-  "is greater or equal",
-  "is less or equal",
-]
+export interface WorkflowBranchOperatorOption {
+  id: string
+  value: string
+  requiresTarget: boolean
+}
 
-export const ALL_CONDITION_OPERATORS: ConditionOperator[] = [
-  "is equal to",
-  "is not equal to",
-  "contains",
-  "does not contain",
-  "starts with",
-  "ends with",
-  "is greater than",
-  "is less than",
-  "is greater or equal",
-  "is less or equal",
-  "is empty",
-  "is not empty",
-  "is null",
-  "is not null",
-  "is true",
-  "is false",
+export const DEFAULT_BRANCH_OPERATOR_ID = "is equal to"
+
+export const DEFAULT_BRANCH_OPERATOR_OPTIONS: WorkflowBranchOperatorOption[] = [
+  { id: "is equal to", value: "is equal to", requiresTarget: true },
+  { id: "is not equal to", value: "is not equal to", requiresTarget: true },
+  { id: "contains", value: "contains", requiresTarget: true },
+  { id: "does not contain", value: "does not contain", requiresTarget: true },
+  { id: "starts with", value: "starts with", requiresTarget: true },
+  { id: "ends with", value: "ends with", requiresTarget: true },
+  { id: "is greater than", value: "is greater than", requiresTarget: true },
+  { id: "is less than", value: "is less than", requiresTarget: true },
+  { id: "is greater or equal", value: "is greater or equal", requiresTarget: true },
+  { id: "is less or equal", value: "is less or equal", requiresTarget: true },
+  { id: "is empty", value: "is empty", requiresTarget: false },
+  { id: "is not empty", value: "is not empty", requiresTarget: false },
+  { id: "is null", value: "is null", requiresTarget: false },
+  { id: "is not null", value: "is not null", requiresTarget: false },
+  { id: "is true", value: "is true", requiresTarget: false },
+  { id: "is false", value: "is false", requiresTarget: false },
 ]
 
 export interface BranchCondition {

@@ -3,6 +3,7 @@ import { createContextStore, createStore, createHistoryState, type StoreApi } fr
 import { initialWorkflowGraph } from "../default-graph/default-graph"
 import type { WorkflowGraphState } from "../types/types"
 import { cloneGraphState } from "./helpers"
+import { normalizeWorkflowRuntimeConfig } from "./runtime"
 import { selectSelectedNode, selectSelectedNodeIds } from "./selectors"
 import {
   createConnectionSlice,
@@ -32,7 +33,7 @@ export function createWorkflowStore(
   const initialGraph = cloneGraphState(
     initialProps.initialGraph ?? initialWorkflowGraph
   )
-  const runtime = initialProps.runtime ?? {}
+  const runtime = normalizeWorkflowRuntimeConfig(initialProps.runtime)
 
   return createStore<WorkflowStoreState>()((set, get) => ({
     runtime,

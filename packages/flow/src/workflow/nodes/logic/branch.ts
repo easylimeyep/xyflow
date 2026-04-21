@@ -1,7 +1,7 @@
 import { GitBranch } from "lucide-react"
 
 import { defineNode } from "../../node-registry/define-node"
-import type { BranchCondition } from "../../types"
+import { DEFAULT_BRANCH_OPERATOR_ID, type BranchCondition } from "../../types"
 
 function isBranchCondition(value: unknown): value is BranchCondition {
   if (typeof value !== "object" || value === null) return false
@@ -34,7 +34,7 @@ export const branch = defineNode({
       {
         id: crypto.randomUUID(),
         value: "",
-        operator: "is equal to",
+        operator: DEFAULT_BRANCH_OPERATOR_ID,
         targetValue: "",
       } satisfies BranchCondition,
     ],
