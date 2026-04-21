@@ -17,7 +17,9 @@ function RuntimeProbe() {
 
   return (
     <div>
-      <span data-testid="workflow-editor-export-domain">{exportDomain()}</span>
+      <span data-testid="workflow-editor-export-domain">
+        {JSON.stringify(exportDomain(), null, 2)}
+      </span>
       <span data-testid="workflow-editor-has-runtime-export-mapper">
         {String(hasRuntimeExportMapper)}
       </span>

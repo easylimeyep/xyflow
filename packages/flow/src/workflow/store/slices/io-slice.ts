@@ -170,7 +170,7 @@ export const createIoSlice: WorkflowSliceCreator = (set, get) => ({
     const payload = exportDomainDto(state.history.present)
     const nextPayload = state.runtime.exportDomain?.mapper?.(payload) ?? payload
 
-    return JSON.stringify(nextPayload, null, 2)
+    return nextPayload
   },
 })
 

@@ -5,6 +5,7 @@ import { type ChangeEvent, useMemo, useState } from "react"
 import { Button } from "@workspace/ui/components/button"
 import { Textarea } from "@workspace/ui/components/textarea"
 import { editorToolbarStyles } from "../../../styles/components/editor-shell"
+import type { DomainWorkflowDTO } from "../../types"
 
 interface EditorToolbarProps {
   canUndo: boolean
@@ -13,7 +14,7 @@ interface EditorToolbarProps {
   onUndo: () => void
   onRedo: () => void
   onClearError: () => void
-  onExportDomain: () => string
+  onExportDomain: () => DomainWorkflowDTO
   onImportJson: (rawJson: string) => boolean
 }
 
@@ -60,7 +61,9 @@ export function EditorToolbar({
           type="button"
           variant="outline"
           onClick={async () => {
-            const copied = await copyToClipboard(onExportDomain())
+            const copied = await copyToClipboard(
+              JSON.stringify(onExportDomain(), null, 2)
+            )
             setStatusMessage(copied ? "Domain JSON copied." : "Failed to copy domain JSON.")
           }}
         >

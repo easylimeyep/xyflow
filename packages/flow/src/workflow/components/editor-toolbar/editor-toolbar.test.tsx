@@ -5,6 +5,17 @@ import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { EditorToolbar } from "./editor-toolbar"
+import type { DomainWorkflowDTO } from "../../types"
+
+const exportPayload: DomainWorkflowDTO = {
+  id: "wf-1",
+  name: "Workflow",
+  version: 1,
+  metadata: {},
+  nodes: [],
+  connections: [],
+  viewport: { x: 0, y: 0, zoom: 1 },
+}
 
 describe("EditorToolbar", () => {
   beforeEach(() => {
@@ -29,7 +40,7 @@ describe("EditorToolbar", () => {
         onUndo={vi.fn()}
         onRedo={vi.fn()}
         onClearError={vi.fn()}
-        onExportDomain={() => '{"type":"domain"}'}
+        onExportDomain={() => exportPayload}
         onImportJson={vi.fn().mockReturnValue(true)}
       />
     )
@@ -56,7 +67,7 @@ describe("EditorToolbar", () => {
         onUndo={vi.fn()}
         onRedo={vi.fn()}
         onClearError={vi.fn()}
-        onExportDomain={() => "{}"}
+        onExportDomain={() => exportPayload}
         onImportJson={onImportJson}
       />
     )

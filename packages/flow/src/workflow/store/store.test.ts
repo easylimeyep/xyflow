@@ -12,7 +12,7 @@ vi.mock("../layout", async () => {
   }
 })
 
-import { exportDomainDto, exportDomainJson } from "../mappers"
+import { exportDomainDto } from "../mappers"
 import {
   selectExpressionVariablesForNode,
   selectSelectedNode,
@@ -146,7 +146,9 @@ describe("workflow store", () => {
 
   it("imports workflow from domain json", () => {
     const exportDomain = store.getState().exportDomain()
-    const imported = store.getState().importFromJson(exportDomain)
+    const imported = store.getState().importFromJson(
+      JSON.stringify(exportDomain, null, 2)
+    )
 
     expect(imported).toBe(true)
     expect(store.getState().lastError).toBeNull()
@@ -178,7 +180,7 @@ describe("workflow store", () => {
 
     const imported = runtimeStore
       .getState()
-      .importFromJson(store.getState().exportDomain())
+      .importFromJson(JSON.stringify(store.getState().exportDomain(), null, 2))
 
     expect(imported).toBe(true)
     expect(runtimeStore.getState().lastError).toBeNull()
@@ -196,12 +198,12 @@ describe("workflow store", () => {
   })
 
   it("keeps default exportDomain output when runtime mapper is not provided", () => {
-    const expected = exportDomainJson(store.getState().history.present)
+    const expected = exportDomainDto(store.getState().history.present)
 
-    expect(store.getState().exportDomain()).toBe(expected)
+    expect(store.getState().exportDomain()).toEqual(expected)
   })
 
-  it("applies runtime exportDomain mapper after base serialization", () => {
+  it("applies runtime exportDomain mapper after base payload generation", () => {
     const runtimeStore = createWorkflowStore({
       runtime: {
         exportDomain: {
@@ -218,18 +220,14 @@ describe("workflow store", () => {
 
     const basePayload = exportDomainDto(runtimeStore.getState().history.present)
 
-    expect(runtimeStore.getState().exportDomain()).toBe(
-      JSON.stringify(
-        {
-          ...basePayload,
-          metadata: {
-            ...basePayload.metadata,
-            customExport: true,
-          },
+    expect(runtimeStore.getState().exportDomain()).toEqual(
+      {
+        ...basePayload,
+        metadata: {
+          ...basePayload.metadata,
+          customExport: true,
         },
-        null,
-        2
-      )
+      }
     )
   })
 
@@ -265,7 +263,7 @@ describe("workflow store", () => {
     const beforeGraph = runtimeStore.getState().history.present
     const imported = runtimeStore
       .getState()
-      .importFromJson(store.getState().exportDomain())
+      .importFromJson(JSON.stringify(store.getState().exportDomain(), null, 2))
 
     expect(imported).toBe(false)
     expect(runtimeStore.getState().lastError?.message).toContain(
