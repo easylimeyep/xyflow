@@ -3,12 +3,9 @@
 import type { NodeProps } from "@xyflow/react"
 import { Button } from "@workspace/ui/components/button"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@workspace/ui/components/select"
+  NativeSelect,
+  NativeSelectOption,
+} from "@workspace/ui/components/native-select"
 import {
   Sortable,
   SortableContent,
@@ -111,27 +108,23 @@ function ConditionRow({
           </div>
 
           <div className={styles.operatorRow()}>
-            <Select
+            <NativeSelect
+              aria-label="Condition operator"
+              className={styles.operatorSelect()}
+              size="sm"
               value={condition.operator}
-              onValueChange={(v) =>
-                onUpdate(condition.id, { operator: v as ConditionOperator })
+              onChange={(event) =>
+                onUpdate(condition.id, {
+                  operator: event.target.value as ConditionOperator,
+                })
               }
             >
-              <SelectTrigger className={styles.operatorSelect()}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {activeOperators.map((operator) => (
-                  <SelectItem
-                    key={operator.id}
-                    value={operator.id}
-                    className="text-[11px]"
-                  >
-                    {operator.value}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              {activeOperators.map((operator) => (
+                <NativeSelectOption key={operator.id} value={operator.id}>
+                  {operator.value}
+                </NativeSelectOption>
+              ))}
+            </NativeSelect>
           </div>
         </div>
 
@@ -164,22 +157,16 @@ function LogicalOperatorRow({
   return (
     <div className={styles.logicalOperatorSeparator()}>
       {isInteractive ? (
-        <Select
+        <NativeSelect
+          aria-label="Logical operator"
+          className={styles.logicalOperatorSelect()}
+          size="sm"
           value={value}
-          onValueChange={(v) => onChange(v as "and" | "or")}
+          onChange={(event) => onChange(event.target.value as "and" | "or")}
         >
-          <SelectTrigger className={styles.logicalOperatorSelect()}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="and" className="text-[10px]">
-              AND
-            </SelectItem>
-            <SelectItem value="or" className="text-[10px]">
-              OR
-            </SelectItem>
-          </SelectContent>
-        </Select>
+          <NativeSelectOption value="and">AND</NativeSelectOption>
+          <NativeSelectOption value="or">OR</NativeSelectOption>
+        </NativeSelect>
       ) : (
         <span className={styles.logicalOperatorBadge()}>
           {value.toUpperCase()}

@@ -23,50 +23,6 @@ vi.mock("@xyflow/react", () => ({
   },
 }))
 
-vi.mock("@workspace/ui/components/select", async () => {
-  const React = await vi.importActual<typeof import("react")>("react")
-  const SelectContext = React.createContext<((value: string) => void) | null>(null)
-
-  return {
-    Select: ({
-      onValueChange,
-      children,
-    }: {
-      value?: string
-      onValueChange?: (value: string) => void
-      children?: ReactNode
-    }) => (
-      <SelectContext.Provider value={onValueChange ?? null}>
-        <div>{children}</div>
-      </SelectContext.Provider>
-    ),
-    SelectTrigger: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
-    SelectValue: () => null,
-    SelectContent: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
-    SelectItem: ({
-      value,
-      children,
-      className,
-    }: {
-      value: string
-      children?: ReactNode
-      className?: string
-    }) => {
-      const onValueChange = React.useContext(SelectContext)
-      return (
-        <button
-          type="button"
-          data-testid={`select-item-${value}`}
-          className={className}
-          onClick={() => onValueChange?.(value)}
-        >
-          {children}
-        </button>
-      )
-    },
-  }
-})
-
 vi.mock("@workspace/ui/components/sortable", () => ({
   Sortable: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
   SortableContent: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
@@ -196,10 +152,15 @@ describe("BranchNode", () => {
       />
     )
 
-    expect(screen.getByTestId("select-item-matches").textContent).toBe("Matches")
-    expect(screen.getByTestId("select-item-missing").textContent).toBe("Is Missing")
+    const operatorSelect = screen.getByLabelText(
+      "Condition operator"
+    ) as HTMLSelectElement
 
-    fireEvent.click(screen.getByTestId("select-item-missing"))
+    expect(operatorSelect.value).toBe("matches")
+    expect(screen.getByRole("option", { name: "Matches" })).toBeTruthy()
+    expect(screen.getByRole("option", { name: "Is Missing" })).toBeTruthy()
+
+    fireEvent.change(operatorSelect, { target: { value: "missing" } })
 
     expect(mockUpdateNodeConfig).toHaveBeenCalledWith("branch-node-1", {
       kind: "branch",
@@ -212,6 +173,55 @@ describe("BranchNode", () => {
           targetValue: "{{ target }}",
         },
       ],
+    })
+  })
+
+  it("updates the editable logical operator with the native select", () => {
+    render(
+      <BranchNode
+        {...createNodeProps({
+          config: {
+            conditions: [
+              {
+                id: "condition-1",
+                value: "{{ source }}",
+                operator: "is equal to",
+                targetValue: "{{ target }}",
+              },
+              {
+                id: "condition-2",
+                value: "{{ other }}",
+                operator: "is empty",
+                targetValue: "",
+              },
+              {
+                id: "condition-3",
+                value: "{{ final }}",
+                operator: "is empty",
+                targetValue: "",
+              },
+            ],
+            logicalOperator: "and",
+          },
+        })}
+      />
+    )
+
+    const logicalOperatorSelect = screen.getByLabelText(
+      "Logical operator"
+    ) as HTMLSelectElement
+
+    expect(logicalOperatorSelect.value).toBe("and")
+    expect(screen.getByRole("option", { name: "AND" })).toBeTruthy()
+    expect(screen.getByRole("option", { name: "OR" })).toBeTruthy()
+    expect(screen.getAllByText("AND").length).toBeGreaterThan(1)
+
+    fireEvent.change(logicalOperatorSelect, { target: { value: "or" } })
+
+    expect(mockUpdateNodeConfig).toHaveBeenCalledWith("branch-node-1", {
+      kind: "branch",
+      key: "logicalOperator",
+      value: "or",
     })
   })
 
@@ -294,7 +304,12 @@ describe("BranchNode", () => {
       />
     )
 
-    expect(screen.getByTestId("select-item-legacy-op").textContent).toBe("legacy-op")
+    const operatorSelect = screen.getByLabelText(
+      "Condition operator"
+    ) as HTMLSelectElement
+
+    expect(operatorSelect.value).toBe("legacy-op")
+    expect(screen.getByRole("option", { name: "legacy-op" })).toBeTruthy()
     expect(screen.getByLabelText("target value")).toBeTruthy()
   })
 })
