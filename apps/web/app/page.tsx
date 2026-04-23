@@ -4,6 +4,7 @@ import { BaseExample } from "@/app/components/workflow-examples/base-example"
 import { CustomOperatorsExample } from "@/app/components/workflow-examples/custom-operators-example"
 import { DefaultGraphExample } from "@/app/components/workflow-examples/default-graph-example"
 import { ElkGraphExample } from "@/app/components/workflow-examples/elk-graph-example"
+import { FullscreenModalExample } from "@/app/components/workflow-examples/fullscreen-modal-example"
 import {
   Tabs,
   TabsContent,
@@ -40,6 +41,9 @@ export default function Page() {
             <TabsTrigger value="with-custom-operators">
               with custom operators
             </TabsTrigger>
+            <TabsTrigger value="with-fullscreen-modal">
+              with fullscreen modal
+            </TabsTrigger>
           </TabsList>
         </div>
 
@@ -69,6 +73,13 @@ export default function Page() {
           className="flex min-h-0 flex-1 flex-col gap-4"
         >
           <CustomOperatorsExample />
+        </TabsContent>
+
+        <TabsContent
+          value="with-fullscreen-modal"
+          className="flex min-h-0 flex-1 flex-col gap-4"
+        >
+          <FullscreenModalExample />
         </TabsContent>
       </Tabs>
     </div>
