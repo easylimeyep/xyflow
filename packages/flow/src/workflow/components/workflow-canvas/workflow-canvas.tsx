@@ -36,6 +36,9 @@ import { WorkflowEdgeComponent } from "../workflow-edge"
 import { useNodeChangeRouter } from "./use-node-change-router"
 import { WORKFLOW_ELK_PADDING } from "../../layout"
 
+const WORKFLOW_MIN_ZOOM = 0.1
+const WORKFLOW_MAX_ZOOM = 4
+
 interface WorkflowCanvasProps {
   nodes: WorkflowNode[]
   edges: WorkflowEdge[]
@@ -183,7 +186,11 @@ function WorkflowCanvasInner({
       }
 
       window.requestAnimationFrame(() => {
-        void reactFlow.fitView({ padding: WORKFLOW_ELK_PADDING })
+        void reactFlow.fitView({
+          padding: WORKFLOW_ELK_PADDING,
+          minZoom: WORKFLOW_MIN_ZOOM,
+          maxZoom: WORKFLOW_MAX_ZOOM,
+        })
       })
     } finally {
       setLayoutPending(false)
@@ -198,6 +205,8 @@ function WorkflowCanvasInner({
       edgeTypes={edgeTypes}
       proOptions={{ hideAttribution: true }}
       defaultViewport={viewport}
+      minZoom={WORKFLOW_MIN_ZOOM}
+      maxZoom={WORKFLOW_MAX_ZOOM}
       onMoveEnd={(_, nextViewport) => onViewportChange(nextViewport)}
       onNodesChange={onReactFlowNodesChange}
       onEdgesChange={onEdgesChange}

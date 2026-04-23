@@ -94,6 +94,8 @@ vi.mock("@xyflow/react", () => {
       panOnScroll,
       zoomOnPinch,
       zoomOnScroll,
+      minZoom,
+      maxZoom,
     }: {
       children: ReactNode
       onDrop: (event: React.DragEvent<HTMLDivElement>) => void
@@ -125,6 +127,8 @@ vi.mock("@xyflow/react", () => {
       panOnScroll?: boolean
       zoomOnPinch?: boolean
       zoomOnScroll?: boolean
+      minZoom?: number
+      maxZoom?: number
     }) => {
       reactFlowRenderSpy({ edgeTypes })
       return (
@@ -136,6 +140,8 @@ vi.mock("@xyflow/react", () => {
           <span data-testid="rf-pan-on-scroll">{String(Boolean(panOnScroll))}</span>
           <span data-testid="rf-zoom-on-pinch">{String(Boolean(zoomOnPinch))}</span>
           <span data-testid="rf-zoom-on-scroll">{String(zoomOnScroll)}</span>
+          <span data-testid="rf-min-zoom">{String(minZoom)}</span>
+          <span data-testid="rf-max-zoom">{String(maxZoom)}</span>
           <button
             type="button"
             data-testid="rf-mousemove"
@@ -257,6 +263,8 @@ describe("WorkflowCanvas", () => {
     expect(screen.getByTestId("rf-pan-on-scroll").textContent).toBe("true")
     expect(screen.getByTestId("rf-zoom-on-pinch").textContent).toBe("true")
     expect(screen.getByTestId("rf-zoom-on-scroll").textContent).toBe("false")
+    expect(screen.getByTestId("rf-min-zoom").textContent).toBe("0.1")
+    expect(screen.getByTestId("rf-max-zoom").textContent).toBe("4")
   })
 
   it("renders auto-layout control and refits viewport after success", async () => {
@@ -294,7 +302,11 @@ describe("WorkflowCanvas", () => {
     expect(onAutoLayout).toHaveBeenCalledTimes(1)
 
     vi.runAllTimers()
-    expect(fitViewSpy).toHaveBeenCalledWith({ padding: 0.2 })
+    expect(fitViewSpy).toHaveBeenCalledWith({
+      padding: 0.2,
+      minZoom: 0.1,
+      maxZoom: 4,
+    })
   })
 
   it("uses shared connection validation for preview checks", () => {
