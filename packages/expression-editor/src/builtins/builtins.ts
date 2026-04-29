@@ -1,6 +1,6 @@
 import type { Completion } from "@codemirror/autocomplete"
 
-import type { ExpressionVariableOption } from "../../types/types"
+import type { ExpressionVariableOption } from "../types"
 
 interface BuiltinExpressionVariable {
   value: string

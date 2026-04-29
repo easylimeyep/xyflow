@@ -1,4 +1,5 @@
 import type { Edge, Node, Viewport, XYPosition } from "@xyflow/react"
+export type { ExpressionVariableOption } from "@workspace/expression-editor"
 
 export type { NodeKind } from "../node-registry/registry"
 export { WORKFLOW_NODE_KINDS, isNodeKind } from "../node-registry/registry"
@@ -24,13 +25,6 @@ export interface NodeFieldSchema {
   description?: string
   placeholder?: string
   options?: FieldOption[]
-}
-
-export interface ExpressionVariableOption {
-  value: string
-  label: string
-  description: string
-  group: string
 }
 
 export type ConditionOperator = string

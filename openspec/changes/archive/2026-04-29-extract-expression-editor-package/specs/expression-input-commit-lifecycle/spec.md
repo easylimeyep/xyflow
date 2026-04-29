@@ -1,8 +1,5 @@
-# expression-input-commit-lifecycle Specification
+## MODIFIED Requirements
 
-## Purpose
-Defines the expression editor commit lifecycle for blur, Enter, live validation, external value synchronization, and variable insertion.
-## Requirements
 ### Requirement: ExpressionInput commits value on blur
 The expression editor SHALL call its commit callback with the current editor content when the CodeMirror editor loses focus, provided the current content differs from the `value` prop.
 

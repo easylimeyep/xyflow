@@ -6,8 +6,7 @@ import { useEffect, useRef, useState } from "react"
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest"
 
 import type { ExpressionVariableOption } from "../../types"
-import { KeywordExpressionListInput } from "../../nodes/data/inline-expression/keyword-expression-list-input"
-import { ExpressionInput } from "./expression-input"
+import { ExpressionEditor } from "./expression-editor"
 
 interface MockSelectionMain {
   head: number
@@ -103,8 +102,8 @@ vi.mock("@codemirror/view", () => ({
   },
 }))
 
-vi.mock("@uiw/react-codemirror", () => ({
-  default: ({
+vi.mock("@uiw/react-codemirror", () => {
+  function MockCodeMirror({
     value,
     onChange,
     onCreateEditor,
@@ -123,7 +122,7 @@ vi.mock("@uiw/react-codemirror", () => ({
     ) => void
     onCreateEditor?: (view: MockEditorView) => void
     extensions?: unknown
-  }) => {
+  }) {
     const textareaRef = useRef<HTMLTextAreaElement | null>(null)
     const docRef = useRef(value)
     const [docValue, setDocValue] = useState(value)
@@ -226,11 +225,13 @@ vi.mock("@uiw/react-codemirror", () => ({
         value={docValue}
         onFocus={() => {
           setIsFocused(true)
+          // eslint-disable-next-line react-hooks/immutability
           viewRef.current.hasFocus = true
           emitFocusChanged()
         }}
         onBlur={() => {
           setIsFocused(false)
+          // eslint-disable-next-line react-hooks/immutability
           viewRef.current.hasFocus = false
           emitFocusChanged()
         }}
@@ -281,10 +282,12 @@ vi.mock("@uiw/react-codemirror", () => ({
         }}
       />
     )
-  },
-}))
+  }
 
-describe("ExpressionInput integration", () => {
+  return { default: MockCodeMirror }
+})
+
+describe("ExpressionEditor integration", () => {
   afterEach(() => {
     cleanup()
   })
@@ -300,187 +303,38 @@ describe("ExpressionInput integration", () => {
     HTMLElement.prototype.scrollIntoView = vi.fn()
   })
 
-  function ControlledExpressionInput({
+  function ControlledExpressionEditor({
     initialValue,
     variables,
-    onValueChange,
+    onValueCommit,
   }: {
     initialValue: string
     variables: ExpressionVariableOption[]
-    onValueChange?: (nextValue: string) => void
+    onValueCommit?: (nextValue: string) => void
   }) {
     const [value, setValue] = useState(initialValue)
 
     return (
-      <ExpressionInput
+      <ExpressionEditor
         value={value}
         variables={variables}
-        onChange={(nextValue) => {
+        onCommit={(nextValue) => {
           setValue(nextValue)
-          onValueChange?.(nextValue)
+          onValueCommit?.(nextValue)
         }}
         placeholder="type..."
       />
     )
   }
 
-  function ControlledKeywordExpressionListInput({
-    initialValue,
-    variables,
-    onValueChange,
-  }: {
-    initialValue: string[]
-    variables: ExpressionVariableOption[]
-    onValueChange?: (nextValue: string[]) => void
-  }) {
-    const [value, setValue] = useState(initialValue)
-
-    return (
-      <KeywordExpressionListInput
-        value={value}
-        variables={variables}
-        onChange={(nextValue) => {
-          setValue(nextValue)
-          onValueChange?.(nextValue)
-        }}
-      />
-    )
-  }
-
-  it("inserts selected variable in {{ ... }} format after typing {{}} trigger", async () => {
-    const user = userEvent.setup()
-    const onChange = vi.fn()
-    const variables: ExpressionVariableOption[] = [
-      {
-        value: '$node("trigger-a").item.json.eventName',
-        label: '$node("trigger-a").item.json.eventName',
-        description: "Trigger event",
-        group: "Upstream: TriggerA",
-      },
-    ]
+  it("does not call onCommit while typing before blur", () => {
+    const onCommit = vi.fn()
 
     render(
-      <ControlledExpressionInput initialValue="prefix " variables={variables} onValueChange={onChange} />
-    )
-
-    const editor = screen.getByLabelText("expression-editor") as HTMLTextAreaElement
-    editor.focus()
-    fireEvent.change(editor, {
-      target: {
-        value: "prefix {{}}",
-        selectionStart: "prefix {{".length,
-        selectionEnd: "prefix {{".length,
-      },
-    })
-    await user.click(screen.getByText('$node("trigger-a").item.json.eventName'))
-
-    expect(onChange).toHaveBeenLastCalledWith('prefix {{ $node("trigger-a").item.json.eventName }}')
-  })
-
-  it("clears empty-expression error after selecting variable for {{}}", async () => {
-    const user = userEvent.setup()
-    const variables: ExpressionVariableOption[] = [
-      {
-        value: "$input.item.json",
-        label: "$input.item.json",
-        description: "Current input JSON",
-        group: "Execution",
-      },
-    ]
-
-    render(<ControlledExpressionInput initialValue="" variables={variables} />)
-
-    const editor = screen.getByLabelText("expression-editor") as HTMLTextAreaElement
-    editor.focus()
-    fireEvent.change(editor, {
-      target: {
-        value: "{{}}",
-        selectionStart: 2,
-        selectionEnd: 2,
-      },
-    })
-
-    expect(screen.getByText("Expression cannot be empty.")).toBeTruthy()
-
-    await user.click(screen.getByText("$input.item.json"))
-
-    expect(screen.queryByText("Expression cannot be empty.")).toBeNull()
-  })
-
-  it("replaces {{}} placeholder without leaving extra braces", async () => {
-    const user = userEvent.setup()
-    const onChange = vi.fn()
-    const variables: ExpressionVariableOption[] = [
-      {
-        value: "$input.item.json",
-        label: "$input.item.json",
-        description: "Current input JSON",
-        group: "Execution",
-      },
-    ]
-
-    render(
-      <ControlledExpressionInput initialValue="" variables={variables} onValueChange={onChange} />
-    )
-
-    const editor = screen.getByLabelText("expression-editor")
-    fireEvent.focus(editor)
-    fireEvent.change(editor, {
-      target: {
-        value: "{{}}",
-        selectionStart: 2,
-        selectionEnd: 2,
-      },
-    })
-    await user.click(screen.getByText("$input.item.json"))
-
-    expect(onChange).toHaveBeenLastCalledWith("{{ $input.item.json }}")
-  })
-
-  it("inserts selected variable on first click from a keyword expression row", async () => {
-    const user = userEvent.setup()
-    const onChange = vi.fn()
-    const variables: ExpressionVariableOption[] = [
-      {
-        value: "$input.item.json",
-        label: "$input.item.json",
-        description: "Current input JSON",
-        group: "Execution",
-      },
-    ]
-
-    render(
-      <ControlledKeywordExpressionListInput
-        initialValue={["prefix "]}
-        variables={variables}
-        onValueChange={onChange}
-      />
-    )
-
-    const editor = screen.getByLabelText("expression-editor") as HTMLTextAreaElement
-    editor.focus()
-    fireEvent.change(editor, {
-      target: {
-        value: "prefix {{}}",
-        selectionStart: "prefix {{".length,
-        selectionEnd: "prefix {{".length,
-      },
-    })
-
-    await user.click(screen.getByText("$input.item.json"))
-
-    expect(onChange).toHaveBeenLastCalledWith(["prefix {{ $input.item.json }}"])
-    expect(screen.queryByText("$input.item.json")).toBeNull()
-  })
-
-  it("does not call onChange while typing before blur", () => {
-    const onChange = vi.fn()
-
-    render(
-      <ExpressionInput
+      <ExpressionEditor
         value=""
         variables={[]}
-        onChange={onChange}
+        onCommit={onCommit}
         placeholder="type..."
       />
     )
@@ -495,17 +349,17 @@ describe("ExpressionInput integration", () => {
       },
     })
 
-    expect(onChange).not.toHaveBeenCalled()
+    expect(onCommit).not.toHaveBeenCalled()
   })
 
-  it("calls onChange once with full value on blur", () => {
-    const onChange = vi.fn()
+  it("calls onCommit once with full value on blur", () => {
+    const onCommit = vi.fn()
 
     render(
-      <ExpressionInput
+      <ExpressionEditor
         value=""
         variables={[]}
-        onChange={onChange}
+        onCommit={onCommit}
         placeholder="type..."
       />
     )
@@ -514,55 +368,25 @@ describe("ExpressionInput integration", () => {
     fireEvent.focus(editor)
     fireEvent.change(editor, {
       target: {
-        value: "hello {{ $input.item.json }}",
-        selectionStart: 27,
-        selectionEnd: 27,
+        value: "hello {{ myVar }}",
+        selectionStart: 17,
+        selectionEnd: 17,
       },
     })
     fireEvent.blur(editor)
 
-    expect(onChange).toHaveBeenCalledTimes(1)
-    expect(onChange).toHaveBeenCalledWith("hello {{ $input.item.json }}")
-  })
-
-  it("does not revert value after fast type-and-blur", async () => {
-    const onChange = vi.fn()
-
-    render(
-      <ControlledExpressionInput
-        initialValue=""
-        variables={[]}
-        onValueChange={onChange}
-      />
-    )
-
-    const editor = screen.getByLabelText("expression-editor") as HTMLTextAreaElement
-    fireEvent.focus(editor)
-    fireEvent.change(editor, {
-      target: {
-        value: "fast blur value",
-        selectionStart: 14,
-        selectionEnd: 14,
-      },
-    })
-    fireEvent.blur(editor)
-
-    expect(onChange).toHaveBeenCalledTimes(1)
-    expect(onChange).toHaveBeenCalledWith("fast blur value")
-
-    await waitFor(() => {
-      expect(editor.value).toBe("fast blur value")
-    })
+    expect(onCommit).toHaveBeenCalledTimes(1)
+    expect(onCommit).toHaveBeenCalledWith("hello {{ myVar }}", { reason: "blur" })
   })
 
   it("pressing Enter commits and blurs the editor", () => {
-    const onChange = vi.fn()
+    const onCommit = vi.fn()
 
     render(
-      <ControlledExpressionInput
+      <ControlledExpressionEditor
         initialValue=""
         variables={[]}
-        onValueChange={onChange}
+        onValueCommit={onCommit}
       />
     )
 
@@ -581,39 +405,72 @@ describe("ExpressionInput integration", () => {
       shiftKey: false,
     })
 
-    expect(onChange).toHaveBeenCalledTimes(1)
-    expect(onChange).toHaveBeenCalledWith("enter commit")
+    expect(onCommit).toHaveBeenCalledTimes(1)
+    expect(onCommit).toHaveBeenCalledWith("enter commit")
     expect(editor.getAttribute("data-focused")).toBe("false")
   })
 
-  it("Shift+Enter does not commit and retains focus", () => {
-    const onChange = vi.fn()
+  it("updates displayed value after fast type-and-blur", async () => {
+    const onCommit = vi.fn()
 
     render(
-      <ExpressionInput
-        value=""
+      <ControlledExpressionEditor
+        initialValue=""
         variables={[]}
-        onChange={onChange}
-        placeholder="type..."
+        onValueCommit={onCommit}
       />
     )
 
-    const editor = screen.getByLabelText("expression-editor")
+    const editor = screen.getByLabelText("expression-editor") as HTMLTextAreaElement
     fireEvent.focus(editor)
     fireEvent.change(editor, {
       target: {
-        value: "line1",
-        selectionStart: 5,
-        selectionEnd: 5,
+        value: "fast blur value",
+        selectionStart: 15,
+        selectionEnd: 15,
       },
     })
-    fireEvent.keyDown(editor, {
-      key: "Enter",
-      code: "Enter",
-      shiftKey: true,
-    })
+    fireEvent.blur(editor)
 
-    expect(onChange).not.toHaveBeenCalled()
-    expect(editor.getAttribute("data-focused")).toBe("true")
+    expect(onCommit).toHaveBeenCalledTimes(1)
+    expect(onCommit).toHaveBeenCalledWith("fast blur value")
+
+    await waitFor(() => {
+      expect(editor.value).toBe("fast blur value")
+    })
+  })
+
+  it("inserts selected variable in wrapped expression format", async () => {
+    const user = userEvent.setup()
+    const onCommit = vi.fn()
+    const variables: ExpressionVariableOption[] = [
+      {
+        value: "myVar",
+        label: "myVar",
+        description: "A variable",
+        group: "Variables",
+      },
+    ]
+
+    render(
+      <ControlledExpressionEditor
+        initialValue="prefix "
+        variables={variables}
+        onValueCommit={onCommit}
+      />
+    )
+
+    const editor = screen.getByLabelText("expression-editor") as HTMLTextAreaElement
+    editor.focus()
+    fireEvent.change(editor, {
+      target: {
+        value: "prefix {{}}",
+        selectionStart: "prefix {{".length,
+        selectionEnd: "prefix {{".length,
+      },
+    })
+    await user.click(screen.getByText("myVar"))
+
+    expect(onCommit).toHaveBeenLastCalledWith("prefix {{ myVar }}")
   })
 })

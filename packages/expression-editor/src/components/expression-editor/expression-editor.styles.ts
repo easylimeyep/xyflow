@@ -1,6 +1,6 @@
 import { tv } from "tailwind-variants"
 
-export const expressionInputStyles = tv({
+export const expressionEditorStyles = tv({
   slots: {
     root: "space-y-1",
     editorContainer:

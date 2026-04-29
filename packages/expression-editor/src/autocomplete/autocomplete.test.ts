@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import type { ExpressionVariableOption } from "../../types/types"
+import type { ExpressionVariableOption } from "../types"
 import {
   buildExpressionCompletions,
   filterExpressionCompletions,
@@ -36,18 +36,20 @@ describe("expression autocomplete helpers", () => {
     expect(filtered[0]?.label).toContain("TransformA")
   })
 
-  it("deduplicates completion labels when builtins are also present in variables", () => {
+  it("deduplicates completion labels", () => {
     const completions = buildExpressionCompletions([
       ...VARIABLES,
       {
-        value: "$input.all()",
-        label: "$input.all()",
-        description: "Duplicate builtin",
+        value: '$("TriggerA").item.json.eventName',
+        label: '$("TriggerA").item.json.eventName',
+        description: "Duplicate",
         group: "Current input",
       },
     ])
 
-    const inputAllCount = completions.filter((entry) => entry.label === "$input.all()").length
-    expect(inputAllCount).toBe(1)
+    const duplicateCount = completions.filter(
+      (entry) => entry.label === '$("TriggerA").item.json.eventName'
+    ).length
+    expect(duplicateCount).toBe(1)
   })
 })

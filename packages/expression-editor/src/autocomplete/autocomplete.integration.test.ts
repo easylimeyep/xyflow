@@ -2,7 +2,7 @@ import { CompletionContext } from "@codemirror/autocomplete"
 import { EditorState } from "@codemirror/state"
 import { describe, expect, it } from "vitest"
 
-import type { ExpressionVariableOption } from "../../types/types"
+import type { ExpressionVariableOption } from "../types"
 import { createExpressionCompletionSource } from "./autocomplete"
 
 describe("expression completion source integration", () => {
@@ -28,7 +28,7 @@ describe("expression completion source integration", () => {
     )
   })
 
-  it("returns null result when no variables match and doc is empty", () => {
+  it("returns no builtin input completion when catalog is empty", () => {
     const source = createExpressionCompletionSource([])
     const state = EditorState.create({
       doc: "",
@@ -36,7 +36,6 @@ describe("expression completion source integration", () => {
     const context = new CompletionContext(state, 0, true)
     const result = source(context)
 
-    // With no variables and no builtins, result may be null or have empty options
     if (result !== null) {
       expect(result.options.some((option) => option.label === "$input.item.json")).toBe(false)
     }

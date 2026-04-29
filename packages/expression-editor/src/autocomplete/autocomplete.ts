@@ -1,7 +1,7 @@
 import type { Completion, CompletionContext, CompletionResult } from "@codemirror/autocomplete"
 
-import { getBuiltinExpressionCompletions } from "../builtins/builtins"
-import type { ExpressionVariableOption } from "../../types/types"
+import { getBuiltinExpressionCompletions } from "../builtins"
+import type { ExpressionVariableOption } from "../types"
 
 const TOKEN_PATTERN = /[\w$.()[\]"']+/
 

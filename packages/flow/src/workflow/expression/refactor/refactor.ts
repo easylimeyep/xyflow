@@ -1,5 +1,6 @@
+import { parseTemplateSegments } from "@workspace/expression-editor"
+
 import { getNodeDefinition, type NodeKind } from "../../node-registry/registry"
-import { parseTemplateSegments } from "../template/template"
 import type { WorkflowNode } from "../../types/types"
 
 export function refactorPlainVariableReferencesInGraph(
