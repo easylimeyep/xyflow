@@ -1,6 +1,4 @@
 import type { LucideIcon } from "lucide-react"
-import type { ComponentType } from "react"
-import type { NodeProps } from "@xyflow/react"
 
 import type { JsonObject, NodeFieldSchema } from "../types/types"
 
@@ -30,7 +28,6 @@ export interface NodeDefinition<K extends string = string> {
   showTarget?: boolean
   subtitle?: (config: Record<string, unknown>) => string
   inlineFields?: NodeFieldSchema[]
-  component?: ComponentType<NodeProps>
   extraExpressionConfigKeys?: string[]
   renameConfigKey?: string
   validateConfigValue?: (key: string, value: unknown) => boolean

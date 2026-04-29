@@ -1,0 +1,1 @@
+export { extractor } from "./definition"

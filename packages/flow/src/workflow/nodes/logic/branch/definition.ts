@@ -1,7 +1,7 @@
 import { GitBranch } from "lucide-react"
 
-import { defineNode } from "../../node-registry/define-node"
-import { DEFAULT_BRANCH_OPERATOR_ID, type BranchCondition } from "../../types"
+import { defineNode } from "../../../node-registry/define-node"
+import { DEFAULT_BRANCH_OPERATOR_ID, type BranchCondition } from "../../../types"
 
 function isBranchCondition(value: unknown): value is BranchCondition {
   if (typeof value !== "object" || value === null) return false

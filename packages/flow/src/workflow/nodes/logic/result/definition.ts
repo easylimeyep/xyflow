@@ -1,6 +1,6 @@
 import { CheckCircle } from "lucide-react"
 
-import { defineNode } from "../../node-registry/define-node"
+import { defineNode } from "../../../node-registry/define-node"
 
 export const result = defineNode({
   kind: "result" as const,

@@ -5,8 +5,8 @@ import type { NodeProps } from "@xyflow/react"
 import type { ReactNode } from "react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-import type { WorkflowBranchOperatorOption } from "../../types"
-import { BranchNode } from "./branch-node"
+import type { WorkflowBranchOperatorOption } from "../../../types"
+import { BranchNode } from "./component"
 
 const mockUpdateNodeConfig = vi.fn()
 
@@ -31,7 +31,7 @@ vi.mock("@workspace/ui/components/sortable", () => ({
   SortableOverlay: () => null,
 }))
 
-vi.mock("../../components/expression-input", () => ({
+vi.mock("../../../components/expression-input", () => ({
   ExpressionInput: ({
     value,
     placeholder,
@@ -49,7 +49,7 @@ vi.mock("../../components/expression-input", () => ({
   ),
 }))
 
-vi.mock("../node-shell/node-shell", () => ({
+vi.mock("../../node-shell/node-shell", () => ({
   NodeShell: ({
     title,
     subtitle,
@@ -67,7 +67,7 @@ vi.mock("../node-shell/node-shell", () => ({
   ),
 }))
 
-vi.mock("../shared/use-node-store-data", () => ({
+vi.mock("../../shared/use-node-store-data", () => ({
   useNodeStoreData: () => ({
     expressionVariables: [],
     branchOperators: mockBranchOperators,

@@ -1,0 +1,1 @@
+export { setVariable } from "./definition"

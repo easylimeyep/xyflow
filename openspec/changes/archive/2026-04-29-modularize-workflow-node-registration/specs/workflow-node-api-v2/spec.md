@@ -1,8 +1,5 @@
-# workflow-node-api-v2 Specification
+## MODIFIED Requirements
 
-## Purpose
-TBD - created by archiving change rebuild-flow-node-api-v2. Update Purpose after archive.
-## Requirements
 ### Requirement: Node API v2 is the single source of truth for node kinds
 The system SHALL define each node kind through a Node API v2 module that owns its config schema/defaults, graph rules, runtime behavior metadata, and optional UI rendering entrypoint. Pure node metadata MUST remain importable without loading client-only React components.
 
@@ -36,14 +33,3 @@ The editor SHALL resolve custom node components through an explicit client-side 
 #### Scenario: Client component bindings reference valid node kinds
 - **WHEN** the client view registry declares a custom renderer for a node kind
 - **THEN** that node kind MUST exist in the pure Node API v2 definition registry
-
-### Requirement: Node behavior hooks are declarative and typed
-Node API v2 SHALL expose typed behavior hooks (including expression keys, rename semantics, and variable-provision behavior) that drive runtime side-effects.
-
-#### Scenario: Rename behavior is definition-driven
-- **WHEN** a node definition declares rename behavior for a config key
-- **THEN** rename-triggered expression refactoring MUST be executed through the declared behavior without hardcoded node-kind checks
-
-#### Scenario: Expression key discovery is definition-driven
-- **WHEN** runtime resolves expression-bearing config keys for a node kind
-- **THEN** it MUST use the keys declared in the node definition behavior contract

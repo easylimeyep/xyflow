@@ -4,7 +4,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 import type { NodeProps } from "@xyflow/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-import { ExtractorNode } from "./extractor-node"
+import { ExtractorNode } from "./component"
 
 const mockUpdateNodeConfig = vi.fn()
 

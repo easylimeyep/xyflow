@@ -16,19 +16,19 @@ import {
 import { GripVertical, Trash2 } from "lucide-react"
 import { useCallback, useMemo } from "react"
 
-import { branchNodeStyles } from "../../../styles/components/nodes"
-import { ExpressionInput } from "../../components/expression-input"
+import { branchNodeStyles } from "../../../../styles/components/nodes"
+import { ExpressionInput } from "../../../components/expression-input"
 import type {
   BranchCondition,
   ConditionOperator,
   ExpressionVariableOption,
   WorkflowBranchOperatorOption,
-} from "../../types"
-import { DEFAULT_BRANCH_OPERATOR_ID } from "../../types"
-import { branch } from "./branch"
-import { NodeShell } from "../node-shell/node-shell"
-import { useBaseNodeData } from "../shared"
-import { useNodeStoreData } from "../shared/use-node-store-data"
+} from "../../../types"
+import { DEFAULT_BRANCH_OPERATOR_ID } from "../../../types"
+import { NodeShell } from "../../node-shell/node-shell"
+import { useBaseNodeData } from "../../shared"
+import { useNodeStoreData } from "../../shared/use-node-store-data"
+import { branch } from "./definition"
 
 const styles = branchNodeStyles()
 

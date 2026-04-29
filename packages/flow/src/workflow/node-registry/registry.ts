@@ -1,8 +1,8 @@
 import type { NodeDefinition } from "./define-node"
+import { extractor } from "../nodes/data/extractor"
+import { inlineExpression } from "../nodes/data/inline-expression"
+import { setVariable } from "../nodes/data/set-variable"
 import { branch } from "../nodes/logic/branch"
-import { inlineExpression } from "../nodes/data/inline-expression/definition"
-import { setVariable } from "../nodes/data/set-variable/definition"
-import { extractor } from "../nodes/data/extractor/definition"
 import { result } from "../nodes/logic/result"
 
 const allDefinitions = [

@@ -65,11 +65,9 @@ describe("registry smoke tests", () => {
   )
 
   it.each(
-    WORKFLOW_NODE_KINDS.filter(
-      (kind) => !nodeRegistry[kind as NodeKind].component
-    )
+    WORKFLOW_NODE_KINDS
   )(
-    "simple node '%s' renders via DefaultNodeRenderer without errors",
+    "node definition '%s' renders via DefaultNodeRenderer without client bindings",
     (kind) => {
       const definition = nodeRegistry[kind as NodeKind]
 
@@ -98,6 +96,12 @@ describe("registry smoke tests", () => {
       expect(container.textContent).toContain(definition.title)
     }
   )
+
+  it("pure node definitions do not carry client component bindings", () => {
+    for (const definition of allDefinitions) {
+      expect("component" in definition).toBe(false)
+    }
+  })
 
   it("all allowedTargets reference valid node kinds", () => {
     const validKinds = new Set(WORKFLOW_NODE_KINDS)

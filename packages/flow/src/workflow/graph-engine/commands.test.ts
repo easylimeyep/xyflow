@@ -11,8 +11,6 @@ import {
   applyUpdateNodeConfigCommand,
   applyUpdateNodeLabelCommand,
 } from "./commands"
-import { buildNodeTypes } from "../node-registry/node-types-builder"
-import { nodeRegistry } from "../node-registry/registry"
 
 function createGraph(
   nodes = [createWorkflowNode("inlineExpression", { x: 0, y: 0 })]
@@ -238,15 +236,5 @@ describe("graph-engine commands", () => {
     expect(result.nextSelectedNodeIds).toEqual([source.id])
     expect(result.nodeCollectionChanged).toBe(true)
     expect(result.edgeCollectionChanged).toBe(true)
-  })
-
-  it("builds node types from definition.component instead of override maps", () => {
-    const nodeTypes = buildNodeTypes(Object.values(nodeRegistry))
-
-    expect(nodeTypes.setVariable).toBe(nodeRegistry.setVariable.component)
-    expect(nodeTypes.inlineExpression).toBe(nodeRegistry.inlineExpression.component)
-    expect(nodeTypes.extractor).toBe(nodeRegistry.extractor.component)
-    expect(nodeTypes.branch).toBe(nodeRegistry.branch.component)
-    expect(nodeTypes.result).toBe(nodeRegistry.result.component)
   })
 })

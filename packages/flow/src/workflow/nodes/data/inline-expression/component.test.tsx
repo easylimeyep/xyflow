@@ -5,7 +5,7 @@ import type { NodeProps } from "@xyflow/react"
 import type { ReactNode } from "react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-import { InlineExpressionNode } from "./inline-expression-node"
+import { InlineExpressionNode } from "./component"
 
 const mockUpdateNodeConfig = vi.fn()
 
