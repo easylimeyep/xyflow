@@ -29,6 +29,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@workspace/expression-editor':
+        specifier: workspace:*
+        version: link:../../packages/expression-editor
       '@workspace/flow':
         specifier: workspace:*
         version: link:../../packages/flow

@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@workspace/expression-editor": "workspace:*",
     "@workspace/ui": "workspace:*",
     "@workspace/flow": "workspace:*",
     "@workspace/store": "workspace:*",

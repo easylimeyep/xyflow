@@ -1,5 +1,4 @@
 @import "@xyflow/react/dist/style.css" layer(components);
-@import "@workspace/expression-editor/style.css" layer(components);
 
 .react-flow {
   --xy-background-color: var(--muted);
