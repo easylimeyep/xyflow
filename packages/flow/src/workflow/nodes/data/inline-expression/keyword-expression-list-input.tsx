@@ -1,8 +1,7 @@
 "use client"
 
-import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
-import { Delete, DeleteIcon, Plus, Trash2Icon, X } from "lucide-react"
+import { Plus, Trash2Icon } from "lucide-react"
 import { useMemo } from "react"
 
 import { inlineExpressionNodeStyles } from "../../../../styles/components/nodes"
@@ -54,7 +53,7 @@ export function KeywordExpressionListInput({
         const canDelete = value.length > 0
 
         return (
-          <div key={`${index}-${rowValue}`} className={styles.tokenRow()}>
+          <div key={index} className={styles.tokenRow()}>
             {canDelete ? (
               <Button
                 type="button"

@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react"
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest"
 
 import type { ExpressionVariableOption } from "../../types"
+import { KeywordExpressionListInput } from "../../nodes/data/inline-expression/keyword-expression-list-input"
 import { ExpressionInput } from "./expression-input"
 
 interface MockSelectionMain {
@@ -323,6 +324,29 @@ describe("ExpressionInput integration", () => {
     )
   }
 
+  function ControlledKeywordExpressionListInput({
+    initialValue,
+    variables,
+    onValueChange,
+  }: {
+    initialValue: string[]
+    variables: ExpressionVariableOption[]
+    onValueChange?: (nextValue: string[]) => void
+  }) {
+    const [value, setValue] = useState(initialValue)
+
+    return (
+      <KeywordExpressionListInput
+        value={value}
+        variables={variables}
+        onChange={(nextValue) => {
+          setValue(nextValue)
+          onValueChange?.(nextValue)
+        }}
+      />
+    )
+  }
+
   it("inserts selected variable in {{ ... }} format after typing {{}} trigger", async () => {
     const user = userEvent.setup()
     const onChange = vi.fn()
@@ -411,6 +435,42 @@ describe("ExpressionInput integration", () => {
     await user.click(screen.getByText("$input.item.json"))
 
     expect(onChange).toHaveBeenLastCalledWith("{{ $input.item.json }}")
+  })
+
+  it("inserts selected variable on first click from a keyword expression row", async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    const variables: ExpressionVariableOption[] = [
+      {
+        value: "$input.item.json",
+        label: "$input.item.json",
+        description: "Current input JSON",
+        group: "Execution",
+      },
+    ]
+
+    render(
+      <ControlledKeywordExpressionListInput
+        initialValue={["prefix "]}
+        variables={variables}
+        onValueChange={onChange}
+      />
+    )
+
+    const editor = screen.getByLabelText("expression-editor") as HTMLTextAreaElement
+    editor.focus()
+    fireEvent.change(editor, {
+      target: {
+        value: "prefix {{}}",
+        selectionStart: "prefix {{".length,
+        selectionEnd: "prefix {{".length,
+      },
+    })
+
+    await user.click(screen.getByText("$input.item.json"))
+
+    expect(onChange).toHaveBeenLastCalledWith(["prefix {{ $input.item.json }}"])
+    expect(screen.queryByText("$input.item.json")).toBeNull()
   })
 
   it("does not call onChange while typing before blur", () => {
