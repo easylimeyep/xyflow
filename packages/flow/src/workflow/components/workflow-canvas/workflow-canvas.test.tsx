@@ -1,7 +1,14 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
-import type { ReactNode } from "react"
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react"
+import { readFileSync } from "node:fs"
+import type { MouseEvent, ReactNode } from "react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { WORKFLOW_NODE_KIND_MIME } from "../../dnd"
@@ -31,6 +38,8 @@ const fixtureGraphWithEdge = {
 
 const reactFlowRenderSpy = vi.fn()
 const fitViewSpy = vi.fn()
+const setCenterSpy = vi.fn()
+const getViewportSpy = vi.fn(() => ({ x: 24, y: 48, zoom: 1.75 }))
 
 vi.mock("../workflow-edge", () => {
   return {
@@ -44,8 +53,16 @@ vi.mock("../workflow-edge", () => {
       onDeleteEdge: (edgeId: string) => void
     }) => (
       <div data-testid={`mock-workflow-edge-${id}`}>
-        <button type="button" data-testid={`mock-edge-insert-${id}`} onClick={() => onStartInsert(id)} />
-        <button type="button" data-testid={`mock-edge-delete-${id}`} onClick={() => onDeleteEdge(id)} />
+        <button
+          type="button"
+          data-testid={`mock-edge-insert-${id}`}
+          onClick={() => onStartInsert(id)}
+        />
+        <button
+          type="button"
+          data-testid={`mock-edge-delete-${id}`}
+          onClick={() => onDeleteEdge(id)}
+        />
       </div>
     ),
   }
@@ -53,7 +70,9 @@ vi.mock("../workflow-edge", () => {
 
 vi.mock("@xyflow/react", () => {
   return {
-    ReactFlowProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
+    ReactFlowProvider: ({ children }: { children: ReactNode }) => (
+      <>{children}</>
+    ),
     Background: () => null,
     Controls: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
     ControlButton: ({
@@ -68,9 +87,46 @@ vi.mock("@xyflow/react", () => {
         {children}
       </button>
     ),
-    MiniMap: () => null,
+    MiniMap: ({
+      onClick,
+      pannable,
+      zoomable,
+      maskStrokeColor,
+      maskStrokeWidth,
+    }: {
+      onClick?: (event: MouseEvent, position: { x: number; y: number }) => void
+      pannable?: boolean
+      zoomable?: boolean
+      maskStrokeColor?: string
+      maskStrokeWidth?: number
+    }) => (
+      <div data-testid="rf-minimap">
+        <span data-testid="rf-minimap-pannable">
+          {String(Boolean(pannable))}
+        </span>
+        <span data-testid="rf-minimap-zoomable">{String(zoomable)}</span>
+        <span data-testid="rf-minimap-mask-stroke-color">
+          {maskStrokeColor}
+        </span>
+        <span data-testid="rf-minimap-mask-stroke-width">
+          {String(maskStrokeWidth)}
+        </span>
+        <button
+          type="button"
+          data-testid="rf-minimap-click"
+          onClick={(event) => onClick?.(event, { x: 420, y: 240 })}
+        />
+        <button
+          type="button"
+          data-testid="rf-minimap-node-click"
+          onClick={(event) => onClick?.(event, { x: 320, y: 180 })}
+        />
+      </div>
+    ),
     useReactFlow: () => ({
       fitView: fitViewSpy,
+      getViewport: getViewportSpy,
+      setCenter: setCenterSpy,
       screenToFlowPosition: ({ x, y }: { x: number; y: number }) => {
         const safeX = Number.isFinite(x) ? x : 10
         const safeY = Number.isFinite(y) ? y : 20
@@ -107,9 +163,15 @@ vi.mock("@xyflow/react", () => {
           selected: boolean
         }>
       ) => void
-      onMoveEnd: (event: unknown, viewport: { x: number; y: number; zoom: number }) => void
+      onMoveEnd: (
+        event: unknown,
+        viewport: { x: number; y: number; zoom: number }
+      ) => void
       onMouseMove: (event: { clientX: number; clientY: number }) => void
-      isValidConnection: (connection: { source: string; target: string }) => boolean
+      isValidConnection: (connection: {
+        source: string
+        target: string
+      }) => boolean
       defaultViewport?: { x: number; y: number; zoom: number }
       viewport?: { x: number; y: number; zoom: number }
       edges?: Array<{
@@ -133,12 +195,20 @@ vi.mock("@xyflow/react", () => {
       reactFlowRenderSpy({ edgeTypes })
       return (
         <div data-testid="rf-root" onDrop={onDrop}>
-          <span data-testid="rf-has-default-viewport">{String(Boolean(defaultViewport))}</span>
+          <span data-testid="rf-has-default-viewport">
+            {String(Boolean(defaultViewport))}
+          </span>
           <span data-testid="rf-has-viewport">{String(Boolean(viewport))}</span>
-          <span data-testid="rf-selection-on-drag">{String(Boolean(selectionOnDrag))}</span>
+          <span data-testid="rf-selection-on-drag">
+            {String(Boolean(selectionOnDrag))}
+          </span>
           <span data-testid="rf-pan-on-drag">{String(panOnDrag)}</span>
-          <span data-testid="rf-pan-on-scroll">{String(Boolean(panOnScroll))}</span>
-          <span data-testid="rf-zoom-on-pinch">{String(Boolean(zoomOnPinch))}</span>
+          <span data-testid="rf-pan-on-scroll">
+            {String(Boolean(panOnScroll))}
+          </span>
+          <span data-testid="rf-zoom-on-pinch">
+            {String(Boolean(zoomOnPinch))}
+          </span>
           <span data-testid="rf-zoom-on-scroll">{String(zoomOnScroll)}</span>
           <span data-testid="rf-min-zoom">{String(minZoom)}</span>
           <span data-testid="rf-max-zoom">{String(maxZoom)}</span>
@@ -151,7 +221,9 @@ vi.mock("@xyflow/react", () => {
             type="button"
             data-testid="rf-select"
             onClick={() =>
-              onNodesChange([{ id: "selected-node", type: "select", selected: true }])
+              onNodesChange([
+                { id: "selected-node", type: "select", selected: true },
+              ])
             }
           />
           <button type="button" data-testid="rf-pane" onClick={onPaneClick} />
@@ -161,7 +233,9 @@ vi.mock("@xyflow/react", () => {
             onClick={() => onMoveEnd(null, { x: 12, y: 34, zoom: 1.25 })}
           />
           <span data-testid="rf-valid">
-            {String(isValidConnection({ source: "missing", target: "missing" }))}
+            {String(
+              isValidConnection({ source: "missing", target: "missing" })
+            )}
           </span>
           {edges?.map((edge) => {
             const EdgeTypeComponent = edgeTypes?.[edge.type ?? "workflow"]
@@ -199,6 +273,8 @@ describe("WorkflowCanvas", () => {
     cleanup()
     reactFlowRenderSpy.mockClear()
     fitViewSpy.mockReset()
+    setCenterSpy.mockReset()
+    getViewportSpy.mockClear()
     vi.unstubAllGlobals()
     vi.useRealTimers()
   })
@@ -231,7 +307,8 @@ describe("WorkflowCanvas", () => {
     )
 
     const dataTransfer = {
-      getData: (key: string) => (key === WORKFLOW_NODE_KIND_MIME ? "extractor" : ""),
+      getData: (key: string) =>
+        key === WORKFLOW_NODE_KIND_MIME ? "extractor" : "",
     } as DataTransfer
     fireEvent.drop(screen.getByTestId("rf-root"), {
       dataTransfer,
@@ -256,7 +333,9 @@ describe("WorkflowCanvas", () => {
 
     fireEvent.click(screen.getByTestId("rf-move"))
     expect(onViewportChange).toHaveBeenCalledWith({ x: 12, y: 34, zoom: 1.25 })
-    expect(screen.getByTestId("rf-has-default-viewport").textContent).toBe("true")
+    expect(screen.getByTestId("rf-has-default-viewport").textContent).toBe(
+      "true"
+    )
     expect(screen.getByTestId("rf-has-viewport").textContent).toBe("false")
     expect(screen.getByTestId("rf-selection-on-drag").textContent).toBe("true")
     expect(screen.getByTestId("rf-pan-on-drag").textContent).toBe("false")
@@ -265,6 +344,67 @@ describe("WorkflowCanvas", () => {
     expect(screen.getByTestId("rf-zoom-on-scroll").textContent).toBe("false")
     expect(screen.getByTestId("rf-min-zoom").textContent).toBe("0.1")
     expect(screen.getByTestId("rf-max-zoom").textContent).toBe("4")
+  })
+
+  it("configures mini map navigation, viewport styling, and click centering", () => {
+    const onSelectNodes = vi.fn()
+
+    render(
+      <WorkflowCanvas
+        nodes={initialWorkflowGraph.nodes}
+        edges={initialWorkflowGraph.edges}
+        viewport={initialWorkflowGraph.viewport}
+        onNodesChange={vi.fn()}
+        onEdgesChange={vi.fn()}
+        onConnect={vi.fn()}
+        onViewportChange={vi.fn()}
+        onSelectNodes={onSelectNodes}
+        onPaneClick={vi.fn()}
+        onAddNodeAt={vi.fn()}
+        onStartInsertFromEdge={vi.fn()}
+        onDeleteEdge={vi.fn()}
+        onPointerFlowPosition={vi.fn()}
+        edgeInsertPendingId={null}
+        onAutoLayout={vi.fn(async () => true)}
+      />
+    )
+
+    expect(screen.getByTestId("rf-minimap-pannable").textContent).toBe("true")
+    expect(screen.getByTestId("rf-minimap-zoomable").textContent).toBe("false")
+    expect(screen.getByTestId("rf-minimap-mask-stroke-color").textContent).toBe(
+      "var(--primary)"
+    )
+    expect(screen.getByTestId("rf-minimap-mask-stroke-width").textContent).toBe(
+      "2"
+    )
+
+    fireEvent.click(screen.getByTestId("rf-minimap-click"))
+
+    expect(getViewportSpy).toHaveBeenCalledTimes(1)
+    expect(setCenterSpy).toHaveBeenCalledWith(420, 240, {
+      zoom: 1.75,
+      duration: 200,
+    })
+
+    fireEvent.click(screen.getByTestId("rf-minimap-node-click"))
+
+    expect(onSelectNodes).not.toHaveBeenCalled()
+    expect(setCenterSpy).toHaveBeenLastCalledWith(320, 180, {
+      zoom: 1.75,
+      duration: 200,
+    })
+  })
+
+  it("keeps mini map outer container rounded and clipped in shared styles", () => {
+    const styleSheet = readFileSync("src/style.css", "utf8")
+
+    expect(styleSheet).toContain(".react-flow__minimap")
+    expect(styleSheet).toContain("border-radius: var(--radius-md);")
+    expect(styleSheet).toContain("overflow: hidden;")
+    expect(styleSheet).toContain(
+      "bottom: calc(var(--flow-editor-controls-height) + 0.5rem);"
+    )
+    expect(styleSheet).toContain("left: 0;")
   })
 
   it("renders auto-layout control and refits viewport after success", async () => {
@@ -297,7 +437,9 @@ describe("WorkflowCanvas", () => {
       />
     )
 
-    fireEvent.click(screen.getByRole("button", { name: "Auto layout workflow" }))
+    fireEvent.click(
+      screen.getByRole("button", { name: "Auto layout workflow" })
+    )
     await Promise.resolve()
     expect(onAutoLayout).toHaveBeenCalledTimes(1)
 

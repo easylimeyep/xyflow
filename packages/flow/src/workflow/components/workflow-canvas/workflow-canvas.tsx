@@ -1,6 +1,13 @@
 "use client"
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react"
 
 import { useEventCallback } from "@workspace/ui/hooks/use-event-callback"
 import {
@@ -38,6 +45,8 @@ import { WORKFLOW_ELK_PADDING } from "../../layout"
 
 const WORKFLOW_MIN_ZOOM = 0.1
 const WORKFLOW_MAX_ZOOM = 4
+const WORKFLOW_MINIMAP_NAVIGATION_DURATION_MS = 200
+const WORKFLOW_MINIMAP_MASK_STROKE_WIDTH = 2
 
 interface WorkflowCanvasProps {
   nodes: WorkflowNode[]
@@ -196,6 +205,17 @@ function WorkflowCanvasInner({
       setLayoutPending(false)
     }
   }, [layoutPending, onAutoLayout, reactFlow])
+  const handleMiniMapClick = useCallback(
+    (_event: React.MouseEvent, position: XYPosition) => {
+      const currentViewport = reactFlow.getViewport()
+
+      void reactFlow.setCenter(position.x, position.y, {
+        zoom: currentViewport.zoom,
+        duration: WORKFLOW_MINIMAP_NAVIGATION_DURATION_MS,
+      })
+    },
+    [reactFlow]
+  )
 
   return (
     <ReactFlow
@@ -225,7 +245,13 @@ function WorkflowCanvasInner({
       onMouseMove={onMouseMove}
       connectionLineStyle={{ strokeWidth: 2, stroke: "var(--border)" }}
     >
-      <MiniMap />
+      <MiniMap
+        pannable
+        zoomable={false}
+        onClick={handleMiniMapClick}
+        maskStrokeColor="var(--primary)"
+        maskStrokeWidth={WORKFLOW_MINIMAP_MASK_STROKE_WIDTH}
+      />
       <Controls>
         <ControlButton
           onClick={() => {
