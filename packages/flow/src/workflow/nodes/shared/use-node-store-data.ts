@@ -4,15 +4,19 @@ import {
   useWorkflowStore,
   type WorkflowStoreState,
 } from "../../store"
-import type { WorkflowBranchOperatorOption } from "../../types"
+import type { WorkflowEvaluatorOperatorOption } from "../../types"
 
 export function useNodeStoreData(nodeId: string) {
   const expressionVariables = useWorkflowStore((state: WorkflowStoreState) =>
     selectExpressionVariablesForNode(state, nodeId)
   )
-  const branchOperators = useWorkflowStore(
-    (state: WorkflowStoreState): WorkflowBranchOperatorOption[] =>
-      state.runtime.branch?.operators ?? []
+  const evaluatorOperators = useWorkflowStore(
+    (state: WorkflowStoreState): WorkflowEvaluatorOperatorOption[] =>
+      state.runtime.evaluator?.operators ?? []
+  )
+  const enableEvaluatorMultipleConditions = useWorkflowStore(
+    (state: WorkflowStoreState): boolean =>
+      state.runtime.enableEvaluatorMultipleConditions ?? false
   )
   const updateNodeConfig = useWorkflowShallowStore(
     (state: WorkflowStoreState) => state.updateNodeConfig
@@ -23,7 +27,8 @@ export function useNodeStoreData(nodeId: string) {
 
   return {
     expressionVariables,
-    branchOperators,
+    evaluatorOperators,
+    enableEvaluatorMultipleConditions,
     updateNodeConfig,
     updateNodeLabel,
   }

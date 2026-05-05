@@ -39,8 +39,8 @@ const initialGraph = createInitialGraph({
       },
     },
     {
-      id: "demo-custom-operators-branch",
-      kind: "branch",
+      id: "demo-custom-operators-evaluator",
+      kind: "evaluator",
       label: "Email rules",
       config: {
         conditions: [
@@ -79,20 +79,20 @@ const initialGraph = createInitialGraph({
   ],
   edges: [
     {
-      id: "demo-custom-operators-edge-input-to-branch",
+      id: "demo-custom-operators-edge-input-to-evaluator",
       source: "demo-custom-operators-input",
-      target: "demo-custom-operators-branch",
+      target: "demo-custom-operators-evaluator",
     },
     {
-      id: "demo-custom-operators-edge-branch-to-success",
-      source: "demo-custom-operators-branch",
-      sourceHandle: "branch-true",
+      id: "demo-custom-operators-edge-evaluator-to-success",
+      source: "demo-custom-operators-evaluator",
+      sourceHandle: "evaluator-true",
       target: "demo-custom-operators-success",
     },
     {
-      id: "demo-custom-operators-edge-branch-to-failure",
-      source: "demo-custom-operators-branch",
-      sourceHandle: "branch-false",
+      id: "demo-custom-operators-edge-evaluator-to-failure",
+      source: "demo-custom-operators-evaluator",
+      sourceHandle: "evaluator-false",
       target: "demo-custom-operators-failure",
     },
   ],
@@ -110,8 +110,8 @@ const initialGraph = createInitialGraph({
   nodes: [
     { id: "demo-custom-operators-input", kind: "inlineExpression", config: { template: ["lead"], isRoot: true, repeatable: false } },
     {
-      id: "demo-custom-operators-branch",
-      kind: "branch",
+      id: "demo-custom-operators-evaluator",
+      kind: "evaluator",
       label: "Email rules",
       config: {
         conditions: [
@@ -125,9 +125,9 @@ const initialGraph = createInitialGraph({
     { id: "demo-custom-operators-failure", kind: "result", label: "Needs cleanup", config: { category: "false" } },
   ],
   edges: [
-    { id: "demo-custom-operators-edge-input-to-branch", source: "demo-custom-operators-input", target: "demo-custom-operators-branch" },
-    { id: "demo-custom-operators-edge-branch-to-success", source: "demo-custom-operators-branch", sourceHandle: "branch-true", target: "demo-custom-operators-success" },
-    { id: "demo-custom-operators-edge-branch-to-failure", source: "demo-custom-operators-branch", sourceHandle: "branch-false", target: "demo-custom-operators-failure" },
+    { id: "demo-custom-operators-edge-input-to-evaluator", source: "demo-custom-operators-input", target: "demo-custom-operators-evaluator" },
+    { id: "demo-custom-operators-edge-evaluator-to-success", source: "demo-custom-operators-evaluator", sourceHandle: "evaluator-true", target: "demo-custom-operators-success" },
+    { id: "demo-custom-operators-edge-evaluator-to-failure", source: "demo-custom-operators-evaluator", sourceHandle: "evaluator-false", target: "demo-custom-operators-failure" },
   ],
   viewport: { x: 40, y: 40, zoom: 0.85 },
   document: {
@@ -142,7 +142,7 @@ export function Example() {
     <WorkflowEditor
       initialGraph={initialGraph}
       runtime={{
-        branch: {
+        evaluator: {
           operators: [
             { id: "includes", value: "includes domain", requiresTarget: true },
             { id: "excludes", value: "excludes domain", requiresTarget: true },
@@ -159,13 +159,13 @@ export function CustomOperatorsExample() {
   return (
     <ExamplePreview
       title="With custom boolean operators"
-      description="Пример кастомизации boolean branch-блока через `runtime.branch.operators`, где снаружи прокидываются id, label и признак `requiresTarget`."
+      description="Пример кастомизации boolean evaluator-блока через `runtime.evaluator.operators`, где снаружи прокидываются id, label и признак `requiresTarget`."
       code={code}
     >
       <WorkflowEditor
         initialGraph={initialGraph}
         runtime={{
-          branch: {
+          evaluator: {
             operators,
           },
         }}

@@ -22,14 +22,14 @@ const initialGraph = createInitialGraph({
     { id: "demo-inline-expression", kind: "inlineExpression", config: { template: ["lead"], isRoot: true, repeatable: false } },
     { id: "demo-extractor", kind: "extractor", config: { tokenNumber: 1, extractExpression: "email", unlimited: false } },
     { id: "demo-set-variable", kind: "setVariable", label: "Setter", config: { variableName: "email", valueExpression: "{{ email }}" } },
-    { id: "demo-branch", kind: "branch", config: { conditions: [{ id: "demo-branch-condition", value: "{{ email }}", operator: "contains", targetValue: "@" }], logicalOperator: "and" } },
+    { id: "demo-evaluator", kind: "evaluator", config: { conditions: [{ id: "demo-evaluator-condition", value: "{{ email }}", operator: "contains", targetValue: "@" }], logicalOperator: "and" } },
     { id: "demo-result", kind: "result", config: { category: "true" } },
   ],
   edges: [
     { id: "demo-edge-inline-to-extractor", source: "demo-inline-expression", target: "demo-extractor" },
     { id: "demo-edge-extractor-to-setter", source: "demo-extractor", target: "demo-set-variable" },
-    { id: "demo-edge-setter-to-branch", source: "demo-set-variable", target: "demo-branch" },
-    { id: "demo-edge-branch-to-result", source: "demo-branch", sourceHandle: "branch-true", target: "demo-result" },
+    { id: "demo-edge-setter-to-evaluator", source: "demo-set-variable", target: "demo-evaluator" },
+    { id: "demo-edge-evaluator-to-result", source: "demo-evaluator", sourceHandle: "evaluator-true", target: "demo-result" },
   ],
   viewport: { x: 40, y: 40, zoom: 0.8 },
   document: {

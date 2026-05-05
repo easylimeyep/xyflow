@@ -2,19 +2,26 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-import { exportSelectionClipboardJson, parseSelectionClipboardJson } from "../mappers"
+import {
+  exportSelectionClipboardJson,
+  parseSelectionClipboardJson,
+} from "../mappers"
 import { createWorkflowStore } from "./store"
 import type { DomainWorkflowNodeDTO, WorkflowNode } from "../types/types"
 
 function findRootKeywordNode(nodes: WorkflowNode[]): WorkflowNode | undefined {
   return nodes.find(
-    (node) => node.data.kind === "inlineExpression" && node.data.config.isRoot === true
+    (node) =>
+      node.data.kind === "inlineExpression" && node.data.config.isRoot === true
   )
 }
 
-function findNonRootKeywordNode(nodes: WorkflowNode[]): WorkflowNode | undefined {
+function findNonRootKeywordNode(
+  nodes: WorkflowNode[]
+): WorkflowNode | undefined {
   return nodes.find(
-    (node) => node.data.kind === "inlineExpression" && node.data.config.isRoot !== true
+    (node) =>
+      node.data.kind === "inlineExpression" && node.data.config.isRoot !== true
   )
 }
 
@@ -41,12 +48,18 @@ describe("workflow store clipboard actions", () => {
     const store = createWorkflowStore()
     const state = store.getState()
     state.addNode("inlineExpression", { x: 360, y: 80 })
-    const triggerNode = findRootKeywordNode(store.getState().history.present.nodes)
-    const inlineNode = findNonRootKeywordNode(store.getState().history.present.nodes)
+    const triggerNode = findRootKeywordNode(
+      store.getState().history.present.nodes
+    )
+    const inlineNode = findNonRootKeywordNode(
+      store.getState().history.present.nodes
+    )
     if (!triggerNode || !inlineNode) {
       throw new Error("fixture nodes not found")
     }
-    store.getState().onConnect({ source: triggerNode.id, target: inlineNode.id })
+    store
+      .getState()
+      .onConnect({ source: triggerNode.id, target: inlineNode.id })
 
     store.getState().setSelectedNodes([triggerNode.id, inlineNode.id])
     const copied = await store.getState().copySelectionToClipboard()
@@ -71,7 +84,9 @@ describe("workflow store clipboard actions", () => {
 
     const selectedSetVariable = store
       .getState()
-      .history.present.nodes.find((node: WorkflowNode) => node.data.kind === "setVariable")
+      .history.present.nodes.find(
+        (node: WorkflowNode) => node.data.kind === "setVariable"
+      )
     if (!selectedSetVariable) {
       throw new Error("set variable fixture not found")
     }
@@ -124,7 +139,9 @@ describe("workflow store clipboard actions", () => {
       nextState.selectedNodeIds.includes(node.id)
     )
     const pastedNodeIds = [...nextState.selectedNodeIds]
-    const pastedSetVariable = pastedNodes.find((node) => node.data.kind === "setVariable")
+    const pastedSetVariable = pastedNodes.find(
+      (node) => node.data.kind === "setVariable"
+    )
     expect(pastedSetVariable?.position).toEqual({ x: 300, y: 200 })
     expect(pastedSetVariable?.data.label).toBe("Setter 2")
 
@@ -142,11 +159,13 @@ describe("workflow store clipboard actions", () => {
 
   it("returns false for invalid clipboard payload", async () => {
     const store = createWorkflowStore()
-    clipboardReadTextMock.mockResolvedValue("{\"foo\":\"bar\"}")
+    clipboardReadTextMock.mockResolvedValue('{"foo":"bar"}')
 
     const pasted = await store.getState().pasteFromClipboard()
     expect(pasted).toBe(false)
-    expect(store.getState().lastError?.message).toContain("workflow selection schema")
+    expect(store.getState().lastError?.message).toContain(
+      "workflow selection schema"
+    )
   })
 
   it("rejects clipboard payloads with invalid config values deterministically", async () => {
@@ -177,7 +196,9 @@ describe("workflow store clipboard actions", () => {
 
   it("returns false when clipboard write fails", async () => {
     const store = createWorkflowStore()
-    const triggerNode = findRootKeywordNode(store.getState().history.present.nodes)
+    const triggerNode = findRootKeywordNode(
+      store.getState().history.present.nodes
+    )
     if (!triggerNode) {
       throw new Error("fixture node not found")
     }
@@ -235,7 +256,9 @@ describe("workflow store clipboard actions", () => {
 
     expect(firstPasteResult).toBe(true)
     expect(secondPasteResult).toBe(true)
-    expect(store.getState().history.present.nodes.length).toBe(beforeNodeCount + 4)
+    expect(store.getState().history.present.nodes.length).toBe(
+      beforeNodeCount + 4
+    )
     expect(store.getState().lastError).toBeNull()
   })
 
@@ -283,14 +306,16 @@ describe("workflow store clipboard actions", () => {
     const pastedNodes = nextState.history.present.nodes.filter((node) =>
       nextState.selectedNodeIds.includes(node.id)
     )
-    const pastedInlineExpression = pastedNodes.find((node) => node.data.kind === "inlineExpression")
+    const pastedInlineExpression = pastedNodes.find(
+      (node) => node.data.kind === "inlineExpression"
+    )
 
     expect(pastedInlineExpression?.data.config.template).toEqual([
       '{{ $node("Setter 2").item.json.myVar }}',
     ])
   })
 
-  it("preserves setVariable and branch semantic config across clipboard roundtrip", async () => {
+  it("preserves setVariable and evaluator semantic config across clipboard roundtrip", async () => {
     const store = createWorkflowStore()
     const payload = exportSelectionClipboardJson(
       [
@@ -305,10 +330,10 @@ describe("workflow store clipboard actions", () => {
           },
         },
         {
-          id: "copy-branch",
-          kind: "branch",
+          id: "copy-evaluator",
+          kind: "evaluator",
           position: { x: 220, y: 0 },
-          label: "Branch",
+          label: "Evaluator",
           config: {
             conditions: [
               {
@@ -326,7 +351,7 @@ describe("workflow store clipboard actions", () => {
         {
           id: "copy-connection",
           sourceNodeId: "copy-set-variable",
-          targetNodeId: "copy-branch",
+          targetNodeId: "copy-evaluator",
           sourceHandle: null,
           targetHandle: null,
         },
@@ -340,15 +365,21 @@ describe("workflow store clipboard actions", () => {
     expect(pasted).toBe(true)
     const pastedNodes = store
       .getState()
-      .history.present.nodes.filter((node) => store.getState().selectedNodeIds.includes(node.id))
-    const pastedSetVariable = pastedNodes.find((node) => node.data.kind === "setVariable")
-    const pastedBranch = pastedNodes.find((node) => node.data.kind === "branch")
+      .history.present.nodes.filter((node) =>
+        store.getState().selectedNodeIds.includes(node.id)
+      )
+    const pastedSetVariable = pastedNodes.find(
+      (node) => node.data.kind === "setVariable"
+    )
+    const pastedEvaluator = pastedNodes.find(
+      (node) => node.data.kind === "evaluator"
+    )
 
     expect(pastedSetVariable?.data.config).toEqual({
       variableName: "customerName",
       valueExpression: "{{ $json.customer.name }}",
     })
-    expect(pastedBranch?.data.config).toEqual({
+    expect(pastedEvaluator?.data.config).toEqual({
       conditions: [
         {
           id: "cond-1",
@@ -374,7 +405,9 @@ describe("workflow store clipboard actions", () => {
     const previousNode = node
     const sameTemplate =
       Array.isArray(node.data.config.template) &&
-      node.data.config.template.every((entry): entry is string => typeof entry === "string")
+      node.data.config.template.every(
+        (entry): entry is string => typeof entry === "string"
+      )
         ? node.data.config.template
         : []
     store.getState().updateNodeConfig(node.id, {
@@ -386,7 +419,9 @@ describe("workflow store clipboard actions", () => {
     const nextState = store.getState()
     expect(nextState.history).toBe(previousHistory)
     expect(nextState.history.present.nodes).toBe(previousNodesRef)
-    const nextNode = nextState.history.present.nodes.find((candidate) => candidate.id === node.id)
+    const nextNode = nextState.history.present.nodes.find(
+      (candidate) => candidate.id === node.id
+    )
     expect(nextNode).toBe(previousNode)
   })
 })

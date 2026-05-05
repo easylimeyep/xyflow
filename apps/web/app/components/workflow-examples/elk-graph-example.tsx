@@ -31,12 +31,12 @@ const graphInput = {
       },
     },
     {
-      id: "demo-elk-branch",
-      kind: "branch" as const,
+      id: "demo-elk-evaluator",
+      kind: "evaluator" as const,
       config: {
         conditions: [
           {
-            id: "demo-elk-branch-condition",
+            id: "demo-elk-evaluator-condition",
             value: "{{ email }}",
             operator: "contains" as const,
             targetValue: "@",
@@ -69,20 +69,20 @@ const graphInput = {
       target: "demo-elk-extractor",
     },
     {
-      id: "demo-elk-edge-extractor-to-branch",
+      id: "demo-elk-edge-extractor-to-evaluator",
       source: "demo-elk-extractor",
-      target: "demo-elk-branch",
+      target: "demo-elk-evaluator",
     },
     {
-      id: "demo-elk-edge-branch-to-true-result",
-      source: "demo-elk-branch",
-      sourceHandle: "branch-true",
+      id: "demo-elk-edge-evaluator-to-true-result",
+      source: "demo-elk-evaluator",
+      sourceHandle: "evaluator-true",
       target: "demo-elk-true-result",
     },
     {
-      id: "demo-elk-edge-branch-to-false-result",
-      source: "demo-elk-branch",
-      sourceHandle: "branch-false",
+      id: "demo-elk-edge-evaluator-to-false-result",
+      source: "demo-elk-evaluator",
+      sourceHandle: "evaluator-false",
       target: "demo-elk-false-result",
     },
   ],
@@ -100,15 +100,15 @@ const initialGraph = await createInitialGraphElk({
   nodes: [
     { id: "demo-elk-inline-expression", kind: "inlineExpression", config: { template: ["lead"], isRoot: true, repeatable: false } },
     { id: "demo-elk-extractor", kind: "extractor", config: { tokenNumber: 1, extractExpression: "email", unlimited: false } },
-    { id: "demo-elk-branch", kind: "branch", config: { conditions: [{ id: "demo-elk-branch-condition", value: "{{ email }}", operator: "contains", targetValue: "@" }], logicalOperator: "and" } },
+    { id: "demo-elk-evaluator", kind: "evaluator", config: { conditions: [{ id: "demo-elk-evaluator-condition", value: "{{ email }}", operator: "contains", targetValue: "@" }], logicalOperator: "and" } },
     { id: "demo-elk-true-result", kind: "result", label: "Valid Email", config: { category: "true" } },
     { id: "demo-elk-false-result", kind: "result", label: "Needs Review", config: { category: "false" } },
   ],
   edges: [
     { id: "demo-elk-edge-inline-to-extractor", source: "demo-elk-inline-expression", target: "demo-elk-extractor" },
-    { id: "demo-elk-edge-extractor-to-branch", source: "demo-elk-extractor", target: "demo-elk-branch" },
-    { id: "demo-elk-edge-branch-to-true-result", source: "demo-elk-branch", sourceHandle: "branch-true", target: "demo-elk-true-result" },
-    { id: "demo-elk-edge-branch-to-false-result", source: "demo-elk-branch", sourceHandle: "branch-false", target: "demo-elk-false-result" },
+    { id: "demo-elk-edge-extractor-to-evaluator", source: "demo-elk-extractor", target: "demo-elk-evaluator" },
+    { id: "demo-elk-edge-evaluator-to-true-result", source: "demo-elk-evaluator", sourceHandle: "evaluator-true", target: "demo-elk-true-result" },
+    { id: "demo-elk-edge-evaluator-to-false-result", source: "demo-elk-evaluator", sourceHandle: "evaluator-false", target: "demo-elk-false-result" },
   ],
   viewport: { x: 40, y: 40, zoom: 0.8 },
   document: {

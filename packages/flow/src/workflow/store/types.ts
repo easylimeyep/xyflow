@@ -1,4 +1,9 @@
-import type { EdgeChange, NodeChange, Viewport, XYPosition } from "@xyflow/react"
+import type {
+  EdgeChange,
+  NodeChange,
+  Viewport,
+  XYPosition,
+} from "@xyflow/react"
 import type { StoreApi } from "@workspace/store"
 import type { HistoryState } from "@workspace/store"
 
@@ -8,7 +13,7 @@ import type {
   ExpressionVariableOption,
   NodeConfigByKind,
   NodeKind,
-  WorkflowBranchOperatorOption,
+  WorkflowEvaluatorOperatorOption,
   WorkflowEdge,
   WorkflowGraphState,
   WorkflowNode,
@@ -70,12 +75,13 @@ export interface WorkflowRuntimeImportDomainConfig {
   mapper?: WorkflowImportDomainMapper
 }
 
-export interface WorkflowRuntimeBranchConfig {
-  operators?: WorkflowBranchOperatorOption[]
+export interface WorkflowRuntimeEvaluatorConfig {
+  operators?: WorkflowEvaluatorOperatorOption[]
 }
 
 export interface WorkflowRuntimeConfig {
-  branch?: WorkflowRuntimeBranchConfig
+  evaluator?: WorkflowRuntimeEvaluatorConfig
+  enableEvaluatorMultipleConditions?: boolean
   importDomain?: WorkflowRuntimeImportDomainConfig
   exportDomain?: WorkflowRuntimeExportDomainConfig
 }
@@ -135,7 +141,8 @@ export interface WorkflowStoreHistoryCommands {
 }
 
 export interface WorkflowStoreState
-  extends WorkflowStoreQueries,
+  extends
+    WorkflowStoreQueries,
     WorkflowStoreGraphCommands,
     WorkflowStoreUICommands,
     WorkflowStoreIOCommands,

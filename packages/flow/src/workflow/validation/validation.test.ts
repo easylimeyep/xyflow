@@ -60,26 +60,26 @@ describe("validateConnection", () => {
   })
 
   it("rejects cycles", () => {
-    const branch = createWorkflowNode("branch", { x: 0, y: 0 })
+    const evaluator = createWorkflowNode("evaluator", { x: 0, y: 0 })
     const inline = createWorkflowNode("inlineExpression", { x: 300, y: 0 })
 
     const existing = [
       {
-        id: "branch-inline",
-        source: branch.id,
+        id: "evaluator-inline",
+        source: evaluator.id,
         target: inline.id,
         sourceHandle: null,
         targetHandle: null,
         data: {
-          sourceKind: branch.data.kind,
+          sourceKind: evaluator.data.kind,
           targetKind: inline.data.kind,
         },
       },
     ]
 
     const result = validateConnection(
-      { source: inline.id, target: branch.id },
-      [branch, inline],
+      { source: inline.id, target: evaluator.id },
+      [evaluator, inline],
       existing
     )
 

@@ -1,10 +1,4 @@
-# workflow-evaluator-operator-options Specification
-
-## Purpose
-
-Define the configurable operator contract for the evaluator boolean block, including default fallback behavior and UI handling for unavailable stored operator ids.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Evaluator boolean block accepts structured operator definitions
 
@@ -72,6 +66,8 @@ The evaluator boolean block SHALL render interactive evaluator choice controls w
 
 - **WHEN** the evaluator boolean block renders additional logical separators after the first editable separator and `enableEvaluatorMultipleConditions` is true
 - **THEN** those separators MUST remain non-interactive text badges
+
+## ADDED Requirements
 
 ### Requirement: Evaluator condition UI hides multi-condition controls by default
 

@@ -2,7 +2,10 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-import { createClipboardHotkeyHandler, createHistoryHotkeyHandler } from "./hotkeys"
+import {
+  createClipboardHotkeyHandler,
+  createHistoryHotkeyHandler,
+} from "./hotkeys"
 import { createWorkflowStore } from "../../store"
 import type { WorkflowNode } from "../../types"
 
@@ -75,14 +78,15 @@ describe("createHistoryHotkeyHandler integration", () => {
     const state = workflowStore.getState()
     const sourceNode = state.history.present.nodes.find(
       (node: WorkflowNode) =>
-        node.data.kind === "inlineExpression" && node.data.config.isRoot === true
+        node.data.kind === "inlineExpression" &&
+        node.data.config.isRoot === true
     )
     if (!sourceNode) {
       throw new Error("source node not found")
     }
 
     state.startQuickAddFromOutput(sourceNode.id, null)
-    state.confirmQuickAddNode("branch")
+    state.confirmQuickAddNode("evaluator")
 
     const beforeDeleteState = workflowStore.getState()
     const quickAddedNodeId = beforeDeleteState.selectedNodeIds[0]
@@ -90,7 +94,8 @@ describe("createHistoryHotkeyHandler integration", () => {
       throw new Error("quick-added node not found")
     }
     const quickAddEdge = beforeDeleteState.history.present.edges.find(
-      (edge) => edge.source === sourceNode.id && edge.target === quickAddedNodeId
+      (edge) =>
+        edge.source === sourceNode.id && edge.target === quickAddedNodeId
     )
     if (!quickAddEdge) {
       throw new Error("quick-add edge not found")
@@ -99,12 +104,20 @@ describe("createHistoryHotkeyHandler integration", () => {
     const nodesBeforeDelete = beforeDeleteState.history.present.nodes.length
     const edgesBeforeDelete = beforeDeleteState.history.present.edges.length
 
-    workflowStore.getState().onNodesChange([{ id: quickAddedNodeId, type: "remove" }])
-    workflowStore.getState().onEdgesChange([{ id: quickAddEdge.id, type: "remove" }])
+    workflowStore
+      .getState()
+      .onNodesChange([{ id: quickAddedNodeId, type: "remove" }])
+    workflowStore
+      .getState()
+      .onEdgesChange([{ id: quickAddEdge.id, type: "remove" }])
 
     const deletedState = workflowStore.getState()
-    expect(deletedState.history.present.nodes.length).toBe(nodesBeforeDelete - 1)
-    expect(deletedState.history.present.edges.length).toBe(edgesBeforeDelete - 1)
+    expect(deletedState.history.present.nodes.length).toBe(
+      nodesBeforeDelete - 1
+    )
+    expect(deletedState.history.present.edges.length).toBe(
+      edgesBeforeDelete - 1
+    )
 
     const handler = createHistoryHotkeyHandler(
       () => workflowStore.getState().undo(),
@@ -144,7 +157,8 @@ describe("createHistoryHotkeyHandler integration", () => {
     const state = workflowStore.getState()
     const sourceNode = state.history.present.nodes.find(
       (node: WorkflowNode) =>
-        node.data.kind === "inlineExpression" && node.data.config.isRoot === true
+        node.data.kind === "inlineExpression" &&
+        node.data.config.isRoot === true
     )
     if (!sourceNode) {
       throw new Error("source node not found")
@@ -159,7 +173,8 @@ describe("createHistoryHotkeyHandler integration", () => {
       throw new Error("quick-added node not found")
     }
     const quickAddEdge = beforeDeleteState.history.present.edges.find(
-      (edge) => edge.source === sourceNode.id && edge.target === quickAddedNodeId
+      (edge) =>
+        edge.source === sourceNode.id && edge.target === quickAddedNodeId
     )
     if (!quickAddEdge) {
       throw new Error("quick-add edge not found")
@@ -168,12 +183,20 @@ describe("createHistoryHotkeyHandler integration", () => {
     const nodesBeforeDelete = beforeDeleteState.history.present.nodes.length
     const edgesBeforeDelete = beforeDeleteState.history.present.edges.length
 
-    workflowStore.getState().onEdgesChange([{ id: quickAddEdge.id, type: "remove" }])
-    workflowStore.getState().onNodesChange([{ id: quickAddedNodeId, type: "remove" }])
+    workflowStore
+      .getState()
+      .onEdgesChange([{ id: quickAddEdge.id, type: "remove" }])
+    workflowStore
+      .getState()
+      .onNodesChange([{ id: quickAddedNodeId, type: "remove" }])
 
     const deletedState = workflowStore.getState()
-    expect(deletedState.history.present.nodes.length).toBe(nodesBeforeDelete - 1)
-    expect(deletedState.history.present.edges.length).toBe(edgesBeforeDelete - 1)
+    expect(deletedState.history.present.nodes.length).toBe(
+      nodesBeforeDelete - 1
+    )
+    expect(deletedState.history.present.edges.length).toBe(
+      edgesBeforeDelete - 1
+    )
 
     const handler = createHistoryHotkeyHandler(
       () => workflowStore.getState().undo(),

@@ -1,6 +1,6 @@
 import { tv } from "tailwind-variants"
 
-export const branchNodeStyles = tv({
+export const evaluatorNodeStyles = tv({
   slots: {
     root: "nodrag nopan mt-2 space-y-1",
     conditionList: "space-y-1",

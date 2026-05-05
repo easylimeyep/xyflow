@@ -81,6 +81,40 @@ describe("workflow mappers", () => {
     expect(parsed.error).toContain("valid id, kind, position, and label")
   })
 
+  it("rejects legacy payload containing branch node kind", () => {
+    const legacyPayload = {
+      id: "wf-legacy-branch",
+      name: "Legacy Branch",
+      version: 1,
+      metadata: {},
+      viewport: { x: 0, y: 0, zoom: 1 },
+      nodes: [
+        {
+          id: "node-1",
+          kind: "branch",
+          position: { x: 0, y: 0 },
+          label: "Branch",
+          config: {
+            conditions: [
+              {
+                id: "condition-1",
+                value: "{{ score }}",
+                operator: "is equal to",
+                targetValue: "100",
+              },
+            ],
+            logicalOperator: "and",
+          },
+        },
+      ],
+      connections: [],
+    }
+
+    const parsed = parseInternalGraphJson(JSON.stringify(legacyPayload))
+    expect(parsed.success).toBe(false)
+    expect(parsed.error).toContain("valid id, kind, position, and label")
+  })
+
   it("exports domain json", () => {
     const triggerNode = createWorkflowNode("inlineExpression", { x: 0, y: 80 })
     triggerNode.data.config.isRoot = true
@@ -239,7 +273,7 @@ describe("workflow mappers", () => {
     ])
   })
 
-  it("preserves setVariable and branch config semantics across domain roundtrip", () => {
+  it("preserves setVariable and evaluator config semantics across domain roundtrip", () => {
     const setVariableNode = createWorkflowNode(
       "setVariable",
       { x: 300, y: 120 },
@@ -248,12 +282,12 @@ describe("workflow mappers", () => {
     setVariableNode.data.config.variableName = "customerName"
     setVariableNode.data.config.valueExpression = "{{ $json.customer.name }}"
 
-    const branchNode = createWorkflowNode(
-      "branch",
+    const evaluatorNode = createWorkflowNode(
+      "evaluator",
       { x: 620, y: 120 },
-      "Branch"
+      "Evaluator"
     )
-    branchNode.data.config.conditions = [
+    evaluatorNode.data.config.conditions = [
       {
         id: "cond-1",
         value: "{{ customerName }}",
@@ -261,11 +295,11 @@ describe("workflow mappers", () => {
         targetValue: "Alice",
       },
     ]
-    branchNode.data.config.logicalOperator = "or"
+    evaluatorNode.data.config.logicalOperator = "or"
 
     const graph = {
       ...initialWorkflowGraph,
-      nodes: [...initialWorkflowGraph.nodes, setVariableNode, branchNode],
+      nodes: [...initialWorkflowGraph.nodes, setVariableNode, evaluatorNode],
     }
 
     const raw = exportDomainJson(graph)
@@ -275,14 +309,14 @@ describe("workflow mappers", () => {
     const restoredSetVariable = parsed.value?.nodes.find(
       (node) => node.id === setVariableNode.id
     )
-    const restoredBranch = parsed.value?.nodes.find(
-      (node) => node.id === branchNode.id
+    const restoredEvaluator = parsed.value?.nodes.find(
+      (node) => node.id === evaluatorNode.id
     )
 
     expect(restoredSetVariable?.data.config).toEqual(
       setVariableNode.data.config
     )
-    expect(restoredBranch?.data.config).toEqual(branchNode.data.config)
+    expect(restoredEvaluator?.data.config).toEqual(evaluatorNode.data.config)
   })
 
   it("exports and parses selection clipboard json with relative positions", () => {
@@ -354,5 +388,29 @@ describe("workflow mappers", () => {
 
     expect(parsed.success).toBe(false)
     expect(parsed.error).toContain("invalid value")
+  })
+
+  it("rejects clipboard payload containing branch node kind", () => {
+    const node = internalToDomain(initialWorkflowGraph).nodes[0]
+    if (!node) {
+      throw new Error("fixture node not found")
+    }
+
+    const payload = JSON.stringify({
+      kind: "workflow-selection-v1",
+      nodes: [
+        {
+          ...node,
+          kind: "branch",
+          label: "Branch",
+        },
+      ],
+      connections: [],
+    })
+
+    const parsed = parseSelectionClipboardJson(payload)
+
+    expect(parsed.success).toBe(false)
+    expect(parsed.error).toContain("valid id, kind, position, and label")
   })
 })

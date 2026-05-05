@@ -2,11 +2,11 @@ import type { NodeDefinition } from "./define-node"
 import { extractor } from "../nodes/data/extractor"
 import { inlineExpression } from "../nodes/data/inline-expression"
 import { setVariable } from "../nodes/data/set-variable"
-import { branch } from "../nodes/logic/branch"
+import { evaluator } from "../nodes/logic/evaluator"
 import { result } from "../nodes/logic/result"
 
 const allDefinitions = [
-  branch,
+  evaluator,
   setVariable,
   inlineExpression,
   extractor,

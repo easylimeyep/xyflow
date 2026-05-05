@@ -5,15 +5,16 @@ import type { NodeProps } from "@xyflow/react"
 import type { ReactNode } from "react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-import type { WorkflowBranchOperatorOption } from "../../../types"
-import { BranchNode } from "./component"
+import type { WorkflowEvaluatorOperatorOption } from "../../../types"
+import { EvaluatorNode } from "./component"
 
 const mockUpdateNodeConfig = vi.fn()
 
-let mockBranchOperators: WorkflowBranchOperatorOption[] = [
+let mockEvaluatorOperators: WorkflowEvaluatorOperatorOption[] = [
   { id: "is equal to", value: "is equal to", requiresTarget: true },
   { id: "is empty", value: "is empty", requiresTarget: false },
 ]
+let mockEnableEvaluatorMultipleConditions = false
 
 vi.mock("@xyflow/react", () => ({
   Handle: () => null,
@@ -25,9 +26,15 @@ vi.mock("@xyflow/react", () => ({
 
 vi.mock("@workspace/ui/components/sortable", () => ({
   Sortable: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
-  SortableContent: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
-  SortableItem: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
-  SortableItemHandle: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+  SortableContent: ({ children }: { children?: ReactNode }) => (
+    <div>{children}</div>
+  ),
+  SortableItem: ({ children }: { children?: ReactNode }) => (
+    <div>{children}</div>
+  ),
+  SortableItemHandle: ({ children }: { children?: ReactNode }) => (
+    <div>{children}</div>
+  ),
   SortableOverlay: () => null,
 }))
 
@@ -70,7 +77,8 @@ vi.mock("../../node-shell/node-shell", () => ({
 vi.mock("../../shared/use-node-store-data", () => ({
   useNodeStoreData: () => ({
     expressionVariables: [],
-    branchOperators: mockBranchOperators,
+    evaluatorOperators: mockEvaluatorOperators,
+    enableEvaluatorMultipleConditions: mockEnableEvaluatorMultipleConditions,
     updateNodeConfig: mockUpdateNodeConfig,
   }),
 }))
@@ -79,11 +87,11 @@ function createNodeProps(
   overrides?: Partial<NodeProps["data"] & { config: Record<string, unknown> }>
 ): NodeProps {
   return {
-    id: "branch-node-1",
-    type: "branch",
+    id: "evaluator-node-1",
+    type: "evaluator",
     data: {
-      kind: "branch",
-      label: "Branch",
+      kind: "evaluator",
+      label: "Evaluator",
       config: {
         conditions: [
           {
@@ -111,16 +119,17 @@ function createNodeProps(
   }
 }
 
-describe("BranchNode", () => {
+describe("EvaluatorNode", () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockBranchOperators = [
+    mockEvaluatorOperators = [
       { id: "is equal to", value: "is equal to", requiresTarget: true },
       { id: "is empty", value: "is empty", requiresTarget: false },
     ]
-    vi
-      .spyOn(globalThis.crypto, "randomUUID")
-      .mockReturnValue("00000000-0000-0000-0000-000000000001")
+    mockEnableEvaluatorMultipleConditions = false
+    vi.spyOn(globalThis.crypto, "randomUUID").mockReturnValue(
+      "00000000-0000-0000-0000-000000000001"
+    )
   })
 
   afterEach(() => {
@@ -129,13 +138,13 @@ describe("BranchNode", () => {
   })
 
   it("renders runtime-provided operator labels and updates the stored operator id", () => {
-    mockBranchOperators = [
+    mockEvaluatorOperators = [
       { id: "matches", value: "Matches", requiresTarget: true },
       { id: "missing", value: "Is Missing", requiresTarget: false },
     ]
 
     render(
-      <BranchNode
+      <EvaluatorNode
         {...createNodeProps({
           config: {
             conditions: [
@@ -162,8 +171,8 @@ describe("BranchNode", () => {
 
     fireEvent.change(operatorSelect, { target: { value: "missing" } })
 
-    expect(mockUpdateNodeConfig).toHaveBeenCalledWith("branch-node-1", {
-      kind: "branch",
+    expect(mockUpdateNodeConfig).toHaveBeenCalledWith("evaluator-node-1", {
+      kind: "evaluator",
       key: "conditions",
       value: [
         {
@@ -177,8 +186,10 @@ describe("BranchNode", () => {
   })
 
   it("updates the editable logical operator with the native select", () => {
+    mockEnableEvaluatorMultipleConditions = true
+
     render(
-      <BranchNode
+      <EvaluatorNode
         {...createNodeProps({
           config: {
             conditions: [
@@ -218,20 +229,20 @@ describe("BranchNode", () => {
 
     fireEvent.change(logicalOperatorSelect, { target: { value: "or" } })
 
-    expect(mockUpdateNodeConfig).toHaveBeenCalledWith("branch-node-1", {
-      kind: "branch",
+    expect(mockUpdateNodeConfig).toHaveBeenCalledWith("evaluator-node-1", {
+      kind: "evaluator",
       key: "logicalOperator",
       value: "or",
     })
   })
 
   it("shows or hides the target input from operator metadata", () => {
-    const rendered = render(<BranchNode {...createNodeProps()} />)
+    const rendered = render(<EvaluatorNode {...createNodeProps()} />)
 
     expect(screen.getByLabelText("target value")).toBeTruthy()
 
     rendered.rerender(
-      <BranchNode
+      <EvaluatorNode
         {...createNodeProps({
           config: {
             conditions: [
@@ -252,17 +263,18 @@ describe("BranchNode", () => {
   })
 
   it("uses the active runtime catalog when adding a new condition", () => {
-    mockBranchOperators = [
+    mockEnableEvaluatorMultipleConditions = true
+    mockEvaluatorOperators = [
       { id: "matches", value: "Matches", requiresTarget: true },
       { id: "missing", value: "Is Missing", requiresTarget: false },
     ]
 
-    render(<BranchNode {...createNodeProps()} />)
+    render(<EvaluatorNode {...createNodeProps()} />)
 
     fireEvent.click(screen.getByRole("button", { name: /\+ Add Condition/i }))
 
-    expect(mockUpdateNodeConfig).toHaveBeenCalledWith("branch-node-1", {
-      kind: "branch",
+    expect(mockUpdateNodeConfig).toHaveBeenCalledWith("evaluator-node-1", {
+      kind: "evaluator",
       key: "conditions",
       value: [
         {
@@ -282,12 +294,12 @@ describe("BranchNode", () => {
   })
 
   it("keeps unknown stored operators editable by adding a fallback option", () => {
-    mockBranchOperators = [
+    mockEvaluatorOperators = [
       { id: "matches", value: "Matches", requiresTarget: true },
     ]
 
     render(
-      <BranchNode
+      <EvaluatorNode
         {...createNodeProps({
           config: {
             conditions: [
@@ -311,5 +323,87 @@ describe("BranchNode", () => {
     expect(operatorSelect.value).toBe("legacy-op")
     expect(screen.getByRole("option", { name: "legacy-op" })).toBeTruthy()
     expect(screen.getByLabelText("target value")).toBeTruthy()
+  })
+
+  it("hides multi-condition controls and renders only the first condition by default", () => {
+    render(
+      <EvaluatorNode
+        {...createNodeProps({
+          config: {
+            conditions: [
+              {
+                id: "condition-1",
+                value: "{{ first }}",
+                operator: "is equal to",
+                targetValue: "{{ target }}",
+              },
+              {
+                id: "condition-2",
+                value: "{{ second }}",
+                operator: "is empty",
+                targetValue: "",
+              },
+            ],
+            logicalOperator: "or",
+          },
+        })}
+      />
+    )
+
+    expect(
+      screen.queryByRole("button", { name: /\+ Add Condition/i })
+    ).toBeNull()
+    expect(screen.queryByLabelText("Logical operator")).toBeNull()
+    expect(screen.getByDisplayValue("{{ first }}")).toBeTruthy()
+    expect(screen.queryByDisplayValue("{{ second }}")).toBeNull()
+  })
+
+  it("preserves hidden conditions when editing the first condition", () => {
+    render(
+      <EvaluatorNode
+        {...createNodeProps({
+          config: {
+            conditions: [
+              {
+                id: "condition-1",
+                value: "{{ first }}",
+                operator: "is equal to",
+                targetValue: "{{ target }}",
+              },
+              {
+                id: "condition-2",
+                value: "{{ second }}",
+                operator: "is empty",
+                targetValue: "",
+              },
+            ],
+            logicalOperator: "or",
+          },
+        })}
+      />
+    )
+
+    fireEvent.change(screen.getByLabelText("value"), {
+      target: { value: "{{ changed }}" },
+    })
+
+    expect(mockUpdateNodeConfig).toHaveBeenCalledWith("evaluator-node-1", {
+      kind: "evaluator",
+      key: "conditions",
+      value: [
+        {
+          id: "condition-1",
+          value: "{{ changed }}",
+          operator: "is equal to",
+          targetValue: "{{ target }}",
+        },
+        {
+          id: "condition-2",
+          value: "{{ second }}",
+          operator: "is empty",
+          targetValue: "",
+        },
+      ],
+    })
   })
 })

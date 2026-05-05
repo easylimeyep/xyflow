@@ -36,13 +36,13 @@ const initialGraph = createInitialGraph({
       },
     },
     {
-      id: "demo-modal-branch",
-      kind: "branch",
+      id: "demo-modal-evaluator",
+      kind: "evaluator",
       label: "Has company domain",
       config: {
         conditions: [
           {
-            id: "demo-modal-branch-condition",
+            id: "demo-modal-evaluator-condition",
             value: "{{ email }}",
             operator: "contains",
             targetValue: "@company.com",
@@ -75,20 +75,20 @@ const initialGraph = createInitialGraph({
       target: "demo-modal-extractor",
     },
     {
-      id: "demo-modal-edge-extractor-to-branch",
+      id: "demo-modal-edge-extractor-to-evaluator",
       source: "demo-modal-extractor",
-      target: "demo-modal-branch",
+      target: "demo-modal-evaluator",
     },
     {
-      id: "demo-modal-edge-branch-to-true",
-      source: "demo-modal-branch",
-      sourceHandle: "branch-true",
+      id: "demo-modal-edge-evaluator-to-true",
+      source: "demo-modal-evaluator",
+      sourceHandle: "evaluator-true",
       target: "demo-modal-result-true",
     },
     {
-      id: "demo-modal-edge-branch-to-false",
-      source: "demo-modal-branch",
-      sourceHandle: "branch-false",
+      id: "demo-modal-edge-evaluator-to-false",
+      source: "demo-modal-evaluator",
+      sourceHandle: "evaluator-false",
       target: "demo-modal-result-false",
     },
   ],
@@ -115,15 +115,15 @@ const initialGraph = createInitialGraph({
   nodes: [
     { id: "demo-modal-inline-expression", kind: "inlineExpression", config: { template: ["lead"], isRoot: true, repeatable: false } },
     { id: "demo-modal-extractor", kind: "extractor", label: "Email extractor", config: { tokenNumber: 1, extractExpression: "email", unlimited: false } },
-    { id: "demo-modal-branch", kind: "branch", label: "Has company domain", config: { conditions: [{ id: "demo-modal-branch-condition", value: "{{ email }}", operator: "contains", targetValue: "@company.com" }], logicalOperator: "and" } },
+    { id: "demo-modal-evaluator", kind: "evaluator", label: "Has company domain", config: { conditions: [{ id: "demo-modal-evaluator-condition", value: "{{ email }}", operator: "contains", targetValue: "@company.com" }], logicalOperator: "and" } },
     { id: "demo-modal-result-true", kind: "result", label: "Qualified", config: { category: "true" } },
     { id: "demo-modal-result-false", kind: "result", label: "Needs review", config: { category: "false" } },
   ],
   edges: [
     { id: "demo-modal-edge-inline-to-extractor", source: "demo-modal-inline-expression", target: "demo-modal-extractor" },
-    { id: "demo-modal-edge-extractor-to-branch", source: "demo-modal-extractor", target: "demo-modal-branch" },
-    { id: "demo-modal-edge-branch-to-true", source: "demo-modal-branch", sourceHandle: "branch-true", target: "demo-modal-result-true" },
-    { id: "demo-modal-edge-branch-to-false", source: "demo-modal-branch", sourceHandle: "branch-false", target: "demo-modal-result-false" },
+    { id: "demo-modal-edge-extractor-to-evaluator", source: "demo-modal-extractor", target: "demo-modal-evaluator" },
+    { id: "demo-modal-edge-evaluator-to-true", source: "demo-modal-evaluator", sourceHandle: "evaluator-true", target: "demo-modal-result-true" },
+    { id: "demo-modal-edge-evaluator-to-false", source: "demo-modal-evaluator", sourceHandle: "evaluator-false", target: "demo-modal-result-false" },
   ],
   viewport: { x: 40, y: 40, zoom: 0.8 },
   document: {

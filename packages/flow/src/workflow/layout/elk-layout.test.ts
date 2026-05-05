@@ -3,56 +3,56 @@ import { describe, expect, it } from "vitest"
 import { createWorkflowNode } from "../node-registry"
 import type { WorkflowGraphState } from "../types"
 import {
-  applyBranchShortcutClearance,
+  applyEvaluatorShortcutClearance,
   applyElkLayout,
   buildElkGraph,
   computeWorkflowAutoLayout,
 } from "./elk-layout"
 
 describe("workflow ELK layout adapter", () => {
-  it("builds an ELK graph with branch ports and handle-aware edges", () => {
-    const branchNode = createWorkflowNode("branch", { x: 0, y: 80 })
+  it("builds an ELK graph with evaluator ports and handle-aware edges", () => {
+    const evaluatorNode = createWorkflowNode("evaluator", { x: 0, y: 80 })
     const trueNode = createWorkflowNode("extractor", { x: 320, y: 0 })
     const falseNode = createWorkflowNode("setVariable", { x: 320, y: 160 })
     const graph = buildElkGraph(
-      [branchNode, trueNode, falseNode],
+      [evaluatorNode, trueNode, falseNode],
       [
         {
-          id: "branch-true-edge",
-          source: branchNode.id,
+          id: "evaluator-true-edge",
+          source: evaluatorNode.id,
           target: trueNode.id,
-          sourceHandle: "branch-true",
+          sourceHandle: "evaluator-true",
           targetHandle: null,
-          data: { sourceKind: "branch", targetKind: "extractor" },
+          data: { sourceKind: "evaluator", targetKind: "extractor" },
         },
         {
-          id: "branch-false-edge",
-          source: branchNode.id,
+          id: "evaluator-false-edge",
+          source: evaluatorNode.id,
           target: falseNode.id,
-          sourceHandle: "branch-false",
+          sourceHandle: "evaluator-false",
           targetHandle: null,
-          data: { sourceKind: "branch", targetKind: "setVariable" },
+          data: { sourceKind: "evaluator", targetKind: "setVariable" },
         },
       ]
     )
 
-    const branchElkNode = graph.children.find(
-      (node) => node.id === branchNode.id
+    const evaluatorElkNode = graph.children.find(
+      (node) => node.id === evaluatorNode.id
     )
-    expect(branchElkNode?.ports?.map((port) => port.id)).toEqual([
-      `${branchNode.id}::target`,
-      `${branchNode.id}::source::branch-true`,
-      `${branchNode.id}::source::branch-false`,
+    expect(evaluatorElkNode?.ports?.map((port) => port.id)).toEqual([
+      `${evaluatorNode.id}::target`,
+      `${evaluatorNode.id}::source::evaluator-true`,
+      `${evaluatorNode.id}::source::evaluator-false`,
     ])
     expect(graph.edges).toEqual([
       {
-        id: "branch-true-edge",
-        sources: [`${branchNode.id}::source::branch-true`],
+        id: "evaluator-true-edge",
+        sources: [`${evaluatorNode.id}::source::evaluator-true`],
         targets: [`${trueNode.id}::target`],
       },
       {
-        id: "branch-false-edge",
-        sources: [`${branchNode.id}::source::branch-false`],
+        id: "evaluator-false-edge",
+        sources: [`${evaluatorNode.id}::source::evaluator-false`],
         targets: [`${falseNode.id}::target`],
       },
     ])
@@ -83,10 +83,16 @@ describe("workflow ELK layout adapter", () => {
     })
   })
 
-  it("uses branch condition count to estimate unmeasured branch height", () => {
-    const singleConditionBranch = createWorkflowNode("branch", { x: 0, y: 0 })
-    const multiConditionBranch = createWorkflowNode("branch", { x: 0, y: 0 })
-    multiConditionBranch.data.config.conditions = [
+  it("uses evaluator condition count to estimate unmeasured evaluator height", () => {
+    const singleConditionEvaluator = createWorkflowNode("evaluator", {
+      x: 0,
+      y: 0,
+    })
+    const multiConditionEvaluator = createWorkflowNode("evaluator", {
+      x: 0,
+      y: 0,
+    })
+    multiConditionEvaluator.data.config.conditions = [
       {
         id: "condition-1",
         value: "{{ score }}",
@@ -108,14 +114,14 @@ describe("workflow ELK layout adapter", () => {
     ]
 
     const graph = buildElkGraph(
-      [singleConditionBranch, multiConditionBranch],
+      [singleConditionEvaluator, multiConditionEvaluator],
       []
     )
     const singleConditionElkNode = graph.children.find(
-      (node) => node.id === singleConditionBranch.id
+      (node) => node.id === singleConditionEvaluator.id
     )
     const multiConditionElkNode = graph.children.find(
-      (node) => node.id === multiConditionBranch.id
+      (node) => node.id === multiConditionEvaluator.id
     )
 
     expect(singleConditionElkNode?.height).toBeGreaterThan(80)
@@ -184,25 +190,41 @@ describe("workflow ELK layout adapter", () => {
     })
   })
 
-  it("moves branch shortcut result targets away from sibling path nodes", () => {
-    const branch = createWorkflowNode("branch", { x: 0, y: 100 }, "Auto approve?")
-    const score = createWorkflowNode("extractor", { x: 360, y: 80 }, "Extract approval score")
-    const summary = createWorkflowNode("setVariable", { x: 720, y: 80 }, "Set true summary")
-    const result = createWorkflowNode("result", { x: 1080, y: 80 }, "result true")
+  it("moves evaluator shortcut result targets away from sibling path nodes", () => {
+    const evaluator = createWorkflowNode(
+      "evaluator",
+      { x: 0, y: 100 },
+      "Auto approve?"
+    )
+    const score = createWorkflowNode(
+      "extractor",
+      { x: 360, y: 80 },
+      "Extract approval score"
+    )
+    const summary = createWorkflowNode(
+      "setVariable",
+      { x: 720, y: 80 },
+      "Set true summary"
+    )
+    const result = createWorkflowNode(
+      "result",
+      { x: 1080, y: 80 },
+      "result true"
+    )
 
     score.measured = { width: 260, height: 120 }
     summary.measured = { width: 260, height: 120 }
     result.measured = { width: 260, height: 100 }
 
-    const nodes = [branch, score, summary, result]
+    const nodes = [evaluator, score, summary, result]
     const edges = [
       {
         id: "true-path",
-        source: branch.id,
+        source: evaluator.id,
         target: score.id,
-        sourceHandle: "branch-true",
+        sourceHandle: "evaluator-true",
         targetHandle: null,
-        data: { sourceKind: "branch", targetKind: "extractor" },
+        data: { sourceKind: "evaluator", targetKind: "extractor" },
       },
       {
         id: "score-to-summary",
@@ -222,15 +244,15 @@ describe("workflow ELK layout adapter", () => {
       },
       {
         id: "false-shortcut",
-        source: branch.id,
+        source: evaluator.id,
         target: result.id,
-        sourceHandle: "branch-false",
+        sourceHandle: "evaluator-false",
         targetHandle: null,
-        data: { sourceKind: "branch", targetKind: "result" },
+        data: { sourceKind: "evaluator", targetKind: "result" },
       },
     ]
 
-    const nextNodes = applyBranchShortcutClearance(nodes, edges)
+    const nextNodes = applyEvaluatorShortcutClearance(nodes, edges)
     const nextScore = nextNodes.find((node) => node.id === score.id)
     const nextSummary = nextNodes.find((node) => node.id === summary.id)
     const nextResult = nextNodes.find((node) => node.id === result.id)
@@ -241,10 +263,10 @@ describe("workflow ELK layout adapter", () => {
     expect(
       edges.map((edge) => [edge.source, edge.target, edge.sourceHandle])
     ).toEqual([
-      [branch.id, score.id, "branch-true"],
+      [evaluator.id, score.id, "evaluator-true"],
       [score.id, summary.id, null],
       [summary.id, result.id, null],
-      [branch.id, result.id, "branch-false"],
+      [evaluator.id, result.id, "evaluator-false"],
     ])
   })
 

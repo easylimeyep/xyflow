@@ -1,17 +1,17 @@
 import {
-  DEFAULT_BRANCH_OPERATOR_OPTIONS,
-  type WorkflowBranchOperatorOption,
+  DEFAULT_EVALUATOR_OPERATOR_OPTIONS,
+  type WorkflowEvaluatorOperatorOption,
 } from "../types"
 import type { WorkflowRuntimeConfig } from "./types"
 
-function normalizeBranchOperators(
-  operators: WorkflowBranchOperatorOption[] | undefined
-): WorkflowBranchOperatorOption[] {
+function normalizeEvaluatorOperators(
+  operators: WorkflowEvaluatorOperatorOption[] | undefined
+): WorkflowEvaluatorOperatorOption[] {
   if (!Array.isArray(operators)) {
-    return DEFAULT_BRANCH_OPERATOR_OPTIONS
+    return DEFAULT_EVALUATOR_OPERATOR_OPTIONS
   }
 
-  const normalized: WorkflowBranchOperatorOption[] = []
+  const normalized: WorkflowEvaluatorOperatorOption[] = []
   const seenIds = new Set<string>()
 
   for (const operator of operators) {
@@ -30,7 +30,7 @@ function normalizeBranchOperators(
     })
   }
 
-  return normalized.length > 0 ? normalized : DEFAULT_BRANCH_OPERATOR_OPTIONS
+  return normalized.length > 0 ? normalized : DEFAULT_EVALUATOR_OPERATOR_OPTIONS
 }
 
 export function normalizeWorkflowRuntimeConfig(
@@ -38,9 +38,11 @@ export function normalizeWorkflowRuntimeConfig(
 ): WorkflowRuntimeConfig {
   return {
     ...runtime,
-    branch: {
-      ...runtime.branch,
-      operators: normalizeBranchOperators(runtime.branch?.operators),
+    enableEvaluatorMultipleConditions:
+      runtime.enableEvaluatorMultipleConditions ?? false,
+    evaluator: {
+      ...runtime.evaluator,
+      operators: normalizeEvaluatorOperators(runtime.evaluator?.operators),
     },
   }
 }

@@ -111,13 +111,13 @@ describe("initial graph builders", () => {
     ])
   })
 
-  it("orders branch descendants using output handle order", () => {
+  it("orders evaluator descendants using output handle order", () => {
     const graph = createInitialGraph({
       nodes: [
         { id: "keyword", kind: "inlineExpression", config: { isRoot: true } },
         {
-          id: "branch",
-          kind: "branch",
+          id: "evaluator",
+          kind: "evaluator",
           config: {
             conditions: [
               {
@@ -133,15 +133,15 @@ describe("initial graph builders", () => {
         { id: "false-result", kind: "result", config: { category: "false" } },
       ],
       edges: [
-        { source: "keyword", target: "branch" },
+        { source: "keyword", target: "evaluator" },
         {
-          source: "branch",
-          sourceHandle: "branch-true",
+          source: "evaluator",
+          sourceHandle: "evaluator-true",
           target: "true-result",
         },
         {
-          source: "branch",
-          sourceHandle: "branch-false",
+          source: "evaluator",
+          sourceHandle: "evaluator-false",
           target: "false-result",
         },
       ],
@@ -176,7 +176,7 @@ describe("initial graph builders", () => {
         { id: "keyword", kind: "inlineExpression", config: { isRoot: true } },
         {
           id: "auto-approve",
-          kind: "branch",
+          kind: "evaluator",
           label: "Auto approve?",
           config: {
             conditions: [
@@ -189,21 +189,29 @@ describe("initial graph builders", () => {
             ],
           },
         },
-        { id: "extract-score", kind: "extractor", label: "Extract approval score" },
+        {
+          id: "extract-score",
+          kind: "extractor",
+          label: "Extract approval score",
+        },
         { id: "result-true", kind: "result", label: "result true" },
       ],
       edges: [
-        { id: "keyword-to-branch", source: "keyword", target: "auto-approve" },
+        {
+          id: "keyword-to-evaluator",
+          source: "keyword",
+          target: "auto-approve",
+        },
         {
           id: "approval-true",
           source: "auto-approve",
-          sourceHandle: "branch-true",
+          sourceHandle: "evaluator-true",
           target: "extract-score",
         },
         {
           id: "approval-false-shortcut",
           source: "auto-approve",
-          sourceHandle: "branch-false",
+          sourceHandle: "evaluator-false",
           target: "result-true",
         },
       ],
@@ -211,7 +219,7 @@ describe("initial graph builders", () => {
 
     expect(graph.edges).toEqual([
       expect.objectContaining({
-        id: "keyword-to-branch",
+        id: "keyword-to-evaluator",
         source: "keyword",
         target: "auto-approve",
         sourceHandle: null,
@@ -221,14 +229,14 @@ describe("initial graph builders", () => {
         id: "approval-true",
         source: "auto-approve",
         target: "extract-score",
-        sourceHandle: "branch-true",
+        sourceHandle: "evaluator-true",
         targetHandle: null,
       }),
       expect.objectContaining({
         id: "approval-false-shortcut",
         source: "auto-approve",
         target: "result-true",
-        sourceHandle: "branch-false",
+        sourceHandle: "evaluator-false",
         targetHandle: null,
       }),
     ])

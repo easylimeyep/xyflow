@@ -1,29 +1,33 @@
-import { GitBranch } from "lucide-react"
+import { Scale } from "lucide-react"
 
 import { defineNode } from "../../../node-registry/define-node"
-import { DEFAULT_BRANCH_OPERATOR_ID, type BranchCondition } from "../../../types"
+import {
+  DEFAULT_EVALUATOR_OPERATOR_ID,
+  type EvaluatorCondition,
+} from "../../../types"
 
-function isBranchCondition(value: unknown): value is BranchCondition {
+function isEvaluatorCondition(value: unknown): value is EvaluatorCondition {
   if (typeof value !== "object" || value === null) return false
-  const candidate = value as Partial<BranchCondition>
+  const candidate = value as Partial<EvaluatorCondition>
   return (
     typeof candidate.id === "string" &&
     typeof candidate.value === "string" &&
     typeof candidate.operator === "string" &&
-    (candidate.targetValue === undefined || typeof candidate.targetValue === "string")
+    (candidate.targetValue === undefined ||
+      typeof candidate.targetValue === "string")
   )
 }
 
-export const branch = defineNode({
-  kind: "branch" as const,
-  title: "Branch",
+export const evaluator = defineNode({
+  kind: "evaluator" as const,
+  title: "Evaluator",
   description: "Split the flow by condition.",
-  icon: GitBranch,
+  icon: Scale,
   category: "logic",
   fields: [],
   outputPaths: ["conditionMatched"],
   allowedTargets: [
-    "branch",
+    "evaluator",
     "setVariable",
     "inlineExpression",
     "extractor",
@@ -34,25 +38,25 @@ export const branch = defineNode({
       {
         id: crypto.randomUUID(),
         value: "",
-        operator: DEFAULT_BRANCH_OPERATOR_ID,
+        operator: DEFAULT_EVALUATOR_OPERATOR_ID,
         targetValue: "",
-      } satisfies BranchCondition,
+      } satisfies EvaluatorCondition,
     ],
     logicalOperator: "and" as const,
   }),
   subtitle: (config) => {
-    const conditions = config.conditions as BranchCondition[] | undefined
+    const conditions = config.conditions as EvaluatorCondition[] | undefined
     if (!conditions?.length) return "No conditions"
     return `${conditions.length} condition${conditions.length > 1 ? "s" : ""}`
   },
   outputs: [
     {
-      id: "branch-true",
+      id: "evaluator-true",
       top: "34%",
       label: "true",
     },
     {
-      id: "branch-false",
+      id: "evaluator-false",
       top: "72%",
       label: "false",
     },
@@ -60,7 +64,7 @@ export const branch = defineNode({
   validateConfigValue: (key, value) => {
     switch (key) {
       case "conditions":
-        return Array.isArray(value) && value.every(isBranchCondition)
+        return Array.isArray(value) && value.every(isEvaluatorCondition)
       case "logicalOperator":
         return value === "and" || value === "or"
       default:

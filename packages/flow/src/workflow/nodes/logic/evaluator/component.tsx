@@ -16,32 +16,32 @@ import {
 import { GripVertical, Trash2 } from "lucide-react"
 import { useCallback, useMemo } from "react"
 
-import { branchNodeStyles } from "../../../../styles/components/nodes"
+import { evaluatorNodeStyles } from "../../../../styles/components/nodes"
 import { ExpressionInput } from "../../../components/expression-input"
 import type {
-  BranchCondition,
+  EvaluatorCondition,
   ConditionOperator,
   ExpressionVariableOption,
-  WorkflowBranchOperatorOption,
+  WorkflowEvaluatorOperatorOption,
 } from "../../../types"
-import { DEFAULT_BRANCH_OPERATOR_ID } from "../../../types"
+import { DEFAULT_EVALUATOR_OPERATOR_ID } from "../../../types"
 import { NodeShell } from "../../node-shell/node-shell"
 import { useBaseNodeData } from "../../shared"
 import { useNodeStoreData } from "../../shared/use-node-store-data"
-import { branch } from "./definition"
+import { evaluator } from "./definition"
 
-const styles = branchNodeStyles()
+const styles = evaluatorNodeStyles()
 
 // ─── ConditionRow ────────────────────────────────────────────────────────────
 
 interface ConditionRowProps {
-  condition: BranchCondition
+  condition: EvaluatorCondition
   variables: ExpressionVariableOption[]
-  operators: WorkflowBranchOperatorOption[]
+  operators: WorkflowEvaluatorOperatorOption[]
   canDelete: boolean
   showDragHandle: boolean
   isOverlay?: boolean
-  onUpdate: (id: string, patch: Partial<Omit<BranchCondition, "id">>) => void
+  onUpdate: (id: string, patch: Partial<Omit<EvaluatorCondition, "id">>) => void
   onDelete: (id: string) => void
 }
 
@@ -56,7 +56,9 @@ function ConditionRow({
   onDelete,
 }: ConditionRowProps) {
   const activeOperators = useMemo(() => {
-    const hasCurrentOperator = operators.some((op) => op.id === condition.operator)
+    const hasCurrentOperator = operators.some(
+      (op) => op.id === condition.operator
+    )
     if (hasCurrentOperator) {
       return operators
     }
@@ -71,7 +73,9 @@ function ConditionRow({
     ]
   }, [condition.operator, condition.targetValue, operators])
 
-  const selectedOperator = activeOperators.find((op) => op.id === condition.operator)
+  const selectedOperator = activeOperators.find(
+    (op) => op.id === condition.operator
+  )
   const needsTarget = selectedOperator?.requiresTarget ?? false
 
   return (
@@ -176,31 +180,39 @@ function LogicalOperatorRow({
   )
 }
 
-// ─── BranchNode ───────────────────────────────────────────────────────────────
+// ─── EvaluatorNode ───────────────────────────────────────────────────────────────
 
-export function BranchNode({ id, data, selected }: NodeProps) {
+export function EvaluatorNode({ id, data, selected }: NodeProps) {
   const { label: baseLabel, config } = useBaseNodeData(data)
-  const label = baseLabel || "Branch"
-  const { expressionVariables, branchOperators, updateNodeConfig } =
-    useNodeStoreData(id)
+  const label = baseLabel || "Evaluator"
+  const {
+    expressionVariables,
+    evaluatorOperators,
+    enableEvaluatorMultipleConditions,
+    updateNodeConfig,
+  } = useNodeStoreData(id)
 
   const conditions = useMemo(
-    () => (config.conditions as BranchCondition[] | undefined) ?? [],
+    () => (config.conditions as EvaluatorCondition[] | undefined) ?? [],
     [config.conditions]
   )
   const logicalOperator =
     (config.logicalOperator as "and" | "or" | undefined) ?? "and"
 
   const setConditions = useCallback(
-    (next: BranchCondition[]) => {
-      updateNodeConfig(id, { kind: "branch", key: "conditions", value: next })
+    (next: EvaluatorCondition[]) => {
+      updateNodeConfig(id, {
+        kind: "evaluator",
+        key: "conditions",
+        value: next,
+      })
     },
     [id, updateNodeConfig]
   )
 
   const handleAddCondition = useCallback(() => {
     const defaultOperatorId =
-      branchOperators[0]?.id ?? DEFAULT_BRANCH_OPERATOR_ID
+      evaluatorOperators[0]?.id ?? DEFAULT_EVALUATOR_OPERATOR_ID
 
     setConditions([
       ...conditions,
@@ -211,10 +223,10 @@ export function BranchNode({ id, data, selected }: NodeProps) {
         targetValue: "",
       },
     ])
-  }, [branchOperators, conditions, setConditions])
+  }, [evaluatorOperators, conditions, setConditions])
 
   const handleUpdateCondition = useCallback(
-    (conditionId: string, patch: Partial<Omit<BranchCondition, "id">>) => {
+    (conditionId: string, patch: Partial<Omit<EvaluatorCondition, "id">>) => {
       setConditions(
         conditions.map((c) => (c.id === conditionId ? { ...c, ...patch } : c))
       )
@@ -231,7 +243,7 @@ export function BranchNode({ id, data, selected }: NodeProps) {
   )
 
   const handleReorder = useCallback(
-    (next: BranchCondition[]) => {
+    (next: EvaluatorCondition[]) => {
       setConditions(next)
     },
     [setConditions]
@@ -239,12 +251,20 @@ export function BranchNode({ id, data, selected }: NodeProps) {
 
   const handleOperatorChange = useCallback(
     (v: "and" | "or") => {
-      updateNodeConfig(id, { kind: "branch", key: "logicalOperator", value: v })
+      updateNodeConfig(id, {
+        kind: "evaluator",
+        key: "logicalOperator",
+        value: v,
+      })
     },
     [id, updateNodeConfig]
   )
 
-  const showDragHandle = conditions.length > 1
+  const visibleConditions = enableEvaluatorMultipleConditions
+    ? conditions
+    : conditions.slice(0, 1)
+  const showDragHandle =
+    enableEvaluatorMultipleConditions && visibleConditions.length > 1
 
   return (
     <NodeShell
@@ -252,20 +272,20 @@ export function BranchNode({ id, data, selected }: NodeProps) {
       title={label}
       subtitle={`${conditions.length} condition${conditions.length !== 1 ? "s" : ""}`}
       selected={selected}
-      outputs={branch.outputs}
+      outputs={evaluator.outputs}
     >
       <div className={styles.root()}>
         <div className={styles.conditionList()}>
           <Sortable
-            value={conditions}
+            value={visibleConditions}
             onValueChange={handleReorder}
             getItemValue={(c) => c.id}
             orientation="vertical"
           >
             <SortableContent>
-              {conditions.map((condition, index) => (
+              {visibleConditions.map((condition, index) => (
                 <SortableItem key={condition.id} value={condition.id}>
-                  {index > 0 && (
+                  {enableEvaluatorMultipleConditions && index > 0 && (
                     <LogicalOperatorRow
                       value={logicalOperator}
                       isInteractive={index === 1}
@@ -275,8 +295,11 @@ export function BranchNode({ id, data, selected }: NodeProps) {
                   <ConditionRow
                     condition={condition}
                     variables={expressionVariables}
-                    operators={branchOperators}
-                    canDelete={conditions.length > 1}
+                    operators={evaluatorOperators}
+                    canDelete={
+                      enableEvaluatorMultipleConditions &&
+                      visibleConditions.length > 1
+                    }
                     showDragHandle={showDragHandle}
                     onUpdate={handleUpdateCondition}
                     onDelete={handleDeleteCondition}
@@ -287,14 +310,16 @@ export function BranchNode({ id, data, selected }: NodeProps) {
 
             <SortableOverlay>
               {({ value }) => {
-                const overlayCondition = conditions.find((c) => c.id === value)
+                const overlayCondition = visibleConditions.find(
+                  (c) => c.id === value
+                )
                 if (!overlayCondition) return null
                 return (
                   <SortableItem value={overlayCondition.id}>
                     <ConditionRow
                       condition={overlayCondition}
                       variables={expressionVariables}
-                      operators={branchOperators}
+                      operators={evaluatorOperators}
                       canDelete={false}
                       showDragHandle={true}
                       isOverlay
@@ -308,14 +333,16 @@ export function BranchNode({ id, data, selected }: NodeProps) {
           </Sortable>
         </div>
 
-        <Button
-          variant="ghost"
-          size="sm"
-          className={styles.addButton()}
-          onClick={handleAddCondition}
-        >
-          + Add Condition
-        </Button>
+        {enableEvaluatorMultipleConditions && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className={styles.addButton()}
+            onClick={handleAddCondition}
+          >
+            + Add Condition
+          </Button>
+        )}
       </div>
     </NodeShell>
   )

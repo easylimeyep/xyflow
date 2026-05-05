@@ -23,4 +23,4 @@ export type {
   WorkflowRuntimeConfig,
   WorkflowStoreInitialProps,
 } from "./workflow/store"
-export type { WorkflowBranchOperatorOption } from "./workflow/types"
+export type { WorkflowEvaluatorOperatorOption } from "./workflow/types"

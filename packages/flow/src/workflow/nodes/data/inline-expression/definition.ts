@@ -29,7 +29,7 @@ export const inlineExpression = defineNode({
   ],
   outputPaths: ["template"],
   allowedTargets: [
-    "branch",
+    "evaluator",
     "setVariable",
     "inlineExpression",
     "extractor",
@@ -45,7 +45,8 @@ export const inlineExpression = defineNode({
       case "template":
         return (
           typeof value === "string" ||
-          (Array.isArray(value) && value.every((entry) => typeof entry === "string"))
+          (Array.isArray(value) &&
+            value.every((entry) => typeof entry === "string"))
         )
       case "isRoot":
       case "repeatable":

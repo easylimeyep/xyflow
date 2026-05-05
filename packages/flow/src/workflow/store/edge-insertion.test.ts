@@ -52,8 +52,12 @@ describe("computeEdgeInsertion", () => {
     expect(result.ok).toBe(true)
     if (result.ok) {
       expect(result.nextEdges).toHaveLength(2)
-      expect(result.nextEdges.some((edge) => edge.target === result.insertedNodeId)).toBe(true)
-      expect(result.nextEdges.some((edge) => edge.source === result.insertedNodeId)).toBe(true)
+      expect(
+        result.nextEdges.some((edge) => edge.target === result.insertedNodeId)
+      ).toBe(true)
+      expect(
+        result.nextEdges.some((edge) => edge.source === result.insertedNodeId)
+      ).toBe(true)
     }
   })
 
@@ -61,7 +65,7 @@ describe("computeEdgeInsertion", () => {
     const source = createWorkflowNode("result", { x: 0, y: 0 })
     const target = createWorkflowNode("setVariable", { x: 320, y: 0 })
     const graph = createGraph(source, target)
-    const result = computeEdgeInsertion(graph, "edge-main", "branch")
+    const result = computeEdgeInsertion(graph, "edge-main", "evaluator")
 
     expect(result.ok).toBe(true)
     if (result.ok) {

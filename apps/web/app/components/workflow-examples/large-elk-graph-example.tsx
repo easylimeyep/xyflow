@@ -84,7 +84,12 @@ const graphInput = {
       kind: "inlineExpression",
       label: "Aggregate Signals",
       config: {
-        template: ["{{ email }}", "{{ phone }}", "{{ country }}", "{{ intent }}"],
+        template: [
+          "{{ email }}",
+          "{{ phone }}",
+          "{{ country }}",
+          "{{ intent }}",
+        ],
         isRoot: false,
         repeatable: true,
       },
@@ -119,8 +124,8 @@ const graphInput = {
       },
     },
     {
-      id: "large-elk-final-branch",
-      kind: "branch",
+      id: "large-elk-final-evaluator",
+      kind: "evaluator",
       label: "Qualified?",
       config: {
         conditions: [
@@ -164,8 +169,8 @@ const graphInput = {
       },
     },
     {
-      id: "large-elk-true-branch",
-      kind: "branch",
+      id: "large-elk-true-evaluator",
+      kind: "evaluator",
       label: "Auto approve?",
       config: {
         conditions: [
@@ -236,8 +241,8 @@ const graphInput = {
       },
     },
     {
-      id: "large-elk-false-branch",
-      kind: "branch",
+      id: "large-elk-false-evaluator",
+      kind: "evaluator",
       label: "Needs escalation?",
       config: {
         conditions: [
@@ -297,20 +302,20 @@ const graphInput = {
       target: "large-elk-policy-keyword",
     },
     {
-      id: "large-elk-edge-policy-to-final-branch",
+      id: "large-elk-edge-policy-to-final-evaluator",
       source: "large-elk-policy-keyword",
-      target: "large-elk-final-branch",
+      target: "large-elk-final-evaluator",
     },
     {
       id: "large-elk-edge-final-true",
-      source: "large-elk-final-branch",
-      sourceHandle: "branch-true",
+      source: "large-elk-final-evaluator",
+      sourceHandle: "evaluator-true",
       target: "large-elk-true-extract",
     },
     {
       id: "large-elk-edge-final-false",
-      source: "large-elk-final-branch",
-      sourceHandle: "branch-false",
+      source: "large-elk-final-evaluator",
+      sourceHandle: "evaluator-false",
       target: "large-elk-false-extract",
     },
     {
@@ -324,14 +329,14 @@ const graphInput = {
       target: "large-elk-true-keyword",
     },
     {
-      id: "large-elk-edge-true-keyword-to-branch",
+      id: "large-elk-edge-true-keyword-to-evaluator",
       source: "large-elk-true-keyword",
-      target: "large-elk-true-branch",
+      target: "large-elk-true-evaluator",
     },
     {
-      id: "large-elk-edge-true-branch-to-score",
-      source: "large-elk-true-branch",
-      sourceHandle: "branch-true",
+      id: "large-elk-edge-true-evaluator-to-score",
+      source: "large-elk-true-evaluator",
+      sourceHandle: "evaluator-true",
       target: "large-elk-true-score",
     },
     {
@@ -345,9 +350,9 @@ const graphInput = {
       target: "large-elk-result-true",
     },
     {
-      id: "large-elk-edge-true-branch-to-result",
-      source: "large-elk-true-branch",
-      sourceHandle: "branch-false",
+      id: "large-elk-edge-true-evaluator-to-result",
+      source: "large-elk-true-evaluator",
+      sourceHandle: "evaluator-false",
       target: "large-elk-result-true",
     },
     {
@@ -361,14 +366,14 @@ const graphInput = {
       target: "large-elk-false-keyword",
     },
     {
-      id: "large-elk-edge-false-keyword-to-branch",
+      id: "large-elk-edge-false-keyword-to-evaluator",
       source: "large-elk-false-keyword",
-      target: "large-elk-false-branch",
+      target: "large-elk-false-evaluator",
     },
     {
-      id: "large-elk-edge-false-branch-to-score",
-      source: "large-elk-false-branch",
-      sourceHandle: "branch-true",
+      id: "large-elk-edge-false-evaluator-to-score",
+      source: "large-elk-false-evaluator",
+      sourceHandle: "evaluator-true",
       target: "large-elk-false-score",
     },
     {
@@ -382,9 +387,9 @@ const graphInput = {
       target: "large-elk-result-false",
     },
     {
-      id: "large-elk-edge-false-branch-to-result",
-      source: "large-elk-false-branch",
-      sourceHandle: "branch-false",
+      id: "large-elk-edge-false-evaluator-to-result",
+      source: "large-elk-false-evaluator",
+      sourceHandle: "evaluator-false",
       target: "large-elk-result-false",
     },
   ],
@@ -418,7 +423,7 @@ const initialGraph = await createInitialGraphElk({
       { id: \`large-elk-edge-extract-to-set-\${name}\`, source: \`large-elk-extract-\${name}\`, target: \`large-elk-set-\${name}\` },
       { id: \`large-elk-edge-set-\${name}-to-aggregate\`, source: \`large-elk-set-\${name}\`, target: "large-elk-aggregate-keyword" },
     ]),
-    // The Aggregate Signals keyword receives 10 incoming edges, then the workflow ends in result true/result false branches.
+    // The Aggregate Signals keyword receives 10 incoming edges, then the workflow ends in result true/result false paths.
   ],
   viewport: { x: 40, y: 40, zoom: 0.55 },
 })

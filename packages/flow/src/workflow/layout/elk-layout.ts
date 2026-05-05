@@ -21,8 +21,8 @@ import {
 
 const EXTRACTOR_LAYOUT_HEIGHT = 195
 const COMPACT_CONFIG_NODE_LAYOUT_HEIGHT = 116
-const BRANCH_LAYOUT_BASE_HEIGHT = 116
-const BRANCH_LAYOUT_CONDITION_HEIGHT = 56
+const EVALUATOR_LAYOUT_BASE_HEIGHT = 116
+const EVALUATOR_LAYOUT_CONDITION_HEIGHT = 56
 
 export interface ElkPort {
   id: string
@@ -66,9 +66,9 @@ export interface ElkLayoutEngine {
 }
 
 const defaultElkLayoutEngine: ElkLayoutEngine = new ELK()
-const BRANCH_SHORTCUT_CLEARANCE = 80
-const BRANCH_TRUE_HANDLE_RATIO = 0.34
-const BRANCH_FALSE_HANDLE_RATIO = 0.72
+const EVALUATOR_SHORTCUT_CLEARANCE = 80
+const EVALUATOR_TRUE_HANDLE_RATIO = 0.34
+const EVALUATOR_FALSE_HANDLE_RATIO = 0.72
 
 function getEstimatedNodeHeight(node: WorkflowNode): number {
   switch (node.data.kind) {
@@ -78,14 +78,14 @@ function getEstimatedNodeHeight(node: WorkflowNode): number {
     case "inlineExpression":
     case "result":
       return COMPACT_CONFIG_NODE_LAYOUT_HEIGHT
-    case "branch": {
+    case "evaluator": {
       const conditionCount = Array.isArray(node.data.config.conditions)
         ? Math.max(1, node.data.config.conditions.length)
         : 1
 
       return (
-        BRANCH_LAYOUT_BASE_HEIGHT +
-        conditionCount * BRANCH_LAYOUT_CONDITION_HEIGHT
+        EVALUATOR_LAYOUT_BASE_HEIGHT +
+        conditionCount * EVALUATOR_LAYOUT_CONDITION_HEIGHT
       )
     }
     default:
@@ -223,11 +223,11 @@ function getNodeBottom(node: WorkflowNode): number {
   return node.position.y + getNodeHeight(node)
 }
 
-function getBranchHandleY(node: WorkflowNode, handleId: string): number {
+function getEvaluatorHandleY(node: WorkflowNode, handleId: string): number {
   const ratio =
-    handleId === "branch-false"
-      ? BRANCH_FALSE_HANDLE_RATIO
-      : BRANCH_TRUE_HANDLE_RATIO
+    handleId === "evaluator-false"
+      ? EVALUATOR_FALSE_HANDLE_RATIO
+      : EVALUATOR_TRUE_HANDLE_RATIO
 
   return node.position.y + getNodeHeight(node) * ratio
 }
@@ -281,7 +281,7 @@ function collectPathNodeIds(
   return pathNodeIds
 }
 
-function isBranchShortcutToResult(
+function isEvaluatorShortcutToResult(
   edge: WorkflowEdge,
   nodesById: Map<string, WorkflowNode>
 ): boolean {
@@ -289,14 +289,14 @@ function isBranchShortcutToResult(
   const target = nodesById.get(edge.target)
 
   return (
-    source?.data.kind === "branch" &&
+    source?.data.kind === "evaluator" &&
     target?.data.kind === "result" &&
-    (edge.sourceHandle === "branch-true" ||
-      edge.sourceHandle === "branch-false")
+    (edge.sourceHandle === "evaluator-true" ||
+      edge.sourceHandle === "evaluator-false")
   )
 }
 
-export function applyBranchShortcutClearance(
+export function applyEvaluatorShortcutClearance(
   nodes: WorkflowNode[],
   edges: WorkflowEdge[]
 ): WorkflowNode[] {
@@ -313,7 +313,7 @@ export function applyBranchShortcutClearance(
   const targetYById = new Map<string, number>()
 
   edges.forEach((shortcutEdge) => {
-    if (!isBranchShortcutToResult(shortcutEdge, nodesById)) {
+    if (!isEvaluatorShortcutToResult(shortcutEdge, nodesById)) {
       return
     }
 
@@ -349,14 +349,17 @@ export function applyBranchShortcutClearance(
     }
 
     const shortcutHandle = shortcutEdge.sourceHandle
-    if (shortcutHandle !== "branch-true" && shortcutHandle !== "branch-false") {
+    if (
+      shortcutHandle !== "evaluator-true" &&
+      shortcutHandle !== "evaluator-false"
+    ) {
       return
     }
 
-    const sourceLaneY = getBranchHandleY(source, shortcutHandle)
+    const sourceLaneY = getEvaluatorHandleY(source, shortcutHandle)
 
-    if (shortcutHandle === "branch-false") {
-      const maximumSiblingBottom = sourceLaneY - BRANCH_SHORTCUT_CLEARANCE
+    if (shortcutHandle === "evaluator-false") {
+      const maximumSiblingBottom = sourceLaneY - EVALUATOR_SHORTCUT_CLEARANCE
       siblingPathNodes.forEach((node) => {
         const maximumNodeY = maximumSiblingBottom - getNodeHeight(node)
         adjustedYById.set(
@@ -365,29 +368,39 @@ export function applyBranchShortcutClearance(
         )
       })
 
-      const minimumTargetY = Math.max(
-        sourceLaneY + BRANCH_SHORTCUT_CLEARANCE,
-        ...siblingPathNodes.map(getNodeBottom)
-      ) + BRANCH_SHORTCUT_CLEARANCE
+      const minimumTargetY =
+        Math.max(
+          sourceLaneY + EVALUATOR_SHORTCUT_CLEARANCE,
+          ...siblingPathNodes.map(getNodeBottom)
+        ) + EVALUATOR_SHORTCUT_CLEARANCE
       targetYById.set(
         target.id,
-        Math.max(targetYById.get(target.id) ?? target.position.y, minimumTargetY)
+        Math.max(
+          targetYById.get(target.id) ?? target.position.y,
+          minimumTargetY
+        )
       )
       return
     }
 
-    const minimumSiblingTop = sourceLaneY + BRANCH_SHORTCUT_CLEARANCE
+    const minimumSiblingTop = sourceLaneY + EVALUATOR_SHORTCUT_CLEARANCE
     siblingPathNodes.forEach((node) => {
       adjustedYById.set(
         node.id,
-        Math.max(adjustedYById.get(node.id) ?? node.position.y, minimumSiblingTop)
+        Math.max(
+          adjustedYById.get(node.id) ?? node.position.y,
+          minimumSiblingTop
+        )
       )
     })
 
     const maximumTargetY =
-      Math.min(sourceLaneY - BRANCH_SHORTCUT_CLEARANCE, ...siblingPathNodes.map((node) => node.position.y)) -
+      Math.min(
+        sourceLaneY - EVALUATOR_SHORTCUT_CLEARANCE,
+        ...siblingPathNodes.map((node) => node.position.y)
+      ) -
       getNodeHeight(target) -
-      BRANCH_SHORTCUT_CLEARANCE
+      EVALUATOR_SHORTCUT_CLEARANCE
     targetYById.set(
       target.id,
       Math.min(targetYById.get(target.id) ?? target.position.y, maximumTargetY)
@@ -428,7 +441,7 @@ export async function computeWorkflowAutoLayout(
 
   return {
     ...graph,
-    nodes: applyBranchShortcutClearance(
+    nodes: applyEvaluatorShortcutClearance(
       applyElkLayout(graph.nodes, layoutedGraph),
       graph.edges
     ),
