@@ -12,6 +12,11 @@ import {
   workflowElkLayoutOptions,
 } from "./elk-options"
 
+const EXTRACTOR_LAYOUT_HEIGHT = 195
+const COMPACT_CONFIG_NODE_LAYOUT_HEIGHT = 116
+const BRANCH_LAYOUT_BASE_HEIGHT = 116
+const BRANCH_LAYOUT_CONDITION_HEIGHT = 56
+
 export interface ElkPort {
   id: string
   properties: {
@@ -55,12 +60,36 @@ export interface ElkLayoutEngine {
 
 const defaultElkLayoutEngine: ElkLayoutEngine = new ELK()
 
+function getEstimatedNodeHeight(node: WorkflowNode): number {
+  switch (node.data.kind) {
+    case "extractor":
+      return EXTRACTOR_LAYOUT_HEIGHT
+    case "setVariable":
+    case "inlineExpression":
+    case "result":
+      return COMPACT_CONFIG_NODE_LAYOUT_HEIGHT
+    case "branch": {
+      const conditionCount = Array.isArray(node.data.config.conditions)
+        ? Math.max(1, node.data.config.conditions.length)
+        : 1
+
+      return BRANCH_LAYOUT_BASE_HEIGHT + conditionCount * BRANCH_LAYOUT_CONDITION_HEIGHT
+    }
+    default:
+      return DEFAULT_NODE_HEIGHT
+  }
+}
+
 function getNodeWidth(node: WorkflowNode): number {
   return node.measured?.width ?? node.width ?? DEFAULT_NODE_WIDTH
 }
 
 function getNodeHeight(node: WorkflowNode): number {
-  return node.measured?.height ?? node.height ?? DEFAULT_NODE_HEIGHT
+  if (node.measured?.height != null) {
+    return node.measured.height
+  }
+
+  return Math.max(node.height ?? DEFAULT_NODE_HEIGHT, getEstimatedNodeHeight(node))
 }
 
 function toElkPorts(node: WorkflowNode, ports: WorkflowLayoutPorts): ElkPort[] {

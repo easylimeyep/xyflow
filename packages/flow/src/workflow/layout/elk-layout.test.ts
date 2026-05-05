@@ -64,6 +64,35 @@ describe("workflow ELK layout adapter", () => {
     })
   })
 
+  it("uses estimated extractor height before runtime dimensions are measured", () => {
+    const node = createWorkflowNode("extractor", { x: 0, y: 0 })
+
+    const graph = buildElkGraph([node], [])
+
+    expect(graph.children[0]).toMatchObject({
+      id: node.id,
+      width: 260,
+      height: 195,
+    })
+  })
+
+  it("uses branch condition count to estimate unmeasured branch height", () => {
+    const singleConditionBranch = createWorkflowNode("branch", { x: 0, y: 0 })
+    const multiConditionBranch = createWorkflowNode("branch", { x: 0, y: 0 })
+    multiConditionBranch.data.config.conditions = [
+      { id: "condition-1", value: "{{ score }}", operator: "contains", targetValue: "a" },
+      { id: "condition-2", value: "{{ score }}", operator: "contains", targetValue: "b" },
+      { id: "condition-3", value: "{{ score }}", operator: "contains", targetValue: "c" },
+    ]
+
+    const graph = buildElkGraph([singleConditionBranch, multiConditionBranch], [])
+    const singleConditionElkNode = graph.children.find((node) => node.id === singleConditionBranch.id)
+    const multiConditionElkNode = graph.children.find((node) => node.id === multiConditionBranch.id)
+
+    expect(singleConditionElkNode?.height).toBeGreaterThan(80)
+    expect(multiConditionElkNode?.height).toBeGreaterThan(singleConditionElkNode?.height ?? 0)
+  })
+
   it("applies returned ELK coordinates to workflow nodes", async () => {
     const root = createWorkflowNode("inlineExpression", { x: 0, y: 80 }, "Keyword")
     root.data.config.isRoot = true
