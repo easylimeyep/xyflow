@@ -1,7 +1,14 @@
 import ELK from "elkjs/lib/elk.bundled.js"
 
-import { DEFAULT_NODE_HEIGHT, DEFAULT_NODE_WIDTH } from "../node-registry/node-factory"
-import type { WorkflowEdge, WorkflowGraphState, WorkflowNode } from "../types/types"
+import {
+  DEFAULT_NODE_HEIGHT,
+  DEFAULT_NODE_WIDTH,
+} from "../node-registry/node-factory"
+import type {
+  WorkflowEdge,
+  WorkflowGraphState,
+  WorkflowNode,
+} from "../types/types"
 import {
   getElkPortId,
   resolveWorkflowLayoutPorts,
@@ -59,6 +66,9 @@ export interface ElkLayoutEngine {
 }
 
 const defaultElkLayoutEngine: ElkLayoutEngine = new ELK()
+const BRANCH_SHORTCUT_CLEARANCE = 80
+const BRANCH_TRUE_HANDLE_RATIO = 0.34
+const BRANCH_FALSE_HANDLE_RATIO = 0.72
 
 function getEstimatedNodeHeight(node: WorkflowNode): number {
   switch (node.data.kind) {
@@ -73,7 +83,10 @@ function getEstimatedNodeHeight(node: WorkflowNode): number {
         ? Math.max(1, node.data.config.conditions.length)
         : 1
 
-      return BRANCH_LAYOUT_BASE_HEIGHT + conditionCount * BRANCH_LAYOUT_CONDITION_HEIGHT
+      return (
+        BRANCH_LAYOUT_BASE_HEIGHT +
+        conditionCount * BRANCH_LAYOUT_CONDITION_HEIGHT
+      )
     }
     default:
       return DEFAULT_NODE_HEIGHT
@@ -89,7 +102,10 @@ function getNodeHeight(node: WorkflowNode): number {
     return node.measured.height
   }
 
-  return Math.max(node.height ?? DEFAULT_NODE_HEIGHT, getEstimatedNodeHeight(node))
+  return Math.max(
+    node.height ?? DEFAULT_NODE_HEIGHT,
+    getEstimatedNodeHeight(node)
+  )
 }
 
 function toElkPorts(node: WorkflowNode, ports: WorkflowLayoutPorts): ElkPort[] {
@@ -143,7 +159,10 @@ export function buildElkGraph(
     const sourcePortId = getElkPortId(edge.source, "source", sourceHandleId)
     const targetPortId = getElkPortId(edge.target, "target", targetHandleId)
 
-    if (!sourcePorts || !sourcePorts.outputHandles.some((handle) => handle.id === sourceHandleId)) {
+    if (
+      !sourcePorts ||
+      !sourcePorts.outputHandles.some((handle) => handle.id === sourceHandleId)
+    ) {
       throw new Error(`Missing ELK source port for edge ${edge.id}`)
     }
 
@@ -171,7 +190,9 @@ export function applyElkLayout(
   layoutedGraph: ElkLayoutGraph
 ): WorkflowNode[] {
   const positionsById = new Map(
-    (layoutedGraph.children ?? []).map((node) => [node.id, { x: node.x ?? 0, y: node.y ?? 0 }] as const)
+    (layoutedGraph.children ?? []).map(
+      (node) => [node.id, { x: node.x ?? 0, y: node.y ?? 0 }] as const
+    )
   )
 
   let didChange = false
@@ -181,7 +202,10 @@ export function applyElkLayout(
       return node
     }
 
-    if (node.position.x === nextPosition.x && node.position.y === nextPosition.y) {
+    if (
+      node.position.x === nextPosition.x &&
+      node.position.y === nextPosition.y
+    ) {
       return node
     }
 
@@ -189,6 +213,205 @@ export function applyElkLayout(
     return {
       ...node,
       position: nextPosition,
+    }
+  })
+
+  return didChange ? nextNodes : nodes
+}
+
+function getNodeBottom(node: WorkflowNode): number {
+  return node.position.y + getNodeHeight(node)
+}
+
+function getBranchHandleY(node: WorkflowNode, handleId: string): number {
+  const ratio =
+    handleId === "branch-false"
+      ? BRANCH_FALSE_HANDLE_RATIO
+      : BRANCH_TRUE_HANDLE_RATIO
+
+  return node.position.y + getNodeHeight(node) * ratio
+}
+
+function collectPathNodeIds(
+  startNodeId: string,
+  targetNodeId: string,
+  edges: WorkflowEdge[],
+  excludedEdgeId: string
+): Set<string> {
+  const outgoingBySource = new Map<string, WorkflowEdge[]>()
+  edges.forEach((edge) => {
+    if (edge.id === excludedEdgeId) {
+      return
+    }
+
+    const outgoing = outgoingBySource.get(edge.source) ?? []
+    outgoing.push(edge)
+    outgoingBySource.set(edge.source, outgoing)
+  })
+
+  const pathNodeIds = new Set<string>()
+  const visited = new Set<string>()
+
+  function visit(nodeId: string): boolean {
+    if (nodeId === targetNodeId) {
+      return true
+    }
+
+    if (visited.has(nodeId)) {
+      return false
+    }
+
+    visited.add(nodeId)
+
+    let reachesTarget = false
+    for (const edge of outgoingBySource.get(nodeId) ?? []) {
+      if (visit(edge.target)) {
+        reachesTarget = true
+      }
+    }
+
+    if (reachesTarget) {
+      pathNodeIds.add(nodeId)
+    }
+
+    return reachesTarget
+  }
+
+  visit(startNodeId)
+  return pathNodeIds
+}
+
+function isBranchShortcutToResult(
+  edge: WorkflowEdge,
+  nodesById: Map<string, WorkflowNode>
+): boolean {
+  const source = nodesById.get(edge.source)
+  const target = nodesById.get(edge.target)
+
+  return (
+    source?.data.kind === "branch" &&
+    target?.data.kind === "result" &&
+    (edge.sourceHandle === "branch-true" ||
+      edge.sourceHandle === "branch-false")
+  )
+}
+
+export function applyBranchShortcutClearance(
+  nodes: WorkflowNode[],
+  edges: WorkflowEdge[]
+): WorkflowNode[] {
+  const nodesById = new Map(nodes.map((node) => [node.id, node]))
+  const outgoingBySource = new Map<string, WorkflowEdge[]>()
+  const adjustedYById = new Map<string, number>()
+
+  edges.forEach((edge) => {
+    const outgoing = outgoingBySource.get(edge.source) ?? []
+    outgoing.push(edge)
+    outgoingBySource.set(edge.source, outgoing)
+  })
+
+  const targetYById = new Map<string, number>()
+
+  edges.forEach((shortcutEdge) => {
+    if (!isBranchShortcutToResult(shortcutEdge, nodesById)) {
+      return
+    }
+
+    const target = nodesById.get(shortcutEdge.target)
+    const source = nodesById.get(shortcutEdge.source)
+    const outgoing = outgoingBySource.get(shortcutEdge.source) ?? []
+    if (!target || !source || outgoing.length < 2) {
+      return
+    }
+
+    const siblingPathNodeIds = new Set<string>()
+    outgoing.forEach((siblingEdge) => {
+      if (siblingEdge.id === shortcutEdge.id) {
+        return
+      }
+
+      collectPathNodeIds(
+        siblingEdge.target,
+        shortcutEdge.target,
+        edges,
+        shortcutEdge.id
+      ).forEach((nodeId) => {
+        siblingPathNodeIds.add(nodeId)
+      })
+    })
+
+    const siblingPathNodes = Array.from(siblingPathNodeIds)
+      .map((nodeId) => nodesById.get(nodeId))
+      .filter((node): node is WorkflowNode => node != null)
+
+    if (siblingPathNodes.length === 0) {
+      return
+    }
+
+    const shortcutHandle = shortcutEdge.sourceHandle
+    if (shortcutHandle !== "branch-true" && shortcutHandle !== "branch-false") {
+      return
+    }
+
+    const sourceLaneY = getBranchHandleY(source, shortcutHandle)
+
+    if (shortcutHandle === "branch-false") {
+      const maximumSiblingBottom = sourceLaneY - BRANCH_SHORTCUT_CLEARANCE
+      siblingPathNodes.forEach((node) => {
+        const maximumNodeY = maximumSiblingBottom - getNodeHeight(node)
+        adjustedYById.set(
+          node.id,
+          Math.min(adjustedYById.get(node.id) ?? node.position.y, maximumNodeY)
+        )
+      })
+
+      const minimumTargetY = Math.max(
+        sourceLaneY + BRANCH_SHORTCUT_CLEARANCE,
+        ...siblingPathNodes.map(getNodeBottom)
+      ) + BRANCH_SHORTCUT_CLEARANCE
+      targetYById.set(
+        target.id,
+        Math.max(targetYById.get(target.id) ?? target.position.y, minimumTargetY)
+      )
+      return
+    }
+
+    const minimumSiblingTop = sourceLaneY + BRANCH_SHORTCUT_CLEARANCE
+    siblingPathNodes.forEach((node) => {
+      adjustedYById.set(
+        node.id,
+        Math.max(adjustedYById.get(node.id) ?? node.position.y, minimumSiblingTop)
+      )
+    })
+
+    const maximumTargetY =
+      Math.min(sourceLaneY - BRANCH_SHORTCUT_CLEARANCE, ...siblingPathNodes.map((node) => node.position.y)) -
+      getNodeHeight(target) -
+      BRANCH_SHORTCUT_CLEARANCE
+    targetYById.set(
+      target.id,
+      Math.min(targetYById.get(target.id) ?? target.position.y, maximumTargetY)
+    )
+  })
+
+  if (targetYById.size === 0 && adjustedYById.size === 0) {
+    return nodes
+  }
+
+  let didChange = false
+  const nextNodes = nodes.map((node) => {
+    const targetY = targetYById.get(node.id) ?? adjustedYById.get(node.id)
+    if (targetY == null || node.position.y === targetY) {
+      return node
+    }
+
+    didChange = true
+    return {
+      ...node,
+      position: {
+        ...node.position,
+        y: targetY,
+      },
     }
   })
 
@@ -205,6 +428,9 @@ export async function computeWorkflowAutoLayout(
 
   return {
     ...graph,
-    nodes: applyElkLayout(graph.nodes, layoutedGraph),
+    nodes: applyBranchShortcutClearance(
+      applyElkLayout(graph.nodes, layoutedGraph),
+      graph.edges
+    ),
   }
 }

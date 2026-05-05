@@ -30,7 +30,9 @@ describe("workflow mappers", () => {
 
     expect(restored.nodes).toHaveLength(initialWorkflowGraph.nodes.length)
     expect(restored.edges).toHaveLength(initialWorkflowGraph.edges.length)
-    expect(restored.nodes[0]?.data.kind).toBe(initialWorkflowGraph.nodes[0]?.data.kind)
+    expect(restored.nodes[0]?.data.kind).toBe(
+      initialWorkflowGraph.nodes[0]?.data.kind
+    )
   })
 
   it("rejects internal graph json (domain-only import contract)", () => {
@@ -108,11 +110,63 @@ describe("workflow mappers", () => {
     expect(parsed.version).toBe(initialWorkflowGraph.document.version)
   })
 
+  it("treats routed edge data as transient presentation state during domain export", () => {
+    const triggerNode = createWorkflowNode("inlineExpression", { x: 0, y: 80 })
+    triggerNode.data.config.isRoot = true
+    const inlineNode = createWorkflowNode("inlineExpression", { x: 360, y: 80 })
+    const graphWithRoutedEdge = {
+      ...initialWorkflowGraph,
+      nodes: [triggerNode, inlineNode],
+      edges: [
+        {
+          id: `${triggerNode.id}-${inlineNode.id}`,
+          source: triggerNode.id,
+          target: inlineNode.id,
+          sourceHandle: null,
+          targetHandle: null,
+          data: {
+            sourceKind: "inlineExpression" as const,
+            targetKind: "inlineExpression" as const,
+            route: {
+              points: [
+                { x: 260, y: 120 },
+                { x: 320, y: 120 },
+                { x: 360, y: 120 },
+              ],
+            },
+          },
+        },
+      ],
+    }
+
+    const domain = internalToDomain(graphWithRoutedEdge)
+    const restored = domainToInternal(domain)
+
+    const sourceEdge = graphWithRoutedEdge.edges[0]
+    if (!sourceEdge) {
+      throw new Error("routed mapper edge fixture is missing")
+    }
+
+    expect(domain.connections[0]).toEqual({
+      id: sourceEdge.id,
+      sourceNodeId: triggerNode.id,
+      targetNodeId: inlineNode.id,
+      sourceHandle: null,
+      targetHandle: null,
+    })
+    expect(restored.edges[0]?.data?.route).toBeUndefined()
+  })
+
   it("normalizes select fields to defaults when import values are invalid", () => {
     const extractorNode = createWorkflowNode("extractor", { x: 360, y: 80 })
-    const graph = { ...initialWorkflowGraph, nodes: [...initialWorkflowGraph.nodes, extractorNode] }
+    const graph = {
+      ...initialWorkflowGraph,
+      nodes: [...initialWorkflowGraph.nodes, extractorNode],
+    }
     const domain = internalToDomain(graph)
-    const domainExtractor = domain.nodes.find((node) => node.kind === "extractor")
+    const domainExtractor = domain.nodes.find(
+      (node) => node.kind === "extractor"
+    )
     if (!domainExtractor) {
       throw new Error("extractor node fixture is missing")
     }
@@ -142,7 +196,11 @@ describe("workflow mappers", () => {
   })
 
   it("roundtrips inline expression node config", () => {
-    const inlineNode = createWorkflowNode("inlineExpression", { x: 500, y: 180 }, "Inline Expr")
+    const inlineNode = createWorkflowNode(
+      "inlineExpression",
+      { x: 500, y: 180 },
+      "Inline Expr"
+    )
     inlineNode.data.config.template = ["{{ $input.item.json.hostname }}"]
     const graph = {
       ...initialWorkflowGraph,
@@ -151,22 +209,30 @@ describe("workflow mappers", () => {
 
     const exported = internalToDomain(graph)
     const restored = domainToInternal(exported)
-    const restoredInlineNode = restored.nodes.find((node) => node.id === inlineNode.id)
+    const restoredInlineNode = restored.nodes.find(
+      (node) => node.id === inlineNode.id
+    )
 
     expect(restoredInlineNode?.data.kind).toBe("inlineExpression")
-    expect(restoredInlineNode?.data.config.template).toEqual(["{{ $input.item.json.hostname }}"])
+    expect(restoredInlineNode?.data.config.template).toEqual([
+      "{{ $input.item.json.hostname }}",
+    ])
   })
 
   it("normalizes legacy scalar inline expression templates during import", () => {
     const domain = internalToDomain(initialWorkflowGraph)
-    const inlineNode = domain.nodes.find((node) => node.kind === "inlineExpression")
+    const inlineNode = domain.nodes.find(
+      (node) => node.kind === "inlineExpression"
+    )
     if (!inlineNode) {
       throw new Error("inline expression fixture is missing")
     }
 
     inlineNode.config.template = "{{ $input.item.json.hostname }}"
     const restored = domainToInternal(domain)
-    const restoredInlineNode = restored.nodes.find((node) => node.id === inlineNode.id)
+    const restoredInlineNode = restored.nodes.find(
+      (node) => node.id === inlineNode.id
+    )
 
     expect(restoredInlineNode?.data.config.template).toEqual([
       "{{ $input.item.json.hostname }}",
@@ -174,11 +240,19 @@ describe("workflow mappers", () => {
   })
 
   it("preserves setVariable and branch config semantics across domain roundtrip", () => {
-    const setVariableNode = createWorkflowNode("setVariable", { x: 300, y: 120 }, "Setter")
+    const setVariableNode = createWorkflowNode(
+      "setVariable",
+      { x: 300, y: 120 },
+      "Setter"
+    )
     setVariableNode.data.config.variableName = "customerName"
     setVariableNode.data.config.valueExpression = "{{ $json.customer.name }}"
 
-    const branchNode = createWorkflowNode("branch", { x: 620, y: 120 }, "Branch")
+    const branchNode = createWorkflowNode(
+      "branch",
+      { x: 620, y: 120 },
+      "Branch"
+    )
     branchNode.data.config.conditions = [
       {
         id: "cond-1",
@@ -198,16 +272,25 @@ describe("workflow mappers", () => {
     const parsed = parseInternalGraphJson(raw)
 
     expect(parsed.success).toBe(true)
-    const restoredSetVariable = parsed.value?.nodes.find((node) => node.id === setVariableNode.id)
-    const restoredBranch = parsed.value?.nodes.find((node) => node.id === branchNode.id)
+    const restoredSetVariable = parsed.value?.nodes.find(
+      (node) => node.id === setVariableNode.id
+    )
+    const restoredBranch = parsed.value?.nodes.find(
+      (node) => node.id === branchNode.id
+    )
 
-    expect(restoredSetVariable?.data.config).toEqual(setVariableNode.data.config)
+    expect(restoredSetVariable?.data.config).toEqual(
+      setVariableNode.data.config
+    )
     expect(restoredBranch?.data.config).toEqual(branchNode.data.config)
   })
 
   it("exports and parses selection clipboard json with relative positions", () => {
     const inlineNode = createWorkflowNode("inlineExpression", { x: 360, y: 80 })
-    const graphWithTwo = { ...initialWorkflowGraph, nodes: [...initialWorkflowGraph.nodes, inlineNode] }
+    const graphWithTwo = {
+      ...initialWorkflowGraph,
+      nodes: [...initialWorkflowGraph.nodes, inlineNode],
+    }
     const nodes = internalToDomain(graphWithTwo).nodes.slice(0, 2)
     const baseNodes = nodes.map((node, index) => ({
       ...node,

@@ -2,7 +2,6 @@
 
 ## Purpose
 Define required behavior for manual workflow graph auto-layout in the editor, including controls integration, history semantics, viewport behavior, and failure handling.
-
 ## Requirements
 ### Requirement: Workflow canvas exposes a manual auto-layout action
 The workflow editor SHALL expose a manual auto-layout action from the workflow canvas controls so users can explicitly reorganize the current graph without leaving the canvas.
@@ -16,16 +15,23 @@ The workflow editor SHALL expose a manual auto-layout action from the workflow c
 - **THEN** the editor MUST NOT trigger graph-wide auto-layout automatically
 
 ### Requirement: Auto-layout repositions the current workflow into a readable directed layout
-When the auto-layout action is invoked, the editor SHALL compute new positions for the current workflow graph and apply them as a left-to-right directed arrangement without changing node identity, edge identity, or workflow connectivity.
+When the auto-layout action is invoked, the editor SHALL compute new positions for the current workflow graph and apply them as a left-to-right directed arrangement without changing node identity, edge identity, workflow connectivity, or the standard curved workflow connection visual.
 
 #### Scenario: Auto-layout preserves graph meaning
 - **WHEN** a user runs auto-layout on a workflow graph
 - **THEN** the resulting graph SHALL preserve the same node ids and edge ids as before layout
 - **AND** the source/target relationships of all existing connections MUST remain unchanged
+- **AND** connections MUST remain node-to-node and handle-aware rather than becoming edge-to-edge relationships.
 
 #### Scenario: Auto-layout uses handle-aware branch placement
 - **WHEN** a workflow graph contains nodes with multiple named output handles such as branch outputs
 - **THEN** the computed layout MUST preserve distinct routing anchors for those handles so the resulting arrangement remains readable for each branch path
+- **AND** branch paths that skip over a longer path SHOULD receive enough node-placement clearance to avoid visually passing under unrelated node bodies when the layout engine can provide that clearance deterministically.
+
+#### Scenario: Auto-layout does not force routed edge rendering
+- **WHEN** a user runs auto-layout on a workflow graph
+- **THEN** the editor SHALL apply node position changes needed for the directed layout
+- **AND** the standard workflow edge renderer SHALL continue to render curved connections from React Flow source and target handle coordinates.
 
 ### Requirement: Auto-layout commits as one semantic history step
 The editor SHALL treat one successful auto-layout run as one semantic graph mutation for undo/redo purposes.
@@ -56,3 +62,4 @@ If the layout engine cannot compute a valid layout, the editor MUST leave the cu
 #### Scenario: Failed layout reports an editor error
 - **WHEN** auto-layout fails during layout computation
 - **THEN** the workflow editor SHALL surface an error message through the existing workflow error/status mechanism
+

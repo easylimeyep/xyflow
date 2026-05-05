@@ -2,7 +2,6 @@
 
 ## Purpose
 Define the public builder utilities that let consumers describe a compact workflow graph and produce a normalized `WorkflowGraphState` using deterministic linear placement or ELK-based auto-layout.
-
 ## Requirements
 ### Requirement: Flow package provides a compact initial-graph builder input
 The flow package SHALL provide a compact initial-graph builder input contract that lets consumers describe workflow nodes and edges without manually specifying node rendering coordinates, node width, or edge metadata.
@@ -41,14 +40,17 @@ The flow package SHALL expose a synchronous builder that positions normalized wo
 - **AND** repeated builds with the same input MUST produce the same node positions
 
 ### Requirement: Flow package provides an ELK-backed initial-graph builder
-The flow package SHALL expose an asynchronous initial-graph builder that reuses the workflow ELK auto-layout pipeline to compute initial node positions.
+The flow package SHALL expose an asynchronous initial-graph builder that reuses the workflow ELK auto-layout pipeline to compute initial node positions and route-aware edge presentation data.
 
 #### Scenario: ELK builder returns an asynchronously positioned graph
 - **WHEN** a consumer calls the ELK-backed initial-graph builder
 - **THEN** the builder MUST return a promise that resolves to a `WorkflowGraphState`
 - **AND** the resolved graph MUST preserve the same node ids, edge ids, and edge connectivity as the normalized compact input
+- **AND** the resolved graph MUST include routed edge presentation data for edges where the workflow ELK auto-layout pipeline returns usable route sections.
 
 #### Scenario: ELK builder shares workflow layout semantics
 - **WHEN** the ELK-backed builder computes positions for a graph with named output handles
 - **THEN** it MUST use the same workflow ELK layout pipeline that powers the editor auto-layout behavior
 - **AND** branch and multi-handle routing semantics MUST remain handle-aware
+- **AND** any routed edge presentation data MUST use the same route model produced by editor auto-layout.
+

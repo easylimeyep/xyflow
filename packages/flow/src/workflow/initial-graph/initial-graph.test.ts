@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import {
-  createInitialGraph,
-  createInitialGraphElk,
-} from "./initial-graph"
+import { createInitialGraph, createInitialGraphElk } from "./initial-graph"
 
 describe("initial graph builders", () => {
   it("normalizes node defaults, edge metadata, document, and viewport", () => {
@@ -162,12 +159,78 @@ describe("initial graph builders", () => {
         { id: "keyword", kind: "inlineExpression", config: { isRoot: true } },
         { id: "extractor", kind: "extractor" },
       ],
-      edges: [{ id: "keyword-to-extractor", source: "keyword", target: "extractor" }],
+      edges: [
+        { id: "keyword-to-extractor", source: "keyword", target: "extractor" },
+      ],
     })
 
     expect(graph.nodes.map((node) => node.id)).toEqual(["keyword", "extractor"])
     expect(graph.edges.map((edge) => edge.id)).toEqual(["keyword-to-extractor"])
     expect(graph.nodes).toHaveLength(2)
     expect(graph.nodes[0]!.position).not.toEqual(graph.nodes[1]!.position)
+  })
+
+  it("keeps ELK-backed initial graph edges connected to nodes and handles", async () => {
+    const graph = await createInitialGraphElk({
+      nodes: [
+        { id: "keyword", kind: "inlineExpression", config: { isRoot: true } },
+        {
+          id: "auto-approve",
+          kind: "branch",
+          label: "Auto approve?",
+          config: {
+            conditions: [
+              {
+                id: "condition-1",
+                value: "{{ score }}",
+                operator: "is greater than",
+                targetValue: "90",
+              },
+            ],
+          },
+        },
+        { id: "extract-score", kind: "extractor", label: "Extract approval score" },
+        { id: "result-true", kind: "result", label: "result true" },
+      ],
+      edges: [
+        { id: "keyword-to-branch", source: "keyword", target: "auto-approve" },
+        {
+          id: "approval-true",
+          source: "auto-approve",
+          sourceHandle: "branch-true",
+          target: "extract-score",
+        },
+        {
+          id: "approval-false-shortcut",
+          source: "auto-approve",
+          sourceHandle: "branch-false",
+          target: "result-true",
+        },
+      ],
+    })
+
+    expect(graph.edges).toEqual([
+      expect.objectContaining({
+        id: "keyword-to-branch",
+        source: "keyword",
+        target: "auto-approve",
+        sourceHandle: null,
+        targetHandle: null,
+      }),
+      expect.objectContaining({
+        id: "approval-true",
+        source: "auto-approve",
+        target: "extract-score",
+        sourceHandle: "branch-true",
+        targetHandle: null,
+      }),
+      expect.objectContaining({
+        id: "approval-false-shortcut",
+        source: "auto-approve",
+        target: "result-true",
+        sourceHandle: "branch-false",
+        targetHandle: null,
+      }),
+    ])
   })
 })
