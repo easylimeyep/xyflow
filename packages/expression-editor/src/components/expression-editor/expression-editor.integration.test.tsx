@@ -55,6 +55,10 @@ interface MockDomEventHandlersExtension {
   }
 }
 
+interface MockAutocompleteExtension {
+  __mockType: "autocompletion"
+}
+
 function flattenExtensions(extensions: unknown): unknown[] {
   if (Array.isArray(extensions)) {
     return extensions.flatMap(flattenExtensions)
@@ -83,6 +87,23 @@ function isMockDomEventHandlersExtension(
     (extension as { __mockType?: string }).__mockType === "domEventHandlers"
   )
 }
+
+function isMockAutocompleteExtension(
+  extension: unknown
+): extension is MockAutocompleteExtension {
+  return (
+    typeof extension === "object" &&
+    extension !== null &&
+    "__mockType" in extension &&
+    (extension as { __mockType?: string }).__mockType === "autocompletion"
+  )
+}
+
+vi.mock("@codemirror/autocomplete", () => ({
+  autocompletion: (): MockAutocompleteExtension => ({
+    __mockType: "autocompletion",
+  }),
+}))
 
 vi.mock("@codemirror/view", () => ({
   Decoration: {
@@ -191,6 +212,7 @@ vi.mock("@uiw/react-codemirror", () => {
     })
 
     const extensionsFlat = flattenExtensions(extensions)
+    const hasAutocompleteExtension = extensionsFlat.some(isMockAutocompleteExtension)
     const focusChangedListeners = extensionsFlat
       .filter(isMockUpdateListenerExtension)
       .map((extension) => extension.callback)
@@ -232,68 +254,73 @@ vi.mock("@uiw/react-codemirror", () => {
     }
 
     return (
-      <textarea
-        ref={textareaRef}
-        aria-label="expression-editor"
-        value={docValue}
-        onFocus={() => {
-          setIsFocused(true)
-          // eslint-disable-next-line react-hooks/immutability
-          viewRef.current.hasFocus = true
-          emitFocusChanged()
-        }}
-        onBlur={() => {
-          setIsFocused(false)
-          // eslint-disable-next-line react-hooks/immutability
-          viewRef.current.hasFocus = false
-          emitFocusChanged()
-        }}
-        data-focused={isFocused ? "true" : "false"}
-        onChange={(event) => {
-          const previousValue = docRef.current
-          const nextValue = event.target.value
-          const nextHead = event.target.selectionStart ?? nextValue.length
-          const nextTail = event.target.selectionEnd ?? nextHead
-          docRef.current = nextValue
-          setDocValue(nextValue)
-          selectionRef.current = {
-            head: nextHead,
-            from: nextHead,
-            to: nextTail,
-            empty: nextHead === nextTail,
-          }
-          stateRef.current.selection.main = selectionRef.current
-
-          onChange(nextValue, {
-            state: {
-              selection: {
-                main: {
-                  head: nextHead,
-                },
-              },
-            },
-            startState: {
-              doc: {
-                toString: () => previousValue,
-              },
-              selection: {
-                main: {
-                  head: nextHead,
-                },
-              },
-            },
-          })
-        }}
-        onKeyDown={(event) => {
-          const nativeEvent = event.nativeEvent as KeyboardEvent
-          for (const handler of keydownHandlers) {
-            const handled = handler(nativeEvent, viewRef.current)
-            if (handled) {
-              break
+      <>
+        <textarea
+          ref={textareaRef}
+          aria-label="expression-editor"
+          value={docValue}
+          onFocus={() => {
+            setIsFocused(true)
+            // eslint-disable-next-line react-hooks/immutability
+            viewRef.current.hasFocus = true
+            emitFocusChanged()
+          }}
+          onBlur={() => {
+            setIsFocused(false)
+            // eslint-disable-next-line react-hooks/immutability
+            viewRef.current.hasFocus = false
+            emitFocusChanged()
+          }}
+          data-focused={isFocused ? "true" : "false"}
+          onChange={(event) => {
+            const previousValue = docRef.current
+            const nextValue = event.target.value
+            const nextHead = event.target.selectionStart ?? nextValue.length
+            const nextTail = event.target.selectionEnd ?? nextHead
+            docRef.current = nextValue
+            setDocValue(nextValue)
+            selectionRef.current = {
+              head: nextHead,
+              from: nextHead,
+              to: nextTail,
+              empty: nextHead === nextTail,
             }
-          }
-        }}
-      />
+            stateRef.current.selection.main = selectionRef.current
+
+            onChange(nextValue, {
+              state: {
+                selection: {
+                  main: {
+                    head: nextHead,
+                  },
+                },
+              },
+              startState: {
+                doc: {
+                  toString: () => previousValue,
+                },
+                selection: {
+                  main: {
+                    head: nextHead,
+                  },
+                },
+              },
+            })
+          }}
+          onKeyDown={(event) => {
+            const nativeEvent = event.nativeEvent as KeyboardEvent
+            for (const handler of keydownHandlers) {
+              const handled = handler(nativeEvent, viewRef.current)
+              if (handled) {
+                break
+              }
+            }
+          }}
+        />
+        {hasAutocompleteExtension && /\bemail\b/.test(docValue) ? (
+          <div className="cm-tooltip cm-shadcn-autocomplete">email</div>
+        ) : null}
+      </>
     )
   }
 
@@ -485,5 +512,33 @@ describe("ExpressionEditor integration", () => {
     await user.click(screen.getByText("myVar"))
 
     expect(onCommit).toHaveBeenLastCalledWith("prefix {{ myVar }}")
+  })
+
+  it("does not show CodeMirror autocomplete while editing an existing token", () => {
+    render(
+      <ControlledExpressionEditor
+        initialValue="{{ emai }}"
+        variables={[
+          {
+            value: "email",
+            label: "email",
+            description: "Variable from extractor.",
+            group: "Variables",
+          },
+        ]}
+      />
+    )
+
+    const editor = screen.getByLabelText("expression-editor") as HTMLTextAreaElement
+    fireEvent.focus(editor)
+    fireEvent.change(editor, {
+      target: {
+        value: "{{ email }}",
+        selectionStart: "{{ email".length,
+        selectionEnd: "{{ email".length,
+      },
+    })
+
+    expect(document.querySelector(".cm-tooltip.cm-shadcn-autocomplete")).toBeNull()
   })
 })

@@ -1,10 +1,5 @@
 "use client"
 
-import {
-  autocompletion,
-  type CompletionContext,
-  type CompletionResult,
-} from "@codemirror/autocomplete"
 import { javascript } from "@codemirror/lang-javascript"
 import { EditorView, type ViewUpdate } from "@codemirror/view"
 import {
@@ -24,7 +19,6 @@ import {
 import CodeMirror from "@uiw/react-codemirror"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
-import { createExpressionCompletionSource } from "../../autocomplete"
 import { createTemplateHighlightExtension } from "../../highlighting/highlighting"
 import {
   buildExpressionInsertion,
@@ -32,10 +26,6 @@ import {
 } from "../../template"
 import type { ExpressionCommitEvent, ExpressionVariableOption } from "../../types"
 import { expressionEditorStyles } from "./expression-editor.styles"
-
-type ExpressionCompletionSource = (
-  context: CompletionContext
-) => CompletionResult | null | Promise<CompletionResult | null>
 
 export interface ExpressionEditorProps {
   value: string
@@ -79,10 +69,6 @@ export function ExpressionEditor({
   )
   const validation = useMemo(() => validateTemplateExpression(liveValue), [liveValue])
   const styles = expressionEditorStyles()
-  const completionSource = useMemo<ExpressionCompletionSource>(
-    () => createExpressionCompletionSource(variables),
-    [variables]
-  )
   const templateHighlightExtension = useMemo(
     () => createTemplateHighlightExtension(variables),
     [variables]
@@ -116,16 +102,11 @@ export function ExpressionEditor({
   const extensions = useMemo(
     () => [
       javascript(),
-      autocompletion({
-        override: [completionSource],
-        icons: false,
-        tooltipClass: () => "cm-shadcn-autocomplete",
-      }),
       templateHighlightExtension,
       EditorView.lineWrapping,
       commitExtension,
     ],
-    [completionSource, commitExtension, templateHighlightExtension]
+    [commitExtension, templateHighlightExtension]
   )
   const basicSetup = useMemo(
     () => ({
