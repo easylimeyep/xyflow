@@ -25,6 +25,7 @@ import CodeMirror from "@uiw/react-codemirror"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 import { createExpressionCompletionSource } from "../../autocomplete"
+import { createTemplateHighlightExtension } from "../../highlighting/highlighting"
 import {
   buildExpressionInsertion,
   validateTemplateExpression,
@@ -82,6 +83,10 @@ export function ExpressionEditor({
     () => createExpressionCompletionSource(variables),
     [variables]
   )
+  const templateHighlightExtension = useMemo(
+    () => createTemplateHighlightExtension(variables),
+    [variables]
+  )
 
   // CodeMirror extensions are intentionally stable and read the latest commit
   // callback through a ref when editor events fire.
@@ -116,10 +121,11 @@ export function ExpressionEditor({
         icons: false,
         tooltipClass: () => "cm-shadcn-autocomplete",
       }),
+      templateHighlightExtension,
       EditorView.lineWrapping,
       commitExtension,
     ],
-    [completionSource, commitExtension]
+    [completionSource, commitExtension, templateHighlightExtension]
   )
   const basicSetup = useMemo(
     () => ({

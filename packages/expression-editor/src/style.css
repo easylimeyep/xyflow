@@ -47,6 +47,14 @@
   background: var(--flow-editor-selection-match);
 }
 
+.cm-expression-delimiter {
+  color: var(--flow-editor-muted);
+}
+
+.cm-expression-known-variable {
+  color: var(--primary);
+}
+
 .cm-tooltip.cm-shadcn-autocomplete {
   border: 1px solid var(--flow-editor-border);
   background: var(--flow-editor-bg);

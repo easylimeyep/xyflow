@@ -19,4 +19,20 @@ describe("expression editor stylesheet", () => {
 
     expect(autocompleteTooltipRule).toMatch(/\bborder\s*:/)
   })
+
+  it("styles expression delimiters as muted text", () => {
+    const delimiterRule = stylesheet.match(
+      /\.cm-expression-delimiter\s*\{[^}]*\}/
+    )?.[0]
+
+    expect(delimiterRule).toMatch(/var\(--flow-editor-muted\)/)
+  })
+
+  it("styles known expression variables with an accent", () => {
+    const knownVariableRule = stylesheet.match(
+      /\.cm-expression-known-variable\s*\{[^}]*\}/
+    )?.[0]
+
+    expect(knownVariableRule).toMatch(/var\(--primary\)/)
+  })
 })

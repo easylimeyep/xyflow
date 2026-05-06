@@ -85,6 +85,12 @@ function isMockDomEventHandlersExtension(
 }
 
 vi.mock("@codemirror/view", () => ({
+  Decoration: {
+    mark: (spec: { class: string }) => ({
+      __mockType: "decoration",
+      spec,
+    }),
+  },
   EditorView: {
     updateListener: {
       of: (callback: (update: MockViewUpdate) => void): MockUpdateListenerExtension => ({
@@ -99,6 +105,13 @@ vi.mock("@codemirror/view", () => ({
       handlers,
     }),
     lineWrapping: { __mockType: "lineWrapping" },
+  },
+  ViewPlugin: {
+    fromClass: (pluginClass: unknown, spec: unknown) => ({
+      __mockType: "viewPlugin",
+      pluginClass,
+      spec,
+    }),
   },
 }))
 
