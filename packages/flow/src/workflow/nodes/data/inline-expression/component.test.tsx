@@ -46,21 +46,29 @@ vi.mock("../../../components/expression-input", () => ({
   ExpressionInput: ({
     value,
     onChange,
+    onLiveChange,
   }: {
     value: string
     onChange: (nextValue: string) => void
+    onLiveChange?: (nextValue: string) => void
   }) => (
     <input
       data-testid="inline-expression-input"
       value={value}
-      onChange={(event) => onChange(event.target.value)}
+      onChange={(event) => {
+        onLiveChange?.(event.target.value)
+        onChange(event.target.value)
+      }}
     />
   ),
 }))
 
-vi.mock("../../output-quick-add-affordance/output-quick-add-affordance", () => ({
-  OutputQuickAddAffordance: () => null,
-}))
+vi.mock(
+  "../../output-quick-add-affordance/output-quick-add-affordance",
+  () => ({
+    OutputQuickAddAffordance: () => null,
+  })
+)
 
 function createNodeProps(template: string[] = []): NodeProps {
   return {
@@ -95,10 +103,14 @@ describe("InlineExpressionNode", () => {
   })
 
   it("forwards ExpressionInput changes to node config", () => {
-    render(<InlineExpressionNode {...createNodeProps(["{{ $input.item.json }}"])} />)
+    render(
+      <InlineExpressionNode {...createNodeProps(["{{ $input.item.json }}"])} />
+    )
 
     const input = screen.getByTestId("inline-expression-input")
-    fireEvent.change(input, { target: { value: "{{ $input.item.json.name }}" } })
+    fireEvent.change(input, {
+      target: { value: "{{ $input.item.json.name }}" },
+    })
 
     expect(mockUpdateNodeConfig).toHaveBeenCalledTimes(1)
     expect(mockUpdateNodeConfig).toHaveBeenCalledWith("inline-node-1", {
@@ -109,7 +121,9 @@ describe("InlineExpressionNode", () => {
   })
 
   it("uses inlineExpression template key for updates", () => {
-    render(<InlineExpressionNode {...createNodeProps(["{{ $input.item.json }}"])} />)
+    render(
+      <InlineExpressionNode {...createNodeProps(["{{ $input.item.json }}"])} />
+    )
 
     const input = screen.getByTestId("inline-expression-input")
     fireEvent.change(input, { target: { value: "{{ $input.item.json.id }}" } })
@@ -123,12 +137,18 @@ describe("InlineExpressionNode", () => {
   })
 
   it("syncs draft from store when not focused", () => {
-    const rendered = render(<InlineExpressionNode {...createNodeProps(["{{ old }}"])} />)
+    const rendered = render(
+      <InlineExpressionNode {...createNodeProps(["{{ old }}"])} />
+    )
 
-    const input = screen.getByTestId("inline-expression-input") as HTMLInputElement
+    const input = screen.getByTestId(
+      "inline-expression-input"
+    ) as HTMLInputElement
     expect(input.value).toBe("{{ old }}")
 
-    rendered.rerender(<InlineExpressionNode {...createNodeProps(["{{ new }}"])} />)
+    rendered.rerender(
+      <InlineExpressionNode {...createNodeProps(["{{ new }}"])} />
+    )
 
     expect(
       (screen.getByTestId("inline-expression-input") as HTMLInputElement).value
@@ -136,7 +156,9 @@ describe("InlineExpressionNode", () => {
   })
 
   it("updates isRoot config when Root checkbox toggles", () => {
-    render(<InlineExpressionNode {...createNodeProps(["{{ $input.item.json }}"])} />)
+    render(
+      <InlineExpressionNode {...createNodeProps(["{{ $input.item.json }}"])} />
+    )
 
     fireEvent.click(screen.getByRole("checkbox", { name: /Root/i }))
 
@@ -148,16 +170,25 @@ describe("InlineExpressionNode", () => {
   })
 
   it("renders Repeatable checkbox below tokens input", () => {
-    render(<InlineExpressionNode {...createNodeProps(["{{ $input.item.json }}"])} />)
+    render(
+      <InlineExpressionNode {...createNodeProps(["{{ $input.item.json }}"])} />
+    )
 
     const input = screen.getByTestId("inline-expression-input")
-    const repeatableCheckbox = screen.getByRole("checkbox", { name: /Repeatable/i })
+    const repeatableCheckbox = screen.getByRole("checkbox", {
+      name: /Repeatable/i,
+    })
 
-    expect(input.compareDocumentPosition(repeatableCheckbox) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(
+      input.compareDocumentPosition(repeatableCheckbox) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
   })
 
   it("updates repeatable config when Repeatable checkbox toggles", () => {
-    render(<InlineExpressionNode {...createNodeProps(["{{ $input.item.json }}"])} />)
+    render(
+      <InlineExpressionNode {...createNodeProps(["{{ $input.item.json }}"])} />
+    )
 
     fireEvent.click(screen.getByRole("checkbox", { name: /Repeatable/i }))
 
@@ -182,16 +213,18 @@ describe("InlineExpressionNode", () => {
 
     render(<InlineExpressionNode {...rootNodeProps} />)
 
-    expect(screen.getByTestId("node-shell").getAttribute("data-show-target")).toBe(
-      "false"
-    )
+    expect(
+      screen.getByTestId("node-shell").getAttribute("data-show-target")
+    ).toBe("false")
   })
 
   it("renders one empty input row when template array is empty", () => {
     render(<InlineExpressionNode {...createNodeProps([])} />)
 
     expect(screen.getAllByTestId("inline-expression-input")).toHaveLength(1)
-    expect((screen.getByTestId("inline-expression-input") as HTMLInputElement).value).toBe("")
+    expect(
+      (screen.getByTestId("inline-expression-input") as HTMLInputElement).value
+    ).toBe("")
   })
 
   it("appends a new token row from the add button", () => {
@@ -243,6 +276,61 @@ describe("InlineExpressionNode", () => {
       kind: "inlineExpression",
       key: "template",
       value: [],
+    })
+  })
+
+  it("rejects literal token rows containing spaces", () => {
+    render(<InlineExpressionNode {...createNodeProps(["email"])} />)
+
+    fireEvent.change(screen.getByTestId("inline-expression-input"), {
+      target: { value: "email address" },
+    })
+
+    expect(screen.getByText(/Tokens cannot contain spaces/i)).toBeTruthy()
+    expect(mockUpdateNodeConfig).not.toHaveBeenCalled()
+  })
+
+  it("persists a single variable expression token", () => {
+    render(<InlineExpressionNode {...createNodeProps(["email"])} />)
+
+    fireEvent.change(screen.getByTestId("inline-expression-input"), {
+      target: { value: "{{ $input.item.json.email }}" },
+    })
+
+    expect(mockUpdateNodeConfig).toHaveBeenCalledWith("inline-node-1", {
+      kind: "inlineExpression",
+      key: "template",
+      value: ["{{ $input.item.json.email }}"],
+    })
+  })
+
+  it("rejects mixed literal and variable token rows", () => {
+    render(<InlineExpressionNode {...createNodeProps(["email"])} />)
+
+    fireEvent.change(screen.getByTestId("inline-expression-input"), {
+      target: { value: "email {{ $input.item.json.email }}" },
+    })
+
+    expect(screen.getByText(/Tokens cannot contain spaces/i)).toBeTruthy()
+    expect(mockUpdateNodeConfig).not.toHaveBeenCalled()
+  })
+
+  it("renders existing invalid token rows so authors can correct them", () => {
+    render(<InlineExpressionNode {...createNodeProps(["email address"])} />)
+
+    expect(
+      (screen.getByTestId("inline-expression-input") as HTMLInputElement).value
+    ).toBe("email address")
+    expect(screen.getByText(/Tokens cannot contain spaces/i)).toBeTruthy()
+
+    fireEvent.change(screen.getByTestId("inline-expression-input"), {
+      target: { value: "email" },
+    })
+
+    expect(mockUpdateNodeConfig).toHaveBeenCalledWith("inline-node-1", {
+      kind: "inlineExpression",
+      key: "template",
+      value: ["email"],
     })
   })
 })

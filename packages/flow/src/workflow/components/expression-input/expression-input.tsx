@@ -10,6 +10,7 @@ interface ExpressionInputProps {
   placeholder?: string
   variables: ExpressionVariableOption[]
   onChange: (nextValue: string) => void
+  onLiveChange?: (nextValue: string) => void
 }
 
 export function ExpressionInput({
@@ -17,6 +18,7 @@ export function ExpressionInput({
   placeholder,
   variables,
   onChange,
+  onLiveChange,
 }: ExpressionInputProps) {
   return (
     <ExpressionEditor
@@ -24,6 +26,7 @@ export function ExpressionInput({
       placeholder={placeholder}
       variables={variables}
       onCommit={(nextValue) => onChange(nextValue)}
+      onLiveChange={onLiveChange}
     />
   )
 }
