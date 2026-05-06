@@ -1,6 +1,5 @@
 .cm-editor {
   font-size: 12px;
-  border: 1px solid var(--flow-editor-border);
   background: var(--flow-editor-bg);
   color: var(--flow-editor-fg);
 }
