@@ -11,12 +11,14 @@ import type { ExpressionVariableOption } from "../../../types"
 interface KeywordExpressionListInputProps {
   value: string[]
   variables: ExpressionVariableOption[]
+  isInteractive?: boolean
   onChange: (nextValue: string[]) => void
 }
 
 export function KeywordExpressionListInput({
   value,
   variables,
+  isInteractive = true,
   onChange,
 }: KeywordExpressionListInputProps) {
   const styles = inlineExpressionNodeStyles()
@@ -70,7 +72,7 @@ export function KeywordExpressionListInput({
   return (
     <div className={styles.tokenList()}>
       {rows.map((rowValue, index) => {
-        const canDelete = value.length > 0
+        const canDelete = isInteractive && value.length > 0
 
         return (
           <div key={index} className={styles.tokenRow()}>

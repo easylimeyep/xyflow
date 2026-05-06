@@ -10,12 +10,20 @@ import { asStringArray, useBaseNodeData } from "../../shared"
 import { useNodeStoreData } from "../../shared/use-node-store-data"
 import { KeywordExpressionListInput } from "./keyword-expression-list-input"
 
-export function InlineExpressionNode({ id, data, selected }: NodeProps) {
+export function InlineExpressionNode({
+  id,
+  data,
+  selected,
+  draggable,
+  selectable,
+  isConnectable,
+}: NodeProps) {
   const { label, config } = useBaseNodeData(data)
   const { expressionVariables, updateNodeConfig } = useNodeStoreData(id)
   const templateFromStore = asStringArray(config.template)
   const isRootFromStore = config.isRoot === true
   const isRepeatableFromStore = config.repeatable === true
+  const isInteractive = draggable || selectable || isConnectable
   const styles = inlineExpressionNodeStyles()
 
   return (
@@ -47,6 +55,7 @@ export function InlineExpressionNode({ id, data, selected }: NodeProps) {
         <KeywordExpressionListInput
           value={templateFromStore}
           variables={expressionVariables}
+          isInteractive={isInteractive}
           onChange={(nextValue) => {
             updateNodeConfig(id, {
               kind: "inlineExpression",

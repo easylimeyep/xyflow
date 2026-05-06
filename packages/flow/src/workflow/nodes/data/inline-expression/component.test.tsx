@@ -70,7 +70,10 @@ vi.mock(
   })
 )
 
-function createNodeProps(template: string[] = []): NodeProps {
+function createNodeProps(
+  template: string[] = [],
+  overrides: Partial<NodeProps> = {}
+): NodeProps {
   return {
     id: "inline-node-1",
     type: "inlineExpression",
@@ -90,6 +93,7 @@ function createNodeProps(template: string[] = []): NodeProps {
     targetPosition: undefined,
     positionAbsoluteX: 0,
     positionAbsoluteY: 0,
+    ...overrides,
   }
 }
 
@@ -265,6 +269,26 @@ describe("InlineExpressionNode", () => {
       key: "template",
       value: ["{{ first }}"],
     })
+  })
+
+  it("hides token delete affordances when node interactivity is disabled", () => {
+    render(
+      <InlineExpressionNode
+        {...createNodeProps(["{{ first }}", "{{ second }}"], {
+          draggable: false,
+          selectable: false,
+          isConnectable: false,
+        })}
+      />
+    )
+
+    expect(
+      screen.queryByRole("button", { name: /Delete token 1/i })
+    ).toBeNull()
+    expect(
+      screen.queryByRole("button", { name: /Delete token 2/i })
+    ).toBeNull()
+    expect(mockUpdateNodeConfig).not.toHaveBeenCalled()
   })
 
   it("removing the final token row collapses to the empty visual state", () => {
