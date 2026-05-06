@@ -17,6 +17,7 @@ import {
   MiniMap,
   ReactFlow,
   ReactFlowProvider,
+  SelectionMode,
   useReactFlow,
   useNodesInitialized,
   type Connection,
@@ -316,6 +317,7 @@ function WorkflowCanvasInner({
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
           selectionOnDrag
+          selectionMode={SelectionMode.Partial}
           panOnDrag={false}
           panOnScroll
           zoomOnPinch

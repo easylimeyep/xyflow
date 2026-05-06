@@ -74,6 +74,10 @@ vi.mock("@xyflow/react", () => {
     ReactFlowProvider: ({ children }: { children: ReactNode }) => (
       <>{children}</>
     ),
+    SelectionMode: {
+      Full: "full",
+      Partial: "partial",
+    },
     Background: () => null,
     Controls: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
     ControlButton: ({
@@ -148,6 +152,7 @@ vi.mock("@xyflow/react", () => {
       edges,
       edgeTypes,
       selectionOnDrag,
+      selectionMode,
       panOnDrag,
       panOnScroll,
       zoomOnPinch,
@@ -187,6 +192,7 @@ vi.mock("@xyflow/react", () => {
       }>
       edgeTypes?: Record<string, (props: Record<string, unknown>) => ReactNode>
       selectionOnDrag?: boolean
+      selectionMode?: string
       panOnDrag?: boolean
       panOnScroll?: boolean
       zoomOnPinch?: boolean
@@ -204,6 +210,7 @@ vi.mock("@xyflow/react", () => {
           <span data-testid="rf-selection-on-drag">
             {String(Boolean(selectionOnDrag))}
           </span>
+          <span data-testid="rf-selection-mode">{selectionMode}</span>
           <span data-testid="rf-pan-on-drag">{String(panOnDrag)}</span>
           <span data-testid="rf-pan-on-scroll">
             {String(Boolean(panOnScroll))}
@@ -342,6 +349,7 @@ describe("WorkflowCanvas", () => {
     )
     expect(screen.getByTestId("rf-has-viewport").textContent).toBe("false")
     expect(screen.getByTestId("rf-selection-on-drag").textContent).toBe("true")
+    expect(screen.getByTestId("rf-selection-mode").textContent).toBe("partial")
     expect(screen.getByTestId("rf-pan-on-drag").textContent).toBe("false")
     expect(screen.getByTestId("rf-pan-on-scroll").textContent).toBe("true")
     expect(screen.getByTestId("rf-zoom-on-pinch").textContent).toBe("true")
