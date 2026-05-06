@@ -24,7 +24,7 @@ const edgeStrokeDefault = {
 }
 
 const edgeStrokeHighlighted = {
-  stroke: "var(--border)",
+  stroke: "var(--primary)",
   strokeWidth: 2.5,
 }
 
@@ -58,7 +58,7 @@ export function WorkflowEdgeComponent({
   })
   const showToolbar = isHovered || isToolbarHovered || isInsertPending
   const styles = showToolbar ? toolbarVisibleStyles : toolbarHiddenStyles
-  const highlightEdge = selected || isInsertPending
+  const highlightEdge = selected || isHovered || isToolbarHovered || isInsertPending
   const baseStroke = highlightEdge ? edgeStrokeHighlighted : edgeStrokeDefault
   const edgeStyle = style ? { ...style, ...baseStroke } : baseStroke
 
