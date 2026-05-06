@@ -38,6 +38,7 @@ export function createWorkflowStore(
   return createStore<WorkflowStoreState>()((set, get) => ({
     runtime,
     history: createHistoryState(initialGraph),
+    measuredInitialAutoLayoutAttempted: false,
     ...createExpressionSlice(initialGraph),
     ...createSelectionSlice(set, get),
     ...createIntentSlice(set, get),
@@ -76,6 +77,7 @@ export function useWorkflowActions() {
     redo: state.redo,
     addNode: state.addNode,
     autoLayout: state.autoLayout,
+    measuredInitialAutoLayout: state.measuredInitialAutoLayout,
     setSelectedNodes: state.setSelectedNodes,
     copySelectionToClipboard: state.copySelectionToClipboard,
     pasteFromClipboard: state.pasteFromClipboard,

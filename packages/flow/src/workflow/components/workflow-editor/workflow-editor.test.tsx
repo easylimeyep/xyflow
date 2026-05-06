@@ -63,6 +63,8 @@ vi.mock("../node-palette", () => ({
 vi.mock("../workflow-canvas", () => ({
   WorkflowCanvas: ({
     nodes,
+    autoLayoutOnInit,
+    onMeasuredInitialAutoLayout,
     onNodesChange,
     onViewportChange,
     onPointerFlowPosition,
@@ -70,6 +72,8 @@ vi.mock("../workflow-canvas", () => ({
     onSelectNodes,
   }: {
     nodes: Array<{ id: string }>
+    autoLayoutOnInit?: "after-measure"
+    onMeasuredInitialAutoLayout?: () => Promise<boolean>
     onNodesChange: (
       changes: Array<{
         id: string
@@ -83,10 +87,16 @@ vi.mock("../workflow-canvas", () => ({
     onPointerFlowPosition: (position: { x: number; y: number }) => void
     onPaneClick: () => void
   }) => {
-    canvasRenderSpy()
+    canvasRenderSpy({ autoLayoutOnInit, onMeasuredInitialAutoLayout })
     return (
       <div>
         <span data-testid="canvas-node-count">{String(nodes.length)}</span>
+        <span data-testid="canvas-auto-layout-on-init">
+          {autoLayoutOnInit ?? "none"}
+        </span>
+        <span data-testid="canvas-has-measured-initial-layout">
+          {String(typeof onMeasuredInitialAutoLayout === "function")}
+        </span>
         <button
           type="button"
           onClick={() => onViewportChange({ x: 100, y: 50, zoom: 1.2 })}
@@ -197,7 +207,21 @@ describe("WorkflowEditor wiring", () => {
     expect(screen.getByTestId("toolbar-can-undo")).toBeTruthy()
     expect(screen.getByTestId("palette-open").textContent).toBe("true")
     expect(screen.getByTestId("canvas-node-count")).toBeTruthy()
+    expect(screen.getByTestId("canvas-auto-layout-on-init").textContent).toBe(
+      "none"
+    )
     expect(screen.getByText("Config Panel")).toBeTruthy()
+  })
+
+  it("passes measured initial auto-layout option to the default canvas", () => {
+    render(<WorkflowEditor autoLayoutOnInit="after-measure" />)
+
+    expect(screen.getByTestId("canvas-auto-layout-on-init").textContent).toBe(
+      "after-measure"
+    )
+    expect(
+      screen.getByTestId("canvas-has-measured-initial-layout").textContent
+    ).toBe("true")
   })
 
   it("supports custom composition with compound parts", () => {
@@ -206,6 +230,20 @@ describe("WorkflowEditor wiring", () => {
     expect(screen.getByTestId("custom-marker")).toBeTruthy()
     expect(screen.getByTestId("toolbar-can-undo")).toBeTruthy()
     expect(screen.getByText("Config Panel")).toBeTruthy()
+  })
+
+  it("preserves measured initial auto-layout with custom composition", () => {
+    render(
+      <WorkflowEditor autoLayoutOnInit="after-measure">
+        <WorkflowEditor.Body>
+          <WorkflowEditor.Canvas />
+        </WorkflowEditor.Body>
+      </WorkflowEditor>
+    )
+
+    expect(screen.getByTestId("canvas-auto-layout-on-init").textContent).toBe(
+      "after-measure"
+    )
   })
 
   it("adds node from palette and reflects updated canvas node count", async () => {

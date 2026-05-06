@@ -18,6 +18,7 @@ import {
   ReactFlow,
   ReactFlowProvider,
   useReactFlow,
+  useNodesInitialized,
   type Connection,
   type EdgeChange,
   type EdgeProps,
@@ -64,6 +65,8 @@ interface WorkflowCanvasProps {
   onPointerFlowPosition: (position: XYPosition) => void
   edgeInsertPendingId: string | null
   onAutoLayout?: () => Promise<boolean>
+  autoLayoutOnInit?: "after-measure"
+  onMeasuredInitialAutoLayout?: () => Promise<boolean>
 }
 
 function WorkflowCanvasInner({
@@ -82,9 +85,25 @@ function WorkflowCanvasInner({
   onPointerFlowPosition,
   edgeInsertPendingId,
   onAutoLayout,
+  autoLayoutOnInit,
+  onMeasuredInitialAutoLayout,
 }: WorkflowCanvasProps) {
   const reactFlow = useReactFlow<WorkflowNode, WorkflowEdge>()
+  const nodesInitialized = useNodesInitialized()
   const [layoutPending, setLayoutPending] = useState(false)
+  const shouldRunMeasuredInitialLayout =
+    autoLayoutOnInit === "after-measure" && onMeasuredInitialAutoLayout != null
+  const initialLayoutAttemptedRef = useRef(false)
+  const [initialLayoutPending, setInitialLayoutPending] = useState(
+    shouldRunMeasuredInitialLayout && nodes.length > 0
+  )
+  const allNodesMeasured =
+    nodes.length === 0 ||
+    nodes.every(
+      (node) =>
+        node.measured?.width != null &&
+        node.measured.height != null
+    )
   const onReactFlowNodesChange = useNodeChangeRouter({
     nodes,
     onStructuralChanges: onNodesChange,
@@ -205,6 +224,67 @@ function WorkflowCanvasInner({
       setLayoutPending(false)
     }
   }, [layoutPending, onAutoLayout, reactFlow])
+  useEffect(() => {
+    if (!shouldRunMeasuredInitialLayout) {
+      setInitialLayoutPending(false)
+      return
+    }
+
+    if (initialLayoutAttemptedRef.current) {
+      return
+    }
+
+    if (nodes.length === 0) {
+      initialLayoutAttemptedRef.current = true
+      setInitialLayoutPending(false)
+      return
+    }
+
+    if (!nodesInitialized || !allNodesMeasured) {
+      setInitialLayoutPending(true)
+      return
+    }
+
+    let cancelled = false
+    initialLayoutAttemptedRef.current = true
+    setInitialLayoutPending(true)
+
+    void onMeasuredInitialAutoLayout
+      ?.()
+      .then((didLayout) => {
+        if (cancelled) {
+          return
+        }
+
+        if (didLayout) {
+          window.requestAnimationFrame(() => {
+            void reactFlow.fitView({
+              padding: WORKFLOW_ELK_PADDING,
+              minZoom: WORKFLOW_MIN_ZOOM,
+              maxZoom: WORKFLOW_MAX_ZOOM,
+            })
+          })
+        }
+
+        setInitialLayoutPending(false)
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setInitialLayoutPending(false)
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [
+    allNodesMeasured,
+    nodes.length,
+    nodesInitialized,
+    onMeasuredInitialAutoLayout,
+    reactFlow,
+    shouldRunMeasuredInitialLayout,
+  ])
   const handleMiniMapClick = useCallback(
     (_event: React.MouseEvent, position: XYPosition) => {
       const currentViewport = reactFlow.getViewport()
@@ -217,55 +297,70 @@ function WorkflowCanvasInner({
     [reactFlow]
   )
 
+  const styles = workflowCanvasStyles({ initializing: initialLayoutPending })
+
   return (
-    <ReactFlow
-      nodes={nodes}
-      edges={edgesWithType}
-      nodeTypes={workflowNodeTypes}
-      edgeTypes={edgeTypes}
-      proOptions={{ hideAttribution: true }}
-      defaultViewport={viewport}
-      minZoom={WORKFLOW_MIN_ZOOM}
-      maxZoom={WORKFLOW_MAX_ZOOM}
-      onMoveEnd={(_, nextViewport) => onViewportChange(nextViewport)}
-      onNodesChange={onReactFlowNodesChange}
-      onEdgesChange={onEdgesChange}
-      onConnect={onConnect}
-      selectionOnDrag
-      panOnDrag={false}
-      panOnScroll
-      zoomOnPinch
-      zoomOnScroll={false}
-      isValidConnection={(connection) =>
-        validateConnection(connection, nodes, edges).valid
-      }
-      onPaneClick={onPaneClick}
-      onDragOver={onDragOver}
-      onDrop={onDrop}
-      onMouseMove={onMouseMove}
-      connectionLineStyle={{ strokeWidth: 2, stroke: "var(--border)" }}
-    >
-      <MiniMap
-        pannable
-        zoomable={false}
-        onClick={handleMiniMapClick}
-        maskStrokeColor="var(--primary)"
-        maskStrokeWidth={WORKFLOW_MINIMAP_MASK_STROKE_WIDTH}
-      />
-      <Controls>
-        <ControlButton
-          onClick={() => {
-            void handleAutoLayout()
-          }}
-          aria-label="Auto layout workflow"
-          title="Auto layout workflow"
-          disabled={layoutPending}
+    <>
+      <div className={styles.flow()} aria-hidden={initialLayoutPending}>
+        <ReactFlow
+          nodes={nodes}
+          edges={edgesWithType}
+          nodeTypes={workflowNodeTypes}
+          edgeTypes={edgeTypes}
+          proOptions={{ hideAttribution: true }}
+          defaultViewport={viewport}
+          minZoom={WORKFLOW_MIN_ZOOM}
+          maxZoom={WORKFLOW_MAX_ZOOM}
+          onMoveEnd={(_, nextViewport) => onViewportChange(nextViewport)}
+          onNodesChange={onReactFlowNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          selectionOnDrag
+          panOnDrag={false}
+          panOnScroll
+          zoomOnPinch
+          zoomOnScroll={false}
+          isValidConnection={(connection) =>
+            validateConnection(connection, nodes, edges).valid
+          }
+          onPaneClick={onPaneClick}
+          onDragOver={onDragOver}
+          onDrop={onDrop}
+          onMouseMove={onMouseMove}
+          connectionLineStyle={{ strokeWidth: 2, stroke: "var(--border)" }}
         >
-          <LayoutTemplate size={16} />
-        </ControlButton>
-      </Controls>
-      <Background />
-    </ReactFlow>
+          <MiniMap
+            pannable
+            zoomable={false}
+            onClick={handleMiniMapClick}
+            maskStrokeColor="var(--primary)"
+            maskStrokeWidth={WORKFLOW_MINIMAP_MASK_STROKE_WIDTH}
+          />
+          <Controls>
+            <ControlButton
+              onClick={() => {
+                void handleAutoLayout()
+              }}
+              aria-label="Auto layout workflow"
+              title="Auto layout workflow"
+              disabled={layoutPending || initialLayoutPending}
+            >
+              <LayoutTemplate size={16} />
+            </ControlButton>
+          </Controls>
+          <Background />
+        </ReactFlow>
+      </div>
+      {initialLayoutPending ? (
+        <div
+          className={styles.initializingOverlay()}
+          role="status"
+          aria-live="polite"
+        >
+          Preparing measured layout...
+        </div>
+      ) : null}
+    </>
   )
 }
 

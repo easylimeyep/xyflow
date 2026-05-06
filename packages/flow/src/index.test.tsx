@@ -70,6 +70,18 @@ describe("WorkflowEditor package root", () => {
     ).toContain("\"consumerMapper\": true")
   })
 
+  it("lets consumers request measured initial auto-layout from package root", () => {
+    render(
+      <WorkflowEditor autoLayoutOnInit="after-measure">
+        <RuntimeProbe />
+      </WorkflowEditor>
+    )
+
+    expect(
+      screen.getByTestId("workflow-editor-export-domain").textContent
+    ).toContain("\"nodes\"")
+  })
+
   it("keeps the initial runtime config when WorkflowEditor rerenders", () => {
     const firstRuntime = {
       importDomain: {

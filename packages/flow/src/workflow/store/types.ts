@@ -89,6 +89,7 @@ export interface WorkflowRuntimeConfig {
 export interface WorkflowStoreQueries {
   history: HistoryState<WorkflowGraphState>
   runtime: WorkflowRuntimeConfig
+  measuredInitialAutoLayoutAttempted: boolean
   expressionDeps: ExpressionDepsGraph
   expressionStructuralVersion: number
   expressionStructuralSignature: string
@@ -106,6 +107,7 @@ export interface WorkflowStoreGraphCommands {
   updateNodeLabel: (nodeId: string, nextLabel: string) => void
   updateNodeConfig: (nodeId: string, update: NodeConfigUpdate) => void
   autoLayout: () => Promise<boolean>
+  measuredInitialAutoLayout: () => Promise<boolean>
   onNodesChange: (changes: NodeChange<WorkflowNode>[]) => void
   onEdgesChange: (changes: EdgeChange<WorkflowEdge>[]) => void
   onConnect: (connection: ConnectionLike) => void

@@ -1,14 +1,11 @@
 "use client"
 
-import { useEffect, useState } from "react"
-
 import {
   WorkflowEditor,
-  createInitialGraphElk,
+  createInitialGraph,
   type InitialGraphEdgeInput,
   type InitialGraphInput,
   type InitialGraphNodeInput,
-  type WorkflowEditorProps,
 } from "@workspace/flow"
 
 import { ExamplePreview } from "./example-preview"
@@ -155,7 +152,24 @@ const graphInput = {
       label: "Set approval",
       config: {
         variableName: "approval",
-        valueExpression: "{{ approvalReason }}",
+        valueExpression: `
+        {{ approvalReason }}
+{{ approvalReason }}
+{{ approvalReason }}
+{{ approvalReason }}
+{{ approvalReason }}
+{{ approvalReason }}
+{{ approvalReason }}
+{{ approvalReason }}
+{{ approvalReason }}
+{{ approvalReason }}
+{{ approvalReason }}
+{{ approvalReason }}
+{{ approvalReason }}
+{{ approvalReason }}
+{{ approvalReason }}  
+
+        `,
       },
     },
     {
@@ -401,11 +415,13 @@ const graphInput = {
   },
 } satisfies InitialGraphInput
 
-const code = `import { WorkflowEditor, createInitialGraphElk } from "@workspace/flow"
+const initialGraph = createInitialGraph(graphInput)
+
+const code = `import { WorkflowEditor, createInitialGraph } from "@workspace/flow"
 
 const laneNames = ["email", "phone", "country", "budget", "intent", "company", "role", "source", "timeline", "consent"]
 
-const initialGraph = await createInitialGraphElk({
+const initialGraph = createInitialGraph({
   nodes: [
     { id: "large-elk-root-keyword", kind: "inlineExpression", label: "Keyword Root", config: { template: ["lead"], isRoot: true, repeatable: false } },
     ...laneNames.flatMap((name, index) => [
@@ -429,41 +445,25 @@ const initialGraph = await createInitialGraphElk({
 })
 
 export function Example() {
-  return <WorkflowEditor initialGraph={initialGraph} />
+  return (
+    <WorkflowEditor
+      initialGraph={initialGraph}
+      autoLayoutOnInit="after-measure"
+    />
+  )
 }`
 
 export function LargeElkGraphExample() {
-  const [graph, setGraph] = useState<
-    WorkflowEditorProps["initialGraph"] | null
-  >(null)
-
-  useEffect(() => {
-    let active = true
-
-    void createInitialGraphElk(graphInput).then((nextGraph) => {
-      if (active) {
-        setGraph(nextGraph)
-      }
-    })
-
-    return () => {
-      active = false
-    }
-  }, [])
-
   return (
     <ExamplePreview
       title="Large ELK graph"
-      description="Большой `initialGraph`, где ELK считает позиции для плотной схемы: 40 узлов, fan-in в один Keyword и финальные ветки result true/result false."
+      description="Большой `initialGraph`, где редактор сначала измеряет реальные DOM-размеры нод, а затем запускает ELK layout: 40 узлов, fan-in в один Keyword и финальные ветки result true/result false."
       code={code}
     >
-      {graph == null ? (
-        <div className="flex min-h-0 flex-1 items-center justify-center bg-gray-50 text-sm text-gray-500">
-          Computing ELK layout...
-        </div>
-      ) : (
-        <WorkflowEditor initialGraph={graph} />
-      )}
+      <WorkflowEditor
+        initialGraph={initialGraph}
+        autoLayoutOnInit="after-measure"
+      />
     </ExamplePreview>
   )
 }

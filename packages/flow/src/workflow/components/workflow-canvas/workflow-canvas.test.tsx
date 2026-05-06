@@ -40,6 +40,7 @@ const reactFlowRenderSpy = vi.fn()
 const fitViewSpy = vi.fn()
 const setCenterSpy = vi.fn()
 const getViewportSpy = vi.fn(() => ({ x: 24, y: 48, zoom: 1.75 }))
+const nodesInitializedMock = vi.fn(() => true)
 
 vi.mock("../workflow-edge", () => {
   return {
@@ -133,6 +134,7 @@ vi.mock("@xyflow/react", () => {
         return { x: safeX - 10, y: safeY - 20 }
       },
     }),
+    useNodesInitialized: () => nodesInitializedMock(),
     ReactFlow: ({
       children,
       onDrop,
@@ -275,6 +277,8 @@ describe("WorkflowCanvas", () => {
     fitViewSpy.mockReset()
     setCenterSpy.mockReset()
     getViewportSpy.mockClear()
+    nodesInitializedMock.mockReset()
+    nodesInitializedMock.mockReturnValue(true)
     vi.unstubAllGlobals()
     vi.useRealTimers()
   })
@@ -449,6 +453,148 @@ describe("WorkflowCanvas", () => {
       minZoom: 0.1,
       maxZoom: 4,
     })
+  })
+
+  it("waits for measured nodes before running measured initial auto-layout", async () => {
+    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+      callback(performance.now())
+      return 1
+    })
+    vi.stubGlobal("cancelAnimationFrame", vi.fn())
+    const onMeasuredInitialAutoLayout = vi.fn(async () => true)
+    const unmeasuredNodes = initialWorkflowGraph.nodes.map((node) => ({
+      ...node,
+      measured: undefined,
+    }))
+    const measuredNodes = initialWorkflowGraph.nodes.map((node) => ({
+      ...node,
+      measured: { width: 260, height: 116 },
+    }))
+
+    const view = render(
+      <WorkflowCanvas
+        nodes={unmeasuredNodes}
+        edges={initialWorkflowGraph.edges}
+        viewport={initialWorkflowGraph.viewport}
+        onNodesChange={vi.fn()}
+        onEdgesChange={vi.fn()}
+        onConnect={vi.fn()}
+        onViewportChange={vi.fn()}
+        onSelectNodes={vi.fn()}
+        onPaneClick={vi.fn()}
+        onAddNodeAt={vi.fn()}
+        onStartInsertFromEdge={vi.fn()}
+        onDeleteEdge={vi.fn()}
+        onPointerFlowPosition={vi.fn()}
+        edgeInsertPendingId={null}
+        autoLayoutOnInit="after-measure"
+        onMeasuredInitialAutoLayout={onMeasuredInitialAutoLayout}
+      />
+    )
+
+    expect(screen.getByRole("status").textContent).toContain(
+      "Preparing measured layout"
+    )
+    expect(onMeasuredInitialAutoLayout).not.toHaveBeenCalled()
+
+    view.rerender(
+      <WorkflowCanvas
+        nodes={measuredNodes}
+        edges={initialWorkflowGraph.edges}
+        viewport={initialWorkflowGraph.viewport}
+        onNodesChange={vi.fn()}
+        onEdgesChange={vi.fn()}
+        onConnect={vi.fn()}
+        onViewportChange={vi.fn()}
+        onSelectNodes={vi.fn()}
+        onPaneClick={vi.fn()}
+        onAddNodeAt={vi.fn()}
+        onStartInsertFromEdge={vi.fn()}
+        onDeleteEdge={vi.fn()}
+        onPointerFlowPosition={vi.fn()}
+        edgeInsertPendingId={null}
+        autoLayoutOnInit="after-measure"
+        onMeasuredInitialAutoLayout={onMeasuredInitialAutoLayout}
+      />
+    )
+
+    await waitFor(() => {
+      expect(onMeasuredInitialAutoLayout).toHaveBeenCalledTimes(1)
+    })
+    await waitFor(() => {
+      expect(screen.queryByRole("status")).toBeNull()
+    })
+
+    await waitFor(() => {
+      expect(fitViewSpy).toHaveBeenCalledWith({
+        padding: 0.2,
+        minZoom: 0.1,
+        maxZoom: 4,
+      })
+    })
+  })
+
+  it("clears measured initial layout loader when bootstrap layout fails", async () => {
+    const measuredNodes = initialWorkflowGraph.nodes.map((node) => ({
+      ...node,
+      measured: { width: 260, height: 116 },
+    }))
+    const onMeasuredInitialAutoLayout = vi.fn(async () => false)
+
+    render(
+      <WorkflowCanvas
+        nodes={measuredNodes}
+        edges={initialWorkflowGraph.edges}
+        viewport={initialWorkflowGraph.viewport}
+        onNodesChange={vi.fn()}
+        onEdgesChange={vi.fn()}
+        onConnect={vi.fn()}
+        onViewportChange={vi.fn()}
+        onSelectNodes={vi.fn()}
+        onPaneClick={vi.fn()}
+        onAddNodeAt={vi.fn()}
+        onStartInsertFromEdge={vi.fn()}
+        onDeleteEdge={vi.fn()}
+        onPointerFlowPosition={vi.fn()}
+        edgeInsertPendingId={null}
+        autoLayoutOnInit="after-measure"
+        onMeasuredInitialAutoLayout={onMeasuredInitialAutoLayout}
+      />
+    )
+
+    await waitFor(() => {
+      expect(screen.queryByRole("status")).toBeNull()
+    })
+    expect(onMeasuredInitialAutoLayout).toHaveBeenCalledTimes(1)
+    expect(fitViewSpy).not.toHaveBeenCalled()
+  })
+
+  it("treats empty graphs as measured initial layout complete", () => {
+    const onMeasuredInitialAutoLayout = vi.fn(async () => true)
+
+    render(
+      <WorkflowCanvas
+        nodes={[]}
+        edges={[]}
+        viewport={initialWorkflowGraph.viewport}
+        onNodesChange={vi.fn()}
+        onEdgesChange={vi.fn()}
+        onConnect={vi.fn()}
+        onViewportChange={vi.fn()}
+        onSelectNodes={vi.fn()}
+        onPaneClick={vi.fn()}
+        onAddNodeAt={vi.fn()}
+        onStartInsertFromEdge={vi.fn()}
+        onDeleteEdge={vi.fn()}
+        onPointerFlowPosition={vi.fn()}
+        edgeInsertPendingId={null}
+        autoLayoutOnInit="after-measure"
+        onMeasuredInitialAutoLayout={onMeasuredInitialAutoLayout}
+      />
+    )
+
+    expect(screen.queryByRole("status")).toBeNull()
+    expect(onMeasuredInitialAutoLayout).not.toHaveBeenCalled()
   })
 
   it("uses shared connection validation for preview checks", () => {

@@ -48,6 +48,7 @@ interface WorkflowEditorLayoutContextValue {
   isPaletteOpen: boolean
   setIsPaletteOpen: (nextOpen: boolean) => void
   quickAddActive: boolean
+  autoLayoutOnInit?: "after-measure"
 }
 
 const WorkflowEditorLayoutContext =
@@ -98,7 +99,10 @@ function useClipboardHotkeys(
   }, [onCopy, onPaste])
 }
 
-function WorkflowEditorLayoutProvider({ children }: PropsWithChildren) {
+function WorkflowEditorLayoutProvider({
+  autoLayoutOnInit,
+  children,
+}: PropsWithChildren<{ autoLayoutOnInit?: "after-measure" }>) {
   const quickAddPending = useWorkflowStore(selectQuickAddPending)
   const edgeInsertPending = useWorkflowStore(selectEdgeInsertPending)
   const quickAddActive = Boolean(quickAddPending || edgeInsertPending)
@@ -134,7 +138,12 @@ function WorkflowEditorLayoutProvider({ children }: PropsWithChildren) {
 
   return (
     <WorkflowEditorLayoutContext.Provider
-      value={{ isPaletteOpen, setIsPaletteOpen, quickAddActive }}
+      value={{
+        isPaletteOpen,
+        setIsPaletteOpen,
+        quickAddActive,
+        autoLayoutOnInit,
+      }}
     >
       {children}
     </WorkflowEditorLayoutContext.Provider>
@@ -143,6 +152,7 @@ function WorkflowEditorLayoutProvider({ children }: PropsWithChildren) {
 
 export interface WorkflowEditorProps extends WorkflowStoreInitialProps {
   runtime?: WorkflowRuntimeConfig
+  autoLayoutOnInit?: "after-measure"
   children?: ReactNode
 }
 
@@ -162,13 +172,14 @@ function DefaultWorkflowEditorComposition() {
 function WorkflowEditorRoot({
   initialGraph,
   runtime,
+  autoLayoutOnInit,
   children,
 }: WorkflowEditorProps = {}) {
   const styles = workflowEditorStyles()
 
   return (
     <WorkflowStoreProvider initialGraph={initialGraph} runtime={runtime}>
-      <WorkflowEditorLayoutProvider>
+      <WorkflowEditorLayoutProvider autoLayoutOnInit={autoLayoutOnInit}>
         <div className={styles.root()}>
           {children == null ? <DefaultWorkflowEditorComposition /> : children}
         </div>
@@ -279,6 +290,7 @@ export function WorkflowEditorCanvas() {
     setSelectedNodes,
     addNode,
     autoLayout,
+    measuredInitialAutoLayout,
     cancelQuickAdd,
     cancelEdgeInsert,
     startEdgeInsertFromEdge,
@@ -291,6 +303,7 @@ export function WorkflowEditorCanvas() {
     setSelectedNodes: state.setSelectedNodes,
     addNode: state.addNode,
     autoLayout: state.autoLayout,
+    measuredInitialAutoLayout: state.measuredInitialAutoLayout,
     cancelQuickAdd: state.cancelQuickAdd,
     cancelEdgeInsert: state.cancelEdgeInsert,
     startEdgeInsertFromEdge: state.startEdgeInsertFromEdge,
@@ -348,6 +361,8 @@ export function WorkflowEditorCanvas() {
         onPointerFlowPosition={setLastPointerPosition}
         edgeInsertPendingId={edgeInsertPending?.edgeId ?? null}
         onAutoLayout={autoLayout}
+        autoLayoutOnInit={layout?.autoLayoutOnInit}
+        onMeasuredInitialAutoLayout={measuredInitialAutoLayout}
       />
     </div>
   )

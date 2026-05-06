@@ -129,6 +129,65 @@ describe("workflow store", () => {
     expect(store.getState().lastError?.message).toContain("ELK exploded")
   })
 
+  it("applies measured initial auto-layout without creating undo history", async () => {
+    const state = store.getState()
+    const targetNode = state.history.present.nodes[0]
+    if (!targetNode) {
+      throw new Error("fixture node not found")
+    }
+
+    const nextPosition = {
+      x: targetNode.position.x + 480,
+      y: targetNode.position.y + 120,
+    }
+    computeWorkflowAutoLayoutMock.mockResolvedValue({
+      ...state.history.present,
+      nodes: state.history.present.nodes.map((node) =>
+        node.id === targetNode.id ? { ...node, position: nextPosition } : node
+      ),
+    })
+
+    const didLayout = await state.measuredInitialAutoLayout()
+
+    expect(didLayout).toBe(true)
+    expect(store.getState().history.present.nodes[0]?.position).toEqual(
+      nextPosition
+    )
+    expect(store.getState().history.past).toHaveLength(0)
+    expect(store.getState().history.future).toHaveLength(0)
+    expect(store.getState().measuredInitialAutoLayoutAttempted).toBe(true)
+
+    store.getState().undo()
+    expect(store.getState().history.present.nodes[0]?.position).toEqual(
+      nextPosition
+    )
+  })
+
+  it("guards measured initial auto-layout to one attempt", async () => {
+    const state = store.getState()
+    computeWorkflowAutoLayoutMock.mockResolvedValue(state.history.present)
+
+    await state.measuredInitialAutoLayout()
+    await store.getState().measuredInitialAutoLayout()
+
+    expect(computeWorkflowAutoLayoutMock).toHaveBeenCalledTimes(1)
+  })
+
+  it("keeps graph stable and reports an error when measured initial auto-layout fails", async () => {
+    const state = store.getState()
+    const beforeGraph = state.history.present
+    computeWorkflowAutoLayoutMock.mockRejectedValue(new Error("ELK failed"))
+
+    const didLayout = await state.measuredInitialAutoLayout()
+
+    expect(didLayout).toBe(false)
+    expect(store.getState().history.present).toEqual(beforeGraph)
+    expect(store.getState().history.past).toHaveLength(0)
+    expect(store.getState().measuredInitialAutoLayoutAttempted).toBe(true)
+    expect(store.getState().lastError?.code).toBe("AUTO_LAYOUT_FAILED")
+    expect(store.getState().lastError?.message).toContain("ELK failed")
+  })
+
   it("keeps node add + measurement update as a single undo step", () => {
     const state = store.getState()
     const before = state.history.present.nodes.length
