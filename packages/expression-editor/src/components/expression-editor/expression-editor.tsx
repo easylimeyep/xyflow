@@ -100,12 +100,7 @@ export function ExpressionEditor({
   )
 
   const extensions = useMemo(
-    () => [
-      javascript(),
-      templateHighlightExtension,
-      EditorView.lineWrapping,
-      commitExtension,
-    ],
+    () => [javascript(), templateHighlightExtension, commitExtension],
     [commitExtension, templateHighlightExtension]
   )
   const basicSetup = useMemo(
@@ -216,7 +211,12 @@ export function ExpressionEditor({
     <div className={styles.root()}>
       <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
         <PopoverAnchor asChild>
-          <div className={styles.editorContainer()}>
+          <div
+            className={styles.editorContainer()}
+            onWheelCapture={(event) => {
+              event.stopPropagation()
+            }}
+          >
             <CodeMirror
               value={value}
               placeholder={placeholder}

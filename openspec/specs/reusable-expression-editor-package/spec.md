@@ -123,3 +123,35 @@ Migrating workflow expression fields to the reusable package SHALL preserve the 
 - **AND** the user hovers the editable expression input surface
 - **THEN** the pointer cursor SHALL indicate text editing
 - **AND** the surrounding workflow node SHALL remain draggable outside the input interaction surface
+
+#### Scenario: Long logical lines scroll horizontally
+
+- **WHEN** a reusable CodeMirror-backed expression editor renders a logical line that exceeds the visible input width
+- **THEN** the editor SHALL keep that logical line on one visual row
+- **AND** the editor SHALL allow horizontal scrolling within the input surface to reach hidden content
+- **AND** the overflowing text SHALL NOT leak outside the rounded input wrapper
+
+#### Scenario: Horizontal editor scrolling does not pan the workflow graph
+
+- **WHEN** a reusable CodeMirror-backed expression editor is rendered inside a workflow canvas
+- **AND** the user performs a wheel or trackpad scroll gesture over the editor input surface
+- **THEN** the gesture SHALL be isolated from parent canvas pan handlers
+- **AND** horizontal overflow SHALL remain scrollable within the editor input surface
+
+#### Scenario: Horizontal scrollbar chrome is hidden
+
+- **WHEN** a reusable CodeMirror-backed expression editor contains horizontal overflow
+- **THEN** the editor SHALL preserve horizontal scroll behavior
+- **AND** the editor SHALL hide visible horizontal scrollbar chrome by default
+
+#### Scenario: Real newline characters remain visually distinct
+
+- **WHEN** a reusable CodeMirror-backed expression editor renders content containing real newline characters
+- **THEN** each real document line SHALL render as a separate vertical editor line
+- **AND** those real lines SHALL be visually distinguishable from a single long line that merely exceeds the input width
+
+#### Scenario: Compact expression fields do not show line numbers by default
+
+- **WHEN** a workflow expression field renders the reusable CodeMirror-backed editor in its default compact mode
+- **THEN** the editor SHALL NOT show a line-number gutter by default
+- **AND** the absence of line numbers SHALL NOT prevent users from distinguishing real newline characters from horizontal overflow

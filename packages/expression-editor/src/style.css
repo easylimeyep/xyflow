@@ -24,6 +24,16 @@
   color: var(--flow-editor-muted);
 }
 
+.cm-scroller {
+  overflow-x: auto;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.cm-scroller::-webkit-scrollbar {
+  display: none;
+}
+
 .cm-gutters {
   border-right: 1px solid var(--flow-editor-border);
 }

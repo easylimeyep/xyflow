@@ -59,6 +59,10 @@ interface MockAutocompleteExtension {
   __mockType: "autocompletion"
 }
 
+interface MockLineWrappingExtension {
+  __mockType: "lineWrapping"
+}
+
 function flattenExtensions(extensions: unknown): unknown[] {
   if (Array.isArray(extensions)) {
     return extensions.flatMap(flattenExtensions)
@@ -96,6 +100,17 @@ function isMockAutocompleteExtension(
     extension !== null &&
     "__mockType" in extension &&
     (extension as { __mockType?: string }).__mockType === "autocompletion"
+  )
+}
+
+function isMockLineWrappingExtension(
+  extension: unknown
+): extension is MockLineWrappingExtension {
+  return (
+    typeof extension === "object" &&
+    extension !== null &&
+    "__mockType" in extension &&
+    (extension as { __mockType?: string }).__mockType === "lineWrapping"
   )
 }
 
@@ -142,6 +157,7 @@ vi.mock("@uiw/react-codemirror", () => {
     onChange,
     onCreateEditor,
     extensions,
+    basicSetup,
   }: {
     value: string
     onChange: (
@@ -156,6 +172,7 @@ vi.mock("@uiw/react-codemirror", () => {
     ) => void
     onCreateEditor?: (view: MockEditorView) => void
     extensions?: unknown
+    basicSetup?: { lineNumbers?: boolean }
   }) {
     const textareaRef = useRef<HTMLTextAreaElement | null>(null)
     const docRef = useRef(value)
@@ -213,6 +230,7 @@ vi.mock("@uiw/react-codemirror", () => {
 
     const extensionsFlat = flattenExtensions(extensions)
     const hasAutocompleteExtension = extensionsFlat.some(isMockAutocompleteExtension)
+    const hasLineWrappingExtension = extensionsFlat.some(isMockLineWrappingExtension)
     const focusChangedListeners = extensionsFlat
       .filter(isMockUpdateListenerExtension)
       .map((extension) => extension.callback)
@@ -259,6 +277,8 @@ vi.mock("@uiw/react-codemirror", () => {
           ref={textareaRef}
           aria-label="expression-editor"
           value={docValue}
+          data-line-wrapping={hasLineWrappingExtension ? "true" : "false"}
+          data-line-numbers={basicSetup?.lineNumbers ? "true" : "false"}
           onFocus={() => {
             setIsFocused(true)
             // eslint-disable-next-line react-hooks/immutability
@@ -540,5 +560,65 @@ describe("ExpressionEditor integration", () => {
     })
 
     expect(document.querySelector(".cm-tooltip.cm-shadcn-autocomplete")).toBeNull()
+  })
+
+  it("does not enable soft line wrapping or compact line numbers", () => {
+    render(
+      <ExpressionEditor
+        value={'{{ $node("LongName").output.really.long.path }}'}
+        variables={[]}
+        onCommit={vi.fn()}
+        placeholder="type..."
+      />
+    )
+
+    const editor = screen.getByLabelText("expression-editor")
+
+    expect(editor.getAttribute("data-line-wrapping")).toBe("false")
+    expect(editor.getAttribute("data-line-numbers")).toBe("false")
+  })
+
+  it("prevents editor wheel events from bubbling to a parent canvas", () => {
+    const onParentWheel = vi.fn()
+
+    render(
+      <div onWheel={onParentWheel}>
+        <ExpressionEditor
+          value={'{{ $node("LongName").output.really.long.path }}'}
+          variables={[]}
+          onCommit={vi.fn()}
+          placeholder="type..."
+        />
+      </div>
+    )
+
+    const editorContainer = screen.getByLabelText("expression-editor").parentElement
+
+    expect(editorContainer?.classList.contains("nowheel")).toBe(true)
+
+    fireEvent.wheel(editorContainer as HTMLElement, {
+      deltaX: 80,
+      deltaY: 0,
+    })
+
+    expect(onParentWheel).not.toHaveBeenCalled()
+  })
+
+  it("keeps real newline content in the editor value", () => {
+    const value = "{{ condition\n  ? valueA\n  : valueB }}"
+
+    render(
+      <ExpressionEditor
+        value={value}
+        variables={[]}
+        onCommit={vi.fn()}
+        placeholder="type..."
+      />
+    )
+
+    const editor = screen.getByLabelText("expression-editor") as HTMLTextAreaElement
+
+    expect(editor.value).toBe(value)
+    expect(editor.value.split("\n")).toHaveLength(3)
   })
 })

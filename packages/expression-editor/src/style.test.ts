@@ -21,6 +21,26 @@ describe("expression editor stylesheet", () => {
     expect(editableSurfaceRule).toMatch(/\bcursor\s*:\s*text\s*;/)
   })
 
+  it("lets the CodeMirror scroller own horizontal overflow", () => {
+    const scrollerRule = stylesheet.match(/\.cm-scroller\s*\{[^}]*\}/)?.[0]
+
+    expect(scrollerRule).toBeDefined()
+    expect(scrollerRule).toMatch(/\boverflow-x\s*:\s*auto\s*;/)
+  })
+
+  it("keeps the horizontal scrollbar hidden while preserving scroll behavior", () => {
+    const scrollerRule = stylesheet.match(/\.cm-scroller\s*\{[^}]*\}/)?.[0]
+    const webkitScrollbarRule = stylesheet.match(
+      /\.cm-scroller::-webkit-scrollbar\s*\{[^}]*\}/
+    )?.[0]
+
+    expect(scrollerRule).toBeDefined()
+    expect(scrollerRule).toMatch(/\bscrollbar-width\s*:\s*none\s*;/)
+    expect(scrollerRule).toMatch(/-ms-overflow-style\s*:\s*none\s*;/)
+    expect(webkitScrollbarRule).toBeDefined()
+    expect(webkitScrollbarRule).toMatch(/\bdisplay\s*:\s*none\s*;/)
+  })
+
   it("keeps floating autocomplete tooltip border styling separate", () => {
     const autocompleteTooltipRule = stylesheet.match(
       /\.cm-tooltip\.cm-shadcn-autocomplete\s*\{[^}]*\}/
