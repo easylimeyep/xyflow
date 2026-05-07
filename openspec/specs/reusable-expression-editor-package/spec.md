@@ -116,3 +116,10 @@ Migrating workflow expression fields to the reusable package SHALL preserve the 
 - **WHEN** a user invokes the explicit variable picker flow by typing `{{}}`
 - **THEN** the editor SHALL show the custom variable picker using the prepared variable catalog
 - **AND** selecting a variable SHALL insert it in wrapped `{{ variable }}` format
+
+#### Scenario: Expression editor shows text cursor inside draggable workflow nodes
+
+- **WHEN** a reusable CodeMirror-backed expression editor is rendered inside a draggable workflow node
+- **AND** the user hovers the editable expression input surface
+- **THEN** the pointer cursor SHALL indicate text editing
+- **AND** the surrounding workflow node SHALL remain draggable outside the input interaction surface

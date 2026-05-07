@@ -4,6 +4,12 @@
   color: var(--flow-editor-fg);
 }
 
+.cm-editor,
+.cm-scroller,
+.cm-content {
+  cursor: text;
+}
+
 .cm-content {
   font-family:
     ui-monospace, SFMono-Regular, SFMono-Regular, Menlo, Monaco, Consolas,

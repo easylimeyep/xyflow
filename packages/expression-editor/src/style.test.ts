@@ -12,6 +12,15 @@ describe("expression editor stylesheet", () => {
     expect(codeMirrorEditorRule).not.toMatch(/\bborder\s*:/)
   })
 
+  it("keeps editable CodeMirror surfaces on a text cursor", () => {
+    const editableSurfaceRule = stylesheet.match(
+      /\.cm-editor,\s*\.cm-scroller,\s*\.cm-content\s*\{[^}]*\}/
+    )?.[0]
+
+    expect(editableSurfaceRule).toBeDefined()
+    expect(editableSurfaceRule).toMatch(/\bcursor\s*:\s*text\s*;/)
+  })
+
   it("keeps floating autocomplete tooltip border styling separate", () => {
     const autocompleteTooltipRule = stylesheet.match(
       /\.cm-tooltip\.cm-shadcn-autocomplete\s*\{[^}]*\}/
