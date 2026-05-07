@@ -130,6 +130,9 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
     const { nextGraph, removedNodeIds, nodeCollectionChanged, edgeCollectionChanged, selectionChanged, nextSelectedNodeIds } = computed
     const hasDraggingPositionChanges = hasDraggingPositionChange(changes)
     const shouldCommitSemanticHistory = shouldCommitNodeHistory(changes)
+    const positionOnlyChange = isPositionOnlyChange(changes)
+    const expressionPatchFor = (state: ReturnType<typeof get>) =>
+      positionOnlyChange ? {} : buildExpressionSlicePatch(state, nextGraph)
 
     if (!nodeCollectionChanged && !edgeCollectionChanged && !selectionChanged) {
       if (!hasDraggingPositionChanges && get().nodeDragOriginGraph) {
@@ -144,19 +147,19 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
           history: { ...state.history, present: cloneGraphState(nextGraph), future: [] },
           selectedNodeIds: nextSelectedNodeIds,
           nodeDragOriginGraph: null,
-          ...buildExpressionSlicePatch(state, nextGraph),
+          ...expressionPatchFor(state),
         }))
         return
       }
 
-      if (isPositionOnlyChange(changes)) {
+      if (positionOnlyChange) {
         const dragOriginGraph = get().nodeDragOriginGraph ?? currentGraph
         if (!haveNodePositionsChanged(dragOriginGraph.nodes, nextGraph.nodes)) {
           set((state) => ({
             history: { ...state.history, present: nextGraph },
             selectedNodeIds: nextSelectedNodeIds,
             nodeDragOriginGraph: null,
-            ...buildExpressionSlicePatch(state, nextGraph),
+            ...expressionPatchFor(state),
           }))
           return
         }
@@ -169,7 +172,7 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
             },
             selectedNodeIds: nextSelectedNodeIds,
             nodeDragOriginGraph: null,
-            ...buildExpressionSlicePatch(state, nextGraph),
+            ...expressionPatchFor(state),
           }))
           return
         }
@@ -179,7 +182,7 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
         history: pushHistoryState(state.history, cloneGraphState(nextGraph)),
         selectedNodeIds: nextSelectedNodeIds,
         nodeDragOriginGraph: null,
-        ...buildExpressionSlicePatch(state, nextGraph),
+        ...expressionPatchFor(state),
       }))
       return
     }
@@ -193,7 +196,7 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
           : hasDraggingPositionChanges
             ? state.nodeDragOriginGraph
             : null,
-      ...buildExpressionSlicePatch(state, nextGraph),
+      ...expressionPatchFor(state),
     }))
   },
   setViewport: (viewport) => {

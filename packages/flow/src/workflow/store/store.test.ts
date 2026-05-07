@@ -802,7 +802,7 @@ describe("workflow store", () => {
       store.getState(),
       targetNode.id
     )
-    expect(afterTransientCatalog).toEqual(beforeCatalog)
+    expect(afterTransientCatalog).toBe(beforeCatalog)
 
     store.getState().onNodesChange([
       {
@@ -819,7 +819,7 @@ describe("workflow store", () => {
       store.getState(),
       targetNode.id
     )
-    expect(afterCommitCatalog).toEqual(afterTransientCatalog)
+    expect(afterCommitCatalog).toBe(afterTransientCatalog)
 
     store.getState().updateNodeLabel(targetNode.id, "Keyword changed")
     const afterStructuralChangeCatalog = selectExpressionVariablesForNode(

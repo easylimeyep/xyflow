@@ -164,6 +164,31 @@ describe("InlineExpressionNode", () => {
     ).toBe("{{ new }}")
   })
 
+  it("replaces stale live token drafts when committed tokens change", () => {
+    const rendered = render(
+      <InlineExpressionNode {...createNodeProps(["lead"])} />
+    )
+
+    fireEvent.change(screen.getByTestId("inline-expression-input"), {
+      target: { value: "lead score" },
+    })
+    expect(screen.getByText(/Tokens cannot contain spaces/i)).toBeTruthy()
+
+    rendered.rerender(<InlineExpressionNode {...createNodeProps(["email"])} />)
+
+    expect(
+      (screen.getByTestId("inline-expression-input") as HTMLInputElement).value
+    ).toBe("email")
+    expect(screen.queryByText(/Tokens cannot contain spaces/i)).toBeNull()
+
+    rendered.rerender(<InlineExpressionNode {...createNodeProps(["lead"])} />)
+
+    expect(
+      (screen.getByTestId("inline-expression-input") as HTMLInputElement).value
+    ).toBe("lead")
+    expect(screen.queryByText(/Tokens cannot contain spaces/i)).toBeNull()
+  })
+
   it("updates isRoot config when Root checkbox toggles", () => {
     render(
       <InlineExpressionNode {...createNodeProps(["{{ $input.item.json }}"])} />

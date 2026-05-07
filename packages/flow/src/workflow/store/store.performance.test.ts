@@ -64,6 +64,8 @@ describe("workflow interaction performance budgets", () => {
     }
 
     const initialVersion = store.getState().expressionStructuralVersion
+    const initialExpressionDepsRef = store.getState().expressionDeps
+    const initialExpressionCatalogRef = store.getState().expressionCatalogCache
     const dragStartPosition = { ...targetNode.position }
     const startTime = performance.now()
 
@@ -98,6 +100,10 @@ describe("workflow interaction performance budgets", () => {
     expect(averageTransientUpdateMs).toBeLessThan(8)
     expect(store.getState().history.past).toHaveLength(1)
     expect(store.getState().expressionStructuralVersion).toBe(initialVersion)
+    expect(store.getState().expressionDeps).toBe(initialExpressionDepsRef)
+    expect(store.getState().expressionCatalogCache).toBe(
+      initialExpressionCatalogRef
+    )
   })
 
   it("keeps viewport bursts lightweight enough for smooth pan/zoom interaction", () => {

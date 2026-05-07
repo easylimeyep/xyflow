@@ -4,6 +4,10 @@ export function asText(value: unknown): string {
 
 export function asStringArray(value: unknown): string[] {
   if (Array.isArray(value)) {
+    if (value.every((entry) => typeof entry === "string")) {
+      return value as string[]
+    }
+
     return value.filter((entry): entry is string => typeof entry === "string")
   }
 

@@ -2,7 +2,7 @@
 
 import { Button } from "@workspace/ui/components/button"
 import { Plus, Trash2Icon } from "lucide-react"
-import { useEffect, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 
 import { inlineExpressionNodeStyles } from "../../../../styles/components/nodes"
 import { ExpressionInput } from "../../../components/expression-input"
@@ -15,6 +15,13 @@ interface KeywordExpressionListInputProps {
   onChange: (nextValue: string[]) => void
 }
 
+type LiveRowsDraft = {
+  baseValue: string[]
+  rowsByIndex: Record<number, string>
+}
+
+const EMPTY_KEYWORD_ROWS = [""]
+
 export function KeywordExpressionListInput({
   value,
   variables,
@@ -22,25 +29,49 @@ export function KeywordExpressionListInput({
   onChange,
 }: KeywordExpressionListInputProps) {
   const styles = inlineExpressionNodeStyles()
-  const rows = useMemo(() => (value.length > 0 ? value : [""]), [value])
-  const [draftRows, setDraftRows] = useState(rows)
+  const committedRows = value.length > 0 ? value : EMPTY_KEYWORD_ROWS
+  const [liveDraft, setLiveDraft] = useState<LiveRowsDraft | null>(null)
+  const liveRowsByIndex =
+    liveDraft?.baseValue === value ? liveDraft.rowsByIndex : null
+  const rows = useMemo(
+    () =>
+      committedRows.map((rowValue, index) => {
+        if (
+          !liveRowsByIndex ||
+          !Object.prototype.hasOwnProperty.call(liveRowsByIndex, index)
+        ) {
+          return rowValue
+        }
 
-  useEffect(() => {
-    setDraftRows(rows)
-  }, [rows])
-
-  const rowErrors = useMemo(
-    () => draftRows.map(getKeywordTokenValidationError),
-    [draftRows]
+        return liveRowsByIndex[index] ?? rowValue
+      }),
+    [committedRows, liveRowsByIndex]
   )
 
-  const updateRow = (index: number, nextRowValue: string) => {
-    setDraftRows((currentRows) =>
-      currentRows.map((rowValue, rowIndex) =>
-        rowIndex === index ? nextRowValue : rowValue
-      )
-    )
+  const rowErrors = useMemo(
+    () => rows.map(getKeywordTokenValidationError),
+    [rows]
+  )
 
+  const setLiveRow = (index: number, nextRowValue: string) => {
+    setLiveDraft((currentDraft) => {
+      const rowsByIndex =
+        currentDraft?.baseValue === value
+          ? currentDraft.rowsByIndex
+          : {}
+
+      return {
+        baseValue: value,
+        rowsByIndex: {
+          ...rowsByIndex,
+          [index]: nextRowValue,
+        },
+      }
+    })
+  }
+
+  const updateRow = (index: number, nextRowValue: string) => {
+    setLiveRow(index, nextRowValue)
     if (getKeywordTokenValidationError(nextRowValue)) {
       return
     }
@@ -101,11 +132,7 @@ export function KeywordExpressionListInput({
                 variables={variables}
                 onChange={(nextValue) => updateRow(index, nextValue)}
                 onLiveChange={(nextValue) => {
-                  setDraftRows((currentRows) =>
-                    currentRows.map((currentRowValue, rowIndex) =>
-                      rowIndex === index ? nextValue : currentRowValue
-                    )
-                  )
+                  setLiveRow(index, nextValue)
                 }}
               />
               {rowErrors[index] ? (
