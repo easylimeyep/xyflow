@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import { createWorkflowNode } from "./node-factory"
+import { normalizeNodeConfig } from "./node-config-normalization"
 import { nodeRegistry } from "./registry"
 
 describe("workflow node registry", () => {
@@ -28,11 +29,20 @@ describe("workflow node registry", () => {
 
     expect(definition.kind).toBe("inlineExpression")
     expect(definition.title).toBe("Keyword")
-    expect(definition.fields.find((field) => field.key === "template")?.label).toBe("Tokens")
-    expect(definition.fields.some((field) => field.key === "template" && field.ui === "expression")).toBe(
-      true
-    )
-    expect(definition.fields.find((field) => field.key === "repeatable")?.label).toBe("Repeatable")
+    expect(
+      definition.fields.find((field) => field.key === "template")?.label
+    ).toBe("Tokens")
+    expect(
+      definition.fields.some(
+        (field) => field.key === "template" && field.ui === "expression"
+      )
+    ).toBe(true)
+    expect(
+      definition.fields.find((field) => field.key === "repeatable")?.label
+    ).toBe("Repeatable")
+    expect(
+      definition.fields.find((field) => field.key === "caseSensitive")?.label
+    ).toBe("Case sensitive")
   })
 
   it("creates inline expression node with default config", () => {
@@ -42,6 +52,24 @@ describe("workflow node registry", () => {
     expect(node.data.config.template).toEqual([])
     expect(node.data.config.isRoot).toBe(false)
     expect(node.data.config.repeatable).toBe(false)
+    expect(node.data.config.caseSensitive).toBe(false)
+  })
+
+  it("normalizes missing caseSensitive values to false", () => {
+    expect(
+      normalizeNodeConfig("inlineExpression", {
+        template: ["lead"],
+        isRoot: true,
+        repeatable: false,
+      }).caseSensitive
+    ).toBe(false)
+
+    expect(
+      normalizeNodeConfig("evaluator", {
+        conditions: [],
+        logicalOperator: "and",
+      }).caseSensitive
+    ).toBe(false)
   })
 
   it("does not expose trigger node in registry", () => {
@@ -53,7 +81,10 @@ describe("workflow node registry", () => {
 
     expect(definition.kind).toBe("extractor")
     expect(definition.renameConfigKey).toBe("extractExpression")
-    expect(definition.fields.find((field) => field.key === "extractExpression")?.label).toBe("Label")
+    expect(
+      definition.fields.find((field) => field.key === "extractExpression")
+        ?.label
+    ).toBe("Label")
   })
 
   it("includes result node definition", () => {
@@ -78,5 +109,4 @@ describe("workflow node registry", () => {
     expect(node.type).toBe("result")
     expect(node.data.config.category).toBe("true")
   })
-
 })

@@ -54,6 +54,19 @@ describe("applyNodeConfigUpdate", () => {
     expect(result.nextGraph?.nodes[1]?.data.config.template).toEqual(["{{ oldName }}"])
   })
 
+  it("updates evaluator caseSensitive config field", () => {
+    const evaluatorNode = createWorkflowNode("evaluator", { x: 0, y: 0 })
+    const graph = createGraph([evaluatorNode])
+    const result = applyNodeConfigUpdate(graph, evaluatorNode.id, {
+      kind: "evaluator",
+      key: "caseSensitive",
+      value: true,
+    })
+
+    expect(result.error).toBeNull()
+    expect(result.nextGraph?.nodes[0]?.data.config.caseSensitive).toBe(true)
+  })
+
   it("refactors plain variable references for rename-aware config key updates", () => {
     const setVariableNode = createWorkflowNode("setVariable", { x: 0, y: 0 })
     const inlineNode = createWorkflowNode("inlineExpression", { x: 300, y: 0 })

@@ -102,6 +102,7 @@ function createNodeProps(
           },
         ],
         logicalOperator: "and",
+        caseSensitive: false,
       },
       ...overrides,
     },
@@ -290,6 +291,32 @@ describe("EvaluatorNode", () => {
           targetValue: "",
         },
       ],
+    })
+  })
+
+  it("renders Case sensitive checkbox below conditions", () => {
+    render(<EvaluatorNode {...createNodeProps()} />)
+
+    const valueInput = screen.getByLabelText("value")
+    const caseSensitiveCheckbox = screen.getByRole("checkbox", {
+      name: /Case sensitive/i,
+    })
+
+    expect(
+      valueInput.compareDocumentPosition(caseSensitiveCheckbox) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
+  })
+
+  it("updates caseSensitive config when Case sensitive checkbox toggles", () => {
+    render(<EvaluatorNode {...createNodeProps()} />)
+
+    fireEvent.click(screen.getByRole("checkbox", { name: /Case sensitive/i }))
+
+    expect(mockUpdateNodeConfig).toHaveBeenCalledWith("evaluator-node-1", {
+      kind: "evaluator",
+      key: "caseSensitive",
+      value: true,
     })
   })
 

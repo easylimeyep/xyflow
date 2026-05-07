@@ -320,6 +320,18 @@ describe("workflow store clipboard actions", () => {
     const payload = exportSelectionClipboardJson(
       [
         {
+          id: "copy-keyword",
+          kind: "inlineExpression",
+          position: { x: -220, y: 0 },
+          label: "Keyword",
+          config: {
+            template: ["VIP"],
+            isRoot: true,
+            repeatable: false,
+            caseSensitive: true,
+          },
+        },
+        {
           id: "copy-set-variable",
           kind: "setVariable",
           position: { x: 0, y: 0 },
@@ -344,6 +356,7 @@ describe("workflow store clipboard actions", () => {
               },
             ],
             logicalOperator: "or",
+            caseSensitive: true,
           },
         },
       ],
@@ -371,10 +384,19 @@ describe("workflow store clipboard actions", () => {
     const pastedSetVariable = pastedNodes.find(
       (node) => node.data.kind === "setVariable"
     )
+    const pastedKeyword = pastedNodes.find(
+      (node) => node.data.kind === "inlineExpression"
+    )
     const pastedEvaluator = pastedNodes.find(
       (node) => node.data.kind === "evaluator"
     )
 
+    expect(pastedKeyword?.data.config).toEqual({
+      template: ["VIP"],
+      isRoot: true,
+      repeatable: false,
+      caseSensitive: true,
+    })
     expect(pastedSetVariable?.data.config).toEqual({
       variableName: "customerName",
       valueExpression: "{{ $json.customer.name }}",
@@ -389,6 +411,7 @@ describe("workflow store clipboard actions", () => {
         },
       ],
       logicalOperator: "or",
+      caseSensitive: true,
     })
   })
 

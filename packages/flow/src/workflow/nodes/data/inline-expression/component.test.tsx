@@ -80,7 +80,12 @@ function createNodeProps(
     data: {
       kind: "inlineExpression",
       label: "Inline Node",
-      config: { template, isRoot: false, repeatable: false },
+      config: {
+        template,
+        isRoot: false,
+        repeatable: false,
+        caseSensitive: false,
+      },
     },
     selected: false,
     dragging: false,
@@ -203,6 +208,36 @@ describe("InlineExpressionNode", () => {
     })
   })
 
+  it("renders Case sensitive checkbox below tokens input", () => {
+    render(
+      <InlineExpressionNode {...createNodeProps(["{{ $input.item.json }}"])} />
+    )
+
+    const input = screen.getByTestId("inline-expression-input")
+    const caseSensitiveCheckbox = screen.getByRole("checkbox", {
+      name: /Case sensitive/i,
+    })
+
+    expect(
+      input.compareDocumentPosition(caseSensitiveCheckbox) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
+  })
+
+  it("updates caseSensitive config when Case sensitive checkbox toggles", () => {
+    render(
+      <InlineExpressionNode {...createNodeProps(["{{ $input.item.json }}"])} />
+    )
+
+    fireEvent.click(screen.getByRole("checkbox", { name: /Case sensitive/i }))
+
+    expect(mockUpdateNodeConfig).toHaveBeenCalledWith("inline-node-1", {
+      kind: "inlineExpression",
+      key: "caseSensitive",
+      value: true,
+    })
+  })
+
   it("hides target handle when node is root", () => {
     const rootNodeProps = createNodeProps(["{{ $input.item.json }}"])
     rootNodeProps.data = {
@@ -212,6 +247,7 @@ describe("InlineExpressionNode", () => {
         template: ["{{ $input.item.json }}"],
         isRoot: true,
         repeatable: false,
+        caseSensitive: false,
       },
     }
 
@@ -282,12 +318,8 @@ describe("InlineExpressionNode", () => {
       />
     )
 
-    expect(
-      screen.queryByRole("button", { name: /Delete token 1/i })
-    ).toBeNull()
-    expect(
-      screen.queryByRole("button", { name: /Delete token 2/i })
-    ).toBeNull()
+    expect(screen.queryByRole("button", { name: /Delete token 1/i })).toBeNull()
+    expect(screen.queryByRole("button", { name: /Delete token 2/i })).toBeNull()
     expect(mockUpdateNodeConfig).not.toHaveBeenCalled()
   })
 

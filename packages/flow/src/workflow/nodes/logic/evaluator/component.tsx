@@ -2,6 +2,7 @@
 
 import type { NodeProps } from "@xyflow/react"
 import { Button } from "@workspace/ui/components/button"
+import { Checkbox } from "@workspace/ui/components/checkbox"
 import {
   NativeSelect,
   NativeSelectOption,
@@ -198,6 +199,7 @@ export function EvaluatorNode({ id, data, selected }: NodeProps) {
   )
   const logicalOperator =
     (config.logicalOperator as "and" | "or" | undefined) ?? "and"
+  const isCaseSensitiveFromStore = config.caseSensitive === true
 
   const setConditions = useCallback(
     (next: EvaluatorCondition[]) => {
@@ -332,6 +334,21 @@ export function EvaluatorNode({ id, data, selected }: NodeProps) {
             </SortableOverlay>
           </Sortable>
         </div>
+
+        <label className={styles.optionToggleWrap()}>
+          <Checkbox
+            checked={isCaseSensitiveFromStore}
+            className={styles.optionToggle()}
+            onCheckedChange={(checked) => {
+              updateNodeConfig(id, {
+                kind: "evaluator",
+                key: "caseSensitive",
+                value: checked === true,
+              })
+            }}
+          />
+          <span className={styles.optionToggleLabel()}>Case sensitive</span>
+        </label>
 
         {enableEvaluatorMultipleConditions && (
           <Button

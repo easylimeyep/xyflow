@@ -44,6 +44,7 @@ describe("initial graph builders", () => {
             template: ["lead"],
             isRoot: true,
             repeatable: false,
+            caseSensitive: false,
           },
         },
       }),

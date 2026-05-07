@@ -236,6 +236,7 @@ describe("workflow mappers", () => {
       "Inline Expr"
     )
     inlineNode.data.config.template = ["{{ $input.item.json.hostname }}"]
+    inlineNode.data.config.caseSensitive = true
     const graph = {
       ...initialWorkflowGraph,
       nodes: [...initialWorkflowGraph.nodes, inlineNode],
@@ -251,6 +252,7 @@ describe("workflow mappers", () => {
     expect(restoredInlineNode?.data.config.template).toEqual([
       "{{ $input.item.json.hostname }}",
     ])
+    expect(restoredInlineNode?.data.config.caseSensitive).toBe(true)
   })
 
   it("normalizes legacy scalar inline expression templates during import", () => {
@@ -296,6 +298,7 @@ describe("workflow mappers", () => {
       },
     ]
     evaluatorNode.data.config.logicalOperator = "or"
+    evaluatorNode.data.config.caseSensitive = true
 
     const graph = {
       ...initialWorkflowGraph,

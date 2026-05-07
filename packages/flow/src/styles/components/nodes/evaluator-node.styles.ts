@@ -18,6 +18,9 @@ export const evaluatorNodeStyles = tv({
     logicalOperatorSelect: "w-16 text-[10px]",
     logicalOperatorBadge:
       "rounded border border-border px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground",
+    optionToggleWrap: "inline-flex items-center gap-1.5 pt-1",
+    optionToggle: "size-3.5 rounded-[3px]",
+    optionToggleLabel: "text-[11px] font-medium text-muted-foreground",
     addButton: "mt-1 h-7 w-full text-[11px]",
     label: "text-[11px] font-medium text-muted-foreground",
   },

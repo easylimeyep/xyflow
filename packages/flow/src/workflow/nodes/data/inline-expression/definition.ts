@@ -26,6 +26,11 @@ export const inlineExpression = defineNode({
       label: "Repeatable",
       type: "boolean",
     },
+    {
+      key: "caseSensitive",
+      label: "Case sensitive",
+      type: "boolean",
+    },
   ],
   outputPaths: ["template"],
   allowedTargets: [
@@ -39,6 +44,7 @@ export const inlineExpression = defineNode({
     template: [],
     isRoot: false,
     repeatable: false,
+    caseSensitive: false,
   }),
   validateConfigValue: (key, value) => {
     switch (key) {
@@ -50,6 +56,7 @@ export const inlineExpression = defineNode({
         )
       case "isRoot":
       case "repeatable":
+      case "caseSensitive":
         return typeof value === "boolean"
       default:
         return false

@@ -71,12 +71,14 @@ export interface EvaluatorCondition {
 export type EvaluatorNodeConfig = {
   conditions: EvaluatorCondition[]
   logicalOperator: "and" | "or"
+  caseSensitive: boolean
 }
 
 export type InlineExpressionNodeConfig = {
   template: string[]
   isRoot: boolean
   repeatable: boolean
+  caseSensitive: boolean
 }
 
 export type SetVariableNodeConfig = {

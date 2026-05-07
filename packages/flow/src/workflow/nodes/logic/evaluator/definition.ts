@@ -43,6 +43,7 @@ export const evaluator = defineNode({
       } satisfies EvaluatorCondition,
     ],
     logicalOperator: "and" as const,
+    caseSensitive: false,
   }),
   subtitle: (config) => {
     const conditions = config.conditions as EvaluatorCondition[] | undefined
@@ -67,6 +68,8 @@ export const evaluator = defineNode({
         return Array.isArray(value) && value.every(isEvaluatorCondition)
       case "logicalOperator":
         return value === "and" || value === "or"
+      case "caseSensitive":
+        return typeof value === "boolean"
       default:
         return false
     }

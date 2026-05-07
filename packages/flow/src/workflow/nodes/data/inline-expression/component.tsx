@@ -23,6 +23,7 @@ export function InlineExpressionNode({
   const templateFromStore = asStringArray(config.template)
   const isRootFromStore = config.isRoot === true
   const isRepeatableFromStore = config.repeatable === true
+  const isCaseSensitiveFromStore = config.caseSensitive === true
   const isInteractive = draggable || selectable || isConnectable
   const styles = inlineExpressionNodeStyles()
 
@@ -80,6 +81,20 @@ export function InlineExpressionNode({
             }}
           />
           <span className={styles.rootToggleLabel()}>Repeatable</span>
+        </label>
+        <label className={styles.rootToggleWrap()}>
+          <Checkbox
+            checked={isCaseSensitiveFromStore}
+            className={styles.rootToggle()}
+            onCheckedChange={(checked) => {
+              updateNodeConfig(id, {
+                kind: "inlineExpression",
+                key: "caseSensitive",
+                value: checked === true,
+              })
+            }}
+          />
+          <span className={styles.rootToggleLabel()}>Case sensitive</span>
         </label>
       </div>
     </NodeShell>
