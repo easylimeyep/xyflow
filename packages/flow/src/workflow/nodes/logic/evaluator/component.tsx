@@ -277,6 +277,21 @@ export function EvaluatorNode({ id, data, selected }: NodeProps) {
       outputs={evaluator.outputs}
     >
       <div className={styles.root()}>
+        <label className={styles.optionToggleWrap()}>
+          <Checkbox
+            checked={isCaseSensitiveFromStore}
+            className={styles.optionToggle()}
+            onCheckedChange={(checked) => {
+              updateNodeConfig(id, {
+                kind: "evaluator",
+                key: "caseSensitive",
+                value: checked === true,
+              })
+            }}
+          />
+          <span className={styles.optionToggleLabel()}>Case sensitive</span>
+        </label>
+
         <div className={styles.conditionList()}>
           <Sortable
             value={visibleConditions}
@@ -334,21 +349,6 @@ export function EvaluatorNode({ id, data, selected }: NodeProps) {
             </SortableOverlay>
           </Sortable>
         </div>
-
-        <label className={styles.optionToggleWrap()}>
-          <Checkbox
-            checked={isCaseSensitiveFromStore}
-            className={styles.optionToggle()}
-            onCheckedChange={(checked) => {
-              updateNodeConfig(id, {
-                kind: "evaluator",
-                key: "caseSensitive",
-                value: checked === true,
-              })
-            }}
-          />
-          <span className={styles.optionToggleLabel()}>Case sensitive</span>
-        </label>
 
         {enableEvaluatorMultipleConditions && (
           <Button

@@ -294,7 +294,7 @@ describe("EvaluatorNode", () => {
     })
   })
 
-  it("renders Case sensitive checkbox below conditions", () => {
+  it("renders Case sensitive checkbox before conditions", () => {
     render(<EvaluatorNode {...createNodeProps()} />)
 
     const valueInput = screen.getByLabelText("value")
@@ -303,7 +303,7 @@ describe("EvaluatorNode", () => {
     })
 
     expect(
-      valueInput.compareDocumentPosition(caseSensitiveCheckbox) &
+      caseSensitiveCheckbox.compareDocumentPosition(valueInput) &
         Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy()
   })

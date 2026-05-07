@@ -52,7 +52,23 @@ export function InlineExpressionNode({
       }
     >
       <div className={styles.editField()}>
-        <Label className={styles.label()}>Tokens</Label>
+        <div className={styles.fieldHeader()}>
+          <Label className={styles.label()}>Tokens</Label>
+          <label className={styles.rootToggleWrap()}>
+            <Checkbox
+              checked={isCaseSensitiveFromStore}
+              className={styles.rootToggle()}
+              onCheckedChange={(checked) => {
+                updateNodeConfig(id, {
+                  kind: "inlineExpression",
+                  key: "caseSensitive",
+                  value: checked === true,
+                })
+              }}
+            />
+            <span className={styles.rootToggleLabel()}>Case sensitive</span>
+          </label>
+        </div>
         <KeywordExpressionListInput
           value={templateFromStore}
           variables={expressionVariables}
@@ -81,20 +97,6 @@ export function InlineExpressionNode({
             }}
           />
           <span className={styles.rootToggleLabel()}>Repeatable</span>
-        </label>
-        <label className={styles.rootToggleWrap()}>
-          <Checkbox
-            checked={isCaseSensitiveFromStore}
-            className={styles.rootToggle()}
-            onCheckedChange={(checked) => {
-              updateNodeConfig(id, {
-                kind: "inlineExpression",
-                key: "caseSensitive",
-                value: checked === true,
-              })
-            }}
-          />
-          <span className={styles.rootToggleLabel()}>Case sensitive</span>
         </label>
       </div>
     </NodeShell>

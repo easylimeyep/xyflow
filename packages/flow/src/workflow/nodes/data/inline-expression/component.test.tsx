@@ -208,7 +208,7 @@ describe("InlineExpressionNode", () => {
     })
   })
 
-  it("renders Case sensitive checkbox below tokens input", () => {
+  it("renders Case sensitive checkbox before tokens input", () => {
     render(
       <InlineExpressionNode {...createNodeProps(["{{ $input.item.json }}"])} />
     )
@@ -219,7 +219,7 @@ describe("InlineExpressionNode", () => {
     })
 
     expect(
-      input.compareDocumentPosition(caseSensitiveCheckbox) &
+      caseSensitiveCheckbox.compareDocumentPosition(input) &
         Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy()
   })
