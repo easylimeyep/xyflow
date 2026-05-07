@@ -1,5 +1,6 @@
 export type HistoryHotkeyAction = "undo" | "redo"
 export type ClipboardHotkeyAction = "copy" | "paste"
+export type NodeEditHotkeyAction = "duplicate" | "delete"
 
 export function getHistoryHotkeyAction(event: KeyboardEvent): HistoryHotkeyAction | null {
   if (event.defaultPrevented) {
@@ -89,6 +90,49 @@ export function createClipboardHotkeyHandler(
     }
 
     onPaste()
+  }
+}
+
+export function getNodeEditHotkeyAction(event: KeyboardEvent): NodeEditHotkeyAction | null {
+  if (event.defaultPrevented) {
+    return null
+  }
+
+  if (isEditableEventTarget(event.target)) {
+    return null
+  }
+
+  const key = event.key.toLowerCase()
+  const hasModifier = event.metaKey || event.ctrlKey
+
+  if (hasModifier && key === "d") {
+    return "duplicate"
+  }
+
+  if (!hasModifier && key === "backspace") {
+    return "delete"
+  }
+
+  return null
+}
+
+export function createNodeEditHotkeyHandler(
+  onDuplicate: () => void,
+  onDelete: () => void
+): (event: KeyboardEvent) => void {
+  return (event: KeyboardEvent) => {
+    const action = getNodeEditHotkeyAction(event)
+    if (!action) {
+      return
+    }
+
+    event.preventDefault()
+    if (action === "duplicate") {
+      onDuplicate()
+      return
+    }
+
+    onDelete()
   }
 }
 

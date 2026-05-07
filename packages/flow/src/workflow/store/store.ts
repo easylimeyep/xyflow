@@ -76,6 +76,8 @@ export function useWorkflowActions() {
     undo: state.undo,
     redo: state.redo,
     addNode: state.addNode,
+    duplicateNodes: state.duplicateNodes,
+    deleteNodes: state.deleteNodes,
     autoLayout: state.autoLayout,
     measuredInitialAutoLayout: state.measuredInitialAutoLayout,
     setSelectedNodes: state.setSelectedNodes,

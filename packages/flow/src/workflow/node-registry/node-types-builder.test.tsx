@@ -6,6 +6,7 @@ import { describe, expect, it, vi } from "vitest"
 
 import { buildNodeTypes } from "./node-types-builder"
 import type { NodeDefinition } from "./define-node"
+import { WorkflowStoreProvider } from "../store"
 
 vi.mock("@xyflow/react", () => ({
   Handle: () => null,
@@ -35,13 +36,44 @@ function CustomNode() {
   return <div>Custom node</div>
 }
 
+const nodeProps = {
+  id: "test-node",
+  type: "testNode",
+  data: {
+    kind: "testNode",
+    label: "Test Node",
+    config: {},
+  },
+  selected: false,
+  dragging: false,
+  zIndex: 1,
+  selectable: true,
+  deletable: true,
+  draggable: true,
+  isConnectable: true,
+  positionAbsoluteX: 0,
+  positionAbsoluteY: 0,
+}
+
 describe("buildNodeTypes", () => {
   it("uses explicit client component bindings", () => {
     const nodeTypes = buildNodeTypes([testDefinition], {
       testNode: CustomNode,
     })
 
-    expect(nodeTypes.testNode).toBe(CustomNode)
+    const GeneratedNode = nodeTypes.testNode
+    expect(GeneratedNode).toBeDefined()
+    if (!GeneratedNode) {
+      throw new Error("Expected generated node type")
+    }
+
+    const { container } = render(
+      <WorkflowStoreProvider>
+        <GeneratedNode {...nodeProps} />
+      </WorkflowStoreProvider>
+    )
+
+    expect(container.textContent).toContain("Custom node")
   })
 
   it("falls back to DefaultNodeRenderer when no component binding exists", () => {
@@ -54,24 +86,9 @@ describe("buildNodeTypes", () => {
     }
 
     const { container } = render(
-      <GeneratedNode
-        id="test-node"
-        type="testNode"
-        data={{
-          kind: "testNode",
-          label: "Test Node",
-          config: {},
-        }}
-        selected={false}
-        dragging={false}
-        zIndex={1}
-        selectable
-        deletable
-        draggable
-        isConnectable
-        positionAbsoluteX={0}
-        positionAbsoluteY={0}
-      />
+      <WorkflowStoreProvider>
+        <GeneratedNode {...nodeProps} />
+      </WorkflowStoreProvider>
     )
 
     expect(container.textContent).toContain("Test Node")

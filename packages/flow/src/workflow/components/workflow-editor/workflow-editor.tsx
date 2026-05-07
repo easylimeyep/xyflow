@@ -38,6 +38,7 @@ import { EditorToolbar } from "../editor-toolbar"
 import {
   createClipboardHotkeyHandler,
   createHistoryHotkeyHandler,
+  createNodeEditHotkeyHandler,
   isEscapeHotkey,
 } from "../hotkeys"
 import { WorkflowEditorConfigPanel } from "../node-config-panel"
@@ -99,6 +100,24 @@ function useClipboardHotkeys(
   }, [onCopy, onPaste])
 }
 
+function useNodeEditHotkeys(
+  onDuplicate: () => boolean,
+  onDelete: () => boolean
+): void {
+  useEffect(() => {
+    const handler = createNodeEditHotkeyHandler(
+      () => {
+        onDuplicate()
+      },
+      () => {
+        onDelete()
+      }
+    )
+    window.addEventListener("keydown", handler)
+    return () => window.removeEventListener("keydown", handler)
+  }, [onDelete, onDuplicate])
+}
+
 function WorkflowEditorLayoutProvider({
   autoLayoutOnInit,
   children,
@@ -112,6 +131,8 @@ function WorkflowEditorLayoutProvider({
     redo,
     copySelectionToClipboard,
     pasteFromClipboard,
+    duplicateNodes,
+    deleteNodes,
     cancelQuickAdd,
     cancelEdgeInsert,
   } = useWorkflowShallowStore((state: WorkflowStoreState) => ({
@@ -119,12 +140,15 @@ function WorkflowEditorLayoutProvider({
     redo: state.redo,
     copySelectionToClipboard: state.copySelectionToClipboard,
     pasteFromClipboard: state.pasteFromClipboard,
+    duplicateNodes: state.duplicateNodes,
+    deleteNodes: state.deleteNodes,
     cancelQuickAdd: state.cancelQuickAdd,
     cancelEdgeInsert: state.cancelEdgeInsert,
   }))
 
   useUndoRedoHotkeys(undo, redo)
   useClipboardHotkeys(copySelectionToClipboard, pasteFromClipboard)
+  useNodeEditHotkeys(duplicateNodes, deleteNodes)
   useCancelInsertHotkey(() => {
     cancelQuickAdd()
     cancelEdgeInsert()

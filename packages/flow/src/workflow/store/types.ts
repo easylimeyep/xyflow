@@ -104,6 +104,8 @@ export interface WorkflowStoreQueries {
 
 export interface WorkflowStoreGraphCommands {
   addNode: (kind: NodeKind, position: XYPosition) => void
+  duplicateNodes: (nodeIds?: string[]) => boolean
+  deleteNodes: (nodeIds?: string[]) => boolean
   updateNodeLabel: (nodeId: string, nextLabel: string) => void
   updateNodeConfig: (nodeId: string, update: NodeConfigUpdate) => void
   autoLayout: () => Promise<boolean>

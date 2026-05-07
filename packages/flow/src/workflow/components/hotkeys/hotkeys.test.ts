@@ -2,7 +2,12 @@
 
 import { describe, expect, it } from "vitest"
 
-import { getClipboardHotkeyAction, getHistoryHotkeyAction, isEscapeHotkey } from "./hotkeys"
+import {
+  getClipboardHotkeyAction,
+  getHistoryHotkeyAction,
+  getNodeEditHotkeyAction,
+  isEscapeHotkey,
+} from "./hotkeys"
 
 function createKeyboardEvent(
   type: string,
@@ -133,5 +138,38 @@ describe("getClipboardHotkeyAction", () => {
     input.dispatchEvent(event)
 
     expect(getClipboardHotkeyAction(event)).toBeNull()
+  })
+})
+
+describe("getNodeEditHotkeyAction", () => {
+  it("returns duplicate for ctrl+d", () => {
+    const event = createKeyboardEvent("keydown", {
+      key: "d",
+      ctrlKey: true,
+      bubbles: true,
+    })
+
+    expect(getNodeEditHotkeyAction(event)).toBe("duplicate")
+  })
+
+  it("returns delete for backspace", () => {
+    const event = createKeyboardEvent("keydown", {
+      key: "Backspace",
+      bubbles: true,
+    })
+
+    expect(getNodeEditHotkeyAction(event)).toBe("delete")
+  })
+
+  it("ignores node edit shortcuts in editable targets", () => {
+    const input = document.createElement("input")
+    document.body.appendChild(input)
+    const event = createKeyboardEvent("keydown", {
+      key: "Backspace",
+      bubbles: true,
+    })
+    input.dispatchEvent(event)
+
+    expect(getNodeEditHotkeyAction(event)).toBeNull()
   })
 })

@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import {
   createClipboardHotkeyHandler,
   createHistoryHotkeyHandler,
+  createNodeEditHotkeyHandler,
 } from "./hotkeys"
 import { createWorkflowStore } from "../../store"
 import type { WorkflowNode } from "../../types"
@@ -249,5 +250,56 @@ describe("createClipboardHotkeyHandler integration", () => {
     window.removeEventListener("keydown", handler)
     expect(onCopy).toHaveBeenCalledTimes(1)
     expect(onPaste).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe("createNodeEditHotkeyHandler integration", () => {
+  beforeEach(() => {
+    document.body.innerHTML = ""
+  })
+
+  it("calls duplicate and delete actions on global hotkeys", () => {
+    const onDuplicate = vi.fn()
+    const onDelete = vi.fn()
+    const handler = createNodeEditHotkeyHandler(onDuplicate, onDelete)
+    window.addEventListener("keydown", handler)
+
+    window.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "d",
+        ctrlKey: true,
+        bubbles: true,
+      })
+    )
+    window.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "Backspace",
+        bubbles: true,
+      })
+    )
+
+    window.removeEventListener("keydown", handler)
+    expect(onDuplicate).toHaveBeenCalledTimes(1)
+    expect(onDelete).toHaveBeenCalledTimes(1)
+  })
+
+  it("does not call delete from editable targets", () => {
+    const onDuplicate = vi.fn()
+    const onDelete = vi.fn()
+    const handler = createNodeEditHotkeyHandler(onDuplicate, onDelete)
+    window.addEventListener("keydown", handler)
+
+    const input = document.createElement("input")
+    document.body.appendChild(input)
+    input.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "Backspace",
+        bubbles: true,
+      })
+    )
+
+    window.removeEventListener("keydown", handler)
+    expect(onDuplicate).not.toHaveBeenCalled()
+    expect(onDelete).not.toHaveBeenCalled()
   })
 })
