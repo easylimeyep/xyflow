@@ -10,11 +10,14 @@ export const inlineExpressionNodeStyles = tv({
     helperText: "mt-1 text-[10px] text-muted-foreground",
     tokenList: "space-y-2",
     tokenRow: "group/token-row relative",
-    tokenRowMain: "flex items-start gap-2",
     tokenRowInput: "min-w-0 flex-1",
     tokenRowError: "mt-1 text-[10px] text-destructive",
-    tokenAddButton: "shrink-0 self-start",
-    tokenDeleteButton:
-      "pointer-events-auto group-hover/token-row:hover:text-destructive absolute -top-2 -right-2 z-10 opacity-0 transition-opacity duration-150  group-hover/token-row:opacity-100 group-focus-within/token-row:opacity-100",
+    tokenAddRow: "",
+    tokenAddButton: "text-muted-foreground hover:text-foreground w-full",
+    tokenDeleteButton: [
+      "pointer-events-auto absolute -top-2 -left-2 z-10 opacity-0 shadow-sm transition-opacity duration-150 group-hover/token-row:opacity-100",
+      "group-focus-within/token-row:opacity-100 hover:text-destructive focus-visible:text-destructive",
+      "rounded-full",
+    ],
   },
 })

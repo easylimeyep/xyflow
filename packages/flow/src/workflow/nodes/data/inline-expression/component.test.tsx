@@ -279,6 +279,17 @@ describe("InlineExpressionNode", () => {
     })
   })
 
+  it("renders the add button below token rows", () => {
+    render(<InlineExpressionNode {...createNodeProps(["{{ first }}"])} />)
+
+    const addButton = screen.getByRole("button", { name: /Add token/i })
+    const addRow = screen.getByTestId("keyword-token-add-row")
+    const tokenRows = screen.getAllByTestId("keyword-token-row")
+
+    expect(addRow.contains(addButton)).toBe(true)
+    expect(tokenRows.some((row) => row.contains(addButton))).toBe(false)
+  })
+
   it("appends two visible rows when adding from the empty visual state", () => {
     render(<InlineExpressionNode {...createNodeProps([])} />)
 
@@ -304,6 +315,25 @@ describe("InlineExpressionNode", () => {
       kind: "inlineExpression",
       key: "template",
       value: ["{{ first }}"],
+    })
+  })
+
+  it("renders delete controls inside token rows without an action gutter", () => {
+    render(
+      <InlineExpressionNode
+        {...createNodeProps(["{{ first }}", "{{ second }}"])}
+      />
+    )
+
+    const deleteButtons = screen.getAllByRole("button", {
+      name: /Delete token/i,
+    })
+    const tokenRows = screen.getAllByTestId("keyword-token-row")
+
+    expect(deleteButtons).toHaveLength(2)
+    expect(screen.queryByTestId("keyword-token-row-action-gutter")).toBeNull()
+    deleteButtons.forEach((button, index) => {
+      expect(tokenRows[index]?.contains(button)).toBe(true)
     })
   })
 

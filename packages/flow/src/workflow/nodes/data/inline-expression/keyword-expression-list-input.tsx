@@ -75,56 +75,60 @@ export function KeywordExpressionListInput({
         const canDelete = isInteractive && value.length > 0
 
         return (
-          <div key={index} className={styles.tokenRow()}>
+          <div
+            key={index}
+            className={styles.tokenRow()}
+            data-testid="keyword-token-row"
+          >
             {canDelete ? (
               <Button
                 type="button"
-                variant="outline"
+                variant="secondary"
                 size="icon-xs"
                 className={styles.tokenDeleteButton()}
                 aria-label={`Delete token ${index + 1}`}
+                data-testid="keyword-token-row-delete"
                 onClick={() => removeRow(index)}
               >
                 <Trash2Icon />
               </Button>
             ) : null}
 
-            <div className={styles.tokenRowMain()}>
-              <div className={styles.tokenRowInput()}>
-                <ExpressionInput
-                  value={rowValue}
-                  placeholder="{{ myVariable }}"
-                  variables={variables}
-                  onChange={(nextValue) => updateRow(index, nextValue)}
-                  onLiveChange={(nextValue) => {
-                    setDraftRows((currentRows) =>
-                      currentRows.map((currentRowValue, rowIndex) =>
-                        rowIndex === index ? nextValue : currentRowValue
-                      )
+            <div className={styles.tokenRowInput()}>
+              <ExpressionInput
+                value={rowValue}
+                placeholder="{{ myVariable }}"
+                variables={variables}
+                onChange={(nextValue) => updateRow(index, nextValue)}
+                onLiveChange={(nextValue) => {
+                  setDraftRows((currentRows) =>
+                    currentRows.map((currentRowValue, rowIndex) =>
+                      rowIndex === index ? nextValue : currentRowValue
                     )
-                  }}
-                />
-                {rowErrors[index] ? (
-                  <p className={styles.tokenRowError()}>{rowErrors[index]}</p>
-                ) : null}
-              </div>
-
-              {index === 0 ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon-sm"
-                  className={styles.tokenAddButton()}
-                  aria-label="Add token"
-                  onClick={addRow}
-                >
-                  <Plus />
-                </Button>
+                  )
+                }}
+              />
+              {rowErrors[index] ? (
+                <p className={styles.tokenRowError()}>{rowErrors[index]}</p>
               ) : null}
             </div>
           </div>
         )
       })}
+
+      <div className={styles.tokenAddRow()} data-testid="keyword-token-add-row">
+        <Button
+          type="button"
+          variant="outline"
+          className={styles.tokenAddButton()}
+          aria-label="Add token"
+          size="xs"
+          onClick={addRow}
+        >
+          <Plus data-icon="inline-start" />
+          Add token
+        </Button>
+      </div>
     </div>
   )
 }
