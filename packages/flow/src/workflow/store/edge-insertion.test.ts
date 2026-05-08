@@ -72,6 +72,76 @@ describe("computeEdgeInsertion", () => {
       expect(result.nextEdges).toHaveLength(1)
       expect(result.nextEdges[0]?.source).toBe(result.insertedNodeId)
       expect(result.nextEdges[0]?.target).toBe(target.id)
+      expect(result.nextEdges[0]?.sourceHandle).toBe("evaluator-true")
+    }
+  })
+
+  it("continues inserted evaluator edges through the true branch", () => {
+    const source = createWorkflowNode("inlineExpression", { x: 0, y: 0 })
+    const target = createWorkflowNode("result", { x: 320, y: 0 })
+    const graph = createGraph(source, target)
+
+    const result = computeEdgeInsertion(graph, "edge-main", "evaluator")
+
+    expect(result.ok).toBe(true)
+    if (result.ok) {
+      const continuation = result.nextEdges.find(
+        (edge) =>
+          edge.source === result.insertedNodeId && edge.target === target.id
+      )
+
+      expect(continuation?.sourceHandle).toBe("evaluator-true")
+      expect(
+        result.nextEdges.some(
+          (edge) =>
+            edge.source === result.insertedNodeId && edge.sourceHandle === null
+        )
+      ).toBe(false)
+      expect(
+        result.nextEdges.some(
+          (edge) =>
+            edge.source === result.insertedNodeId &&
+            edge.sourceHandle === "evaluator-false"
+        )
+      ).toBe(false)
+    }
+  })
+
+  it("preserves upstream source handle when inserting evaluator on a handled edge", () => {
+    const source = createWorkflowNode("evaluator", { x: 0, y: 0 })
+    const target = createWorkflowNode("result", { x: 320, y: 0 })
+    const graph = {
+      ...createGraph(source, target),
+      edges: [
+        {
+          id: "edge-main",
+          source: source.id,
+          target: target.id,
+          sourceHandle: "evaluator-true",
+          targetHandle: null,
+          data: {
+            sourceKind: source.data.kind,
+            targetKind: target.data.kind,
+          },
+        },
+      ],
+    }
+
+    const result = computeEdgeInsertion(graph, "edge-main", "evaluator")
+
+    expect(result.ok).toBe(true)
+    if (result.ok) {
+      const upstream = result.nextEdges.find(
+        (edge) =>
+          edge.source === source.id && edge.target === result.insertedNodeId
+      )
+      const continuation = result.nextEdges.find(
+        (edge) =>
+          edge.source === result.insertedNodeId && edge.target === target.id
+      )
+
+      expect(upstream?.sourceHandle).toBe("evaluator-true")
+      expect(continuation?.sourceHandle).toBe("evaluator-true")
     }
   })
 })

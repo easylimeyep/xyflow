@@ -2,8 +2,16 @@ import { addEdge } from "@xyflow/react"
 
 import { createWorkflowNode } from "../node-registry/node-factory"
 import type { NodeKind } from "../node-registry/registry"
-import type { WorkflowEdge, WorkflowGraphState, WorkflowNode } from "../types/types"
-import { getKindsFromConnection, validateConnection, type ConnectionLike } from "../validation/validation"
+import type {
+  WorkflowEdge,
+  WorkflowGraphState,
+  WorkflowNode,
+} from "../types/types"
+import {
+  getKindsFromConnection,
+  validateConnection,
+  type ConnectionLike,
+} from "../validation/validation"
 
 import {
   collectDescendantNodeIds,
@@ -12,6 +20,8 @@ import {
   shiftNodesBySubgraph,
 } from "./geometry"
 import { toEdgeConnectionWithKind } from "./dto-mappers"
+
+const EVALUATOR_TRUE_HANDLE = "evaluator-true"
 
 export interface EdgeInsertionSuccess {
   ok: true
@@ -31,32 +41,47 @@ export function computeEdgeInsertion(
   currentGraph: WorkflowGraphState,
   edgeId: string,
   kind: NodeKind,
-  createNode: (currentNodes: WorkflowNode[], kind: NodeKind, position: { x: number; y: number }) => WorkflowNode = (
-    _currentNodes,
-    nextKind,
-    position
-  ) => createWorkflowNode(nextKind, position)
+  createNode: (
+    currentNodes: WorkflowNode[],
+    kind: NodeKind,
+    position: { x: number; y: number }
+  ) => WorkflowNode = (_currentNodes, nextKind, position) =>
+    createWorkflowNode(nextKind, position)
 ): EdgeInsertionResult {
   const edgeToSplit = currentGraph.edges.find((edge) => edge.id === edgeId)
   if (!edgeToSplit) {
     return { ok: false, error: "Failed to resolve edge for insertion." }
   }
 
-  const sourceNode = currentGraph.nodes.find((node) => node.id === edgeToSplit.source)
-  const targetNode = currentGraph.nodes.find((node) => node.id === edgeToSplit.target)
+  const sourceNode = currentGraph.nodes.find(
+    (node) => node.id === edgeToSplit.source
+  )
+  const targetNode = currentGraph.nodes.find(
+    (node) => node.id === edgeToSplit.target
+  )
   if (!sourceNode || !targetNode) {
     return { ok: false, error: "Failed to resolve edge nodes for insertion." }
   }
 
-  const shiftedNodes = computeShiftedLayout(currentGraph, edgeToSplit, sourceNode, targetNode)
+  const shiftedNodes = computeShiftedLayout(
+    currentGraph,
+    edgeToSplit,
+    sourceNode,
+    targetNode
+  )
   const finalSourceNode =
     shiftedNodes.find((node) => node.id === edgeToSplit.source) ?? sourceNode
   const finalTargetNode =
     shiftedNodes.find((node) => node.id === edgeToSplit.target) ?? targetNode
-  const insertPosition = getEdgeSplitInsertPosition(finalSourceNode, finalTargetNode)
+  const insertPosition = getEdgeSplitInsertPosition(
+    finalSourceNode,
+    finalTargetNode
+  )
   const nextNode = createNode(shiftedNodes, kind, insertPosition)
   const nextNodes = [...shiftedNodes, nextNode]
-  const nextEdgesBase = currentGraph.edges.filter((edge) => edge.id !== edgeToSplit.id)
+  const nextEdgesBase = currentGraph.edges.filter(
+    (edge) => edge.id !== edgeToSplit.id
+  )
 
   const sourceToInserted: ConnectionLike = {
     source: edgeToSplit.source,
@@ -67,7 +92,7 @@ export function computeEdgeInsertion(
   const insertedToTarget: ConnectionLike = {
     source: nextNode.id,
     target: edgeToSplit.target,
-    sourceHandle: null,
+    sourceHandle: kind === "evaluator" ? EVALUATOR_TRUE_HANDLE : null,
     targetHandle: edgeToSplit.targetHandle ?? null,
   }
 
@@ -102,8 +127,14 @@ function computeShiftedLayout(
   sourceNode: WorkflowNode,
   targetNode: WorkflowNode
 ): WorkflowNode[] {
-  const targetSubgraphIds = collectDescendantNodeIds(edgeToSplit.target, currentGraph.edges)
-  const initialInsertPosition = getEdgeSplitInsertPosition(sourceNode, targetNode)
+  const targetSubgraphIds = collectDescendantNodeIds(
+    edgeToSplit.target,
+    currentGraph.edges
+  )
+  const initialInsertPosition = getEdgeSplitInsertPosition(
+    sourceNode,
+    targetNode
+  )
   const initialShiftX = resolveSubgraphShiftX(
     currentGraph.nodes,
     targetSubgraphIds,
@@ -115,17 +146,26 @@ function computeShiftedLayout(
     initialShiftX
   )
   const shiftedSourceNode =
-    initiallyShiftedNodes.find((node) => node.id === edgeToSplit.source) ?? sourceNode
+    initiallyShiftedNodes.find((node) => node.id === edgeToSplit.source) ??
+    sourceNode
   const shiftedTargetNode =
-    initiallyShiftedNodes.find((node) => node.id === edgeToSplit.target) ?? targetNode
-  const centeredInsertPosition = getEdgeSplitInsertPosition(shiftedSourceNode, shiftedTargetNode)
+    initiallyShiftedNodes.find((node) => node.id === edgeToSplit.target) ??
+    targetNode
+  const centeredInsertPosition = getEdgeSplitInsertPosition(
+    shiftedSourceNode,
+    shiftedTargetNode
+  )
   const extraShiftX = resolveSubgraphShiftX(
     initiallyShiftedNodes,
     targetSubgraphIds,
     centeredInsertPosition
   )
   return extraShiftX > 0
-    ? shiftNodesBySubgraph(initiallyShiftedNodes, targetSubgraphIds, extraShiftX)
+    ? shiftNodesBySubgraph(
+        initiallyShiftedNodes,
+        targetSubgraphIds,
+        extraShiftX
+      )
     : initiallyShiftedNodes
 }
 
@@ -135,8 +175,16 @@ function tryTwoEdgeSplit(
   nextNodes: WorkflowNode[],
   nextEdgesBase: WorkflowEdge[]
 ): WorkflowEdge[] | null {
-  const sourceValidation = validateConnection(sourceToInserted, nextNodes, nextEdgesBase)
-  const targetValidation = validateConnection(insertedToTarget, nextNodes, nextEdgesBase)
+  const sourceValidation = validateConnection(
+    sourceToInserted,
+    nextNodes,
+    nextEdgesBase
+  )
+  const targetValidation = validateConnection(
+    insertedToTarget,
+    nextNodes,
+    nextEdgesBase
+  )
   if (!sourceValidation.valid || !targetValidation.valid) return null
 
   const sourceKinds = getKindsFromConnection(sourceToInserted, nextNodes)
@@ -144,11 +192,19 @@ function tryTwoEdgeSplit(
   if (!sourceKinds || !targetKinds) return null
 
   const withSourceEdge = addEdge(
-    toEdgeConnectionWithKind(sourceToInserted, sourceKinds.sourceKind, sourceKinds.targetKind),
+    toEdgeConnectionWithKind(
+      sourceToInserted,
+      sourceKinds.sourceKind,
+      sourceKinds.targetKind
+    ),
     nextEdgesBase
   ) as WorkflowEdge[]
   return addEdge(
-    toEdgeConnectionWithKind(insertedToTarget, targetKinds.sourceKind, targetKinds.targetKind),
+    toEdgeConnectionWithKind(
+      insertedToTarget,
+      targetKinds.sourceKind,
+      targetKinds.targetKind
+    ),
     withSourceEdge
   ) as WorkflowEdge[]
 }
@@ -161,9 +217,21 @@ function tryFallbackSingleEdge(
   currentGraph: WorkflowGraphState,
   insertedNodeId: string
 ): EdgeInsertionResult {
-  const sourceValidation = validateConnection(sourceToInserted, nextNodes, nextEdgesBase)
-  const targetValidation = validateConnection(insertedToTarget, nextNodes, nextEdgesBase)
-  const fallbackValidation = validateConnection(insertedToTarget, nextNodes, nextEdgesBase)
+  const sourceValidation = validateConnection(
+    sourceToInserted,
+    nextNodes,
+    nextEdgesBase
+  )
+  const targetValidation = validateConnection(
+    insertedToTarget,
+    nextNodes,
+    nextEdgesBase
+  )
+  const fallbackValidation = validateConnection(
+    insertedToTarget,
+    nextNodes,
+    nextEdgesBase
+  )
   if (!fallbackValidation.valid) {
     const message =
       sourceValidation.reason ??
@@ -175,7 +243,10 @@ function tryFallbackSingleEdge(
 
   const fallbackKinds = getKindsFromConnection(insertedToTarget, nextNodes)
   if (!fallbackKinds) {
-    return { ok: false, error: "Failed to resolve node kinds for edge insertion fallback." }
+    return {
+      ok: false,
+      error: "Failed to resolve node kinds for edge insertion fallback.",
+    }
   }
 
   const fallbackEdges = addEdge(

@@ -12,7 +12,7 @@ vi.mock("../layout", async () => {
   }
 })
 
-import { exportDomainDto } from "../mappers"
+import { exportDomainDto, exportDomainWorkflowForBackend } from "../mappers"
 import { DEFAULT_EVALUATOR_OPERATOR_OPTIONS } from "../types/types"
 import {
   selectExpressionVariablesForNode,
@@ -1434,7 +1434,78 @@ describe("workflow store", () => {
     )
 
     expect(sourceLeg?.sourceHandle).toBe("source-handle-a")
+    expect(targetLeg?.sourceHandle).toBe("evaluator-true")
     expect(targetLeg?.targetHandle).toBe("target-handle-b")
+  })
+
+  it("inserts evaluator on an evaluator true branch as a backend-exportable graph", () => {
+    const state = store.getState()
+    state.addNode("evaluator", { x: 360, y: 80 })
+    state.addNode("result", { x: 720, y: 80 })
+    const rootNode = findRootKeywordNode(store.getState().history.present.nodes)
+    const evaluatorNode = store
+      .getState()
+      .history.present.nodes.find(
+        (node: WorkflowNode) => node.data.kind === "evaluator"
+      )
+    const resultNode = store
+      .getState()
+      .history.present.nodes.find(
+        (node: WorkflowNode) => node.data.kind === "result"
+      )
+    if (!rootNode || !evaluatorNode || !resultNode) {
+      throw new Error("fixture nodes not found")
+    }
+
+    state.onConnect({ source: rootNode.id, target: evaluatorNode.id })
+    state.onConnect({
+      source: evaluatorNode.id,
+      target: resultNode.id,
+      sourceHandle: "evaluator-true",
+    })
+    const edgeToSplit = store
+      .getState()
+      .history.present.edges.find(
+        (edge) =>
+          edge.source === evaluatorNode.id && edge.target === resultNode.id
+      )
+    if (!edgeToSplit) {
+      throw new Error("edge to split not found")
+    }
+
+    state.startEdgeInsertFromEdge(edgeToSplit.id)
+    state.confirmEdgeInsertNode("evaluator")
+
+    const nextState = store.getState()
+    const insertedNode = nextState.history.present.nodes.find(
+      (node) => node.data.kind === "evaluator" && node.id !== evaluatorNode.id
+    )
+    if (!insertedNode) {
+      throw new Error("inserted evaluator not found")
+    }
+    const continuation = nextState.history.present.edges.find(
+      (edge) => edge.source === insertedNode.id && edge.target === resultNode.id
+    )
+
+    expect(continuation?.sourceHandle).toBe("evaluator-true")
+    expect(
+      nextState.history.present.edges.some(
+        (edge) => edge.source === insertedNode.id && edge.sourceHandle === null
+      )
+    ).toBe(false)
+
+    const backend = exportDomainWorkflowForBackend(
+      exportDomainDto(nextState.history.present)
+    )
+    const insertedBackendNode = backend.nodes.find(
+      (node) => node.label === insertedNode.data.label
+    )
+
+    expect(insertedBackendNode).toMatchObject({
+      kind: "evaluator",
+      next_false: null,
+    })
+    expect(insertedBackendNode).toHaveProperty("next_true")
   })
 
   it("undoes and redoes edge insert as a single history step", () => {

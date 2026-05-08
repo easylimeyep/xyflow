@@ -4,6 +4,9 @@ import { getAllowedTargets } from "../node-registry/node-graph-rules"
 import type { NodeKind } from "../node-registry/registry"
 import type { WorkflowEdge, WorkflowNode } from "../types/types"
 
+const EVALUATOR_TRUE_HANDLE = "evaluator-true"
+const EVALUATOR_FALSE_HANDLE = "evaluator-false"
+
 export interface ValidationResult {
   valid: boolean
   reason?: string
@@ -94,6 +97,18 @@ export function validateConnection(
   const targetKind = targetNode.data.kind
   const allowedTargets = getAllowedTargets(sourceKind)
 
+  if (
+    sourceKind === "evaluator" &&
+    connection.sourceHandle !== EVALUATOR_TRUE_HANDLE &&
+    connection.sourceHandle !== EVALUATOR_FALSE_HANDLE
+  ) {
+    return {
+      valid: false,
+      reason:
+        "Evaluator node connections must use a true or false output handle.",
+    }
+  }
+
   if (!allowedTargets.includes(targetKind)) {
     return {
       valid: false,
@@ -101,7 +116,10 @@ export function validateConnection(
     }
   }
 
-  if (targetNode.data.kind === "inlineExpression" && targetNode.data.config.isRoot === true) {
+  if (
+    targetNode.data.kind === "inlineExpression" &&
+    targetNode.data.config.isRoot === true
+  ) {
     return {
       valid: false,
       reason: "Root Keyword node cannot accept incoming connections.",

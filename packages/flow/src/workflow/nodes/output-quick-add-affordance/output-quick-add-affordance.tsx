@@ -1,7 +1,7 @@
 "use client"
 
 import { Handle, Position } from "@xyflow/react"
-import { Plus, PlusIcon } from "lucide-react"
+import { PlusIcon } from "lucide-react"
 import {
   nodeHandlesStyles,
   outputQuickAddAffordanceStyles,
@@ -31,8 +31,8 @@ export function OutputQuickAddAffordance({
   labelClassName,
 }: OutputQuickAddAffordanceProps) {
   const normalizedHandle = sourceHandle ?? null
-  const { startQuickAddFromOutput, hasOutgoing, isPending } = useWorkflowShallowStore(
-    (state: WorkflowStoreState) => ({
+  const { startQuickAddFromOutput, hasOutgoing, isPending } =
+    useWorkflowShallowStore((state: WorkflowStoreState) => ({
       startQuickAddFromOutput: state.startQuickAddFromOutput,
       hasOutgoing: selectPresentEdges(state).some(
         (edge) =>
@@ -46,8 +46,7 @@ export function OutputQuickAddAffordance({
           (pending.sourceHandle ?? null) === normalizedHandle
         )
       })(),
-    })
-  )
+    }))
 
   const styles = outputQuickAddAffordanceStyles({ isPending })
   const handleStyles = nodeHandlesStyles({

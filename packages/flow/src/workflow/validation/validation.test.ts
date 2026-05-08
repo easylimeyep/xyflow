@@ -18,6 +18,48 @@ describe("validateConnection", () => {
     expect(result.valid).toBe(true)
   })
 
+  it("rejects evaluator outgoing connections without a branch handle", () => {
+    const evaluator = createWorkflowNode("evaluator", { x: 0, y: 0 })
+    const resultNode = createWorkflowNode("result", { x: 300, y: 0 })
+
+    const result = validateConnection(
+      { source: evaluator.id, target: resultNode.id, sourceHandle: null },
+      [evaluator, resultNode],
+      []
+    )
+
+    expect(result.valid).toBe(false)
+    expect(result.reason).toContain("true or false output handle")
+  })
+
+  it("allows evaluator outgoing true and false branch handles", () => {
+    const evaluator = createWorkflowNode("evaluator", { x: 0, y: 0 })
+    const trueResult = createWorkflowNode("result", { x: 300, y: -80 })
+    const falseResult = createWorkflowNode("result", { x: 300, y: 80 })
+
+    const trueConnection = validateConnection(
+      {
+        source: evaluator.id,
+        target: trueResult.id,
+        sourceHandle: "evaluator-true",
+      },
+      [evaluator, trueResult, falseResult],
+      []
+    )
+    const falseConnection = validateConnection(
+      {
+        source: evaluator.id,
+        target: falseResult.id,
+        sourceHandle: "evaluator-false",
+      },
+      [evaluator, trueResult, falseResult],
+      []
+    )
+
+    expect(trueConnection.valid).toBe(true)
+    expect(falseConnection.valid).toBe(true)
+  })
+
   it("rejects invalid combination", () => {
     const inline = createWorkflowNode("inlineExpression", { x: 0, y: 0 })
     const rootKeyword = createWorkflowNode("inlineExpression", { x: 300, y: 0 })
