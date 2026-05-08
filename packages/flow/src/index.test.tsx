@@ -3,8 +3,22 @@
 import { cleanup, render, screen } from "@testing-library/react"
 import { afterEach, describe, expect, it } from "vitest"
 
-import { WorkflowEditor } from "./index"
-import type { DomainWorkflowDTO } from "./workflow/types"
+import {
+  DEFAULT_EVALUATOR_OPERATOR_ID,
+  WORKFLOW_NODE_KINDS,
+  WorkflowEditor,
+  isNodeKind,
+} from "./index"
+import type {
+  DomainWorkflowConnectionDTO,
+  DomainWorkflowDTO,
+  DomainWorkflowNodeDTO,
+  NodeKind,
+  WorkflowExportDomainMapper,
+  WorkflowGraphState,
+  WorkflowImportDomainMapper,
+  WorkflowNode,
+} from "./index"
 
 function RuntimeProbe() {
   const exportDomain = WorkflowEditor.use.store((state) => state.exportDomain)
@@ -33,6 +47,68 @@ function RuntimeProbe() {
 describe("WorkflowEditor package root", () => {
   afterEach(() => {
     cleanup()
+  })
+
+  it("re-exports consumer workflow types and helpers from the package root", () => {
+    const nodeKind: NodeKind = "inlineExpression"
+    const nodeDto: DomainWorkflowNodeDTO = {
+      id: "node-1",
+      kind: nodeKind,
+      position: { x: 0, y: 0 },
+      label: "Keyword",
+      config: {
+        template: ["hello"],
+        isRoot: true,
+        repeatable: false,
+        caseSensitive: false,
+      },
+    }
+    const connectionDto: DomainWorkflowConnectionDTO = {
+      id: "edge-1",
+      sourceNodeId: "node-1",
+      targetNodeId: "node-2",
+      sourceHandle: null,
+      targetHandle: null,
+    }
+    const workflowDto: DomainWorkflowDTO = {
+      id: "workflow-1",
+      name: "Workflow",
+      version: 1,
+      metadata: {},
+      nodes: [nodeDto],
+      connections: [connectionDto],
+      viewport: { x: 0, y: 0, zoom: 1 },
+    }
+    const workflowNode: WorkflowNode = {
+      id: nodeDto.id,
+      type: "default",
+      position: nodeDto.position,
+      data: {
+        kind: nodeDto.kind,
+        label: nodeDto.label,
+        config: nodeDto.config,
+      },
+    }
+    const graphState: WorkflowGraphState = {
+      nodes: [workflowNode],
+      edges: [],
+      viewport: workflowDto.viewport,
+      document: {
+        id: workflowDto.id,
+        name: workflowDto.name,
+        version: workflowDto.version,
+        metadata: workflowDto.metadata,
+      },
+    }
+    const exportMapper: WorkflowExportDomainMapper = (payload) => payload
+    const importMapper: WorkflowImportDomainMapper = (payload) => payload
+
+    expect(WORKFLOW_NODE_KINDS).toContain(nodeKind)
+    expect(isNodeKind(nodeKind)).toBe(true)
+    expect(DEFAULT_EVALUATOR_OPERATOR_ID).toBe("is equal to")
+    expect(exportMapper(workflowDto)).toBe(workflowDto)
+    expect(importMapper(workflowDto)).toBe(workflowDto)
+    expect(graphState.nodes[0]?.data.kind).toBe(nodeKind)
   })
 
   it("lets consumers pass runtime import and export mappers", () => {
