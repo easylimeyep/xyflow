@@ -25,6 +25,7 @@ export {
   WORKFLOW_NODE_KINDS,
   isNodeKind,
 } from "./workflow/types"
+export { exportDomainWorkflowForBackend } from "./workflow/mappers"
 export type {
   WorkflowRuntimeConfig,
   WorkflowStoreInitialProps,
@@ -48,6 +49,10 @@ export type {
   WorkflowStoreUICommands,
 } from "./workflow/store/types"
 export type {
+  BackendEvaluatorWorkflowNodeDTO,
+  BackendRegularWorkflowNodeDTO,
+  BackendWorkflowDTO,
+  BackendWorkflowNodeDTO,
   BaseWorkflowNodeData,
   ConditionOperator,
   DomainWorkflowConnectionDTO,

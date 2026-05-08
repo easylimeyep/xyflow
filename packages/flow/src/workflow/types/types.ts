@@ -1,4 +1,6 @@
 import type { Edge, Node, Viewport, XYPosition } from "@xyflow/react"
+import type { NodeKind } from "../node-registry/registry"
+
 export type { ExpressionVariableOption } from "@workspace/expression-editor"
 
 export type { NodeKind } from "../node-registry/registry"
@@ -160,3 +162,34 @@ export interface DomainWorkflowDTO {
   connections: DomainWorkflowConnectionDTO[]
   viewport: Viewport
 }
+
+export interface BackendWorkflowDTO {
+  id: string
+  name: string
+  version: number
+  metadata: JsonObject
+  nodes: BackendWorkflowNodeDTO[]
+}
+
+export interface BackendRegularWorkflowNodeDTO {
+  id: number
+  kind: Exclude<NodeKind, "evaluator">
+  position: XYPosition
+  label: string
+  config: JsonObject
+  next: number[]
+}
+
+export interface BackendEvaluatorWorkflowNodeDTO {
+  id: number
+  kind: "evaluator"
+  position: XYPosition
+  label: string
+  config: JsonObject
+  next_true: number | null
+  next_false: number | null
+}
+
+export type BackendWorkflowNodeDTO =
+  | BackendRegularWorkflowNodeDTO
+  | BackendEvaluatorWorkflowNodeDTO

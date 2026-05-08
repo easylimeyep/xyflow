@@ -1,4 +1,5 @@
 export { DOMAIN_WORKFLOW_VERSION } from "./constants"
+export { exportDomainWorkflowForBackend } from "./backend-export"
 export {
   domainToInternal,
   exportDomainDto,

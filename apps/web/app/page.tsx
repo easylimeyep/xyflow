@@ -1,6 +1,7 @@
 "use client"
 
 import { BaseExample } from "@/app/components/workflow-examples/base-example"
+import { BackendTransformExample } from "@/app/components/workflow-examples/backend-transform-example"
 import { CustomOperatorsExample } from "@/app/components/workflow-examples/custom-operators-example"
 import { DefaultGraphExample } from "@/app/components/workflow-examples/default-graph-example"
 import { ElkGraphExample } from "@/app/components/workflow-examples/elk-graph-example"
@@ -45,6 +46,9 @@ export default function Page() {
             <TabsTrigger value="with-custom-operators">
               with custom operators
             </TabsTrigger>
+            <TabsTrigger value="with-backend-transform">
+              with backend transform
+            </TabsTrigger>
             <TabsTrigger value="with-fullscreen-modal">
               with fullscreen modal
             </TabsTrigger>
@@ -84,6 +88,13 @@ export default function Page() {
           className="flex min-h-0 flex-1 flex-col gap-4"
         >
           <CustomOperatorsExample />
+        </TabsContent>
+
+        <TabsContent
+          value="with-backend-transform"
+          className="flex min-h-0 flex-1 flex-col gap-4"
+        >
+          <BackendTransformExample />
         </TabsContent>
 
         <TabsContent
