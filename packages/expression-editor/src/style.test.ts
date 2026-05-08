@@ -4,6 +4,10 @@ import { readFileSync } from "node:fs"
 
 describe("expression editor stylesheet", () => {
   const stylesheet = readFileSync("src/style.css", "utf8")
+  const expressionEditorSource = readFileSync(
+    "src/components/expression-editor/expression-editor.tsx",
+    "utf8"
+  )
 
   it("keeps the CodeMirror editor from drawing a second control border", () => {
     const codeMirrorEditorRule = stylesheet.match(/\.cm-editor\s*\{[^}]*\}/)?.[0]
@@ -63,5 +67,10 @@ describe("expression editor stylesheet", () => {
     )?.[0]
 
     expect(knownVariableRule).toMatch(/var\(--primary\)/)
+  })
+
+  it("does not configure CodeMirror with JavaScript syntax highlighting", () => {
+    expect(expressionEditorSource).not.toContain("@codemirror/lang-javascript")
+    expect(expressionEditorSource).not.toMatch(/\bjavascript\s*\(/)
   })
 })

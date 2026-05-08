@@ -1,6 +1,5 @@
 "use client"
 
-import { javascript } from "@codemirror/lang-javascript"
 import { EditorView, type ViewUpdate } from "@codemirror/view"
 import {
   Command,
@@ -100,7 +99,7 @@ export function ExpressionEditor({
   )
 
   const extensions = useMemo(
-    () => [javascript(), templateHighlightExtension, commitExtension],
+    () => [templateHighlightExtension, commitExtension],
     [commitExtension, templateHighlightExtension]
   )
   const basicSetup = useMemo(
