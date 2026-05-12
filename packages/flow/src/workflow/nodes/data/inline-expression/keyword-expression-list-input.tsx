@@ -63,6 +63,7 @@ export function KeywordExpressionListInput({
     () => rows.map(getKeywordTokenValidationError),
     [rows]
   )
+  const hasRowErrors = rowErrors.some(Boolean)
 
   const setLiveRow = (index: number, nextRowValue: string) => {
     setLiveDraft((currentDraft) => {
@@ -99,16 +100,24 @@ export function KeywordExpressionListInput({
   }
 
   const addRow = () => {
-    onChange(value.length === 0 ? ["", ""] : [...value, ""])
+    if (hasRowErrors) {
+      return
+    }
+
+    onChange([...rows, ""])
   }
 
   const removeRow = (index: number) => {
-    if (value.length <= 1) {
+    if (hasRowErrors) {
+      return
+    }
+
+    if (rows.length <= 1) {
       onChange([])
       return
     }
 
-    onChange(value.filter((_, rowIndex) => rowIndex !== index))
+    onChange(rows.filter((_, rowIndex) => rowIndex !== index))
   }
 
   return (

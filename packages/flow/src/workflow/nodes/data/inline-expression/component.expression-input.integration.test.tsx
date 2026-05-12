@@ -110,9 +110,13 @@ function createNodeProps(config: {
   }
 }
 
-function InlineExpressionHarness() {
+function InlineExpressionHarness({
+  template = ["lead"],
+}: {
+  template?: string[]
+}) {
   const [config, setConfig] = useState({
-    template: ["lead"],
+    template,
     isRoot: false,
     repeatable: false,
     caseSensitive: false,
@@ -162,5 +166,100 @@ describe("InlineExpressionNode with real ExpressionInput", () => {
       value: true,
     })
     expect(editor.value).toBe("leadDraft")
+  })
+
+  it("preserves token draft when Add token is clicked from the empty visual row", () => {
+    render(<InlineExpressionHarness template={[]} />)
+
+    const editor = screen.getByLabelText(
+      "expression-editor"
+    ) as HTMLTextAreaElement
+    fireEvent.change(editor, {
+      target: {
+        value: "leadDraft",
+        selectionStart: 9,
+        selectionEnd: 9,
+      },
+    })
+
+    fireEvent.click(screen.getByRole("button", { name: /Add token/i }))
+
+    expect(mockUpdateNodeConfig).toHaveBeenLastCalledWith("inline-node-1", {
+      kind: "inlineExpression",
+      key: "template",
+      value: ["leadDraft", ""],
+    })
+    expect(
+      (screen.getAllByLabelText("expression-editor")[0] as HTMLTextAreaElement)
+        .value
+    ).toBe("leadDraft")
+  })
+
+  it("preserves edited token draft when Add token is clicked", () => {
+    render(<InlineExpressionHarness template={["lead"]} />)
+
+    const editor = screen.getByLabelText(
+      "expression-editor"
+    ) as HTMLTextAreaElement
+    fireEvent.change(editor, {
+      target: {
+        value: "editedLead",
+        selectionStart: 10,
+        selectionEnd: 10,
+      },
+    })
+
+    fireEvent.click(screen.getByRole("button", { name: /Add token/i }))
+
+    expect(mockUpdateNodeConfig).toHaveBeenLastCalledWith("inline-node-1", {
+      kind: "inlineExpression",
+      key: "template",
+      value: ["editedLead", ""],
+    })
+  })
+
+  it("does not append a token row from an invalid live draft", () => {
+    render(<InlineExpressionHarness template={["lead"]} />)
+
+    const editor = screen.getByLabelText(
+      "expression-editor"
+    ) as HTMLTextAreaElement
+    fireEvent.change(editor, {
+      target: {
+        value: "lead score",
+        selectionStart: 10,
+        selectionEnd: 10,
+      },
+    })
+
+    expect(screen.getByText(/Tokens cannot contain spaces/i)).toBeTruthy()
+
+    fireEvent.click(screen.getByRole("button", { name: /Add token/i }))
+
+    expect(mockUpdateNodeConfig).not.toHaveBeenCalled()
+    expect(editor.value).toBe("lead score")
+  })
+
+  it("preserves remaining valid token drafts when deleting another row", () => {
+    render(<InlineExpressionHarness template={["lead", "tail"]} />)
+
+    const firstEditor = screen.getAllByLabelText(
+      "expression-editor"
+    )[0] as HTMLTextAreaElement
+    fireEvent.change(firstEditor, {
+      target: {
+        value: "editedLead",
+        selectionStart: 10,
+        selectionEnd: 10,
+      },
+    })
+
+    fireEvent.click(screen.getByRole("button", { name: /Delete token 2/i }))
+
+    expect(mockUpdateNodeConfig).toHaveBeenLastCalledWith("inline-node-1", {
+      kind: "inlineExpression",
+      key: "template",
+      value: ["editedLead"],
+    })
   })
 })
