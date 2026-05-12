@@ -23,7 +23,10 @@ import {
   buildExpressionInsertion,
   validateTemplateExpression,
 } from "../../template"
-import type { ExpressionCommitEvent, ExpressionVariableOption } from "../../types"
+import type {
+  ExpressionCommitEvent,
+  ExpressionVariableOption,
+} from "../../types"
 import { expressionEditorStyles } from "./expression-editor.styles"
 
 export interface ExpressionEditorProps {
@@ -66,7 +69,10 @@ export function ExpressionEditor({
     () => groupVariablesBySection(variables),
     [variables]
   )
-  const validation = useMemo(() => validateTemplateExpression(liveValue), [liveValue])
+  const validation = useMemo(
+    () => validateTemplateExpression(liveValue),
+    [liveValue]
+  )
   const styles = expressionEditorStyles()
   const templateHighlightExtension = useMemo(
     () => createTemplateHighlightExtension(variables),
@@ -140,7 +146,8 @@ export function ExpressionEditor({
           "{{"
       const hasTypedClosingBraces =
         hasTypedTrigger &&
-        editorView.state.doc.sliceString(selection.to, selection.to + 2) === "}}"
+        editorView.state.doc.sliceString(selection.to, selection.to + 2) ===
+          "}}"
       const trailingWrappedPlaceholderStart = docText.endsWith("{{}}")
         ? docText.length - "{{}}".length
         : -1
@@ -217,7 +224,7 @@ export function ExpressionEditor({
             }}
           >
             <CodeMirror
-              value={value}
+              value={liveValue}
               placeholder={placeholder}
               minHeight="26px"
               basicSetup={basicSetup}

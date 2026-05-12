@@ -2,7 +2,7 @@
 
 import { Button } from "@workspace/ui/components/button"
 import { Plus, Trash2Icon } from "lucide-react"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 import { inlineExpressionNodeStyles } from "../../../../styles/components/nodes"
 import { ExpressionInput } from "../../../components/expression-input"
@@ -31,8 +31,19 @@ export function KeywordExpressionListInput({
   const styles = inlineExpressionNodeStyles()
   const committedRows = value.length > 0 ? value : EMPTY_KEYWORD_ROWS
   const [liveDraft, setLiveDraft] = useState<LiveRowsDraft | null>(null)
+
+  useEffect(() => {
+    setLiveDraft((currentDraft) =>
+      currentDraft && !areStringArraysEqual(currentDraft.baseValue, value)
+        ? null
+        : currentDraft
+    )
+  }, [value])
+
   const liveRowsByIndex =
-    liveDraft?.baseValue === value ? liveDraft.rowsByIndex : null
+    liveDraft && areStringArraysEqual(liveDraft.baseValue, value)
+      ? liveDraft.rowsByIndex
+      : null
   const rows = useMemo(
     () =>
       committedRows.map((rowValue, index) => {
@@ -56,7 +67,7 @@ export function KeywordExpressionListInput({
   const setLiveRow = (index: number, nextRowValue: string) => {
     setLiveDraft((currentDraft) => {
       const rowsByIndex =
-        currentDraft?.baseValue === value
+        currentDraft && areStringArraysEqual(currentDraft.baseValue, value)
           ? currentDraft.rowsByIndex
           : {}
 
@@ -180,4 +191,11 @@ function getKeywordTokenValidationError(value: string): string | null {
   }
 
   return null
+}
+
+function areStringArraysEqual(left: string[], right: string[]): boolean {
+  return (
+    left.length === right.length &&
+    left.every((entry, index) => entry === right[index])
+  )
 }

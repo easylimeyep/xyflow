@@ -1,6 +1,12 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { useEffect, useRef, useState } from "react"
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest"
@@ -129,7 +135,9 @@ vi.mock("@codemirror/view", () => ({
   },
   EditorView: {
     updateListener: {
-      of: (callback: (update: MockViewUpdate) => void): MockUpdateListenerExtension => ({
+      of: (
+        callback: (update: MockViewUpdate) => void
+      ): MockUpdateListenerExtension => ({
         __mockType: "updateListener",
         callback,
       }),
@@ -229,25 +237,27 @@ vi.mock("@uiw/react-codemirror", () => {
     })
 
     const extensionsFlat = flattenExtensions(extensions)
-    const hasAutocompleteExtension = extensionsFlat.some(isMockAutocompleteExtension)
-    const hasLineWrappingExtension = extensionsFlat.some(isMockLineWrappingExtension)
+    const hasAutocompleteExtension = extensionsFlat.some(
+      isMockAutocompleteExtension
+    )
+    const hasLineWrappingExtension = extensionsFlat.some(
+      isMockLineWrappingExtension
+    )
     const focusChangedListeners = extensionsFlat
       .filter(isMockUpdateListenerExtension)
       .map((extension) => extension.callback)
     const keydownHandlers = extensionsFlat
       .filter(isMockDomEventHandlersExtension)
       .map((extension) => extension.handlers.keydown)
-      .filter((handler): handler is NonNullable<typeof handler> => Boolean(handler))
+      .filter((handler): handler is NonNullable<typeof handler> =>
+        Boolean(handler)
+      )
 
     useEffect(() => {
       onCreateEditor?.(viewRef.current)
     }, [onCreateEditor])
 
     useEffect(() => {
-      if (viewRef.current.hasFocus) {
-        return
-      }
-
       if (value !== docRef.current) {
         docRef.current = value
         setDocValue(value)
@@ -260,7 +270,7 @@ vi.mock("@uiw/react-codemirror", () => {
         }
         stateRef.current.selection.main = selectionRef.current
       }
-    }, [value])
+    })
 
     const emitFocusChanged = () => {
       for (const listener of focusChangedListeners) {
@@ -436,7 +446,9 @@ describe("ExpressionEditor integration", () => {
     fireEvent.blur(editor)
 
     expect(onCommit).toHaveBeenCalledTimes(1)
-    expect(onCommit).toHaveBeenCalledWith("hello {{ myVar }}", { reason: "blur" })
+    expect(onCommit).toHaveBeenCalledWith("hello {{ myVar }}", {
+      reason: "blur",
+    })
   })
 
   it("pressing Enter commits and blurs the editor", () => {
@@ -481,7 +493,9 @@ describe("ExpressionEditor integration", () => {
       />
     )
 
-    const editor = screen.getByLabelText("expression-editor") as HTMLTextAreaElement
+    const editor = screen.getByLabelText(
+      "expression-editor"
+    ) as HTMLTextAreaElement
     fireEvent.focus(editor)
     fireEvent.change(editor, {
       target: {
@@ -498,6 +512,79 @@ describe("ExpressionEditor integration", () => {
     await waitFor(() => {
       expect(editor.value).toBe("fast blur value")
     })
+  })
+
+  it("preserves focused draft when parent rerenders with the same committed value", () => {
+    const onCommit = vi.fn()
+    const Wrapper = () => {
+      const [renderCount, setRenderCount] = useState(0)
+
+      return (
+        <>
+          <button
+            type="button"
+            onClick={() => setRenderCount((count) => count + 1)}
+          >
+            Rerender {renderCount}
+          </button>
+          <ExpressionEditor
+            value=""
+            variables={[]}
+            onCommit={onCommit}
+            placeholder="type..."
+          />
+        </>
+      )
+    }
+
+    render(<Wrapper />)
+
+    const editor = screen.getByLabelText(
+      "expression-editor"
+    ) as HTMLTextAreaElement
+    fireEvent.focus(editor)
+    fireEvent.change(editor, {
+      target: {
+        value: "draft token",
+        selectionStart: 11,
+        selectionEnd: 11,
+      },
+    })
+    fireEvent.click(screen.getByRole("button", { name: /Rerender/i }))
+
+    expect(editor.value).toBe("draft token")
+    expect(onCommit).not.toHaveBeenCalled()
+  })
+
+  it("syncs displayed value from external changes while unfocused", () => {
+    const Wrapper = () => {
+      const [value, setValue] = useState("before")
+
+      return (
+        <>
+          <button type="button" onClick={() => setValue("after")}>
+            Replace value
+          </button>
+          <ExpressionEditor
+            value={value}
+            variables={[]}
+            onCommit={vi.fn()}
+            placeholder="type..."
+          />
+        </>
+      )
+    }
+
+    render(<Wrapper />)
+
+    const editor = screen.getByLabelText(
+      "expression-editor"
+    ) as HTMLTextAreaElement
+    expect(editor.value).toBe("before")
+
+    fireEvent.click(screen.getByRole("button", { name: /Replace value/i }))
+
+    expect(editor.value).toBe("after")
   })
 
   it("inserts selected variable in wrapped expression format", async () => {
@@ -520,7 +607,9 @@ describe("ExpressionEditor integration", () => {
       />
     )
 
-    const editor = screen.getByLabelText("expression-editor") as HTMLTextAreaElement
+    const editor = screen.getByLabelText(
+      "expression-editor"
+    ) as HTMLTextAreaElement
     editor.focus()
     fireEvent.change(editor, {
       target: {
@@ -549,7 +638,9 @@ describe("ExpressionEditor integration", () => {
       />
     )
 
-    const editor = screen.getByLabelText("expression-editor") as HTMLTextAreaElement
+    const editor = screen.getByLabelText(
+      "expression-editor"
+    ) as HTMLTextAreaElement
     fireEvent.focus(editor)
     fireEvent.change(editor, {
       target: {
@@ -559,7 +650,9 @@ describe("ExpressionEditor integration", () => {
       },
     })
 
-    expect(document.querySelector(".cm-tooltip.cm-shadcn-autocomplete")).toBeNull()
+    expect(
+      document.querySelector(".cm-tooltip.cm-shadcn-autocomplete")
+    ).toBeNull()
   })
 
   it("does not enable soft line wrapping or compact line numbers", () => {
@@ -592,7 +685,8 @@ describe("ExpressionEditor integration", () => {
       </div>
     )
 
-    const editorContainer = screen.getByLabelText("expression-editor").parentElement
+    const editorContainer =
+      screen.getByLabelText("expression-editor").parentElement
 
     expect(editorContainer?.classList.contains("nowheel")).toBe(true)
 
@@ -616,7 +710,9 @@ describe("ExpressionEditor integration", () => {
       />
     )
 
-    const editor = screen.getByLabelText("expression-editor") as HTMLTextAreaElement
+    const editor = screen.getByLabelText(
+      "expression-editor"
+    ) as HTMLTextAreaElement
 
     expect(editor.value).toBe(value)
     expect(editor.value.split("\n")).toHaveLength(3)
