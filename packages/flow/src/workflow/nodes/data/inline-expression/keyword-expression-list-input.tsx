@@ -124,6 +124,7 @@ export function KeywordExpressionListInput({
     <div className={styles.tokenList()}>
       {rows.map((rowValue, index) => {
         const canDelete = isInteractive && value.length > 0
+        const committedRowValue = committedRows[index] ?? ""
 
         return (
           <div
@@ -147,7 +148,7 @@ export function KeywordExpressionListInput({
 
             <div className={styles.tokenRowInput()}>
               <ExpressionInput
-                value={rowValue}
+                value={committedRowValue}
                 placeholder="{{ myVariable }}"
                 variables={variables}
                 onChange={(nextValue) => updateRow(index, nextValue)}

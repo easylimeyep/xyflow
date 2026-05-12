@@ -168,6 +168,32 @@ describe("InlineExpressionNode with real ExpressionInput", () => {
     expect(editor.value).toBe("leadDraft")
   })
 
+  it("commits a live token draft on blur after parent rerender", () => {
+    render(<InlineExpressionHarness template={[]} />)
+
+    const editor = screen.getByLabelText(
+      "expression-editor"
+    ) as HTMLTextAreaElement
+    fireEvent.focus(editor)
+    fireEvent.change(editor, {
+      target: {
+        value: "leadDraft",
+        selectionStart: 9,
+        selectionEnd: 9,
+      },
+    })
+
+    expect(editor.value).toBe("leadDraft")
+
+    fireEvent.blur(editor)
+
+    expect(mockUpdateNodeConfig).toHaveBeenLastCalledWith("inline-node-1", {
+      kind: "inlineExpression",
+      key: "template",
+      value: ["leadDraft"],
+    })
+  })
+
   it("preserves token draft when Add token is clicked from the empty visual row", () => {
     render(<InlineExpressionHarness template={[]} />)
 
