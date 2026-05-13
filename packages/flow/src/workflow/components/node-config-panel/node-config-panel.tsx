@@ -27,7 +27,10 @@ export function WorkflowEditorConfigPanel() {
   }, [selectedNode])
 
   return (
-    <aside className="flex w-80 shrink-0 flex-col gap-3 border-l bg-background p-3">
+    <aside
+      aria-label="Workflow config panel"
+      className="flex w-80 shrink-0 flex-col gap-3 border-l bg-background p-3"
+    >
       <div className="space-y-1">
         <h2 className="text-sm font-semibold">Config Panel</h2>
         <p className="text-xs text-muted-foreground">

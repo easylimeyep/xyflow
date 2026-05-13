@@ -36,7 +36,11 @@ export function NodeShell({
   const handleStyles = nodeHandlesStyles({ kind: "target" })
 
   return (
-    <div className={styles.root()}>
+    <div
+      className={styles.root()}
+      data-testid="workflow-node"
+      data-node-id={nodeId}
+    >
       <div className={styles.panel()}>
         {showTarget ? (
           <Handle

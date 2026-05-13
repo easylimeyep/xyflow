@@ -9,13 +9,16 @@
     "start": "next start",
     "lint": "eslint",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:e2e": "playwright test",
+    "test:e2e:smoke": "playwright test \".*\\\\.smoke\\\\.spec\\\\.ts$\" --project=chromium",
+    "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
     "@workspace/expression-editor": "workspace:*",
-    "@workspace/ui": "workspace:*",
     "@workspace/flow": "workspace:*",
     "@workspace/store": "workspace:*",
+    "@workspace/ui": "workspace:*",
     "lucide-react": "^0.577.0",
     "next": "16.1.6",
     "next-themes": "^0.4.6",
@@ -23,6 +26,7 @@
     "react-dom": "^19.2.4"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@tailwindcss/postcss": "^4.1.18",
     "@types/node": "^25.1.0",
     "@types/react": "^19.2.10",

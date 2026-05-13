@@ -370,7 +370,12 @@ export function WorkflowCanvas(props: WorkflowCanvasProps) {
   const styles = workflowCanvasStyles()
 
   return (
-    <div className={styles.root()}>
+    <div
+      className={styles.root()}
+      role="region"
+      aria-label="Workflow canvas"
+      data-testid="workflow-canvas"
+    >
       <ReactFlowProvider>
         <WorkflowCanvasInner {...props} />
       </ReactFlowProvider>

@@ -1,6 +1,7 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "ui": "tui",
+  "globalEnv": ["CI"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
@@ -12,6 +13,9 @@
     },
     "test": {
       "dependsOn": ["^test"]
+    },
+    "test:e2e": {
+      "cache": false
     },
     "test:coverage": {
       "dependsOn": ["^test:coverage"],
