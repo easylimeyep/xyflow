@@ -58,6 +58,7 @@ describe("initial graph builders", () => {
           config: {
             tokenNumber: 0,
             extractExpression: "email",
+            variableType: "string",
             unlimited: false,
           },
         },

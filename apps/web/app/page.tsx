@@ -7,7 +7,10 @@ import { DefaultGraphExample } from "@/app/components/workflow-examples/default-
 import { ElkGraphExample } from "@/app/components/workflow-examples/elk-graph-example"
 import { FullscreenModalExample } from "@/app/components/workflow-examples/fullscreen-modal-example"
 import { LargeElkGraphExample } from "@/app/components/workflow-examples/large-elk-graph-example"
-import { ValidationExample } from "@/app/components/workflow-examples/validation-example"
+import {
+  GlobalValidationExample,
+  ValidationExample,
+} from "@/app/components/workflow-examples/validation-example"
 import {
   Tabs,
   TabsContent,
@@ -51,6 +54,9 @@ export default function Page() {
               with backend transform
             </TabsTrigger>
             <TabsTrigger value="with-validation">with validation</TabsTrigger>
+            <TabsTrigger value="with-global-validation">
+              global validation
+            </TabsTrigger>
             <TabsTrigger value="with-fullscreen-modal">
               with fullscreen modal
             </TabsTrigger>
@@ -104,6 +110,13 @@ export default function Page() {
           className="flex min-h-0 flex-1 flex-col gap-4"
         >
           <ValidationExample />
+        </TabsContent>
+
+        <TabsContent
+          value="with-global-validation"
+          className="flex min-h-0 flex-1 flex-col gap-4"
+        >
+          <GlobalValidationExample />
         </TabsContent>
 
         <TabsContent

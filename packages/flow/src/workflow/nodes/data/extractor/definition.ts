@@ -1,6 +1,12 @@
 import { InfinityIcon } from "lucide-react"
 
 import { defineNode } from "../../../node-registry/define-node"
+import type { WorkflowVariableType } from "../../../types"
+
+export const WORKFLOW_VARIABLE_TYPES = [
+  "string",
+  "array",
+] satisfies WorkflowVariableType[]
 
 export const extractor = defineNode({
   kind: "extractor" as const,
@@ -21,6 +27,15 @@ export const extractor = defineNode({
       placeholder: "myVar",
     },
     {
+      key: "variableType",
+      label: "Type",
+      type: "select",
+      options: WORKFLOW_VARIABLE_TYPES.map((value) => ({
+        label: value,
+        value,
+      })),
+    },
+    {
       key: "unlimited",
       label: "Unlimited",
       type: "boolean",
@@ -37,6 +52,7 @@ export const extractor = defineNode({
   buildDefaultConfig: () => ({
     tokenNumber: 0,
     extractExpression: "",
+    variableType: "string" as WorkflowVariableType,
     unlimited: false,
   }),
   renameConfigKey: "extractExpression",
@@ -46,6 +62,8 @@ export const extractor = defineNode({
         return typeof value === "number"
       case "extractExpression":
         return typeof value === "string"
+      case "variableType":
+        return value === "string" || value === "array"
       case "unlimited":
         return typeof value === "boolean"
       default:

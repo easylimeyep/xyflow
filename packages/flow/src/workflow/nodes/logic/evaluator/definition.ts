@@ -34,6 +34,7 @@ export const evaluator = defineNode({
     "result",
   ],
   buildDefaultConfig: () => ({
+    label: "conditionMatched",
     conditions: [
       {
         id: crypto.randomUUID(),
@@ -45,6 +46,7 @@ export const evaluator = defineNode({
     logicalOperator: "and" as const,
     caseSensitive: false,
   }),
+  renameConfigKey: "label",
   subtitle: (config) => {
     const conditions = config.conditions as EvaluatorCondition[] | undefined
     if (!conditions?.length) return "No conditions"
@@ -66,6 +68,8 @@ export const evaluator = defineNode({
     switch (key) {
       case "conditions":
         return Array.isArray(value) && value.every(isEvaluatorCondition)
+      case "label":
+        return typeof value === "string"
       case "logicalOperator":
         return value === "and" || value === "or"
       case "caseSensitive":

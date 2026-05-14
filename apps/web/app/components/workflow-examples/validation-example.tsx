@@ -96,6 +96,28 @@ function createValidationSnapshot(
   }
 }
 
+function createGlobalValidationSnapshot(
+  revisionIndex: number
+): WorkflowValidationSnapshot {
+  return {
+    workflowId: "workflow-validation-demo",
+    workflowVersion: 7,
+    revision: `global-validation-${revisionIndex}`,
+    global: [
+      {
+        code: "WORKFLOW_NOT_READY",
+        message: "Workflow is not ready to publish yet.",
+        severity: "error",
+      },
+      {
+        code: "WORKFLOW_REQUIRES_REVIEW",
+        message: "Review workflow-level settings before activation.",
+        severity: "warning",
+      },
+    ],
+  }
+}
+
 function useMockValidationQuery() {
   const [revisionIndex, setRevisionIndex] = useState(1)
   const [enabled, setEnabled] = useState(true)
@@ -107,7 +129,33 @@ function useMockValidationQuery() {
   return {
     data,
     revisionIndex,
-    pushNextRevision: () => setRevisionIndex((current) => current + 1),
+    pushNextRevision: () => {
+      setEnabled(true)
+      setRevisionIndex((current) => current + 1)
+    },
+    clearValidation: () => setEnabled(false),
+    restoreValidation: () => {
+      setEnabled(true)
+      setRevisionIndex((current) => current + 1)
+    },
+  }
+}
+
+function useMockGlobalValidationQuery() {
+  const [revisionIndex, setRevisionIndex] = useState(1)
+  const [enabled, setEnabled] = useState(true)
+  const data = useMemo(
+    () => (enabled ? createGlobalValidationSnapshot(revisionIndex) : null),
+    [enabled, revisionIndex]
+  )
+
+  return {
+    data,
+    revisionIndex,
+    pushNextRevision: () => {
+      setEnabled(true)
+      setRevisionIndex((current) => current + 1)
+    },
     clearValidation: () => setEnabled(false),
     restoreValidation: () => {
       setEnabled(true)
@@ -174,6 +222,49 @@ export function Example() {
   )
 }`
 
+const globalOnlyCode = `import {
+  WorkflowEditor,
+  createInitialGraph,
+  type WorkflowValidationSnapshot,
+} from "@workspace/flow"
+
+const initialGraph = createInitialGraph({
+  nodes: [
+    { id: "validation-keyword", kind: "inlineExpression", config: { template: ["lead"], isRoot: true } },
+    { id: "validation-evaluator", kind: "evaluator", config: { conditions: [{ id: "condition", value: "{{ leadScore }}", operator: "is greater than", targetValue: "50" }], logicalOperator: "and" } },
+    { id: "validation-result", kind: "result", config: { category: "true" } },
+  ],
+  edges: [{ id: "keyword-to-evaluator", source: "validation-keyword", target: "validation-evaluator" }],
+})
+
+function useWorkflowValidationQuery(): { data: WorkflowValidationSnapshot | null } {
+  return {
+    data: {
+      workflowId: "workflow-validation-demo",
+      workflowVersion: 7,
+      revision: "global-validation-1",
+      global: [
+        {
+          code: "WORKFLOW_NOT_READY",
+          message: "Workflow is not ready to publish yet.",
+          severity: "error",
+        },
+      ],
+    },
+  }
+}
+
+export function Example() {
+  const validationQuery = useWorkflowValidationQuery()
+
+  return (
+    <WorkflowEditor
+      initialGraph={initialGraph}
+      validation={validationQuery.data}
+    />
+  )
+}`
+
 export function ValidationExample() {
   const validationQuery = useMockValidationQuery()
 
@@ -182,6 +273,49 @@ export function ValidationExample() {
       title="With validation"
       description="Пример внешней server/query-like validation: snapshot приходит снаружи, WorkflowEditor показывает global Alert и подсвечивает ноду. Измени Evaluator — локальная ошибка скроется до следующей revision."
       code={code}
+    >
+      <div className="flex items-center gap-2 border-b border-gray-200 bg-white px-3 py-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={validationQuery.pushNextRevision}
+        >
+          Simulate server revision {validationQuery.revisionIndex + 1}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={validationQuery.clearValidation}
+        >
+          Clear validation
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={validationQuery.restoreValidation}
+        >
+          Restore validation
+        </Button>
+      </div>
+      <WorkflowEditor
+        initialGraph={initialGraph}
+        validation={validationQuery.data}
+      />
+    </ExamplePreview>
+  )
+}
+
+export function GlobalValidationExample() {
+  const validationQuery = useMockGlobalValidationQuery()
+
+  return (
+    <ExamplePreview
+      title="With global validation"
+      description="Пример validation snapshot только с workflow-level ошибками: поле nodes отсутствует, поэтому показывается только global Alert без подсветки нод."
+      code={globalOnlyCode}
     >
       <div className="flex items-center gap-2 border-b border-gray-200 bg-white px-3 py-2">
         <Button

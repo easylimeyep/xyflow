@@ -1,6 +1,8 @@
 "use client"
 
 import type { NodeProps } from "@xyflow/react"
+import { Checkbox } from "@workspace/ui/components/checkbox"
+import { Field, FieldGroup, FieldLabel } from "@workspace/ui/components/field"
 import { Input } from "@workspace/ui/components/input"
 
 import { setVariableNodeStyles } from "../../../../styles/components/nodes"
@@ -20,8 +22,10 @@ export function SetVariableNode({ id, data, selected }: NodeProps) {
   const variableNameFromConfig = asText(config.variableName).trim()
   const fallbackVariableName = isValidJsIdentifier(label) ? label : "myVar"
   const variableName = variableNameFromConfig || fallbackVariableName
+  const clearFromStore = config.clear === true
 
   const styles = setVariableNodeStyles()
+  const clearId = `${id}-clear`
   const variableLabelField = useVariableIdentifierField({
     value: variableName,
     onCommit: (nextName) => {
@@ -75,6 +79,25 @@ export function SetVariableNode({ id, data, selected }: NodeProps) {
             }}
           />
         </div>
+
+        <FieldGroup>
+          <Field>
+            <FieldLabel htmlFor={clearId}>Clear</FieldLabel>
+            <div>
+              <Checkbox
+                id={clearId}
+                checked={clearFromStore}
+                onCheckedChange={(checked) => {
+                  updateNodeConfig(id, {
+                    kind: "setVariable",
+                    key: "clear",
+                    value: checked === true,
+                  })
+                }}
+              />
+            </div>
+          </Field>
+        </FieldGroup>
       </div>
     </NodeShell>
   )

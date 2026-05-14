@@ -38,6 +38,7 @@ export interface WorkflowEvaluatorOperatorOption {
 }
 
 export const DEFAULT_EVALUATOR_OPERATOR_ID = "is equal to"
+export type WorkflowVariableType = "string" | "array"
 
 export const DEFAULT_EVALUATOR_OPERATOR_OPTIONS: WorkflowEvaluatorOperatorOption[] =
   [
@@ -71,6 +72,7 @@ export interface EvaluatorCondition {
 }
 
 export type EvaluatorNodeConfig = {
+  label: string
   conditions: EvaluatorCondition[]
   logicalOperator: "and" | "or"
   caseSensitive: boolean
@@ -86,11 +88,13 @@ export type InlineExpressionNodeConfig = {
 export type SetVariableNodeConfig = {
   variableName: string
   valueExpression: string
+  clear: boolean
 }
 
 export type ExtractorNodeConfig = {
   tokenNumber: number
   extractExpression: string
+  variableType: WorkflowVariableType
   unlimited: boolean
 }
 

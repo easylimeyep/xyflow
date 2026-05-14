@@ -5,10 +5,15 @@ import { Checkbox } from "@workspace/ui/components/checkbox"
 import { Field, FieldGroup, FieldLabel } from "@workspace/ui/components/field"
 import { Input } from "@workspace/ui/components/input"
 import { Label } from "@workspace/ui/components/label"
+import {
+  NativeSelect,
+  NativeSelectOption,
+} from "@workspace/ui/components/native-select"
 import { useCallback, useRef, useState } from "react"
 
 import { setVariableNodeStyles } from "../../../../styles/components/nodes"
 import { isValidJsIdentifier } from "../../../expression/variable-name/variable-name"
+import type { WorkflowVariableType } from "../../../types"
 import { NodeShell } from "../../node-shell/node-shell"
 import {
   asText,
@@ -16,6 +21,7 @@ import {
   useVariableIdentifierField,
 } from "../../shared"
 import { useNodeStoreData } from "../../shared/use-node-store-data"
+import { WORKFLOW_VARIABLE_TYPES } from "./definition"
 
 export function ExtractorNode({ id, data, selected }: NodeProps) {
   const { label: baseLabel, config } = useBaseNodeData(data)
@@ -31,6 +37,8 @@ export function ExtractorNode({ id, data, selected }: NodeProps) {
       ? Math.max(1, Math.trunc(config.tokenNumber))
       : 1
   const unlimitedFromStore = config.unlimited === true
+  const variableTypeFromStore =
+    config.variableType === "array" ? "array" : "string"
 
   const [draftTokenNumber, setDraftTokenNumber] = useState(
     String(tokenNumberFromStore)
@@ -147,6 +155,27 @@ export function ExtractorNode({ id, data, selected }: NodeProps) {
           {variableLabelField.errorText ? (
             <p className={styles.errorText()}>{variableLabelField.errorText}</p>
           ) : null}
+        </div>
+
+        <div className={styles.fieldGroup()}>
+          <Label className={styles.label()}>Type</Label>
+          <NativeSelect
+            aria-label="Variable type"
+            value={variableTypeFromStore}
+            onChange={(event) => {
+              updateNodeConfig(id, {
+                kind: "extractor",
+                key: "variableType",
+                value: event.target.value as WorkflowVariableType,
+              })
+            }}
+          >
+            {WORKFLOW_VARIABLE_TYPES.map((type) => (
+              <NativeSelectOption key={type} value={type}>
+                {type}
+              </NativeSelectOption>
+            ))}
+          </NativeSelect>
         </div>
 
         <FieldGroup>

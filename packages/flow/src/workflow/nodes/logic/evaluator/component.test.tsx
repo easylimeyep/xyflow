@@ -101,6 +101,7 @@ function createNodeProps(
             targetValue: "{{ target }}",
           },
         ],
+        label: "conditionMatched",
         logicalOperator: "and",
         caseSensitive: false,
       },
@@ -156,6 +157,7 @@ describe("EvaluatorNode", () => {
                 targetValue: "{{ target }}",
               },
             ],
+            label: "conditionMatched",
             logicalOperator: "and",
           },
         })}
@@ -213,6 +215,7 @@ describe("EvaluatorNode", () => {
                 targetValue: "",
               },
             ],
+            label: "conditionMatched",
             logicalOperator: "and",
           },
         })}
@@ -235,6 +238,60 @@ describe("EvaluatorNode", () => {
       key: "logicalOperator",
       value: "or",
     })
+  })
+
+  it("renders Label input independently from node title", () => {
+    render(
+      <EvaluatorNode
+        {...createNodeProps({
+          label: "Evaluator Title",
+          config: {
+            conditions: [
+              {
+                id: "condition-1",
+                value: "{{ source }}",
+                operator: "is equal to",
+                targetValue: "{{ target }}",
+              },
+            ],
+            label: "conditionMatched",
+            logicalOperator: "and",
+            caseSensitive: false,
+          },
+        })}
+      />
+    )
+
+    const labelInput = screen.getByPlaceholderText("conditionMatched")
+    expect(screen.getByText("Evaluator Title")).toBeDefined()
+    expect((labelInput as HTMLInputElement).value).toBe("conditionMatched")
+  })
+
+  it("commits Label via updateNodeConfig on blur", () => {
+    render(<EvaluatorNode {...createNodeProps()} />)
+
+    const labelInput = screen.getByPlaceholderText("conditionMatched")
+    fireEvent.focus(labelInput)
+    fireEvent.change(labelInput, { target: { value: "isQualified" } })
+    fireEvent.blur(labelInput)
+
+    expect(mockUpdateNodeConfig).toHaveBeenCalledWith("evaluator-node-1", {
+      kind: "evaluator",
+      key: "label",
+      value: "isQualified",
+    })
+  })
+
+  it("shows error and does not commit for invalid Label", () => {
+    render(<EvaluatorNode {...createNodeProps()} />)
+
+    const labelInput = screen.getByPlaceholderText("conditionMatched")
+    fireEvent.focus(labelInput)
+    fireEvent.change(labelInput, { target: { value: "bad label!" } })
+    fireEvent.blur(labelInput)
+
+    expect(mockUpdateNodeConfig).not.toHaveBeenCalled()
+    expect(screen.getByText("Label must be a valid JavaScript identifier.")).toBeDefined()
   })
 
   it("shows or hides the target input from operator metadata", () => {

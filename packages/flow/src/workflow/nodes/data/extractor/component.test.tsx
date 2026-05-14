@@ -29,7 +29,8 @@ vi.mock("../../output-quick-add-affordance/output-quick-add-affordance", () => (
 function createNodeProps(
   tokenNumber: number,
   extractExpression: string,
-  unlimited = false
+  unlimited = false,
+  variableType = "string"
 ): NodeProps {
   return {
     id: "extractor-node-1",
@@ -40,6 +41,7 @@ function createNodeProps(
       config: {
         tokenNumber,
         extractExpression,
+        variableType,
         unlimited,
       },
     },
@@ -135,6 +137,19 @@ describe("ExtractorNode", () => {
       kind: "extractor",
       key: "unlimited",
       value: true,
+    })
+  })
+
+  it("commits variable type via updateNodeConfig on change", () => {
+    render(<ExtractorNode {...createNodeProps(3, "myVar", false, "string")} />)
+
+    const select = screen.getByLabelText("Variable type")
+    fireEvent.change(select, { target: { value: "array" } })
+
+    expect(mockUpdateNodeConfig).toHaveBeenCalledWith("extractor-node-1", {
+      kind: "extractor",
+      key: "variableType",
+      value: "array",
     })
   })
 })

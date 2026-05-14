@@ -12,6 +12,7 @@ describe("workflow node registry", () => {
     expect(definition.title).toBe("Setter")
     expect(definition.buildDefaultConfig().variableName).toBe("myVar")
     expect(definition.buildDefaultConfig().valueExpression).toBeDefined()
+    expect(definition.buildDefaultConfig().clear).toBe(false)
     expect(definition.renameConfigKey).toBe("variableName")
   })
 
@@ -22,6 +23,7 @@ describe("workflow node registry", () => {
     expect(node.data.label).toBe("Setter")
     expect(node.data.config.variableName).toBe("myVar")
     expect(node.data.config.valueExpression).toBeDefined()
+    expect(node.data.config.clear).toBe(false)
   })
 
   it("includes inline expression definition", () => {
@@ -72,6 +74,31 @@ describe("workflow node registry", () => {
     ).toBe(false)
   })
 
+  it("normalizes missing variable metadata defaults", () => {
+    expect(
+      normalizeNodeConfig("extractor", {
+        tokenNumber: 1,
+        extractExpression: "email",
+        unlimited: false,
+      }).variableType
+    ).toBe("string")
+
+    expect(
+      normalizeNodeConfig("setVariable", {
+        variableName: "email",
+        valueExpression: "{{ email }}",
+      }).clear
+    ).toBe(false)
+
+    expect(
+      normalizeNodeConfig("evaluator", {
+        conditions: [],
+        logicalOperator: "and",
+        caseSensitive: false,
+      }).label
+    ).toBe("conditionMatched")
+  })
+
   it("does not expose trigger node in registry", () => {
     expect(Object.keys(nodeRegistry)).not.toContain("trigger")
   })
@@ -81,10 +108,17 @@ describe("workflow node registry", () => {
 
     expect(definition.kind).toBe("extractor")
     expect(definition.renameConfigKey).toBe("extractExpression")
+    expect(definition.buildDefaultConfig().variableType).toBe("string")
     expect(
       definition.fields.find((field) => field.key === "extractExpression")
         ?.label
     ).toBe("Label")
+    expect(
+      definition.fields.find((field) => field.key === "variableType")?.options
+    ).toEqual([
+      { label: "string", value: "string" },
+      { label: "array", value: "array" },
+    ])
   })
 
   it("includes result node definition", () => {

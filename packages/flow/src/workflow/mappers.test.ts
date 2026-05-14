@@ -275,7 +275,17 @@ describe("workflow mappers", () => {
     ])
   })
 
-  it("preserves setVariable and evaluator config semantics across domain roundtrip", () => {
+  it("preserves variable metadata and evaluator config semantics across domain roundtrip", () => {
+    const extractorNode = createWorkflowNode(
+      "extractor",
+      { x: 120, y: 120 },
+      "Extractor"
+    )
+    extractorNode.data.config.tokenNumber = 2
+    extractorNode.data.config.extractExpression = "customerEmails"
+    extractorNode.data.config.variableType = "array"
+    extractorNode.data.config.unlimited = true
+
     const setVariableNode = createWorkflowNode(
       "setVariable",
       { x: 300, y: 120 },
@@ -283,12 +293,14 @@ describe("workflow mappers", () => {
     )
     setVariableNode.data.config.variableName = "customerName"
     setVariableNode.data.config.valueExpression = "{{ $json.customer.name }}"
+    setVariableNode.data.config.clear = true
 
     const evaluatorNode = createWorkflowNode(
       "evaluator",
       { x: 620, y: 120 },
       "Evaluator"
     )
+    evaluatorNode.data.config.label = "isQualified"
     evaluatorNode.data.config.conditions = [
       {
         id: "cond-1",
@@ -302,13 +314,21 @@ describe("workflow mappers", () => {
 
     const graph = {
       ...initialWorkflowGraph,
-      nodes: [...initialWorkflowGraph.nodes, setVariableNode, evaluatorNode],
+      nodes: [
+        ...initialWorkflowGraph.nodes,
+        extractorNode,
+        setVariableNode,
+        evaluatorNode,
+      ],
     }
 
     const raw = exportDomainJson(graph)
     const parsed = parseInternalGraphJson(raw)
 
     expect(parsed.success).toBe(true)
+    const restoredExtractor = parsed.value?.nodes.find(
+      (node) => node.id === extractorNode.id
+    )
     const restoredSetVariable = parsed.value?.nodes.find(
       (node) => node.id === setVariableNode.id
     )
@@ -316,10 +336,62 @@ describe("workflow mappers", () => {
       (node) => node.id === evaluatorNode.id
     )
 
+    expect(restoredExtractor?.data.config).toEqual(extractorNode.data.config)
     expect(restoredSetVariable?.data.config).toEqual(
       setVariableNode.data.config
     )
     expect(restoredEvaluator?.data.config).toEqual(evaluatorNode.data.config)
+  })
+
+  it("normalizes legacy payloads with missing variable metadata defaults", () => {
+    const domain = internalToDomain(initialWorkflowGraph)
+    domain.nodes.push(
+      {
+        id: "legacy-extractor",
+        kind: "extractor",
+        position: { x: 300, y: 80 },
+        label: "Extractor",
+        config: {
+          tokenNumber: 1,
+          extractExpression: "email",
+          unlimited: false,
+        },
+      },
+      {
+        id: "legacy-setter",
+        kind: "setVariable",
+        position: { x: 560, y: 80 },
+        label: "Setter",
+        config: {
+          variableName: "email",
+          valueExpression: "{{ email }}",
+        },
+      },
+      {
+        id: "legacy-evaluator",
+        kind: "evaluator",
+        position: { x: 820, y: 80 },
+        label: "Evaluator",
+        config: {
+          conditions: [],
+          logicalOperator: "and",
+          caseSensitive: false,
+        },
+      }
+    )
+
+    const parsed = parseInternalGraphJson(JSON.stringify(domain))
+
+    expect(parsed.success).toBe(true)
+    expect(
+      parsed.value?.nodes.find((node) => node.id === "legacy-extractor")?.data.config.variableType
+    ).toBe("string")
+    expect(
+      parsed.value?.nodes.find((node) => node.id === "legacy-setter")?.data.config.clear
+    ).toBe(false)
+    expect(
+      parsed.value?.nodes.find((node) => node.id === "legacy-evaluator")?.data.config.label
+    ).toBe("conditionMatched")
   })
 
   it("exports and parses selection clipboard json with relative positions", () => {

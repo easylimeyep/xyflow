@@ -119,6 +119,38 @@ describe("collectWorkflowVariables", () => {
     expect(options).toHaveLength(0)
   })
 
+  it("exposes upstream evaluator label as plain variable", () => {
+    const evaluator = createWorkflowNode("evaluator", { x: 0, y: 0 }, "Evaluator")
+    evaluator.data.config.label = "conditionMatched"
+    const inline = createWorkflowNode("inlineExpression", { x: 200, y: 0 }, "InlineA")
+
+    const edges: WorkflowEdge[] = [
+      {
+        id: "edge-1",
+        source: evaluator.id,
+        target: inline.id,
+        sourceHandle: "evaluator-true",
+        targetHandle: null,
+        data: { sourceKind: evaluator.data.kind, targetKind: inline.data.kind },
+      },
+    ]
+
+    const options = collectWorkflowVariables([evaluator, inline], edges, inline.id)
+
+    expect(options).toHaveLength(1)
+    expect(options[0]?.value).toBe("conditionMatched")
+  })
+
+  it("does not expose non-upstream evaluator labels", () => {
+    const evaluator = createWorkflowNode("evaluator", { x: 0, y: 0 }, "Evaluator")
+    evaluator.data.config.label = "conditionMatched"
+    const inline = createWorkflowNode("inlineExpression", { x: 200, y: 0 }, "InlineA")
+
+    const options = collectWorkflowVariables([evaluator, inline], [], inline.id)
+
+    expect(options.map((o) => o.value)).not.toContain("conditionMatched")
+  })
+
   it("only includes upstream nodes, not isolated ones", () => {
     const extractor = createWorkflowNode("extractor", { x: 0, y: 0 }, "price")
     const isolated = createWorkflowNode("extractor", { x: 0, y: 300 }, "isolated")

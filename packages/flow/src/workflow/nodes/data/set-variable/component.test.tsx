@@ -43,14 +43,19 @@ vi.mock("../../output-quick-add-affordance/output-quick-add-affordance", () => (
   OutputQuickAddAffordance: () => null,
 }))
 
-function createNodeProps(label: string, variableName: string, valueExpression: string): NodeProps {
+function createNodeProps(
+  label: string,
+  variableName: string,
+  valueExpression: string,
+  clear = false
+): NodeProps {
   return {
     id: "set-variable-1",
     type: "setVariable",
     data: {
       kind: "setVariable",
       label,
-      config: { variableName, valueExpression },
+      config: { variableName, valueExpression, clear },
     },
     selected: false,
     dragging: false,
@@ -122,6 +127,19 @@ describe("SetVariableNode", () => {
       kind: "setVariable",
       key: "valueExpression",
       value: "{{ newVar }}",
+    })
+  })
+
+  it("toggles clear flag", () => {
+    render(<SetVariableNode {...createNodeProps("Setter", "myVar", "", false)} />)
+
+    const checkbox = screen.getByRole("checkbox")
+    fireEvent.click(checkbox)
+
+    expect(mockUpdateNodeConfig).toHaveBeenCalledWith("set-variable-1", {
+      kind: "setVariable",
+      key: "clear",
+      value: true,
     })
   })
 })

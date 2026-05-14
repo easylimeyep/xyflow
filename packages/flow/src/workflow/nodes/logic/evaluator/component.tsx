@@ -3,6 +3,8 @@
 import type { NodeProps } from "@xyflow/react"
 import { Button } from "@workspace/ui/components/button"
 import { Checkbox } from "@workspace/ui/components/checkbox"
+import { Input } from "@workspace/ui/components/input"
+import { Label } from "@workspace/ui/components/label"
 import {
   NativeSelect,
   NativeSelectOption,
@@ -27,7 +29,7 @@ import type {
 } from "../../../types"
 import { DEFAULT_EVALUATOR_OPERATOR_ID } from "../../../types"
 import { NodeShell } from "../../node-shell/node-shell"
-import { useBaseNodeData } from "../../shared"
+import { asText, useBaseNodeData, useVariableIdentifierField } from "../../shared"
 import { useNodeStoreData } from "../../shared/use-node-store-data"
 import { evaluator } from "./definition"
 
@@ -201,6 +203,17 @@ export function EvaluatorNode({ id, data, selected }: NodeProps) {
   const logicalOperator =
     (config.logicalOperator as "and" | "or" | undefined) ?? "and"
   const isCaseSensitiveFromStore = config.caseSensitive === true
+  const resultLabel = asText(config.label).trim() || "conditionMatched"
+  const resultLabelField = useVariableIdentifierField({
+    value: resultLabel,
+    onCommit: (nextLabel) => {
+      updateNodeConfig(id, {
+        kind: "evaluator",
+        key: "label",
+        value: nextLabel,
+      })
+    },
+  })
 
   const setConditions = useCallback(
     (next: EvaluatorCondition[]) => {
@@ -279,6 +292,26 @@ export function EvaluatorNode({ id, data, selected }: NodeProps) {
       validationMessages={nodeValidationMessages}
     >
       <div className={styles.root()}>
+        <div className="space-y-1">
+          <Label className={styles.label()}>Label</Label>
+          <Input
+            ref={resultLabelField.inputRef}
+            value={resultLabelField.shownValue}
+            placeholder="conditionMatched"
+            onFocus={resultLabelField.onFocus}
+            onChange={(event) =>
+              resultLabelField.onChange(event.target.value)
+            }
+            onBlur={resultLabelField.onBlur}
+            onKeyDown={resultLabelField.onKeyDown}
+          />
+          {resultLabelField.errorText ? (
+            <p className="text-[11px] text-destructive">
+              {resultLabelField.errorText}
+            </p>
+          ) : null}
+        </div>
+
         <label className={styles.optionToggleWrap()}>
           <Checkbox
             checked={isCaseSensitiveFromStore}

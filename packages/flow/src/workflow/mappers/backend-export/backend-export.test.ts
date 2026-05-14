@@ -144,6 +144,51 @@ describe("exportDomainWorkflowForBackend", () => {
     expect(backend.nodes[3]).toMatchObject({ id: 4, next: [] })
   })
 
+  it("preserves variable metadata in backend node configs", () => {
+    const root = node("root", "inlineExpression", 0, 0, { isRoot: true })
+    const extractor = node("extractor", "extractor", 200, 0, {
+      tokenNumber: 1,
+      extractExpression: "emails",
+      variableType: "array",
+      unlimited: true,
+    })
+    const setter = node("setter", "setVariable", 400, 0, {
+      variableName: "emails",
+      valueExpression: "{{ rawEmails }}",
+      clear: true,
+    })
+    const evaluator = node("evaluator", "evaluator", 600, 0, {
+      label: "hasEmails",
+      conditions: [],
+      logicalOperator: "and",
+      caseSensitive: false,
+    })
+    const dto = workflow(
+      [evaluator, setter, extractor, root],
+      [
+        connection("root", "extractor"),
+        connection("extractor", "setter"),
+        connection("setter", "evaluator"),
+      ]
+    )
+
+    const backend = exportDomainWorkflowForBackend(dto)
+
+    expect(backend.nodes[1]?.config).toMatchObject({
+      extractExpression: "emails",
+      variableType: "array",
+      unlimited: true,
+    })
+    expect(backend.nodes[2]?.config).toMatchObject({
+      variableName: "emails",
+      valueExpression: "{{ rawEmails }}",
+      clear: true,
+    })
+    expect(backend.nodes[3]?.config).toMatchObject({
+      label: "hasEmails",
+    })
+  })
+
   it("uses null for missing evaluator branches", () => {
     const root = node("root", "inlineExpression", 0, 0, { isRoot: true })
     const evaluator = node("evaluator", "evaluator", 200, 0, {

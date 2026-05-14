@@ -20,10 +20,12 @@ export const setVariable = defineNode({
   buildDefaultConfig: () => ({
     variableName: "myVar",
     valueExpression: "",
+    clear: false,
   }),
   extraExpressionConfigKeys: ["valueExpression"],
   renameConfigKey: "variableName",
   validateConfigValue: (key, value) =>
-    (key === "variableName" || key === "valueExpression") &&
-    typeof value === "string",
+    ((key === "variableName" || key === "valueExpression") &&
+      typeof value === "string") ||
+    (key === "clear" && typeof value === "boolean"),
 })

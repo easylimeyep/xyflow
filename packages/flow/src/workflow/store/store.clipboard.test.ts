@@ -100,6 +100,7 @@ describe("workflow store clipboard actions", () => {
         config: {
           variableName: "myVar",
           valueExpression: "{{ $input.item.json }}",
+          clear: false,
         },
       },
       {
@@ -110,6 +111,7 @@ describe("workflow store clipboard actions", () => {
         config: {
           tokenNumber: 0,
           extractExpression: "{{ $input.item.json }}",
+          variableType: "string",
           unlimited: false,
         },
       },
@@ -339,6 +341,7 @@ describe("workflow store clipboard actions", () => {
           config: {
             variableName: "customerName",
             valueExpression: "{{ $json.customer.name }}",
+            clear: true,
           },
         },
         {
@@ -347,6 +350,7 @@ describe("workflow store clipboard actions", () => {
           position: { x: 220, y: 0 },
           label: "Evaluator",
           config: {
+            label: "isQualified",
             conditions: [
               {
                 id: "cond-1",
@@ -400,8 +404,10 @@ describe("workflow store clipboard actions", () => {
     expect(pastedSetVariable?.data.config).toEqual({
       variableName: "customerName",
       valueExpression: "{{ $json.customer.name }}",
+      clear: true,
     })
     expect(pastedEvaluator?.data.config).toEqual({
+      label: "isQualified",
       conditions: [
         {
           id: "cond-1",

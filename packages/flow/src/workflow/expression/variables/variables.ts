@@ -1,7 +1,7 @@
 import type { ExpressionVariableOption, WorkflowEdge, WorkflowNode } from "../../types/types"
 import { isValidJsIdentifier } from "../variable-name/variable-name"
 
-const VARIABLE_NODE_KINDS = new Set(["extractor", "setVariable"])
+const VARIABLE_NODE_KINDS = new Set(["extractor", "setVariable", "evaluator"])
 
 export function collectWorkflowVariables(
   nodes: WorkflowNode[],
@@ -20,10 +20,7 @@ export function collectWorkflowVariables(
       return
     }
 
-    const variableName =
-      node.data.kind === "setVariable"
-        ? readSetVariableName(node)
-        : readExtractorVariableName(node)
+    const variableName = readVariableName(node)
     if (!variableName) {
       return
     }
@@ -37,6 +34,19 @@ export function collectWorkflowVariables(
   })
 
   return options
+}
+
+function readVariableName(node: WorkflowNode): string {
+  switch (node.data.kind) {
+    case "setVariable":
+      return readSetVariableName(node)
+    case "extractor":
+      return readExtractorVariableName(node)
+    case "evaluator":
+      return readEvaluatorLabel(node)
+    default:
+      return ""
+  }
 }
 
 function readSetVariableName(node: WorkflowNode): string {
@@ -59,6 +69,18 @@ function readExtractorVariableName(node: WorkflowNode): string {
     }
   }
   return node.data.label.trim()
+}
+
+function readEvaluatorLabel(node: WorkflowNode): string {
+  const fromConfig = node.data.config.label
+  if (typeof fromConfig !== "string") {
+    return ""
+  }
+
+  const trimmedConfig = fromConfig.trim()
+  return trimmedConfig.length > 0 && isValidJsIdentifier(trimmedConfig)
+    ? trimmedConfig
+    : ""
 }
 
 function getReachableUpstreamNodes(
