@@ -19,7 +19,8 @@ export function InlineExpressionNode({
   isConnectable,
 }: NodeProps) {
   const { label, config } = useBaseNodeData(data)
-  const { expressionVariables, updateNodeConfig } = useNodeStoreData(id)
+  const { expressionVariables, nodeValidationMessages, updateNodeConfig } =
+    useNodeStoreData(id)
   const templateFromStore = asStringArray(config.template)
   const isRootFromStore = config.isRoot === true
   const isRepeatableFromStore = config.repeatable === true
@@ -34,6 +35,7 @@ export function InlineExpressionNode({
       subtitle="Template with {{ }} references"
       selected={selected}
       showTarget={!isRootFromStore}
+      validationMessages={nodeValidationMessages}
       headerAccessory={
         <label className={styles.rootToggleWrap()}>
           <Checkbox

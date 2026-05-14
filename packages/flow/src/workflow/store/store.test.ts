@@ -17,6 +17,8 @@ import { DEFAULT_EVALUATOR_OPERATOR_OPTIONS } from "../types/types"
 import {
   selectExpressionVariablesForNode,
   selectSelectedNode,
+  selectVisibleGlobalValidationMessages,
+  selectVisibleValidationMessagesForNode,
 } from "./selectors"
 import { createWorkflowStore } from "./store"
 import type { DomainWorkflowDTO, WorkflowNode } from "../types/types"
@@ -516,6 +518,171 @@ describe("workflow store", () => {
     expect(updatedNode?.data.label).toBe("Updated label")
     expect(updatedNode?.data.config.template).toEqual(["{{ updated-value }}"])
     expect(nextState.history.past.length).toBeGreaterThan(initialPastLength)
+  })
+
+  it("normalizes validation snapshots outside graph history", () => {
+    const targetNode = store.getState().history.present.nodes[0]
+    if (!targetNode) {
+      throw new Error("fixture node not found")
+    }
+    const beforeGraph = store.getState().history.present
+    const beforePastLength = store.getState().history.past.length
+
+    store.getState().setValidation({
+      revision: "validation-1",
+      global: [{ code: "GLOBAL", message: "Workflow is invalid." }],
+      nodes: [
+        {
+          nodeId: targetNode.id,
+          code: "NODE",
+          message: "Node is invalid.",
+          severity: "warning",
+          fieldPath: "config.template",
+        },
+      ],
+    })
+
+    expect(store.getState().history.present).toBe(beforeGraph)
+    expect(store.getState().history.past).toHaveLength(beforePastLength)
+    expect(selectVisibleGlobalValidationMessages(store.getState())).toHaveLength(1)
+    expect(
+      selectVisibleValidationMessagesForNode(store.getState(), targetNode.id)
+    ).toMatchObject([
+      {
+        code: "NODE",
+        fieldPath: "config.template",
+        message: "Node is invalid.",
+        severity: "warning",
+      },
+    ])
+  })
+
+  it("clears validation when setValidation receives null", () => {
+    store.getState().setValidation({
+      revision: "validation-1",
+      global: [{ message: "Workflow is invalid." }],
+    })
+
+    store.getState().setValidation(null)
+
+    expect(selectVisibleGlobalValidationMessages(store.getState())).toHaveLength(0)
+    expect(store.getState().validation.server).toBeNull()
+  })
+
+  it("preserves locally hidden validation for repeated revisions and resets for new revisions", () => {
+    const targetNode = store.getState().history.present.nodes[0]
+    if (!targetNode) {
+      throw new Error("fixture node not found")
+    }
+
+    const validation = {
+      revision: "validation-1",
+      nodes: [
+        {
+          nodeId: targetNode.id,
+          message: "Node is invalid.",
+        },
+      ],
+    }
+
+    store.getState().setValidation(validation)
+    store.getState().hideValidationForNode(targetNode.id)
+    expect(
+      selectVisibleValidationMessagesForNode(store.getState(), targetNode.id)
+    ).toHaveLength(0)
+
+    store.getState().setValidation(validation)
+    expect(
+      selectVisibleValidationMessagesForNode(store.getState(), targetNode.id)
+    ).toHaveLength(0)
+
+    store.getState().setValidation({ ...validation, revision: "validation-2" })
+    expect(
+      selectVisibleValidationMessagesForNode(store.getState(), targetNode.id)
+    ).toHaveLength(1)
+  })
+
+  it("hides node validation after node config and label changes", () => {
+    const targetNode = store.getState().history.present.nodes[0]
+    if (!targetNode) {
+      throw new Error("fixture node not found")
+    }
+
+    store.getState().setValidation({
+      revision: "validation-1",
+      nodes: [
+        { nodeId: targetNode.id, message: "Node config is invalid." },
+        { nodeId: "other-node", message: "Other node is invalid." },
+      ],
+    })
+
+    store.getState().updateNodeConfig(targetNode.id, {
+      kind: "inlineExpression",
+      key: "template",
+      value: ["updated"],
+    })
+
+    expect(
+      selectVisibleValidationMessagesForNode(store.getState(), targetNode.id)
+    ).toHaveLength(0)
+    expect(
+      selectVisibleValidationMessagesForNode(store.getState(), "other-node")
+    ).toHaveLength(1)
+
+    store.getState().setValidation({
+      revision: "validation-2",
+      nodes: [{ nodeId: targetNode.id, message: "Node label is invalid." }],
+    })
+    store.getState().updateNodeLabel(targetNode.id, "Updated label")
+
+    expect(
+      selectVisibleValidationMessagesForNode(store.getState(), targetNode.id)
+    ).toHaveLength(0)
+  })
+
+  it("hides touched node and global validation after edge changes", () => {
+    const state = store.getState()
+    state.addNode("extractor", { x: 480, y: 120 })
+    const source = findRootKeywordNode(store.getState().history.present.nodes)
+    const target = store
+      .getState()
+      .history.present.nodes.find((node) => node.data.kind === "extractor")
+    if (!source || !target) {
+      throw new Error("fixture nodes not found")
+    }
+
+    store.getState().setValidation({
+      revision: "validation-1",
+      global: [{ message: "Workflow structure is invalid." }],
+      nodes: [
+        { nodeId: source.id, message: "Source invalid." },
+        { nodeId: target.id, message: "Target invalid." },
+      ],
+    })
+
+    store.getState().onConnect({ source: source.id, target: target.id })
+
+    expect(selectVisibleGlobalValidationMessages(store.getState())).toHaveLength(0)
+    expect(
+      selectVisibleValidationMessagesForNode(store.getState(), source.id)
+    ).toHaveLength(0)
+    expect(
+      selectVisibleValidationMessagesForNode(store.getState(), target.id)
+    ).toHaveLength(0)
+  })
+
+  it("clears validation on import", () => {
+    store.getState().setValidation({
+      revision: "validation-1",
+      global: [{ message: "Workflow is invalid." }],
+    })
+
+    const imported = store
+      .getState()
+      .importFromJson(JSON.stringify(store.getState().exportDomain(), null, 2))
+
+    expect(imported).toBe(true)
+    expect(store.getState().validation.server).toBeNull()
   })
 
   it("keeps node drag transient until drag end commit", () => {

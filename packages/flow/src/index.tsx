@@ -7,6 +7,7 @@ export {
   WorkflowEditorConfigPanel,
   WorkflowEditorPalette,
   WorkflowEditorToolbar,
+  WorkflowEditorValidationAlert,
   type WorkflowEditorProps,
 } from "./workflow/components/workflow-editor"
 export { initialWorkflowGraph } from "./workflow/default-graph"
@@ -81,4 +82,8 @@ export type {
   WorkflowGraphState,
   WorkflowNode,
   WorkflowNodeData,
+  WorkflowNodeValidationMessage,
+  WorkflowValidationMessage,
+  WorkflowValidationSeverity,
+  WorkflowValidationSnapshot,
 } from "./workflow/types"

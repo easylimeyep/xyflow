@@ -1,5 +1,6 @@
 import {
   selectExpressionVariablesForNode,
+  selectVisibleValidationMessagesForNode,
   useWorkflowShallowStore,
   useWorkflowStore,
   type WorkflowStoreState,
@@ -18,6 +19,9 @@ export function useNodeStoreData(nodeId: string) {
     (state: WorkflowStoreState): boolean =>
       state.runtime.enableEvaluatorMultipleConditions ?? false
   )
+  const nodeValidationMessages = useWorkflowStore((state: WorkflowStoreState) =>
+    selectVisibleValidationMessagesForNode(state, nodeId)
+  )
   const updateNodeConfig = useWorkflowShallowStore(
     (state: WorkflowStoreState) => state.updateNodeConfig
   )
@@ -27,6 +31,7 @@ export function useNodeStoreData(nodeId: string) {
 
   return {
     expressionVariables,
+    nodeValidationMessages,
     evaluatorOperators,
     enableEvaluatorMultipleConditions,
     updateNodeConfig,

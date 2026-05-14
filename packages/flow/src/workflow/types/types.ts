@@ -137,6 +137,49 @@ export interface WorkflowGraphState {
   }
 }
 
+export type WorkflowValidationSeverity = "error" | "warning" | "info"
+
+export interface WorkflowValidationMessage {
+  id?: string
+  code?: string
+  message: string
+  severity?: WorkflowValidationSeverity
+}
+
+export interface WorkflowNodeValidationMessage
+  extends WorkflowValidationMessage {
+  nodeId: string
+  fieldPath?: string
+}
+
+export interface WorkflowValidationSnapshot {
+  workflowId?: string
+  workflowVersion?: number
+  revision?: string
+  global?: WorkflowValidationMessage[]
+  nodes?: WorkflowNodeValidationMessage[]
+}
+
+export interface NormalizedWorkflowValidationMessage
+  extends WorkflowValidationMessage {
+  key: string
+  severity: WorkflowValidationSeverity
+}
+
+export interface NormalizedWorkflowNodeValidationMessage
+  extends WorkflowNodeValidationMessage {
+  key: string
+  severity: WorkflowValidationSeverity
+}
+
+export interface NormalizedWorkflowValidation {
+  workflowId?: string
+  workflowVersion?: number
+  revision?: string
+  global: NormalizedWorkflowValidationMessage[]
+  nodesById: Record<string, NormalizedWorkflowNodeValidationMessage[]>
+}
+
 export interface DomainWorkflowNodeDTO {
   id: string
   kind: string

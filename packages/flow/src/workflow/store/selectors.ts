@@ -1,9 +1,12 @@
 import type {
   ExpressionVariableOption,
+  NormalizedWorkflowNodeValidationMessage,
+  NormalizedWorkflowValidationMessage,
   WorkflowEdge,
   WorkflowNode,
 } from "../types/types"
 import type { WorkflowStoreState } from "./types"
+import { isValidationMessageVisible } from "./validation"
 
 export const selectCanUndo = (state: WorkflowStoreState): boolean =>
   state.history.past.length > 0
@@ -16,6 +19,13 @@ export const selectLastError = (state: WorkflowStoreState) =>
 
 export const selectLastErrorMessage = (state: WorkflowStoreState): string | null =>
   state.lastError?.message ?? null
+
+export const selectVisibleGlobalValidationMessages = (
+  state: WorkflowStoreState
+): NormalizedWorkflowValidationMessage[] =>
+  state.validation.server?.global.filter((message) =>
+    isValidationMessageVisible(state, message)
+  ) ?? []
 
 export const selectPresentNodes = (state: WorkflowStoreState): WorkflowNode[] =>
   state.history.present.nodes
@@ -52,6 +62,19 @@ export const selectSelectedNode = (
   if (!selectedNodeId) return null
   return state.history.present.nodes.find((node) => node.id === selectedNodeId) ?? null
 }
+
+export const selectVisibleValidationMessagesForNode = (
+  state: WorkflowStoreState,
+  nodeId: string
+): NormalizedWorkflowNodeValidationMessage[] =>
+  state.validation.server?.nodesById[nodeId]?.filter((message) =>
+    isValidationMessageVisible(state, message)
+  ) ?? []
+
+export const selectNodeHasVisibleValidation = (
+  state: WorkflowStoreState,
+  nodeId: string
+): boolean => selectVisibleValidationMessagesForNode(state, nodeId).length > 0
 
 
 export const selectExpressionVariablesForNode = (

@@ -20,7 +20,7 @@ import { useNodeStoreData } from "../../shared/use-node-store-data"
 export function ExtractorNode({ id, data, selected }: NodeProps) {
   const { label: baseLabel, config } = useBaseNodeData(data)
   const label = baseLabel || "Extractor"
-  const { updateNodeConfig } = useNodeStoreData(id)
+  const { nodeValidationMessages, updateNodeConfig } = useNodeStoreData(id)
 
   const variableLabelFromConfig = asText(config.extractExpression).trim()
   const fallbackVariableLabel = isValidJsIdentifier(label) ? label : "myVar"
@@ -83,7 +83,13 @@ export function ExtractorNode({ id, data, selected }: NodeProps) {
   }, [draftTokenNumber, id, tokenNumberFromStore, updateNodeConfig])
 
   return (
-    <NodeShell nodeId={id} title={label} subtitle="" selected={selected}>
+    <NodeShell
+      nodeId={id}
+      title={label}
+      subtitle=""
+      selected={selected}
+      validationMessages={nodeValidationMessages}
+    >
       <div className={styles.root()}>
         <div className={styles.fieldGroup()}>
           <Label className={styles.label()}>Token Number</Label>

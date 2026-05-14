@@ -17,8 +17,10 @@ import type {
   WorkflowEdge,
   WorkflowGraphState,
   WorkflowNode,
+  WorkflowValidationSnapshot,
 } from "../types/types"
 import type { ConnectionLike } from "../validation/validation"
+import type { WorkflowValidationStoreState } from "./validation"
 
 export interface PendingQuickAdd {
   sourceNodeId: string
@@ -100,6 +102,7 @@ export interface WorkflowStoreQueries {
   quickAddPending: PendingQuickAdd | null
   edgeInsertPending: PendingEdgeInsert | null
   lastError: WorkflowError | null
+  validation: WorkflowValidationStoreState
 }
 
 export interface WorkflowStoreGraphCommands {
@@ -118,6 +121,11 @@ export interface WorkflowStoreGraphCommands {
 
 export interface WorkflowStoreUICommands {
   setLastError: (error: WorkflowError | null) => void
+  setValidation: (validation: WorkflowValidationSnapshot | null) => void
+  hideValidationForNode: (nodeId: string) => void
+  hideValidationForNodes: (nodeIds: string[]) => void
+  hideGlobalValidation: () => void
+  hideAllValidation: () => void
   setSelectedNodes: (nodeIds: string[]) => void
   setSelectedNode: (nodeId: string | null) => void
   setLastPointerPosition: (position: XYPosition) => void

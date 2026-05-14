@@ -1,6 +1,13 @@
 "use client"
 
 import { Handle, Position } from "@xyflow/react"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@workspace/ui/components/tooltip"
+import { CircleAlert } from "lucide-react"
 import type { ReactNode } from "react"
 
 import {
@@ -8,6 +15,7 @@ import {
   nodeShellStyles,
 } from "../../../styles/components/nodes"
 import type { OutputHandle } from "../../node-registry/define-node"
+import type { NormalizedWorkflowNodeValidationMessage } from "../../types"
 import { OutputQuickAddAffordance } from "../output-quick-add-affordance/output-quick-add-affordance"
 
 const DEFAULT_OUTPUTS: OutputHandle[] = [{}]
@@ -20,6 +28,7 @@ interface NodeShellProps {
   showTarget?: boolean
   outputs?: OutputHandle[]
   headerAccessory?: ReactNode
+  validationMessages?: NormalizedWorkflowNodeValidationMessage[]
   children?: ReactNode
 }
 
@@ -30,9 +39,11 @@ export function NodeShell({
   showTarget = true,
   outputs = DEFAULT_OUTPUTS,
   headerAccessory,
+  validationMessages = [],
   children,
 }: NodeShellProps) {
-  const styles = nodeShellStyles({ selected })
+  const hasValidation = validationMessages.length > 0
+  const styles = nodeShellStyles({ selected, validation: hasValidation })
   const handleStyles = nodeHandlesStyles({ kind: "target" })
 
   return (
@@ -40,6 +51,7 @@ export function NodeShell({
       className={styles.root()}
       data-testid="workflow-node"
       data-node-id={nodeId}
+      data-validation={hasValidation ? "true" : "false"}
     >
       <div className={styles.panel()}>
         {showTarget ? (
@@ -52,8 +64,35 @@ export function NodeShell({
 
         <div className={styles.header()}>
           <div className={styles.title()}>{title}</div>
-          {headerAccessory ? (
-            <div className={styles.headerAccessory()}>{headerAccessory}</div>
+          {headerAccessory || hasValidation ? (
+            <div className={styles.headerActions()}>
+              {hasValidation ? (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        className={styles.validationButton()}
+                        aria-label="Node validation messages"
+                        data-testid="node-validation-indicator"
+                      >
+                        <CircleAlert className="h-3.5 w-3.5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent className={styles.validationTooltip()}>
+                      <div className={styles.validationList()}>
+                        {validationMessages.map((message) => (
+                          <div key={message.key}>{message.message}</div>
+                        ))}
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              ) : null}
+              {headerAccessory ? (
+                <div className={styles.headerAccessory()}>{headerAccessory}</div>
+              ) : null}
+            </div>
           ) : null}
         </div>
         {children}

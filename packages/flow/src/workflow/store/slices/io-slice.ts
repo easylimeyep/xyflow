@@ -109,6 +109,7 @@ export const createIoSlice: WorkflowSliceCreator = (set, get) => ({
       },
       lastError: null,
     }))
+    get().hideGlobalValidation()
     return true
   },
   importFromJson: (rawJson) => {
@@ -158,6 +159,10 @@ export const createIoSlice: WorkflowSliceCreator = (set, get) => ({
       selectedNodeIds: [],
       nodeDragOriginGraph: null,
       lastError: null,
+      validation: {
+        server: null,
+        locallyHiddenKeys: new Set<string>(),
+      },
       ...buildExpressionSlicePatch(state, {
         ...importedGraph,
         nodes: normalizedNodes,

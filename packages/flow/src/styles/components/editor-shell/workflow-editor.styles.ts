@@ -2,7 +2,10 @@ import { tv } from "tailwind-variants"
 
 export const workflowEditorStyles = tv({
   slots: {
-    root: "flex h-full w-full flex-1 flex-col overflow-hidden rounded-md",
+    root: "relative flex h-full w-full flex-1 flex-col overflow-hidden rounded-md",
+    validationAlertWrap:
+      "pointer-events-none absolute left-1/2 top-3 z-20 w-[min(520px,calc(100%-6rem))] -translate-x-1/2",
+    validationAlert: "pointer-events-auto shadow-lg",
     content:
       "flex min-h-0 flex-1 relative border border-grey-400 rounded-md overflow-hidden",
     canvasWrap: "relative min-h-0 flex-1",

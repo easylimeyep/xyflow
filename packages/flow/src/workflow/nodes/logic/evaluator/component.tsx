@@ -190,6 +190,7 @@ export function EvaluatorNode({ id, data, selected }: NodeProps) {
     expressionVariables,
     evaluatorOperators,
     enableEvaluatorMultipleConditions,
+    nodeValidationMessages,
     updateNodeConfig,
   } = useNodeStoreData(id)
 
@@ -275,6 +276,7 @@ export function EvaluatorNode({ id, data, selected }: NodeProps) {
       subtitle={`${conditions.length} condition${conditions.length !== 1 ? "s" : ""}`}
       selected={selected}
       outputs={evaluator.outputs}
+      validationMessages={nodeValidationMessages}
     >
       <div className={styles.root()}>
         <label className={styles.optionToggleWrap()}>

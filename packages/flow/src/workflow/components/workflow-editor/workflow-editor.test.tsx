@@ -14,17 +14,20 @@ vi.mock("../editor-toolbar", () => ({
   EditorToolbar: ({
     canUndo,
     canRedo,
+    lastError,
     onUndo,
     onRedo,
   }: {
     canUndo: boolean
     canRedo: boolean
+    lastError: string | null
     onUndo: () => void
     onRedo: () => void
   }) => (
     <div>
       <span data-testid="toolbar-can-undo">{String(canUndo)}</span>
       <span data-testid="toolbar-can-redo">{String(canRedo)}</span>
+      <span data-testid="toolbar-last-error">{lastError ?? ""}</span>
       <button type="button" onClick={onUndo}>
         toolbar-undo
       </button>
@@ -177,6 +180,24 @@ function HookProbe() {
         {String(typeof actions.exportDomain === "function")}
       </span>
     </div>
+  )
+}
+
+function LastErrorControls() {
+  const setLastError = WorkflowEditor.use.store((state) => state.setLastError)
+
+  return (
+    <button
+      type="button"
+      onClick={() =>
+        setLastError({
+          code: "INVALID_CONNECTION",
+          message: "Transient editor error.",
+        })
+      }
+    >
+      test-set-last-error
+    </button>
   )
 }
 
@@ -386,5 +407,47 @@ describe("WorkflowEditor wiring", () => {
     expect(screen.getByTestId("hook-graph-node-count").textContent).not.toBe("0")
     expect(screen.getByTestId("hook-selection-count").textContent).toBe("0")
     expect(screen.getByTestId("hook-actions-has-export").textContent).toBe("true")
+  })
+
+  it("renders global validation alert from external validation prop", () => {
+    render(
+      <WorkflowEditor
+        validation={{
+          revision: "validation-1",
+          global: [
+            { message: "Workflow has no valid entrypoint." },
+            { message: "Workflow has unreachable nodes." },
+          ],
+        }}
+      />
+    )
+
+    expect(screen.getByTestId("workflow-validation-alert")).toBeTruthy()
+    expect(screen.getByText("Workflow has no valid entrypoint.")).toBeTruthy()
+    expect(screen.getByText("Workflow has unreachable nodes.")).toBeTruthy()
+  })
+
+  it("keeps global validation alert separate from transient toolbar status", async () => {
+    const user = userEvent.setup()
+    render(
+      <WorkflowEditor
+        validation={{
+          revision: "validation-1",
+          global: [{ message: "Server validation failed." }],
+        }}
+      >
+        <LastErrorControls />
+        <WorkflowEditor.Toolbar />
+        <WorkflowEditor.ValidationAlert />
+      </WorkflowEditor>
+    )
+
+    await user.click(screen.getByRole("button", { name: "test-set-last-error" }))
+
+    expect(screen.getByTestId("workflow-validation-alert")).toBeTruthy()
+    expect(screen.getByText("Server validation failed.")).toBeTruthy()
+    expect(screen.getByTestId("toolbar-last-error").textContent).toBe(
+      "Transient editor error."
+    )
   })
 })

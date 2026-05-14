@@ -13,7 +13,8 @@ import { useNodeStoreData } from "../../shared/use-node-store-data"
 export function SetVariableNode({ id, data, selected }: NodeProps) {
   const { label: baseLabel, config } = useBaseNodeData(data)
   const label = baseLabel || "Setter"
-  const { expressionVariables, updateNodeConfig } = useNodeStoreData(id)
+  const { expressionVariables, nodeValidationMessages, updateNodeConfig } =
+    useNodeStoreData(id)
 
   const valueExpressionFromStore = asText(config.valueExpression)
   const variableNameFromConfig = asText(config.variableName).trim()
@@ -38,6 +39,7 @@ export function SetVariableNode({ id, data, selected }: NodeProps) {
       title={label}
       subtitle="Create variable for downstream expressions"
       selected={selected}
+      validationMessages={nodeValidationMessages}
     >
       <div className={styles.root()}>
         <div className={styles.fieldGroup()}>

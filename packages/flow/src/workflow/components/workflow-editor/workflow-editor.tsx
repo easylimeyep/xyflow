@@ -11,6 +11,11 @@ import {
 } from "react"
 
 import { Button } from "@workspace/ui/components/button"
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@workspace/ui/components/alert"
 import { PlusIcon } from "lucide-react"
 import {
   selectCanRedo,
@@ -21,6 +26,7 @@ import {
   selectPresentEdges,
   selectPresentNodes,
   selectQuickAddPending,
+  selectVisibleGlobalValidationMessages,
   selectViewport,
   useWorkflowActions,
   useWorkflowGraph,
@@ -32,7 +38,7 @@ import {
   type WorkflowStoreInitialProps,
   type WorkflowStoreState,
 } from "../../store"
-import type { NodeKind } from "../../types"
+import type { NodeKind, WorkflowValidationSnapshot } from "../../types"
 import { workflowEditorStyles } from "../../../styles/components/editor-shell"
 import { EditorToolbar } from "../editor-toolbar"
 import {
@@ -176,6 +182,7 @@ function WorkflowEditorLayoutProvider({
 
 export interface WorkflowEditorProps extends WorkflowStoreInitialProps {
   runtime?: WorkflowRuntimeConfig
+  validation?: WorkflowValidationSnapshot | null
   autoLayoutOnInit?: "after-measure"
   children?: ReactNode
 }
@@ -185,6 +192,7 @@ function DefaultWorkflowEditorComposition() {
     <>
       <WorkflowEditorToolbar />
       <WorkflowEditorBody>
+        <WorkflowEditorValidationAlert />
         <WorkflowEditorPalette />
         <WorkflowEditorCanvas />
         <WorkflowEditorConfigPanel />
@@ -196,6 +204,7 @@ function DefaultWorkflowEditorComposition() {
 function WorkflowEditorRoot({
   initialGraph,
   runtime,
+  validation,
   autoLayoutOnInit,
   children,
 }: WorkflowEditorProps = {}) {
@@ -203,6 +212,7 @@ function WorkflowEditorRoot({
 
   return (
     <WorkflowStoreProvider initialGraph={initialGraph} runtime={runtime}>
+      <WorkflowValidationSync validation={validation} />
       <WorkflowEditorLayoutProvider autoLayoutOnInit={autoLayoutOnInit}>
         <div className={styles.root()}>
           {children == null ? <DefaultWorkflowEditorComposition /> : children}
@@ -210,6 +220,20 @@ function WorkflowEditorRoot({
       </WorkflowEditorLayoutProvider>
     </WorkflowStoreProvider>
   )
+}
+
+function WorkflowValidationSync({
+  validation,
+}: {
+  validation?: WorkflowValidationSnapshot | null
+}) {
+  const setValidation = useWorkflowStore((state) => state.setValidation)
+
+  useEffect(() => {
+    setValidation(validation ?? null)
+  }, [setValidation, validation])
+
+  return null
 }
 
 export function WorkflowEditorToolbar() {
@@ -251,6 +275,39 @@ export function WorkflowEditorBody({ children }: PropsWithChildren) {
   const styles = workflowEditorStyles()
 
   return <div className={styles.content()}>{children}</div>
+}
+
+export function WorkflowEditorValidationAlert() {
+  const messages = useWorkflowStore(selectVisibleGlobalValidationMessages)
+  const styles = workflowEditorStyles()
+
+  if (messages.length === 0) {
+    return null
+  }
+
+  const [firstMessage, ...additionalMessages] = messages
+
+  return (
+    <div className={styles.validationAlertWrap()}>
+      <Alert
+        variant="destructive"
+        className={styles.validationAlert()}
+        data-testid="workflow-validation-alert"
+      >
+        <AlertTitle>Workflow validation</AlertTitle>
+        <AlertDescription>
+          <div>{firstMessage?.message}</div>
+          {additionalMessages.length > 0 ? (
+            <ul className="mt-1 list-disc space-y-1 pl-4">
+              {additionalMessages.map((message) => (
+                <li key={message.key}>{message.message}</li>
+              ))}
+            </ul>
+          ) : null}
+        </AlertDescription>
+      </Alert>
+    </div>
+  )
 }
 
 export interface WorkflowEditorPaletteProps {
@@ -396,6 +453,7 @@ export { WorkflowEditorConfigPanel }
 
 export const WorkflowEditor = Object.assign(WorkflowEditorRoot, {
   Toolbar: WorkflowEditorToolbar,
+  ValidationAlert: WorkflowEditorValidationAlert,
   Body: WorkflowEditorBody,
   Palette: WorkflowEditorPalette,
   Canvas: WorkflowEditorCanvas,

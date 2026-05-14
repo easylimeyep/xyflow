@@ -30,6 +30,7 @@ export const createNodeCrudSlice: WorkflowSliceCreator = (set, get) => ({
       return
     }
     commitGraphState(set, result.nextGraph)
+    get().hideGlobalValidation()
     set({ lastError: null })
   },
   duplicateNodes: (nodeIds) => {
@@ -103,6 +104,7 @@ export const createNodeCrudSlice: WorkflowSliceCreator = (set, get) => ({
       lastError: null,
       ...buildExpressionSlicePatch(nextState, nextState.history.present),
     }))
+    get().hideGlobalValidation()
     return true
   },
   deleteNodes: (nodeIds) => {
@@ -131,6 +133,7 @@ export const createNodeCrudSlice: WorkflowSliceCreator = (set, get) => ({
       return
     }
     commitGraphState(set, result.nextGraph)
+    get().hideValidationForNode(nodeId)
     set({ lastError: null })
   },
   updateNodeConfig: (nodeId, update) => {
@@ -144,6 +147,7 @@ export const createNodeCrudSlice: WorkflowSliceCreator = (set, get) => ({
       return
     }
     commitGraphState(set, result.nextGraph)
+    get().hideValidationForNode(nodeId)
     set({ lastError: null })
   },
 })

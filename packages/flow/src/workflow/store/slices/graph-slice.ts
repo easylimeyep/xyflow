@@ -19,7 +19,7 @@ import { buildExpressionSlicePatch } from "../expression-deps"
 import { createSmartQuickAddPosition } from "../geometry"
 import { cloneGraphState, commitGraphState } from "../history-helpers"
 import { projectSelectionToNodes } from "../selection-sync"
-import type { WorkflowSliceCreator } from "../types"
+import type { WorkflowSliceCreator, WorkflowStoreState } from "../types"
 
 export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
   confirmQuickAddNode: (kind) => {
@@ -78,6 +78,11 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
         },
       },
       lastError: null,
+      ...hideValidationForStructuralNodeChange(
+        state,
+        [pending.sourceNodeId, nextNode.id],
+        true
+      ),
     }))
   },
   confirmEdgeInsertNode: (kind) => {
@@ -118,6 +123,7 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
         },
       },
       lastError: null,
+      ...hideValidationForStructuralNodeChange(state, [insertedNodeId], true),
     }))
   },
   onNodesChange: (changes) => {
@@ -128,6 +134,8 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
       selectedNodeIds: get().selectedNodeIds,
     })
     const { nextGraph, removedNodeIds, nodeCollectionChanged, edgeCollectionChanged, selectionChanged, nextSelectedNodeIds } = computed
+    const shouldHideGlobalValidation =
+      hasStructuralNodeCollectionChange(changes) || edgeCollectionChanged
     const hasDraggingPositionChanges = hasDraggingPositionChange(changes)
     const shouldCommitSemanticHistory = shouldCommitNodeHistory(changes)
     const positionOnlyChange = isPositionOnlyChange(changes)
@@ -148,6 +156,7 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
           selectedNodeIds: nextSelectedNodeIds,
           nodeDragOriginGraph: null,
           ...expressionPatchFor(state),
+          ...hideValidationForStructuralNodeChange(state, removedNodeIds, shouldHideGlobalValidation),
         }))
         return
       }
@@ -160,6 +169,7 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
             selectedNodeIds: nextSelectedNodeIds,
             nodeDragOriginGraph: null,
             ...expressionPatchFor(state),
+            ...hideValidationForStructuralNodeChange(state, removedNodeIds, shouldHideGlobalValidation),
           }))
           return
         }
@@ -173,6 +183,7 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
             selectedNodeIds: nextSelectedNodeIds,
             nodeDragOriginGraph: null,
             ...expressionPatchFor(state),
+            ...hideValidationForStructuralNodeChange(state, removedNodeIds, shouldHideGlobalValidation),
           }))
           return
         }
@@ -183,6 +194,7 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
         selectedNodeIds: nextSelectedNodeIds,
         nodeDragOriginGraph: null,
         ...expressionPatchFor(state),
+        ...hideValidationForStructuralNodeChange(state, removedNodeIds, shouldHideGlobalValidation),
       }))
       return
     }
@@ -197,6 +209,7 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
             ? state.nodeDragOriginGraph
             : null,
       ...expressionPatchFor(state),
+      ...hideValidationForStructuralNodeChange(state, removedNodeIds, shouldHideGlobalValidation),
     }))
   },
   setViewport: (viewport) => {
@@ -230,6 +243,14 @@ function isPositionOnlyChange(changes: NodeChange<WorkflowNode>[]): boolean {
   return changes.length > 0 && changes.every((change) => change.type === "position")
 }
 
+function hasStructuralNodeCollectionChange(
+  changes: NodeChange<WorkflowNode>[]
+): boolean {
+  return changes.some(
+    (change) => change.type === "add" || change.type === "remove"
+  )
+}
+
 function haveNodePositionsChanged(currentNodes: WorkflowNode[], nextNodes: WorkflowNode[]): boolean {
   if (currentNodes.length !== nextNodes.length) return true
   const currentPositionsById = new Map(
@@ -243,4 +264,39 @@ function haveNodePositionsChanged(currentNodes: WorkflowNode[], nextNodes: Workf
     }
   }
   return false
+}
+
+function hideValidationForStructuralNodeChange(
+  state: WorkflowStoreState,
+  removedNodeIds: Iterable<string>,
+  hideGlobal: boolean
+) {
+  const { validation } = state
+  if (!validation?.server) {
+    return {}
+  }
+
+  const locallyHiddenKeys = new Set(validation.locallyHiddenKeys)
+  const server = validation.server
+
+  if (hideGlobal) {
+    server.global.forEach((message) => locallyHiddenKeys.add(message.key))
+  }
+
+  for (const nodeId of removedNodeIds) {
+    server.nodesById[nodeId]?.forEach((message) =>
+      locallyHiddenKeys.add(message.key)
+    )
+  }
+
+  if (locallyHiddenKeys.size === validation.locallyHiddenKeys.size) {
+    return {}
+  }
+
+  return {
+    validation: {
+      ...validation,
+      locallyHiddenKeys,
+    },
+  }
 }

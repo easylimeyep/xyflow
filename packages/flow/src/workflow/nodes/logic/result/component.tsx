@@ -8,7 +8,12 @@ import {
 } from "@workspace/ui/components/native-select"
 
 import { resultNodeStyles } from "../../../../styles/components/nodes"
-import { useWorkflowShallowStore, type WorkflowStoreState } from "../../../store"
+import {
+  selectVisibleValidationMessagesForNode,
+  useWorkflowShallowStore,
+  useWorkflowStore,
+  type WorkflowStoreState,
+} from "../../../store"
 import { NodeShell } from "../../node-shell/node-shell"
 import { useBaseNodeData } from "../../shared/use-base-node-data"
 
@@ -16,6 +21,9 @@ export function ResultNode({ id, data, selected }: NodeProps) {
   const { label, config } = useBaseNodeData(data)
   const updateNodeConfig = useWorkflowShallowStore(
     (state: WorkflowStoreState) => state.updateNodeConfig
+  )
+  const nodeValidationMessages = useWorkflowStore((state: WorkflowStoreState) =>
+    selectVisibleValidationMessagesForNode(state, id)
   )
   const styles = resultNodeStyles()
   const category =
@@ -28,6 +36,7 @@ export function ResultNode({ id, data, selected }: NodeProps) {
       subtitle=""
       selected={selected}
       outputs={[]}
+      validationMessages={nodeValidationMessages}
     >
       <div className={styles.root()}>
         <div className={styles.fieldGroup()}>

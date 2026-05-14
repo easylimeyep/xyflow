@@ -17,6 +17,7 @@ import {
   createSelectionSlice,
 } from "./slices"
 import type { WorkflowStoreInitialProps, WorkflowStoreState } from "./types"
+import { createValidationSlice } from "./validation"
 
 export type {
   PendingEdgeInsert,
@@ -26,6 +27,7 @@ export type {
   WorkflowRuntimeConfig,
   WorkflowStoreState,
 } from "./types"
+export type { WorkflowValidationStoreState } from "./validation"
 
 export function createWorkflowStore(
   initialProps: WorkflowStoreInitialProps = {}
@@ -40,6 +42,7 @@ export function createWorkflowStore(
     history: createHistoryState(initialGraph),
     measuredInitialAutoLayoutAttempted: false,
     ...createExpressionSlice(initialGraph),
+    ...createValidationSlice(set, get),
     ...createSelectionSlice(set, get),
     ...createIntentSlice(set, get),
     ...createNodeCrudSlice(set, get),
