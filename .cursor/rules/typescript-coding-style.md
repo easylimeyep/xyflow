@@ -61,3 +61,9 @@ const validated = schema.parse(input)
 - No `console.log` statements in production code
 - Use proper logging libraries instead
 - See hooks for automatic detection
+
+## Flow Package Styling
+
+- In `packages/flow`, do not import or use `cn` for class composition.
+- Define component class slots with `tv` from `tailwind-variants`, and pass variant or `className` overrides through those slots.
+- Keep shared UI package helpers such as `cn` inside `packages/ui`; flow package components should compose styles through local or exported `tv` style definitions.

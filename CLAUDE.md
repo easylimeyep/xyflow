@@ -68,3 +68,10 @@ The flow package is the heart of the application. Key areas:
 - **@dnd-kit** for drag-and-drop (node palette → canvas)
 - **CodeMirror** (`@uiw/react-codemirror`) for the expression editor
 - **Vitest** for testing (jsdom environment); coverage thresholds: 70% for `flow`, 90% for `store`
+
+## Flow Package Styling
+
+- In `packages/flow`, do not import or use `cn` for class composition.
+- Compose component classes with `tv` from `tailwind-variants`.
+- Prefer local or exported `tv` style definitions with slots and variants; pass `className` overrides through those slots when needed.
+- Keep shared UI helpers such as `cn` inside `packages/ui`; `packages/flow` should not depend on them.

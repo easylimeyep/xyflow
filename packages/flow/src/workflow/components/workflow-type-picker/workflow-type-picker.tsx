@@ -6,9 +6,9 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@workspace/ui/components/popover"
-import { cn } from "@workspace/ui/lib/utils"
 import { Brackets, Check, Type } from "lucide-react"
-import { useMemo, useState } from "react"
+import { useState } from "react"
+import { tv } from "tailwind-variants"
 
 import {
   WORKFLOW_VARIABLE_TYPES,
@@ -34,6 +34,18 @@ const TYPE_META = {
   },
 } satisfies Record<WorkflowVariableType, { label: string; Icon: typeof Type }>
 
+const workflowTypePickerStyles = tv({
+  slots: {
+    trigger: "",
+    content: "w-32 gap-1 p-1.5",
+    option:
+      "flex h-7 w-full items-center gap-2 rounded-md px-2 text-left text-xs text-popover-foreground outline-none hover:bg-muted focus-visible:bg-muted",
+    optionIcon: "h-3.5 w-3.5",
+    optionLabel: "min-w-0 flex-1",
+    checkIcon: "h-3 w-3",
+  },
+})
+
 export function WorkflowTypePicker({
   value,
   onChange,
@@ -41,18 +53,11 @@ export function WorkflowTypePicker({
   className,
   size = "default",
 }: WorkflowTypePickerProps) {
+  const styles = workflowTypePickerStyles()
   const [open, setOpen] = useState(false)
   const selectedType = TYPE_META[value]
   const SelectedIcon = selectedType.Icon
   const buttonSize = size === "sm" ? "icon-sm" : "icon"
-  const optionClassName = useMemo(
-    () =>
-      cn(
-        "flex h-7 w-full items-center gap-2 rounded-md px-2 text-left text-xs",
-        "text-popover-foreground outline-none hover:bg-muted focus-visible:bg-muted"
-      ),
-    []
-  )
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -63,13 +68,13 @@ export function WorkflowTypePicker({
           size={buttonSize}
           aria-label={ariaLabel}
           title={`${ariaLabel}: ${selectedType.label}`}
-          className={className}
+          className={styles.trigger({ className })}
         >
           <SelectedIcon aria-hidden="true" />
           <span className="sr-only">{selectedType.label}</span>
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-32 gap-1 p-1.5">
+      <PopoverContent align="start" className={styles.content()}>
         {WORKFLOW_VARIABLE_TYPES.map((type) => {
           const option = TYPE_META[type]
           const OptionIcon = option.Icon
@@ -81,16 +86,16 @@ export function WorkflowTypePicker({
               type="button"
               role="option"
               aria-selected={selected}
-              className={optionClassName}
+              className={styles.option()}
               onClick={() => {
                 onChange(type)
                 setOpen(false)
               }}
             >
-              <OptionIcon aria-hidden="true" className="h-3.5 w-3.5" />
-              <span className="min-w-0 flex-1">{option.label}</span>
+              <OptionIcon aria-hidden="true" className={styles.optionIcon()} />
+              <span className={styles.optionLabel()}>{option.label}</span>
               {selected ? (
-                <Check aria-hidden="true" className="h-3 w-3" />
+                <Check aria-hidden="true" className={styles.checkIcon()} />
               ) : null}
             </button>
           )
