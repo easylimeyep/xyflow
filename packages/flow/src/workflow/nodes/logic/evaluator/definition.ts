@@ -4,17 +4,37 @@ import { defineNode } from "../../../node-registry/define-node"
 import {
   DEFAULT_EVALUATOR_OPERATOR_ID,
   type EvaluatorCondition,
+  type WorkflowTypedValue,
 } from "../../../types"
+
+function isWorkflowTypedValue(value: unknown): value is WorkflowTypedValue {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return false
+  }
+
+  const candidate = value as Partial<WorkflowTypedValue>
+  if (candidate.type === "string") {
+    return typeof candidate.value === "string"
+  }
+
+  if (candidate.type === "array") {
+    return (
+      Array.isArray(candidate.value) &&
+      candidate.value.every((entry) => typeof entry === "string")
+    )
+  }
+
+  return false
+}
 
 function isEvaluatorCondition(value: unknown): value is EvaluatorCondition {
   if (typeof value !== "object" || value === null) return false
   const candidate = value as Partial<EvaluatorCondition>
   return (
     typeof candidate.id === "string" &&
-    typeof candidate.value === "string" &&
+    isWorkflowTypedValue(candidate.left) &&
     typeof candidate.operator === "string" &&
-    (candidate.targetValue === undefined ||
-      typeof candidate.targetValue === "string")
+    (candidate.right === undefined || isWorkflowTypedValue(candidate.right))
   )
 }
 
@@ -38,9 +58,9 @@ export const evaluator = defineNode({
     conditions: [
       {
         id: crypto.randomUUID(),
-        value: "",
+        left: { type: "string", value: "" },
         operator: DEFAULT_EVALUATOR_OPERATOR_ID,
-        targetValue: "",
+        right: { type: "string", value: "" },
       } satisfies EvaluatorCondition,
     ],
     logicalOperator: "and" as const,

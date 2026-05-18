@@ -37,9 +37,9 @@ const graphInput = {
         conditions: [
           {
             id: "demo-elk-evaluator-condition",
-            value: "{{ email }}",
+            left: { type: "string" as const, value: "{{ email }}" },
             operator: "contains" as const,
-            targetValue: "@",
+            right: { type: "string" as const, value: "@" },
           },
         ],
         logicalOperator: "and" as const,
@@ -100,7 +100,7 @@ const initialGraph = await createInitialGraphElk({
   nodes: [
     { id: "demo-elk-inline-expression", kind: "inlineExpression", config: { template: ["lead"], isRoot: true, repeatable: false } },
     { id: "demo-elk-extractor", kind: "extractor", config: { tokenNumber: 1, extractExpression: "email", unlimited: false } },
-    { id: "demo-elk-evaluator", kind: "evaluator", config: { conditions: [{ id: "demo-elk-evaluator-condition", value: "{{ email }}", operator: "contains", targetValue: "@" }], logicalOperator: "and" } },
+    { id: "demo-elk-evaluator", kind: "evaluator", config: { conditions: [{ id: "demo-elk-evaluator-condition", left: { type: "string", value: "{{ email }}" }, operator: "contains", right: { type: "string", value: "@" } }], logicalOperator: "and" } },
     { id: "demo-elk-true-result", kind: "result", label: "Valid Email", config: { category: "true" } },
     { id: "demo-elk-false-result", kind: "result", label: "Needs Review", config: { category: "false" } },
   ],

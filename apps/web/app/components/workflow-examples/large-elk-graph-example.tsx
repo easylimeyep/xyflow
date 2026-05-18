@@ -128,9 +128,9 @@ const graphInput = {
         conditions: [
           {
             id: "large-elk-final-condition",
-            value: "{{ score }}",
+            left: { type: "string", value: "{{ score }}" },
             operator: "contains",
-            targetValue: "qualified",
+            right: { type: "string", value: "qualified" },
           },
         ],
         logicalOperator: "and",
@@ -190,9 +190,9 @@ const graphInput = {
         conditions: [
           {
             id: "large-elk-true-condition",
-            value: "{{ approval }}",
+            left: { type: "string", value: "{{ approval }}" },
             operator: "contains",
-            targetValue: "auto",
+            right: { type: "string", value: "auto" },
           },
         ],
         logicalOperator: "and",
@@ -262,9 +262,9 @@ const graphInput = {
         conditions: [
           {
             id: "large-elk-false-condition",
-            value: "{{ review }}",
+            left: { type: "string", value: "{{ review }}" },
             operator: "contains",
-            targetValue: "escalate",
+            right: { type: "string", value: "escalate" },
           },
         ],
         logicalOperator: "and",

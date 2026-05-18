@@ -1,6 +1,7 @@
 "use client"
 
 import type { NodeProps } from "@xyflow/react"
+import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
 import { Checkbox } from "@workspace/ui/components/checkbox"
 import { Input } from "@workspace/ui/components/input"
@@ -10,30 +11,89 @@ import {
   NativeSelectOption,
 } from "@workspace/ui/components/native-select"
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@workspace/ui/components/popover"
+import {
   Sortable,
   SortableContent,
   SortableItem,
   SortableItemHandle,
   SortableOverlay,
 } from "@workspace/ui/components/sortable"
-import { GripVertical, Trash2 } from "lucide-react"
-import { useCallback, useMemo } from "react"
+import { GripVertical, Plus, Trash2 } from "lucide-react"
+import { useCallback, useMemo, useState } from "react"
 
 import { evaluatorNodeStyles } from "../../../../styles/components/nodes"
 import { ExpressionInput } from "../../../components/expression-input"
+import { WorkflowTypePicker } from "../../../components/workflow-type-picker/workflow-type-picker"
 import type {
   EvaluatorCondition,
   ConditionOperator,
   ExpressionVariableOption,
+  WorkflowTypedValue,
   WorkflowEvaluatorOperatorOption,
 } from "../../../types"
 import { DEFAULT_EVALUATOR_OPERATOR_ID } from "../../../types"
+import type { WorkflowVariableType } from "../../../types/variable-types"
 import { NodeShell } from "../../node-shell/node-shell"
 import { asText, useBaseNodeData, useVariableIdentifierField } from "../../shared"
 import { useNodeStoreData } from "../../shared/use-node-store-data"
 import { evaluator } from "./definition"
 
 const styles = evaluatorNodeStyles()
+const ARRAY_PREVIEW_LIMIT = 3
+
+function createStringOperand(value = ""): WorkflowTypedValue {
+  return { type: "string", value }
+}
+
+function normalizeArrayValues(values: string[]): string[] {
+  return values.length > 0 ? values : [""]
+}
+
+function createArrayOperand(value: string[] = [""]): WorkflowTypedValue {
+  return { type: "array", value: normalizeArrayValues(value) }
+}
+
+function areStringArraysEqual(left: string[], right: string[]): boolean {
+  return (
+    left.length === right.length &&
+    left.every((entry, index) => entry === right[index])
+  )
+}
+
+function switchOperandType(
+  operand: WorkflowTypedValue,
+  nextType: WorkflowVariableType
+): WorkflowTypedValue {
+  if (operand.type === nextType) {
+    return operand
+  }
+
+  if (nextType === "string") {
+    return createStringOperand(
+      operand.type === "array" ? operand.value[0] ?? "" : ""
+    )
+  }
+
+  return createArrayOperand(
+    operand.type === "string" && operand.value !== "" ? [operand.value] : [""]
+  )
+}
+
+function createDefaultCondition(
+  operator: ConditionOperator,
+  requiresTarget: boolean
+): EvaluatorCondition {
+  return {
+    id: crypto.randomUUID(),
+    left: createStringOperand(),
+    operator,
+    ...(requiresTarget ? { right: createStringOperand() } : {}),
+  }
+}
 
 // ─── ConditionRow ────────────────────────────────────────────────────────────
 
@@ -46,6 +106,215 @@ interface ConditionRowProps {
   isOverlay?: boolean
   onUpdate: (id: string, patch: Partial<Omit<EvaluatorCondition, "id">>) => void
   onDelete: (id: string) => void
+}
+
+interface OperandEditorProps {
+  operand: WorkflowTypedValue
+  label: string
+  placeholder: string
+  variables: ExpressionVariableOption[]
+  onChange: (nextOperand: WorkflowTypedValue) => void
+}
+
+function OperandEditor({
+  operand,
+  label,
+  placeholder,
+  variables,
+  onChange,
+}: OperandEditorProps) {
+  return (
+    <div className={styles.operandRow()}>
+      <WorkflowTypePicker
+        ariaLabel={`${label} operand type`}
+        className={styles.operandTypeSelect()}
+        size="sm"
+        value={operand.type}
+        onChange={(value) => onChange(switchOperandType(operand, value))}
+      />
+
+      <div className={styles.operandEditor()}>
+        {operand.type === "string" ? (
+          <ExpressionInput
+            value={operand.value}
+            placeholder={placeholder}
+            variables={variables}
+            onChange={(value) => onChange(createStringOperand(value))}
+          />
+        ) : (
+          <ArrayOperandPopover
+            label={label}
+            placeholder={placeholder}
+            operand={operand}
+            onChange={onChange}
+          />
+        )}
+      </div>
+    </div>
+  )
+}
+
+interface ArrayOperandPopoverProps {
+  operand: Extract<WorkflowTypedValue, { type: "array" }>
+  label: string
+  placeholder: string
+  onChange: (nextOperand: WorkflowTypedValue) => void
+}
+
+function ArrayOperandPopover({
+  operand,
+  label,
+  placeholder,
+  onChange,
+}: ArrayOperandPopoverProps) {
+  const [open, setOpen] = useState(false)
+  const [draftValues, setDraftValues] = useState(() =>
+    normalizeArrayValues(operand.value)
+  )
+  const previewSourceValues = open
+    ? draftValues.length
+      ? draftValues
+      : normalizeArrayValues(operand.value)
+    : normalizeArrayValues(operand.value)
+  const previewValues = previewSourceValues.filter(
+    (value) => value.trim() !== ""
+  )
+  const visiblePreviewValues = previewValues.slice(0, ARRAY_PREVIEW_LIMIT)
+  const hiddenPreviewCount = Math.max(
+    0,
+    previewValues.length - visiblePreviewValues.length
+  )
+
+  const commitDraft = useCallback(
+    (nextValues: string[]) => {
+      const normalizedValues = normalizeArrayValues(nextValues)
+      if (
+        areStringArraysEqual(
+          normalizedValues,
+          normalizeArrayValues(operand.value)
+        )
+      ) {
+        return
+      }
+      onChange(createArrayOperand(normalizedValues))
+    },
+    [onChange, operand.value]
+  )
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (nextOpen) {
+      setDraftValues(normalizeArrayValues(operand.value))
+      setOpen(true)
+      return
+    }
+
+    commitDraft(draftValues)
+    setOpen(false)
+  }
+
+  const updateArrayEntry = (index: number, nextValue: string) => {
+    setDraftValues((currentValues) =>
+      normalizeArrayValues(
+        currentValues.map((entry, entryIndex) =>
+          entryIndex === index ? nextValue : entry
+        )
+      )
+    )
+  }
+
+  const addArrayEntry = () => {
+    setDraftValues((currentValues) => [
+      ...normalizeArrayValues(currentValues),
+      "",
+    ])
+  }
+
+  const removeArrayEntry = (index: number) => {
+    setDraftValues((currentValues) =>
+      normalizeArrayValues(
+        currentValues.filter((_, entryIndex) => entryIndex !== index)
+      )
+    )
+  }
+
+  return (
+    <Popover open={open} onOpenChange={handleOpenChange}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className={styles.operandArrayTrigger()}
+          aria-label={`Edit ${label} array values`}
+        >
+          {visiblePreviewValues.length > 0 ? (
+            <>
+              <span className={styles.operandArrayPreviewList()}>
+                {visiblePreviewValues.map((value, index) => (
+                  <Badge
+                    key={`${value}-${index}`}
+                    variant="outline"
+                    className={styles.operandArrayPreviewChip()}
+                    title={value}
+                  >
+                    <span className={styles.operandArrayPreviewChipText()}>
+                      {value}
+                    </span>
+                  </Badge>
+                ))}
+              </span>
+              {hiddenPreviewCount > 0 ? (
+                <Badge
+                  variant="secondary"
+                  className={styles.operandArrayOverflowBadge()}
+                >
+                  +{hiddenPreviewCount}
+                </Badge>
+              ) : null}
+            </>
+          ) : (
+            <span className={styles.operandArrayTriggerLabel()}>
+              {placeholder}
+            </span>
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className={styles.operandArrayPopover()}>
+        <div className={styles.operandArrayList()}>
+          {draftValues.map((entry, index) => (
+            <div key={index} className={styles.operandArrayRow()}>
+              <Input
+                aria-label={`${label} array value ${index + 1}`}
+                className={styles.operandArrayInput()}
+                value={entry}
+                onChange={(event) =>
+                  updateArrayEntry(index, event.target.value)
+                }
+              />
+              <button
+                type="button"
+                aria-label={`Delete ${label} array value ${index + 1}`}
+                className={styles.operandArrayDeleteButton()}
+                onClick={() => removeArrayEntry(index)}
+              >
+                <Trash2 className="h-3 w-3" />
+              </button>
+            </div>
+          ))}
+          <Button
+            type="button"
+            variant="outline"
+            size="xs"
+            className={styles.operandAddButton()}
+            onClick={addArrayEntry}
+          >
+            <Plus data-icon="inline-start" />
+            Add value
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
+  )
 }
 
 function ConditionRow({
@@ -71,15 +340,27 @@ function ConditionRow({
       {
         id: condition.operator,
         value: condition.operator,
-        requiresTarget: condition.targetValue !== undefined,
+        requiresTarget: condition.right !== undefined,
       },
     ]
-  }, [condition.operator, condition.targetValue, operators])
+  }, [condition.operator, condition.right, operators])
 
   const selectedOperator = activeOperators.find(
     (op) => op.id === condition.operator
   )
   const needsTarget = selectedOperator?.requiresTarget ?? false
+
+  const updateOperator = (operatorId: ConditionOperator) => {
+    const nextOperator = activeOperators.find((op) => op.id === operatorId)
+    const nextRequiresTarget = nextOperator?.requiresTarget ?? false
+
+    onUpdate(condition.id, {
+      operator: operatorId,
+      right: nextRequiresTarget
+        ? condition.right ?? createStringOperand()
+        : undefined,
+    })
+  }
 
   return (
     <div className={styles.conditionRow()}>
@@ -104,45 +385,41 @@ function ConditionRow({
       )}
 
       <div className={styles.conditionBody()}>
-        <div className="flex items-center gap-1">
-          <div className="flex-1">
-            <ExpressionInput
-              value={condition.value}
-              placeholder="value"
-              variables={variables}
-              onChange={(v) => onUpdate(condition.id, { value: v })}
-            />
-          </div>
+        <OperandEditor
+          operand={condition.left}
+          label="Left"
+          placeholder="value"
+          variables={variables}
+          onChange={(left) => onUpdate(condition.id, { left })}
+        />
 
-          <div className={styles.operatorRow()}>
-            <NativeSelect
-              aria-label="Condition operator"
-              className={styles.operatorSelect()}
-              size="sm"
-              value={condition.operator}
-              onChange={(event) =>
-                onUpdate(condition.id, {
-                  operator: event.target.value as ConditionOperator,
-                })
-              }
-            >
-              {activeOperators.map((operator) => (
-                <NativeSelectOption key={operator.id} value={operator.id}>
-                  {operator.value}
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
-          </div>
+        <div className={styles.operatorRow()}>
+          <NativeSelect
+            aria-label="Condition operator"
+            className={styles.operatorSelect()}
+            size="sm"
+            value={condition.operator}
+            onChange={(event) =>
+              updateOperator(event.target.value as ConditionOperator)
+            }
+          >
+            {activeOperators.map((operator) => (
+              <NativeSelectOption key={operator.id} value={operator.id}>
+                {operator.value}
+              </NativeSelectOption>
+            ))}
+          </NativeSelect>
         </div>
 
-        {needsTarget && (
-          <ExpressionInput
-            value={condition.targetValue ?? ""}
+        {needsTarget && condition.right ? (
+          <OperandEditor
+            operand={condition.right}
+            label="Right"
             placeholder="target value"
             variables={variables}
-            onChange={(v) => onUpdate(condition.id, { targetValue: v })}
+            onChange={(right) => onUpdate(condition.id, { right })}
           />
-        )}
+        ) : null}
       </div>
     </div>
   )
@@ -227,24 +504,35 @@ export function EvaluatorNode({ id, data, selected }: NodeProps) {
   )
 
   const handleAddCondition = useCallback(() => {
-    const defaultOperatorId =
-      evaluatorOperators[0]?.id ?? DEFAULT_EVALUATOR_OPERATOR_ID
+    const defaultOperator =
+      evaluatorOperators[0] ?? {
+        id: DEFAULT_EVALUATOR_OPERATOR_ID,
+        requiresTarget: true,
+        value: DEFAULT_EVALUATOR_OPERATOR_ID,
+      }
 
     setConditions([
       ...conditions,
-      {
-        id: crypto.randomUUID(),
-        value: "",
-        operator: defaultOperatorId,
-        targetValue: "",
-      },
+      createDefaultCondition(defaultOperator.id, defaultOperator.requiresTarget),
     ])
   }, [evaluatorOperators, conditions, setConditions])
 
   const handleUpdateCondition = useCallback(
     (conditionId: string, patch: Partial<Omit<EvaluatorCondition, "id">>) => {
       setConditions(
-        conditions.map((c) => (c.id === conditionId ? { ...c, ...patch } : c))
+        conditions.map((condition) => {
+          if (condition.id !== conditionId) {
+            return condition
+          }
+
+          if ("right" in patch && patch.right === undefined) {
+            const nextCondition = { ...condition, ...patch }
+            delete nextCondition.right
+            return nextCondition
+          }
+
+          return { ...condition, ...patch }
+        })
       )
     },
     [conditions, setConditions]

@@ -11,9 +11,16 @@ describe("workflow node registry", () => {
     expect(definition.kind).toBe("setVariable")
     expect(definition.title).toBe("Setter")
     expect(definition.buildDefaultConfig().variableName).toBe("myVar")
+    expect(definition.buildDefaultConfig().variableType).toBe("string")
     expect(definition.buildDefaultConfig().valueExpression).toBeDefined()
     expect(definition.buildDefaultConfig().clear).toBe(false)
     expect(definition.renameConfigKey).toBe("variableName")
+    expect(
+      definition.fields.find((field) => field.key === "variableType")?.options
+    ).toEqual([
+      { label: "string", value: "string" },
+      { label: "array", value: "array" },
+    ])
   })
 
   it("creates set variable node with default config", () => {
@@ -22,6 +29,7 @@ describe("workflow node registry", () => {
     expect(node.type).toBe("setVariable")
     expect(node.data.label).toBe("Setter")
     expect(node.data.config.variableName).toBe("myVar")
+    expect(node.data.config.variableType).toBe("string")
     expect(node.data.config.valueExpression).toBeDefined()
     expect(node.data.config.clear).toBe(false)
   })
@@ -89,6 +97,12 @@ describe("workflow node registry", () => {
         valueExpression: "{{ email }}",
       }).clear
     ).toBe(false)
+    expect(
+      normalizeNodeConfig("setVariable", {
+        variableName: "email",
+        valueExpression: "{{ email }}",
+      }).variableType
+    ).toBe("string")
 
     expect(
       normalizeNodeConfig("evaluator", {

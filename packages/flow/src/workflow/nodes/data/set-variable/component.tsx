@@ -7,6 +7,7 @@ import { Input } from "@workspace/ui/components/input"
 
 import { setVariableNodeStyles } from "../../../../styles/components/nodes"
 import { ExpressionInput } from "../../../components/expression-input"
+import { WorkflowTypePicker } from "../../../components/workflow-type-picker/workflow-type-picker"
 import { isValidJsIdentifier } from "../../../expression/variable-name/variable-name"
 import { NodeShell } from "../../node-shell/node-shell"
 import { asText, useBaseNodeData, useVariableIdentifierField } from "../../shared"
@@ -22,6 +23,8 @@ export function SetVariableNode({ id, data, selected }: NodeProps) {
   const variableNameFromConfig = asText(config.variableName).trim()
   const fallbackVariableName = isValidJsIdentifier(label) ? label : "myVar"
   const variableName = variableNameFromConfig || fallbackVariableName
+  const variableTypeFromStore =
+    config.variableType === "array" ? "array" : "string"
   const clearFromStore = config.clear === true
 
   const styles = setVariableNodeStyles()
@@ -46,20 +49,41 @@ export function SetVariableNode({ id, data, selected }: NodeProps) {
       validationMessages={nodeValidationMessages}
     >
       <div className={styles.root()}>
-        <div className={styles.fieldGroup()}>
-          <label className={styles.label()}>Label</label>
-          <Input
-            ref={variableLabelField.inputRef}
-            value={variableLabelField.shownValue}
-            placeholder="myVar"
-            onFocus={variableLabelField.onFocus}
-            onChange={(event) => variableLabelField.onChange(event.target.value)}
-            onBlur={variableLabelField.onBlur}
-            onKeyDown={variableLabelField.onKeyDown}
-          />
-          {variableLabelField.errorText ? (
-            <p className={styles.errorText()}>{variableLabelField.errorText}</p>
-          ) : null}
+        <div className={styles.labelTypeRow()}>
+          <div className={styles.labelTypeField()}>
+            <label className={styles.label()}>Label</label>
+            <Input
+              ref={variableLabelField.inputRef}
+              value={variableLabelField.shownValue}
+              placeholder="myVar"
+              onFocus={variableLabelField.onFocus}
+              onChange={(event) =>
+                variableLabelField.onChange(event.target.value)
+              }
+              onBlur={variableLabelField.onBlur}
+              onKeyDown={variableLabelField.onKeyDown}
+            />
+            {variableLabelField.errorText ? (
+              <p className={styles.errorText()}>
+                {variableLabelField.errorText}
+              </p>
+            ) : null}
+          </div>
+
+          <div className={styles.labelTypeSelectField()}>
+            <label className={styles.label()}>Type</label>
+            <WorkflowTypePicker
+              ariaLabel="Variable type"
+              value={variableTypeFromStore}
+              onChange={(value) => {
+                updateNodeConfig(id, {
+                  kind: "setVariable",
+                  key: "variableType",
+                  value,
+                })
+              }}
+            />
+          </div>
         </div>
 
         <div className={styles.inlineEditField()}>

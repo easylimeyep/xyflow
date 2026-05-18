@@ -1,7 +1,10 @@
 import type { Edge, Node, Viewport, XYPosition } from "@xyflow/react"
 import type { NodeKind } from "../node-registry/registry"
+import type { WorkflowVariableType } from "./variable-types"
 
 export type { ExpressionVariableOption } from "@workspace/expression-editor"
+export type { WorkflowVariableType } from "./variable-types"
+export { WORKFLOW_VARIABLE_TYPES } from "./variable-types"
 
 export type { NodeKind } from "../node-registry/registry"
 export { WORKFLOW_NODE_KINDS, isNodeKind } from "../node-registry/registry"
@@ -38,7 +41,9 @@ export interface WorkflowEvaluatorOperatorOption {
 }
 
 export const DEFAULT_EVALUATOR_OPERATOR_ID = "is equal to"
-export type WorkflowVariableType = "string" | "array"
+export type WorkflowTypedValue =
+  | { type: "string"; value: string }
+  | { type: "array"; value: string[] }
 
 export const DEFAULT_EVALUATOR_OPERATOR_OPTIONS: WorkflowEvaluatorOperatorOption[] =
   [
@@ -66,9 +71,9 @@ export const DEFAULT_EVALUATOR_OPERATOR_OPTIONS: WorkflowEvaluatorOperatorOption
 
 export interface EvaluatorCondition {
   id: string
-  value: string
+  left: WorkflowTypedValue
   operator: ConditionOperator
-  targetValue?: string
+  right?: WorkflowTypedValue
 }
 
 export type EvaluatorNodeConfig = {
@@ -87,6 +92,7 @@ export type InlineExpressionNodeConfig = {
 
 export type SetVariableNodeConfig = {
   variableName: string
+  variableType: WorkflowVariableType
   valueExpression: string
   clear: boolean
 }

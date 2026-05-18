@@ -16,6 +16,31 @@ let mockEvaluatorOperators: WorkflowEvaluatorOperatorOption[] = [
 ]
 let mockEnableEvaluatorMultipleConditions = false
 
+function stringCondition(
+  id: string,
+  value: string,
+  operator: string,
+  targetValue?: string
+) {
+  return {
+    id,
+    left: { type: "string" as const, value },
+    operator,
+    ...(targetValue === undefined
+      ? {}
+      : { right: { type: "string" as const, value: targetValue } }),
+  }
+}
+
+function selectWorkflowType(label: string, type: "string" | "array") {
+  fireEvent.click(screen.getByLabelText(label))
+  fireEvent.click(screen.getByRole("option", { name: type }))
+}
+
+function closeArrayPopover(label: string) {
+  fireEvent.click(screen.getByLabelText(label))
+}
+
 vi.mock("@xyflow/react", () => ({
   Handle: () => null,
   Position: {
@@ -94,12 +119,12 @@ function createNodeProps(
       label: "Evaluator",
       config: {
         conditions: [
-          {
-            id: "condition-1",
-            value: "{{ source }}",
-            operator: "is equal to",
-            targetValue: "{{ target }}",
-          },
+          stringCondition(
+            "condition-1",
+            "{{ source }}",
+            "is equal to",
+            "{{ target }}"
+          ),
         ],
         label: "conditionMatched",
         logicalOperator: "and",
@@ -150,12 +175,12 @@ describe("EvaluatorNode", () => {
         {...createNodeProps({
           config: {
             conditions: [
-              {
-                id: "condition-1",
-                value: "{{ source }}",
-                operator: "matches",
-                targetValue: "{{ target }}",
-              },
+              stringCondition(
+                "condition-1",
+                "{{ source }}",
+                "matches",
+                "{{ target }}"
+              ),
             ],
             label: "conditionMatched",
             logicalOperator: "and",
@@ -178,12 +203,7 @@ describe("EvaluatorNode", () => {
       kind: "evaluator",
       key: "conditions",
       value: [
-        {
-          id: "condition-1",
-          value: "{{ source }}",
-          operator: "missing",
-          targetValue: "{{ target }}",
-        },
+        stringCondition("condition-1", "{{ source }}", "missing"),
       ],
     })
   })
@@ -196,24 +216,14 @@ describe("EvaluatorNode", () => {
         {...createNodeProps({
           config: {
             conditions: [
-              {
-                id: "condition-1",
-                value: "{{ source }}",
-                operator: "is equal to",
-                targetValue: "{{ target }}",
-              },
-              {
-                id: "condition-2",
-                value: "{{ other }}",
-                operator: "is empty",
-                targetValue: "",
-              },
-              {
-                id: "condition-3",
-                value: "{{ final }}",
-                operator: "is empty",
-                targetValue: "",
-              },
+              stringCondition(
+                "condition-1",
+                "{{ source }}",
+                "is equal to",
+                "{{ target }}"
+              ),
+              stringCondition("condition-2", "{{ other }}", "is empty"),
+              stringCondition("condition-3", "{{ final }}", "is empty"),
             ],
             label: "conditionMatched",
             logicalOperator: "and",
@@ -247,12 +257,12 @@ describe("EvaluatorNode", () => {
           label: "Evaluator Title",
           config: {
             conditions: [
-              {
-                id: "condition-1",
-                value: "{{ source }}",
-                operator: "is equal to",
-                targetValue: "{{ target }}",
-              },
+              stringCondition(
+                "condition-1",
+                "{{ source }}",
+                "is equal to",
+                "{{ target }}"
+              ),
             ],
             label: "conditionMatched",
             logicalOperator: "and",
@@ -304,12 +314,7 @@ describe("EvaluatorNode", () => {
         {...createNodeProps({
           config: {
             conditions: [
-              {
-                id: "condition-1",
-                value: "{{ source }}",
-                operator: "is empty",
-                targetValue: "{{ target }}",
-              },
+              stringCondition("condition-1", "{{ source }}", "is empty"),
             ],
             logicalOperator: "and",
           },
@@ -318,6 +323,259 @@ describe("EvaluatorNode", () => {
     )
 
     expect(screen.queryByLabelText("target value")).toBeNull()
+  })
+
+  it("updates left and right operand types independently", () => {
+    render(<EvaluatorNode {...createNodeProps()} />)
+
+    selectWorkflowType("Left operand type", "array")
+
+    expect(mockUpdateNodeConfig).toHaveBeenCalledWith("evaluator-node-1", {
+      kind: "evaluator",
+      key: "conditions",
+      value: [
+        {
+          ...stringCondition(
+            "condition-1",
+            "{{ source }}",
+            "is equal to",
+            "{{ target }}"
+          ),
+          left: { type: "array", value: ["{{ source }}"] },
+        },
+      ],
+    })
+
+    selectWorkflowType("Right operand type", "array")
+
+    expect(mockUpdateNodeConfig).toHaveBeenLastCalledWith("evaluator-node-1", {
+      kind: "evaluator",
+      key: "conditions",
+      value: [
+        {
+          ...stringCondition(
+            "condition-1",
+            "{{ source }}",
+            "is equal to",
+            "{{ target }}"
+          ),
+          right: { type: "array", value: ["{{ target }}"] },
+        },
+      ],
+    })
+  })
+
+  it("edits array operands from a compact popover", () => {
+    render(
+      <EvaluatorNode
+        {...createNodeProps({
+          config: {
+            conditions: [
+              {
+                id: "condition-1",
+                left: { type: "array", value: ["first value"] },
+                operator: "is equal to",
+                right: { type: "array", value: ["target value"] },
+              },
+            ],
+            label: "conditionMatched",
+            logicalOperator: "and",
+            caseSensitive: false,
+          },
+        })}
+      />
+    )
+
+    expect(screen.getByText("first value")).toBeDefined()
+    expect(screen.queryByText("value")).toBeNull()
+    fireEvent.click(screen.getByLabelText("Edit Left array values"))
+
+    fireEvent.change(screen.getByLabelText("Left array value 1"), {
+      target: { value: "New York value" },
+    })
+    expect(screen.getByText("New York value")).toBeDefined()
+    expect(mockUpdateNodeConfig).not.toHaveBeenCalled()
+
+    closeArrayPopover("Edit Left array values")
+
+    expect(mockUpdateNodeConfig).toHaveBeenCalledWith("evaluator-node-1", {
+      kind: "evaluator",
+      key: "conditions",
+      value: [
+        {
+          id: "condition-1",
+          left: { type: "array", value: ["New York value"] },
+          operator: "is equal to",
+          right: { type: "array", value: ["target value"] },
+        },
+      ],
+    })
+
+    fireEvent.click(screen.getByLabelText("Edit Left array values"))
+    fireEvent.click(screen.getByRole("button", { name: /Add value/i }))
+    fireEvent.change(screen.getByLabelText("Left array value 2"), {
+      target: { value: "second value" },
+    })
+    closeArrayPopover("Edit Left array values")
+
+    expect(mockUpdateNodeConfig).toHaveBeenLastCalledWith("evaluator-node-1", {
+      kind: "evaluator",
+      key: "conditions",
+      value: [
+        {
+          id: "condition-1",
+          left: { type: "array", value: ["first value", "second value"] },
+          operator: "is equal to",
+          right: { type: "array", value: ["target value"] },
+        },
+      ],
+    })
+  })
+
+  it("shows up to three non-empty array preview chips with an overflow badge", () => {
+    render(
+      <EvaluatorNode
+        {...createNodeProps({
+          config: {
+            conditions: [
+              {
+                id: "condition-1",
+                left: {
+                  type: "array",
+                  value: [
+                    "first long value",
+                    "",
+                    "second value",
+                    "third value",
+                    "fourth value",
+                    "fifth value",
+                  ],
+                },
+                operator: "is equal to",
+                right: { type: "string", value: "{{ target }}" },
+              },
+            ],
+            label: "conditionMatched",
+            logicalOperator: "and",
+            caseSensitive: false,
+          },
+        })}
+      />
+    )
+
+    const firstChip = screen.getByText("first long value")
+
+    expect(firstChip).toBeDefined()
+    expect(firstChip.className).toContain("truncate")
+    expect(screen.getByText("second value")).toBeDefined()
+    expect(screen.getByText("third value")).toBeDefined()
+    expect(screen.queryByText("fourth value")).toBeNull()
+    expect(screen.queryByText("fifth value")).toBeNull()
+    expect(screen.getByText("+2")).toBeDefined()
+  })
+
+  it("shows the array placeholder when all preview values are empty", () => {
+    render(
+      <EvaluatorNode
+        {...createNodeProps({
+          config: {
+            conditions: [
+              {
+                id: "condition-1",
+                left: { type: "array", value: ["", ""] },
+                operator: "is equal to",
+                right: { type: "string", value: "{{ target }}" },
+              },
+            ],
+            label: "conditionMatched",
+            logicalOperator: "and",
+            caseSensitive: false,
+          },
+        })}
+      />
+    )
+
+    expect(screen.getByText("value")).toBeDefined()
+    expect(screen.queryByText("+1")).toBeNull()
+  })
+
+  it("keeps one empty input when deleting the last array value", () => {
+    render(
+      <EvaluatorNode
+        {...createNodeProps({
+          config: {
+            conditions: [
+              {
+                id: "condition-1",
+                left: { type: "array", value: ["first value"] },
+                operator: "is equal to",
+                right: { type: "array", value: ["target value"] },
+              },
+            ],
+            label: "conditionMatched",
+            logicalOperator: "and",
+            caseSensitive: false,
+          },
+        })}
+      />
+    )
+
+    fireEvent.click(screen.getByLabelText("Edit Left array values"))
+    fireEvent.click(screen.getByLabelText("Delete Left array value 1"))
+    expect(
+      (screen.getByLabelText("Left array value 1") as HTMLInputElement).value
+    ).toBe("")
+    closeArrayPopover("Edit Left array values")
+
+    expect(mockUpdateNodeConfig).toHaveBeenLastCalledWith("evaluator-node-1", {
+      kind: "evaluator",
+      key: "conditions",
+      value: [
+        {
+          id: "condition-1",
+          left: { type: "array", value: [""] },
+          operator: "is equal to",
+          right: { type: "array", value: ["target value"] },
+        },
+      ],
+    })
+  })
+
+  it("keeps the first array item when changing an array operand to string", () => {
+    render(
+      <EvaluatorNode
+        {...createNodeProps({
+          config: {
+            conditions: [
+              {
+                id: "condition-1",
+                left: { type: "array", value: ["first", "second"] },
+                operator: "is equal to",
+                right: { type: "string", value: "{{ target }}" },
+              },
+            ],
+            label: "conditionMatched",
+            logicalOperator: "and",
+            caseSensitive: false,
+          },
+        })}
+      />
+    )
+
+    selectWorkflowType("Left operand type", "string")
+
+    expect(mockUpdateNodeConfig).toHaveBeenCalledWith("evaluator-node-1", {
+      kind: "evaluator",
+      key: "conditions",
+      value: [
+        {
+          id: "condition-1",
+          left: { type: "string", value: "first" },
+          operator: "is equal to",
+          right: { type: "string", value: "{{ target }}" },
+        },
+      ],
+    })
   })
 
   it("uses the active runtime catalog when adding a new condition", () => {
@@ -335,17 +593,56 @@ describe("EvaluatorNode", () => {
       kind: "evaluator",
       key: "conditions",
       value: [
-        {
-          id: "condition-1",
-          value: "{{ source }}",
-          operator: "is equal to",
-          targetValue: "{{ target }}",
-        },
+        stringCondition(
+          "condition-1",
+          "{{ source }}",
+          "is equal to",
+          "{{ target }}"
+        ),
         {
           id: "00000000-0000-0000-0000-000000000001",
-          value: "",
+          left: { type: "string", value: "" },
           operator: "matches",
-          targetValue: "",
+          right: { type: "string", value: "" },
+        },
+      ],
+    })
+  })
+
+  it("creates a default right operand when switching to a target-required operator", () => {
+    mockEvaluatorOperators = [
+      { id: "matches", value: "Matches", requiresTarget: true },
+      { id: "missing", value: "Is Missing", requiresTarget: false },
+    ]
+
+    render(
+      <EvaluatorNode
+        {...createNodeProps({
+          config: {
+            conditions: [
+              stringCondition("condition-1", "{{ source }}", "missing"),
+            ],
+            label: "conditionMatched",
+            logicalOperator: "and",
+            caseSensitive: false,
+          },
+        })}
+      />
+    )
+
+    fireEvent.change(screen.getByLabelText("Condition operator"), {
+      target: { value: "matches" },
+    })
+
+    expect(mockUpdateNodeConfig).toHaveBeenCalledWith("evaluator-node-1", {
+      kind: "evaluator",
+      key: "conditions",
+      value: [
+        {
+          id: "condition-1",
+          left: { type: "string", value: "{{ source }}" },
+          operator: "matches",
+          right: { type: "string", value: "" },
         },
       ],
     })
@@ -387,12 +684,7 @@ describe("EvaluatorNode", () => {
         {...createNodeProps({
           config: {
             conditions: [
-              {
-                id: "condition-1",
-                value: "{{ source }}",
-                operator: "legacy-op",
-                targetValue: "",
-              },
+              stringCondition("condition-1", "{{ source }}", "legacy-op", ""),
             ],
             logicalOperator: "and",
           },
@@ -415,18 +707,13 @@ describe("EvaluatorNode", () => {
         {...createNodeProps({
           config: {
             conditions: [
-              {
-                id: "condition-1",
-                value: "{{ first }}",
-                operator: "is equal to",
-                targetValue: "{{ target }}",
-              },
-              {
-                id: "condition-2",
-                value: "{{ second }}",
-                operator: "is empty",
-                targetValue: "",
-              },
+              stringCondition(
+                "condition-1",
+                "{{ first }}",
+                "is equal to",
+                "{{ target }}"
+              ),
+              stringCondition("condition-2", "{{ second }}", "is empty"),
             ],
             logicalOperator: "or",
           },
@@ -448,18 +735,13 @@ describe("EvaluatorNode", () => {
         {...createNodeProps({
           config: {
             conditions: [
-              {
-                id: "condition-1",
-                value: "{{ first }}",
-                operator: "is equal to",
-                targetValue: "{{ target }}",
-              },
-              {
-                id: "condition-2",
-                value: "{{ second }}",
-                operator: "is empty",
-                targetValue: "",
-              },
+              stringCondition(
+                "condition-1",
+                "{{ first }}",
+                "is equal to",
+                "{{ target }}"
+              ),
+              stringCondition("condition-2", "{{ second }}", "is empty"),
             ],
             logicalOperator: "or",
           },
@@ -475,18 +757,13 @@ describe("EvaluatorNode", () => {
       kind: "evaluator",
       key: "conditions",
       value: [
-        {
-          id: "condition-1",
-          value: "{{ changed }}",
-          operator: "is equal to",
-          targetValue: "{{ target }}",
-        },
-        {
-          id: "condition-2",
-          value: "{{ second }}",
-          operator: "is empty",
-          targetValue: "",
-        },
+        stringCondition(
+          "condition-1",
+          "{{ changed }}",
+          "is equal to",
+          "{{ target }}"
+        ),
+        stringCondition("condition-2", "{{ second }}", "is empty"),
       ],
     })
   })

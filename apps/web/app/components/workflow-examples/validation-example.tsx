@@ -32,9 +32,9 @@ const initialGraph = createInitialGraph({
         conditions: [
           {
             id: "validation-condition",
-            value: "{{ leadScore }}",
+            left: { type: "string", value: "{{ leadScore }}" },
             operator: "is greater than",
-            targetValue: "50",
+            right: { type: "string", value: "50" },
           },
         ],
         logicalOperator: "and",
@@ -90,7 +90,7 @@ function createValidationSnapshot(
         code: "UNKNOWN_VARIABLE",
         message: "Variable `leadScore` is not available here.",
         severity: "warning",
-        fieldPath: "config.conditions.0.value",
+        fieldPath: "config.conditions.0.left.value",
       },
     ],
   }
@@ -173,7 +173,7 @@ const code = `import {
 const initialGraph = createInitialGraph({
   nodes: [
     { id: "validation-keyword", kind: "inlineExpression", config: { template: ["lead"], isRoot: true } },
-    { id: "validation-evaluator", kind: "evaluator", config: { conditions: [{ id: "condition", value: "{{ leadScore }}", operator: "is greater than", targetValue: "50" }], logicalOperator: "and" } },
+    { id: "validation-evaluator", kind: "evaluator", config: { conditions: [{ id: "condition", left: { type: "string", value: "{{ leadScore }}" }, operator: "is greater than", right: { type: "string", value: "50" } }], logicalOperator: "and" } },
     { id: "validation-result", kind: "result", config: { category: "true" } },
   ],
   edges: [{ id: "keyword-to-evaluator", source: "validation-keyword", target: "validation-evaluator" }],
@@ -204,7 +204,7 @@ function useWorkflowValidationQuery(): { data: WorkflowValidationSnapshot | null
           code: "UNKNOWN_VARIABLE",
           message: "Variable \`leadScore\` is not available here.",
           severity: "warning",
-          fieldPath: "config.conditions.0.value",
+          fieldPath: "config.conditions.0.left.value",
         },
       ],
     },
@@ -231,7 +231,7 @@ const globalOnlyCode = `import {
 const initialGraph = createInitialGraph({
   nodes: [
     { id: "validation-keyword", kind: "inlineExpression", config: { template: ["lead"], isRoot: true } },
-    { id: "validation-evaluator", kind: "evaluator", config: { conditions: [{ id: "condition", value: "{{ leadScore }}", operator: "is greater than", targetValue: "50" }], logicalOperator: "and" } },
+    { id: "validation-evaluator", kind: "evaluator", config: { conditions: [{ id: "condition", left: { type: "string", value: "{{ leadScore }}" }, operator: "is greater than", right: { type: "string", value: "50" } }], logicalOperator: "and" } },
     { id: "validation-result", kind: "result", config: { category: "true" } },
   ],
   edges: [{ id: "keyword-to-evaluator", source: "validation-keyword", target: "validation-evaluator" }],

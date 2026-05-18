@@ -154,12 +154,20 @@ describe("exportDomainWorkflowForBackend", () => {
     })
     const setter = node("setter", "setVariable", 400, 0, {
       variableName: "emails",
+      variableType: "array",
       valueExpression: "{{ rawEmails }}",
       clear: true,
     })
     const evaluator = node("evaluator", "evaluator", 600, 0, {
       label: "hasEmails",
-      conditions: [],
+      conditions: [
+        {
+          id: "cond-1",
+          left: { type: "array", value: ["a", "b"] },
+          operator: "contains",
+          right: { type: "string", value: "a" },
+        },
+      ],
       logicalOperator: "and",
       caseSensitive: false,
     })
@@ -181,11 +189,20 @@ describe("exportDomainWorkflowForBackend", () => {
     })
     expect(backend.nodes[2]?.config).toMatchObject({
       variableName: "emails",
+      variableType: "array",
       valueExpression: "{{ rawEmails }}",
       clear: true,
     })
     expect(backend.nodes[3]?.config).toMatchObject({
       label: "hasEmails",
+      conditions: [
+        {
+          id: "cond-1",
+          left: { type: "array", value: ["a", "b"] },
+          operator: "contains",
+          right: { type: "string", value: "a" },
+        },
+      ],
     })
   })
 

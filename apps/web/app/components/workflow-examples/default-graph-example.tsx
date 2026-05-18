@@ -22,7 +22,7 @@ const initialGraph = createInitialGraph({
     { id: "demo-inline-expression", kind: "inlineExpression", config: { template: ["lead"], isRoot: true, repeatable: false } },
     { id: "demo-extractor", kind: "extractor", config: { tokenNumber: 1, extractExpression: "email", unlimited: false } },
     { id: "demo-set-variable", kind: "setVariable", label: "Setter", config: { variableName: "email", valueExpression: "{{ email }}" } },
-    { id: "demo-evaluator", kind: "evaluator", config: { conditions: [{ id: "demo-evaluator-condition", value: "{{ email }}", operator: "contains", targetValue: "@" }], logicalOperator: "and" } },
+    { id: "demo-evaluator", kind: "evaluator", config: { conditions: [{ id: "demo-evaluator-condition", left: { type: "string", value: "{{ email }}" }, operator: "contains", right: { type: "string", value: "@" } }], logicalOperator: "and" } },
     { id: "demo-result", kind: "result", config: { category: "true" } },
   ],
   edges: [

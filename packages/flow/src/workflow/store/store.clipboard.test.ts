@@ -340,6 +340,7 @@ describe("workflow store clipboard actions", () => {
           label: "Setter",
           config: {
             variableName: "customerName",
+            variableType: "array",
             valueExpression: "{{ $json.customer.name }}",
             clear: true,
           },
@@ -354,9 +355,9 @@ describe("workflow store clipboard actions", () => {
             conditions: [
               {
                 id: "cond-1",
-                value: "{{ customerName }}",
+                left: { type: "array", value: ["Alice", "Bob"] },
                 operator: "is equal to",
-                targetValue: "Alice",
+                right: { type: "string", value: "Alice" },
               },
             ],
             logicalOperator: "or",
@@ -403,6 +404,7 @@ describe("workflow store clipboard actions", () => {
     })
     expect(pastedSetVariable?.data.config).toEqual({
       variableName: "customerName",
+      variableType: "array",
       valueExpression: "{{ $json.customer.name }}",
       clear: true,
     })
@@ -411,9 +413,9 @@ describe("workflow store clipboard actions", () => {
       conditions: [
         {
           id: "cond-1",
-          value: "{{ customerName }}",
+          left: { type: "array", value: ["Alice", "Bob"] },
           operator: "is equal to",
-          targetValue: "Alice",
+          right: { type: "string", value: "Alice" },
         },
       ],
       logicalOperator: "or",

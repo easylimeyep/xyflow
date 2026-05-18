@@ -43,9 +43,9 @@ const initialGraph = createInitialGraph({
         conditions: [
           {
             id: "demo-modal-evaluator-condition",
-            value: "{{ email }}",
+            left: { type: "string", value: "{{ email }}" },
             operator: "contains",
-            targetValue: "@company.com",
+            right: { type: "string", value: "@company.com" },
           },
         ],
         logicalOperator: "and",
@@ -115,7 +115,7 @@ const initialGraph = createInitialGraph({
   nodes: [
     { id: "demo-modal-inline-expression", kind: "inlineExpression", config: { template: ["lead"], isRoot: true, repeatable: false } },
     { id: "demo-modal-extractor", kind: "extractor", label: "Email extractor", config: { tokenNumber: 1, extractExpression: "email", unlimited: false } },
-    { id: "demo-modal-evaluator", kind: "evaluator", label: "Has company domain", config: { conditions: [{ id: "demo-modal-evaluator-condition", value: "{{ email }}", operator: "contains", targetValue: "@company.com" }], logicalOperator: "and" } },
+    { id: "demo-modal-evaluator", kind: "evaluator", label: "Has company domain", config: { conditions: [{ id: "demo-modal-evaluator-condition", left: { type: "string", value: "{{ email }}" }, operator: "contains", right: { type: "string", value: "@company.com" } }], logicalOperator: "and" } },
     { id: "demo-modal-result-true", kind: "result", label: "Qualified", config: { category: "true" } },
     { id: "demo-modal-result-false", kind: "result", label: "Needs review", config: { category: "false" } },
   ],

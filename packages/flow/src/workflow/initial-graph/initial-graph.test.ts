@@ -124,9 +124,9 @@ describe("initial graph builders", () => {
             conditions: [
               {
                 id: "condition-1",
-                value: "{{ email }}",
+                left: { type: "string", value: "{{ email }}" },
                 operator: "contains",
-                targetValue: "@",
+                right: { type: "string", value: "@" },
               },
             ],
           },
@@ -184,9 +184,9 @@ describe("initial graph builders", () => {
             conditions: [
               {
                 id: "condition-1",
-                value: "{{ score }}",
+                left: { type: "string", value: "{{ score }}" },
                 operator: "is greater than",
-                targetValue: "90",
+                right: { type: "string", value: "90" },
               },
             ],
           },

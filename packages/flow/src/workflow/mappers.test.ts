@@ -98,9 +98,9 @@ describe("workflow mappers", () => {
             conditions: [
               {
                 id: "condition-1",
-                value: "{{ score }}",
+                left: { type: "string", value: "{{ score }}" },
                 operator: "is equal to",
-                targetValue: "100",
+                right: { type: "string", value: "100" },
               },
             ],
             logicalOperator: "and",
@@ -292,6 +292,7 @@ describe("workflow mappers", () => {
       "Setter"
     )
     setVariableNode.data.config.variableName = "customerName"
+    setVariableNode.data.config.variableType = "array"
     setVariableNode.data.config.valueExpression = "{{ $json.customer.name }}"
     setVariableNode.data.config.clear = true
 
@@ -304,9 +305,9 @@ describe("workflow mappers", () => {
     evaluatorNode.data.config.conditions = [
       {
         id: "cond-1",
-        value: "{{ customerName }}",
+        left: { type: "array", value: ["Alice", "Bob"] },
         operator: "is equal to",
-        targetValue: "Alice",
+        right: { type: "string", value: "Alice" },
       },
     ]
     evaluatorNode.data.config.logicalOperator = "or"
@@ -389,6 +390,9 @@ describe("workflow mappers", () => {
     expect(
       parsed.value?.nodes.find((node) => node.id === "legacy-setter")?.data.config.clear
     ).toBe(false)
+    expect(
+      parsed.value?.nodes.find((node) => node.id === "legacy-setter")?.data.config.variableType
+    ).toBe("string")
     expect(
       parsed.value?.nodes.find((node) => node.id === "legacy-evaluator")?.data.config.label
     ).toBe("conditionMatched")

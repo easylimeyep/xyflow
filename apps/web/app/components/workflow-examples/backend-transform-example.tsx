@@ -39,9 +39,9 @@ const initialGraph = createInitialGraph({
         conditions: [
           {
             id: "backend-transform-condition",
-            value: "{{ lead.email }}",
+            left: { type: "string", value: "{{ lead.email }}" },
             operator: "contains",
-            targetValue: "@company.com",
+            right: { type: "string", value: "@company.com" },
           },
         ],
         logicalOperator: "and",
@@ -106,7 +106,7 @@ const initialGraph = createInitialGraph({
   nodes: [
     { id: "backend-transform-root-a", kind: "inlineExpression", label: "Root A", config: { template: ["lead"], isRoot: true, repeatable: false } },
     { id: "backend-transform-root-b", kind: "inlineExpression", label: "Root B", config: { template: ["account"], isRoot: true, repeatable: false } },
-    { id: "backend-transform-evaluator", kind: "evaluator", label: "Eligibility", config: { conditions: [{ id: "backend-transform-condition", value: "{{ lead.email }}", operator: "contains", targetValue: "@company.com" }], logicalOperator: "and" } },
+    { id: "backend-transform-evaluator", kind: "evaluator", label: "Eligibility", config: { conditions: [{ id: "backend-transform-condition", left: { type: "string", value: "{{ lead.email }}" }, operator: "contains", right: { type: "string", value: "@company.com" } }], logicalOperator: "and" } },
     { id: "backend-transform-success", kind: "result", label: "Qualified", config: { category: "true" } },
     { id: "backend-transform-failure", kind: "result", label: "Rejected", config: { category: "false" } },
   ],

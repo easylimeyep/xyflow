@@ -87,9 +87,14 @@ describe("ExtractorNode", () => {
     render(<ExtractorNode {...createNodeProps(3, "myVar")} />)
 
     const labelInput = screen.getByPlaceholderText("myVar")
+    const typeSelect = screen.getByLabelText("Variable type")
     expect(screen.getByText("Extractor")).toBeDefined()
     expect(labelInput).toBeDefined()
     expect((labelInput as HTMLInputElement).value).toBe("myVar")
+    expect(
+      labelInput.compareDocumentPosition(typeSelect) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
   })
 
   it("commits Label via updateNodeConfig on blur", () => {
@@ -143,8 +148,11 @@ describe("ExtractorNode", () => {
   it("commits variable type via updateNodeConfig on change", () => {
     render(<ExtractorNode {...createNodeProps(3, "myVar", false, "string")} />)
 
-    const select = screen.getByLabelText("Variable type")
-    fireEvent.change(select, { target: { value: "array" } })
+    const typePicker = screen.getByLabelText("Variable type")
+    expect(typePicker.getAttribute("title")).toBe("Variable type: string")
+
+    fireEvent.click(typePicker)
+    fireEvent.click(screen.getByRole("option", { name: "array" }))
 
     expect(mockUpdateNodeConfig).toHaveBeenCalledWith("extractor-node-1", {
       kind: "extractor",

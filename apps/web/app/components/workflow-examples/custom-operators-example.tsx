@@ -46,15 +46,14 @@ const initialGraph = createInitialGraph({
         conditions: [
           {
             id: "demo-custom-operators-condition-contains",
-            value: "{{ lead.email }}",
+            left: { type: "string", value: "{{ lead.email }}" },
             operator: "includes",
-            targetValue: "@company.com",
+            right: { type: "string", value: "@company.com" },
           },
           {
             id: "demo-custom-operators-condition-presence",
-            value: "{{ lead.email }}",
+            left: { type: "string", value: "{{ lead.email }}" },
             operator: "has-value",
-            targetValue: "",
           },
         ],
         logicalOperator: "and",
@@ -115,8 +114,8 @@ const initialGraph = createInitialGraph({
       label: "Email rules",
       config: {
         conditions: [
-          { id: "demo-custom-operators-condition-contains", value: "{{ lead.email }}", operator: "includes", targetValue: "@company.com" },
-          { id: "demo-custom-operators-condition-presence", value: "{{ lead.email }}", operator: "has-value", targetValue: "" },
+          { id: "demo-custom-operators-condition-contains", left: { type: "string", value: "{{ lead.email }}" }, operator: "includes", right: { type: "string", value: "@company.com" } },
+          { id: "demo-custom-operators-condition-presence", left: { type: "string", value: "{{ lead.email }}" }, operator: "has-value" },
         ],
         logicalOperator: "and",
       },

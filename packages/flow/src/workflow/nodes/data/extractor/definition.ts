@@ -1,12 +1,10 @@
 import { InfinityIcon } from "lucide-react"
 
 import { defineNode } from "../../../node-registry/define-node"
-import type { WorkflowVariableType } from "../../../types"
-
-export const WORKFLOW_VARIABLE_TYPES = [
-  "string",
-  "array",
-] satisfies WorkflowVariableType[]
+import {
+  WORKFLOW_VARIABLE_TYPES,
+  type WorkflowVariableType,
+} from "../../../types/variable-types"
 
 export const extractor = defineNode({
   kind: "extractor" as const,

@@ -47,7 +47,8 @@ function createNodeProps(
   label: string,
   variableName: string,
   valueExpression: string,
-  clear = false
+  clear = false,
+  variableType = "string"
 ): NodeProps {
   return {
     id: "set-variable-1",
@@ -55,7 +56,7 @@ function createNodeProps(
     data: {
       kind: "setVariable",
       label,
-      config: { variableName, valueExpression, clear },
+      config: { variableName, variableType, valueExpression, clear },
     },
     selected: false,
     dragging: false,
@@ -84,10 +85,15 @@ describe("SetVariableNode", () => {
     render(<SetVariableNode {...createNodeProps("Setter Title", "myVar", "")} />)
 
     const nameInput = screen.getByPlaceholderText("myVar")
+    const typeSelect = screen.getByLabelText("Variable type")
     expect(screen.getByText("Label")).toBeDefined()
     expect(screen.getByText("Setter Title")).toBeDefined()
     expect(nameInput).toBeDefined()
     expect((nameInput as HTMLInputElement).value).toBe("myVar")
+    expect(
+      nameInput.compareDocumentPosition(typeSelect) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
   })
 
   it("commits variableName via updateNodeConfig on blur", () => {
@@ -127,6 +133,26 @@ describe("SetVariableNode", () => {
       kind: "setVariable",
       key: "valueExpression",
       value: "{{ newVar }}",
+    })
+  })
+
+  it("commits variable type via updateNodeConfig on change", () => {
+    render(
+      <SetVariableNode
+        {...createNodeProps("Setter", "myVar", "{{ myVar }}", false, "string")}
+      />
+    )
+
+    const typePicker = screen.getByLabelText("Variable type")
+    expect(typePicker.getAttribute("title")).toBe("Variable type: string")
+
+    fireEvent.click(typePicker)
+    fireEvent.click(screen.getByRole("option", { name: "array" }))
+
+    expect(mockUpdateNodeConfig).toHaveBeenCalledWith("set-variable-1", {
+      kind: "setVariable",
+      key: "variableType",
+      value: "array",
     })
   })
 
