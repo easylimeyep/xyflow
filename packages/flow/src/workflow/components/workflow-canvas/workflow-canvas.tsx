@@ -12,14 +12,14 @@ import {
 import { useEventCallback } from "@workspace/ui/hooks/use-event-callback"
 import {
   Background,
-  Controls,
-  ControlButton,
   MiniMap,
+  Panel,
   ReactFlow,
   ReactFlowProvider,
   SelectionMode,
   useReactFlow,
   useNodesInitialized,
+  useViewport,
   type Connection,
   type EdgeChange,
   type EdgeProps,
@@ -27,7 +27,7 @@ import {
   type Viewport,
   type XYPosition,
 } from "@xyflow/react"
-import { LayoutTemplate } from "lucide-react"
+import { LayoutTemplate, Maximize2, ZoomIn, ZoomOut } from "lucide-react"
 
 import { WORKFLOW_NODE_KIND_MIME } from "../../dnd"
 import { buildNodeTypes } from "../../node-registry/node-types-builder"
@@ -44,6 +44,8 @@ import { validateConnection } from "../../validation"
 import { WorkflowEdgeComponent } from "../workflow-edge"
 import { useNodeChangeRouter } from "./use-node-change-router"
 import { WORKFLOW_ELK_PADDING } from "../../layout"
+import type { WorkflowEditorAnchorRefs } from "../../tour"
+import { useWorkflowEditorAnchorRef } from "../../tour/anchors"
 
 const WORKFLOW_MIN_ZOOM = 0.1
 const WORKFLOW_MAX_ZOOM = 4
@@ -68,6 +70,7 @@ interface WorkflowCanvasProps {
   onAutoLayout?: () => Promise<boolean>
   autoLayoutOnInit?: "after-measure"
   onMeasuredInitialAutoLayout?: () => Promise<boolean>
+  anchorRefs?: WorkflowEditorAnchorRefs
 }
 
 function WorkflowCanvasInner({
@@ -88,8 +91,10 @@ function WorkflowCanvasInner({
   onAutoLayout,
   autoLayoutOnInit,
   onMeasuredInitialAutoLayout,
+  anchorRefs,
 }: WorkflowCanvasProps) {
   const reactFlow = useReactFlow<WorkflowNode, WorkflowEdge>()
+  const viewportState = useViewport()
   const nodesInitialized = useNodesInitialized()
   const [layoutPending, setLayoutPending] = useState(false)
   const shouldRunMeasuredInitialLayout =
@@ -297,6 +302,13 @@ function WorkflowCanvasInner({
     },
     [reactFlow]
   )
+  const controlsRef = useWorkflowEditorAnchorRef(anchorRefs, "controls")
+  const zoomInRef = useWorkflowEditorAnchorRef(anchorRefs, "zoomIn")
+  const zoomOutRef = useWorkflowEditorAnchorRef(anchorRefs, "zoomOut")
+  const fitViewRef = useWorkflowEditorAnchorRef(anchorRefs, "fitView")
+  const autoLayoutRef = useWorkflowEditorAnchorRef(anchorRefs, "autoLayout")
+  const maxZoomReached = viewportState.zoom >= WORKFLOW_MAX_ZOOM
+  const minZoomReached = viewportState.zoom <= WORKFLOW_MIN_ZOOM
 
   const styles = workflowCanvasStyles({ initializing: initialLayoutPending })
 
@@ -338,8 +350,59 @@ function WorkflowCanvasInner({
             maskStrokeColor="var(--primary)"
             maskStrokeWidth={WORKFLOW_MINIMAP_MASK_STROKE_WIDTH}
           />
-          <Controls>
-            <ControlButton
+          <Panel
+            ref={controlsRef}
+            className="react-flow__controls horizontal"
+            position="bottom-left"
+            data-testid="rf__controls"
+            aria-label="React Flow controls"
+          >
+            <button
+              ref={zoomInRef}
+              type="button"
+              className="react-flow__controls-button react-flow__controls-zoomin"
+              onClick={() => {
+                void reactFlow.zoomIn()
+              }}
+              aria-label="Zoom in"
+              title="Zoom in"
+              disabled={maxZoomReached}
+            >
+              <ZoomIn size={16} />
+            </button>
+            <button
+              ref={zoomOutRef}
+              type="button"
+              className="react-flow__controls-button react-flow__controls-zoomout"
+              onClick={() => {
+                void reactFlow.zoomOut()
+              }}
+              aria-label="Zoom out"
+              title="Zoom out"
+              disabled={minZoomReached}
+            >
+              <ZoomOut size={16} />
+            </button>
+            <button
+              ref={fitViewRef}
+              type="button"
+              className="react-flow__controls-button react-flow__controls-fitview"
+              onClick={() => {
+                void reactFlow.fitView({
+                  padding: WORKFLOW_ELK_PADDING,
+                  minZoom: WORKFLOW_MIN_ZOOM,
+                  maxZoom: WORKFLOW_MAX_ZOOM,
+                })
+              }}
+              aria-label="Fit view"
+              title="Fit view"
+            >
+              <Maximize2 size={16} />
+            </button>
+            <button
+              ref={autoLayoutRef}
+              type="button"
+              className="react-flow__controls-button react-flow__controls-auto-layout"
               onClick={() => {
                 void handleAutoLayout()
               }}
@@ -348,8 +411,8 @@ function WorkflowCanvasInner({
               disabled={layoutPending || initialLayoutPending}
             >
               <LayoutTemplate size={16} />
-            </ControlButton>
-          </Controls>
+            </button>
+          </Panel>
           <Background />
         </ReactFlow>
       </div>

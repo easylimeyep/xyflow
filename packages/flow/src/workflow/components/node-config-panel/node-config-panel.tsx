@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo } from "react"
+import { type Ref, useMemo } from "react"
 
 import { Input } from "@workspace/ui/components/input"
 import { Textarea } from "@workspace/ui/components/textarea"
@@ -8,7 +8,13 @@ import { nodeRegistry } from "../../node-registry/registry"
 import { useWorkflowSelection, useWorkflowShallowStore } from "../../store"
 import type { WorkflowStoreState } from "../../store"
 
-export function WorkflowEditorConfigPanel() {
+interface WorkflowEditorConfigPanelProps {
+  anchorRef?: Ref<HTMLElement>
+}
+
+export function WorkflowEditorConfigPanel({
+  anchorRef,
+}: WorkflowEditorConfigPanelProps) {
   const { selectedNodeIds, selectedNode } = useWorkflowSelection()
   const updateNodeLabel = useWorkflowShallowStore(
     (state: WorkflowStoreState) => state.updateNodeLabel
@@ -28,6 +34,7 @@ export function WorkflowEditorConfigPanel() {
 
   return (
     <aside
+      ref={anchorRef}
       aria-label="Workflow config panel"
       className="flex w-80 shrink-0 flex-col gap-3 border-l bg-background p-3"
     >

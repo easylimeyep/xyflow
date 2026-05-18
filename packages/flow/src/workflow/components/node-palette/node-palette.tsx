@@ -15,11 +15,17 @@ import {
   type NodeKind,
 } from "../../node-registry/registry"
 import { nodePaletteStyles } from "../../../styles/components/panels"
+import type { WorkflowEditorAnchorRefs } from "../../tour"
+import {
+  setWorkflowEditorAnchorElement,
+  setWorkflowPaletteItemAnchorElement,
+} from "../../tour/anchors"
 
 interface NodePaletteProps {
   onAddNode: (kind: NodeKind) => void
   quickAddActive?: boolean
   isOpen?: boolean
+  anchorRefs?: WorkflowEditorAnchorRefs
 }
 
 const entries = WORKFLOW_NODE_KINDS.map((kind) => nodeRegistry[kind])
@@ -28,6 +34,7 @@ export function NodePalette({
   onAddNode,
   quickAddActive = false,
   isOpen = true,
+  anchorRefs,
 }: NodePaletteProps) {
   const containerRef = useRef<HTMLElement | null>(null)
   const wasOpenRef = useRef(isOpen)
@@ -68,7 +75,10 @@ export function NodePalette({
         </ActionBarSelection>
       </ActionBar>
       <aside
-        ref={containerRef}
+        ref={(element) => {
+          containerRef.current = element
+          setWorkflowEditorAnchorElement(anchorRefs, "palette", element)
+        }}
         tabIndex={-1}
         aria-label="Node palette"
         aria-hidden={!isOpen}
@@ -83,6 +93,13 @@ export function NodePalette({
             return (
               <div
                 key={definition.kind}
+                ref={(element) =>
+                  setWorkflowPaletteItemAnchorElement(
+                    anchorRefs,
+                    definition.kind,
+                    element
+                  )
+                }
                 draggable
                 className={styles.card()}
                 onDragStart={(event) => {

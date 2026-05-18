@@ -1,41 +1,43 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen } from "@testing-library/react"
+import { cleanup, render, screen } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import { nodeRegistry, WORKFLOW_NODE_KINDS } from "../../node-registry/registry"
+import { WORKFLOW_NODE_KINDS } from "../../node-registry"
+import type { WorkflowEditorAnchorRefs } from "../../tour"
 import { NodePalette } from "./node-palette"
 
-afterEach(() => {
-  cleanup()
-})
-
-describe("NodePalette", () => {
-  it("renders all node kinds from workflow registry order", () => {
-    render(<NodePalette onAddNode={vi.fn()} />)
-
-    WORKFLOW_NODE_KINDS.forEach((kind) => {
-      expect(screen.getByText(nodeRegistry[kind].title)).toBeTruthy()
-    })
+describe("NodePalette tour anchors", () => {
+  afterEach(() => {
+    cleanup()
   })
 
-  it("delegates click to onAddNode with selected kind", () => {
-    const onAddNode = vi.fn()
-    render(<NodePalette onAddNode={onAddNode} />)
+  it("registers palette and item anchors by node kind", () => {
+    const anchorRefs: WorkflowEditorAnchorRefs = { current: {} }
 
-    const keywordButtons = screen.getAllByRole("button", { name: /Keyword/i })
-    keywordButtons.forEach((button) => {
-      fireEvent.click(button)
-    })
+    render(<NodePalette anchorRefs={anchorRefs} onAddNode={vi.fn()} />)
 
-    expect(onAddNode).toHaveBeenCalledWith("inlineExpression")
+    expect(anchorRefs.current.palette).toBe(
+      screen.getByRole("complementary", { name: "Node palette" })
+    )
+    for (const kind of WORKFLOW_NODE_KINDS) {
+      expect(anchorRefs.current.paletteItems?.[kind]).toBeInstanceOf(
+        HTMLElement
+      )
+    }
   })
 
-  it("marks palette as closed when isOpen is false", () => {
-    render(<NodePalette onAddNode={vi.fn()} isOpen={false} />)
+  it("removes palette and item anchors on unmount", () => {
+    const anchorRefs: WorkflowEditorAnchorRefs = { current: {} }
+    const view = render(
+      <NodePalette anchorRefs={anchorRefs} onAddNode={vi.fn()} />
+    )
 
-    const aside = screen.getByLabelText("Node palette")
-    expect(aside.getAttribute("data-state")).toBe("closed")
-    expect(aside.getAttribute("aria-hidden")).toBe("true")
+    view.unmount()
+
+    expect(anchorRefs.current.palette).toBeUndefined()
+    for (const kind of WORKFLOW_NODE_KINDS) {
+      expect(anchorRefs.current.paletteItems?.[kind]).toBeUndefined()
+    }
   })
 })

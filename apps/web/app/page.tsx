@@ -7,6 +7,7 @@ import { DefaultGraphExample } from "@/app/components/workflow-examples/default-
 import { ElkGraphExample } from "@/app/components/workflow-examples/elk-graph-example"
 import { FullscreenModalExample } from "@/app/components/workflow-examples/fullscreen-modal-example"
 import { LargeElkGraphExample } from "@/app/components/workflow-examples/large-elk-graph-example"
+import { TourAnchorsExample } from "@/app/components/workflow-examples/tour-anchors-example"
 import {
   GlobalValidationExample,
   ValidationExample,
@@ -52,6 +53,9 @@ export default function Page() {
             </TabsTrigger>
             <TabsTrigger value="with-backend-transform">
               with backend transform
+            </TabsTrigger>
+            <TabsTrigger value="with-tour-anchors">
+              with tour anchors
             </TabsTrigger>
             <TabsTrigger value="with-validation">with validation</TabsTrigger>
             <TabsTrigger value="with-global-validation">
@@ -103,6 +107,13 @@ export default function Page() {
           className="flex min-h-0 flex-1 flex-col gap-4"
         >
           <BackendTransformExample />
+        </TabsContent>
+
+        <TabsContent
+          value="with-tour-anchors"
+          className="flex min-h-0 flex-1 flex-col gap-4"
+        >
+          <TourAnchorsExample />
         </TabsContent>
 
         <TabsContent

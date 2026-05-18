@@ -2,29 +2,32 @@
 
 import { cleanup, render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import type { ReactNode } from "react"
+import type { ReactNode, Ref } from "react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { WorkflowEditor } from "./workflow-editor"
+import type { WorkflowEditorAnchorRefs } from "../../tour"
 
 const paletteRenderSpy = vi.fn()
 const canvasRenderSpy = vi.fn()
 
 vi.mock("../editor-toolbar", () => ({
   EditorToolbar: ({
+    anchorRef,
     canUndo,
     canRedo,
     lastError,
     onUndo,
     onRedo,
   }: {
+    anchorRef?: Ref<HTMLDivElement>
     canUndo: boolean
     canRedo: boolean
     lastError: string | null
     onUndo: () => void
     onRedo: () => void
   }) => (
-    <div>
+    <div ref={anchorRef}>
       <span data-testid="toolbar-can-undo">{String(canUndo)}</span>
       <span data-testid="toolbar-can-redo">{String(canRedo)}</span>
       <span data-testid="toolbar-last-error">{lastError ?? ""}</span>
@@ -40,17 +43,29 @@ vi.mock("../editor-toolbar", () => ({
 
 vi.mock("../node-palette", () => ({
   NodePalette: ({
+    anchorRefs,
     onAddNode,
     quickAddActive,
     isOpen = true,
   }: {
+    anchorRefs?: WorkflowEditorAnchorRefs
     onAddNode: (kind: string) => void
     quickAddActive?: boolean
     isOpen?: boolean
   }) => {
     paletteRenderSpy()
     return (
-      <div>
+      <div
+        ref={(element) => {
+          if (element) {
+            if (anchorRefs) {
+              anchorRefs.current.palette = element
+            }
+            return
+          }
+          delete anchorRefs?.current.palette
+        }}
+      >
         <span data-testid="palette-quick-add-active">
           {String(Boolean(quickAddActive))}
         </span>
@@ -215,6 +230,19 @@ function renderCustomEditor(extraChildren?: ReactNode) {
   )
 }
 
+function renderCustomEditorWithAnchors(anchorRefs: WorkflowEditorAnchorRefs) {
+  return render(
+    <WorkflowEditor anchorRefs={anchorRefs}>
+      <WorkflowEditor.Toolbar />
+      <WorkflowEditor.Body>
+        <WorkflowEditor.Palette />
+        <WorkflowEditor.Canvas />
+        <WorkflowEditor.ConfigPanel />
+      </WorkflowEditor.Body>
+    </WorkflowEditor>
+  )
+}
+
 describe("WorkflowEditor wiring", () => {
   afterEach(() => {
     cleanup()
@@ -265,6 +293,39 @@ describe("WorkflowEditor wiring", () => {
     expect(screen.getByTestId("canvas-auto-layout-on-init").textContent).toBe(
       "after-measure"
     )
+  })
+
+  it("registers and cleans up editor anchors in one mutable registry", () => {
+    const anchorRefs: WorkflowEditorAnchorRefs = { current: {} }
+    const view = render(<WorkflowEditor anchorRefs={anchorRefs} />)
+
+    expect(anchorRefs.current.root).toBeInstanceOf(HTMLDivElement)
+    expect(anchorRefs.current.toolbar).toBeInstanceOf(HTMLDivElement)
+    expect(anchorRefs.current.palette).toBeInstanceOf(HTMLDivElement)
+    expect(anchorRefs.current.paletteToggle).toBeInstanceOf(HTMLButtonElement)
+    expect(anchorRefs.current.canvas).toBeInstanceOf(HTMLDivElement)
+    expect(anchorRefs.current.configPanel).toBeInstanceOf(HTMLElement)
+
+    view.unmount()
+
+    expect(anchorRefs.current.root).toBeUndefined()
+    expect(anchorRefs.current.toolbar).toBeUndefined()
+    expect(anchorRefs.current.palette).toBeUndefined()
+    expect(anchorRefs.current.paletteToggle).toBeUndefined()
+    expect(anchorRefs.current.canvas).toBeUndefined()
+    expect(anchorRefs.current.configPanel).toBeUndefined()
+  })
+
+  it("registers anchors with explicit compound composition", () => {
+    const anchorRefs: WorkflowEditorAnchorRefs = { current: {} }
+
+    renderCustomEditorWithAnchors(anchorRefs)
+
+    expect(anchorRefs.current.root).toBeInstanceOf(HTMLDivElement)
+    expect(anchorRefs.current.toolbar).toBeInstanceOf(HTMLDivElement)
+    expect(anchorRefs.current.palette).toBeInstanceOf(HTMLDivElement)
+    expect(anchorRefs.current.canvas).toBeInstanceOf(HTMLDivElement)
+    expect(anchorRefs.current.configPanel).toBeInstanceOf(HTMLElement)
   })
 
   it("adds node from palette and reflects updated canvas node count", async () => {

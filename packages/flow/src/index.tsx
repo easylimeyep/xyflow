@@ -10,6 +10,15 @@ export {
   WorkflowEditorValidationAlert,
   type WorkflowEditorProps,
 } from "./workflow/components/workflow-editor"
+export { WORKFLOW_EDITOR_TOUR } from "./workflow/tour"
+export type {
+  WorkflowEditorAnchor,
+  WorkflowEditorAnchorElementMap,
+  WorkflowEditorAnchorElements,
+  WorkflowEditorAnchorRefs,
+  WorkflowTourAnchor,
+  WorkflowTourStep,
+} from "./workflow/tour"
 export { initialWorkflowGraph } from "./workflow/default-graph"
 export {
   createInitialGraph,

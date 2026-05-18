@@ -15,6 +15,7 @@ import { WORKFLOW_NODE_KIND_MIME } from "../../dnd"
 import { initialWorkflowGraph } from "../../default-graph"
 import { createWorkflowNode } from "../../node-registry"
 import { WorkflowCanvas } from "./workflow-canvas"
+import type { WorkflowEditorAnchorRefs } from "../../tour"
 
 const fixtureSource = createWorkflowNode("inlineExpression", { x: 0, y: 80 })
 fixtureSource.data.config.isRoot = true
@@ -38,6 +39,8 @@ const fixtureGraphWithEdge = {
 
 const reactFlowRenderSpy = vi.fn()
 const fitViewSpy = vi.fn()
+const zoomInSpy = vi.fn()
+const zoomOutSpy = vi.fn()
 const setCenterSpy = vi.fn()
 const getViewportSpy = vi.fn(() => ({ x: 24, y: 48, zoom: 1.75 }))
 const nodesInitializedMock = vi.fn(() => true)
@@ -79,18 +82,19 @@ vi.mock("@xyflow/react", () => {
       Partial: "partial",
     },
     Background: () => null,
-    Controls: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
-    ControlButton: ({
+    Panel: ({
       children,
-      onClick,
+      className,
+      position,
       ...props
     }: {
       children: ReactNode
-      onClick: () => void
+      className?: string
+      position?: string
     }) => (
-      <button type="button" onClick={onClick} {...props}>
+      <div className={className} data-position={position} {...props}>
         {children}
-      </button>
+      </div>
     ),
     MiniMap: ({
       onClick,
@@ -130,6 +134,8 @@ vi.mock("@xyflow/react", () => {
     ),
     useReactFlow: () => ({
       fitView: fitViewSpy,
+      zoomIn: zoomInSpy,
+      zoomOut: zoomOutSpy,
       getViewport: getViewportSpy,
       setCenter: setCenterSpy,
       screenToFlowPosition: ({ x, y }: { x: number; y: number }) => {
@@ -138,6 +144,7 @@ vi.mock("@xyflow/react", () => {
         return { x: safeX - 10, y: safeY - 20 }
       },
     }),
+    useViewport: () => ({ x: 0, y: 0, zoom: 1 }),
     useNodesInitialized: () => nodesInitializedMock(),
     ReactFlow: ({
       children,
@@ -282,6 +289,8 @@ describe("WorkflowCanvas", () => {
     cleanup()
     reactFlowRenderSpy.mockClear()
     fitViewSpy.mockReset()
+    zoomInSpy.mockReset()
+    zoomOutSpy.mockReset()
     setCenterSpy.mockReset()
     getViewportSpy.mockClear()
     nodesInitializedMock.mockReset()
@@ -461,6 +470,79 @@ describe("WorkflowCanvas", () => {
       minZoom: 0.1,
       maxZoom: 4,
     })
+  })
+
+  it("renders explicit zoom and fit view controls", () => {
+    render(
+      <WorkflowCanvas
+        nodes={initialWorkflowGraph.nodes}
+        edges={initialWorkflowGraph.edges}
+        viewport={initialWorkflowGraph.viewport}
+        onNodesChange={vi.fn()}
+        onEdgesChange={vi.fn()}
+        onConnect={vi.fn()}
+        onViewportChange={vi.fn()}
+        onSelectNodes={vi.fn()}
+        onPaneClick={vi.fn()}
+        onAddNodeAt={vi.fn()}
+        onStartInsertFromEdge={vi.fn()}
+        onDeleteEdge={vi.fn()}
+        onPointerFlowPosition={vi.fn()}
+        edgeInsertPendingId={null}
+        onAutoLayout={vi.fn(async () => true)}
+      />
+    )
+
+    fireEvent.click(screen.getByRole("button", { name: "Zoom in" }))
+    fireEvent.click(screen.getByRole("button", { name: "Zoom out" }))
+    fireEvent.click(screen.getByRole("button", { name: "Fit view" }))
+
+    expect(zoomInSpy).toHaveBeenCalledTimes(1)
+    expect(zoomOutSpy).toHaveBeenCalledTimes(1)
+    expect(fitViewSpy).toHaveBeenCalledWith({
+      padding: 0.2,
+      minZoom: 0.1,
+      maxZoom: 4,
+    })
+  })
+
+  it("registers canvas control anchors", () => {
+    const anchorRefs: WorkflowEditorAnchorRefs = { current: {} }
+
+    render(
+      <WorkflowCanvas
+        nodes={initialWorkflowGraph.nodes}
+        edges={initialWorkflowGraph.edges}
+        viewport={initialWorkflowGraph.viewport}
+        onNodesChange={vi.fn()}
+        onEdgesChange={vi.fn()}
+        onConnect={vi.fn()}
+        onViewportChange={vi.fn()}
+        onSelectNodes={vi.fn()}
+        onPaneClick={vi.fn()}
+        onAddNodeAt={vi.fn()}
+        onStartInsertFromEdge={vi.fn()}
+        onDeleteEdge={vi.fn()}
+        onPointerFlowPosition={vi.fn()}
+        edgeInsertPendingId={null}
+        onAutoLayout={vi.fn(async () => true)}
+        anchorRefs={anchorRefs}
+      />
+    )
+
+    expect(anchorRefs.current.controls).toBeInstanceOf(HTMLDivElement)
+    expect(anchorRefs.current.zoomIn).toBe(
+      screen.getByRole("button", { name: "Zoom in" })
+    )
+    expect(anchorRefs.current.zoomOut).toBe(
+      screen.getByRole("button", { name: "Zoom out" })
+    )
+    expect(anchorRefs.current.fitView).toBe(
+      screen.getByRole("button", { name: "Fit view" })
+    )
+    expect(anchorRefs.current.autoLayout).toBe(
+      screen.getByRole("button", { name: "Auto layout workflow" })
+    )
   })
 
   it("waits for measured nodes before running measured initial auto-layout", async () => {

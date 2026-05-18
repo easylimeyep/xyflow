@@ -1,6 +1,6 @@
 "use client"
 
-import { type ChangeEvent, useMemo, useState } from "react"
+import { type ChangeEvent, type Ref, useMemo, useState } from "react"
 
 import { Button } from "@workspace/ui/components/button"
 import { Textarea } from "@workspace/ui/components/textarea"
@@ -8,6 +8,7 @@ import { editorToolbarStyles } from "../../../styles/components/editor-shell"
 import type { DomainWorkflowDTO } from "../../types"
 
 interface EditorToolbarProps {
+  anchorRef?: Ref<HTMLDivElement>
   canUndo: boolean
   canRedo: boolean
   lastError: string | null
@@ -40,6 +41,7 @@ export function EditorToolbar({
   onClearError,
   onExportDomain,
   onImportJson,
+  anchorRef,
 }: EditorToolbarProps) {
   const [importOpen, setImportOpen] = useState(false)
   const [importText, setImportText] = useState("")
@@ -49,7 +51,7 @@ export function EditorToolbar({
   const shownStatus = useMemo(() => lastError ?? statusMessage, [lastError, statusMessage])
 
   return (
-    <div className={styles.root()}>
+    <div ref={anchorRef} className={styles.root()}>
       <div className={styles.actions()}>
         <Button type="button" variant="outline" onClick={onUndo} disabled={!canUndo}>
           Undo

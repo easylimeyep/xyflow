@@ -47,15 +47,18 @@ import {
   createNodeEditHotkeyHandler,
   isEscapeHotkey,
 } from "../hotkeys"
-import { WorkflowEditorConfigPanel } from "../node-config-panel"
+import { WorkflowEditorConfigPanel as WorkflowEditorConfigPanelBase } from "../node-config-panel"
 import { NodePalette } from "../node-palette"
 import { WorkflowCanvas } from "../workflow-canvas"
+import type { WorkflowEditorAnchorRefs } from "../../tour"
+import { useWorkflowEditorAnchorRef } from "../../tour/anchors"
 
 interface WorkflowEditorLayoutContextValue {
   isPaletteOpen: boolean
   setIsPaletteOpen: (nextOpen: boolean) => void
   quickAddActive: boolean
   autoLayoutOnInit?: "after-measure"
+  anchorRefs?: WorkflowEditorAnchorRefs
 }
 
 const WorkflowEditorLayoutContext =
@@ -125,9 +128,13 @@ function useNodeEditHotkeys(
 }
 
 function WorkflowEditorLayoutProvider({
+  anchorRefs,
   autoLayoutOnInit,
   children,
-}: PropsWithChildren<{ autoLayoutOnInit?: "after-measure" }>) {
+}: PropsWithChildren<{
+  anchorRefs?: WorkflowEditorAnchorRefs
+  autoLayoutOnInit?: "after-measure"
+}>) {
   const quickAddPending = useWorkflowStore(selectQuickAddPending)
   const edgeInsertPending = useWorkflowStore(selectEdgeInsertPending)
   const quickAddActive = Boolean(quickAddPending || edgeInsertPending)
@@ -173,6 +180,7 @@ function WorkflowEditorLayoutProvider({
         setIsPaletteOpen,
         quickAddActive,
         autoLayoutOnInit,
+        anchorRefs,
       }}
     >
       {children}
@@ -183,6 +191,7 @@ function WorkflowEditorLayoutProvider({
 export interface WorkflowEditorProps extends WorkflowStoreInitialProps {
   runtime?: WorkflowRuntimeConfig
   validation?: WorkflowValidationSnapshot | null
+  anchorRefs?: WorkflowEditorAnchorRefs
   autoLayoutOnInit?: "after-measure"
   children?: ReactNode
 }
@@ -205,16 +214,21 @@ function WorkflowEditorRoot({
   initialGraph,
   runtime,
   validation,
+  anchorRefs,
   autoLayoutOnInit,
   children,
 }: WorkflowEditorProps = {}) {
   const styles = workflowEditorStyles()
+  const rootRef = useWorkflowEditorAnchorRef(anchorRefs, "root")
 
   return (
     <WorkflowStoreProvider initialGraph={initialGraph} runtime={runtime}>
       <WorkflowValidationSync validation={validation} />
-      <WorkflowEditorLayoutProvider autoLayoutOnInit={autoLayoutOnInit}>
-        <div className={styles.root()}>
+      <WorkflowEditorLayoutProvider
+        anchorRefs={anchorRefs}
+        autoLayoutOnInit={autoLayoutOnInit}
+      >
+        <div ref={rootRef} className={styles.root()}>
           {children == null ? <DefaultWorkflowEditorComposition /> : children}
         </div>
       </WorkflowEditorLayoutProvider>
@@ -237,6 +251,8 @@ function WorkflowValidationSync({
 }
 
 export function WorkflowEditorToolbar() {
+  const layout = useWorkflowEditorLayoutContext()
+  const toolbarRef = useWorkflowEditorAnchorRef(layout?.anchorRefs, "toolbar")
   const {
     canUndo,
     canRedo,
@@ -259,6 +275,7 @@ export function WorkflowEditorToolbar() {
 
   return (
     <EditorToolbar
+      anchorRef={toolbarRef}
       canUndo={canUndo}
       canRedo={canRedo}
       lastError={lastError}
@@ -347,6 +364,7 @@ export function WorkflowEditorPalette({ open }: WorkflowEditorPaletteProps) {
         layout?.quickAddActive ?? Boolean(quickAddPending || edgeInsertPending)
       }
       isOpen={open ?? layout?.isPaletteOpen ?? true}
+      anchorRefs={layout?.anchorRefs}
     />
   )
 }
@@ -354,6 +372,11 @@ export function WorkflowEditorPalette({ open }: WorkflowEditorPaletteProps) {
 export function WorkflowEditorCanvas() {
   const layout = useWorkflowEditorLayoutContext()
   const styles = workflowEditorStyles()
+  const canvasRef = useWorkflowEditorAnchorRef(layout?.anchorRefs, "canvas")
+  const paletteToggleRef = useWorkflowEditorAnchorRef(
+    layout?.anchorRefs,
+    "paletteToggle"
+  )
   const captureOnce = () => true
   const initialViewport = useWorkflowStore(selectViewport, captureOnce)
   const { nodes, edges, edgeInsertPending } = useWorkflowShallowStore(
@@ -404,10 +427,11 @@ export function WorkflowEditorCanvas() {
   const isPaletteOpen = layout?.isPaletteOpen ?? true
 
   return (
-    <div className={styles.canvasWrap()}>
+    <div ref={canvasRef} className={styles.canvasWrap()}>
       <div className={styles.canvasOverlay()}>
         <div className={styles.canvasToolbar()}>
           <Button
+            ref={paletteToggleRef}
             type="button"
             size="icon"
             variant="outline"
@@ -444,12 +468,21 @@ export function WorkflowEditorCanvas() {
         onAutoLayout={autoLayout}
         autoLayoutOnInit={layout?.autoLayoutOnInit}
         onMeasuredInitialAutoLayout={measuredInitialAutoLayout}
+        anchorRefs={layout?.anchorRefs}
       />
     </div>
   )
 }
 
-export { WorkflowEditorConfigPanel }
+export function WorkflowEditorConfigPanel() {
+  const layout = useWorkflowEditorLayoutContext()
+  const configPanelRef = useWorkflowEditorAnchorRef(
+    layout?.anchorRefs,
+    "configPanel"
+  )
+
+  return <WorkflowEditorConfigPanelBase anchorRef={configPanelRef} />
+}
 
 export const WorkflowEditor = Object.assign(WorkflowEditorRoot, {
   Toolbar: WorkflowEditorToolbar,
