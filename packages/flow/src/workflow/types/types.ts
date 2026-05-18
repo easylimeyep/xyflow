@@ -34,10 +34,17 @@ export interface NodeFieldSchema {
 
 export type ConditionOperator = string
 
+export type WorkflowEvaluatorOperatorAllowType = WorkflowVariableType | "none"
+
 export interface WorkflowEvaluatorOperatorOption {
   id: string
   value: string
-  requiresTarget: boolean
+  allowTypes: WorkflowEvaluatorOperatorAllowType[]
+}
+
+export interface WorkflowEvaluatorOperatorCatalog {
+  string: WorkflowEvaluatorOperatorOption[]
+  array: WorkflowEvaluatorOperatorOption[]
 }
 
 export const DEFAULT_EVALUATOR_OPERATOR_ID = "is equal to"
@@ -45,29 +52,65 @@ export type WorkflowTypedValue =
   | { type: "string"; value: string }
   | { type: "array"; value: string[] }
 
-export const DEFAULT_EVALUATOR_OPERATOR_OPTIONS: WorkflowEvaluatorOperatorOption[] =
-  [
-    { id: "is equal to", value: "is equal to", requiresTarget: true },
-    { id: "is not equal to", value: "is not equal to", requiresTarget: true },
-    { id: "contains", value: "contains", requiresTarget: true },
-    { id: "does not contain", value: "does not contain", requiresTarget: true },
-    { id: "starts with", value: "starts with", requiresTarget: true },
-    { id: "ends with", value: "ends with", requiresTarget: true },
-    { id: "is greater than", value: "is greater than", requiresTarget: true },
-    { id: "is less than", value: "is less than", requiresTarget: true },
-    {
-      id: "is greater or equal",
-      value: "is greater or equal",
-      requiresTarget: true,
-    },
-    { id: "is less or equal", value: "is less or equal", requiresTarget: true },
-    { id: "is empty", value: "is empty", requiresTarget: false },
-    { id: "is not empty", value: "is not empty", requiresTarget: false },
-    { id: "is null", value: "is null", requiresTarget: false },
-    { id: "is not null", value: "is not null", requiresTarget: false },
-    { id: "is true", value: "is true", requiresTarget: false },
-    { id: "is false", value: "is false", requiresTarget: false },
-  ]
+export const DEFAULT_EVALUATOR_OPERATOR_OPTIONS: WorkflowEvaluatorOperatorCatalog =
+  {
+    string: [
+      { id: "is equal to", value: "is equal to", allowTypes: ["string"] },
+      {
+        id: "is not equal to",
+        value: "is not equal to",
+        allowTypes: ["string"],
+      },
+      { id: "contains", value: "contains", allowTypes: ["string"] },
+      {
+        id: "does not contain",
+        value: "does not contain",
+        allowTypes: ["string"],
+      },
+      { id: "starts with", value: "starts with", allowTypes: ["string"] },
+      { id: "ends with", value: "ends with", allowTypes: ["string"] },
+      {
+        id: "is greater than",
+        value: "is greater than",
+        allowTypes: ["string"],
+      },
+      { id: "is less than", value: "is less than", allowTypes: ["string"] },
+      {
+        id: "is greater or equal",
+        value: "is greater or equal",
+        allowTypes: ["string"],
+      },
+      {
+        id: "is less or equal",
+        value: "is less or equal",
+        allowTypes: ["string"],
+      },
+      { id: "is empty", value: "is empty", allowTypes: ["none"] },
+      { id: "is not empty", value: "is not empty", allowTypes: ["none"] },
+      { id: "is null", value: "is null", allowTypes: ["none"] },
+      { id: "is not null", value: "is not null", allowTypes: ["none"] },
+      { id: "is true", value: "is true", allowTypes: ["none"] },
+      { id: "is false", value: "is false", allowTypes: ["none"] },
+    ],
+    array: [
+      { id: "is equal to", value: "is equal to", allowTypes: ["array"] },
+      {
+        id: "is not equal to",
+        value: "is not equal to",
+        allowTypes: ["array"],
+      },
+      { id: "contains", value: "contains", allowTypes: ["string"] },
+      {
+        id: "does not contain",
+        value: "does not contain",
+        allowTypes: ["string"],
+      },
+      { id: "is empty", value: "is empty", allowTypes: ["none"] },
+      { id: "is not empty", value: "is not empty", allowTypes: ["none"] },
+      { id: "is null", value: "is null", allowTypes: ["none"] },
+      { id: "is not null", value: "is not null", allowTypes: ["none"] },
+    ],
+  }
 
 export interface EvaluatorCondition {
   id: string
@@ -156,8 +199,7 @@ export interface WorkflowValidationMessage {
   severity?: WorkflowValidationSeverity
 }
 
-export interface WorkflowNodeValidationMessage
-  extends WorkflowValidationMessage {
+export interface WorkflowNodeValidationMessage extends WorkflowValidationMessage {
   nodeId: string
   fieldPath?: string
 }
@@ -170,14 +212,12 @@ export interface WorkflowValidationSnapshot {
   nodes?: WorkflowNodeValidationMessage[]
 }
 
-export interface NormalizedWorkflowValidationMessage
-  extends WorkflowValidationMessage {
+export interface NormalizedWorkflowValidationMessage extends WorkflowValidationMessage {
   key: string
   severity: WorkflowValidationSeverity
 }
 
-export interface NormalizedWorkflowNodeValidationMessage
-  extends WorkflowNodeValidationMessage {
+export interface NormalizedWorkflowNodeValidationMessage extends WorkflowNodeValidationMessage {
   key: string
   severity: WorkflowValidationSeverity
 }

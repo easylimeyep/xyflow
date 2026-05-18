@@ -337,33 +337,80 @@ describe("workflow store", () => {
     const runtimeStore = createWorkflowStore({
       runtime: {
         evaluator: {
-          operators: [
-            {
-              id: "  matches  ",
-              value: "  Matches  ",
-              requiresTarget: 1 as never,
-            },
-            { id: "matches", value: "Duplicate", requiresTarget: false },
-            { id: "missing", value: "Is Missing", requiresTarget: false },
-          ],
+          operators: {
+            string: [
+              {
+                id: "  matches  ",
+                value: "  Matches  ",
+                allowTypes: ["string"],
+              },
+              { id: "matches", value: "Duplicate", allowTypes: ["none"] },
+              { id: "missing", value: "Is Missing", allowTypes: ["none"] },
+            ],
+            array: [
+              { id: "contains", value: "Contains", allowTypes: ["string"] },
+              { id: "contains", value: "Duplicate", allowTypes: ["array"] },
+              {
+                id: "is-empty",
+                value: "Is Empty",
+                allowTypes: ["none"],
+              },
+            ],
+          },
         },
       },
     })
 
-    expect(runtimeStore.getState().runtime.evaluator?.operators).toEqual([
-      { id: "matches", value: "Matches", requiresTarget: true },
-      { id: "missing", value: "Is Missing", requiresTarget: false },
-    ])
+    expect(runtimeStore.getState().runtime.evaluator?.operators).toEqual({
+      string: [
+        { id: "matches", value: "Matches", allowTypes: ["string"] },
+        { id: "missing", value: "Is Missing", allowTypes: ["none"] },
+      ],
+      array: [
+        { id: "contains", value: "Contains", allowTypes: ["string"] },
+        { id: "is-empty", value: "Is Empty", allowTypes: ["none"] },
+      ],
+    })
   })
 
   it("falls back to the default evaluator operator catalog when runtime evaluator operators are invalid", () => {
     const runtimeStore = createWorkflowStore({
       runtime: {
         evaluator: {
+          operators: {
+            string: [
+              { id: " ", value: "Missing id", allowTypes: ["string"] },
+              { id: "missing-value", value: " ", allowTypes: ["none"] },
+              {
+                id: "mixed-none",
+                value: "Mixed none",
+                allowTypes: ["none", "string"],
+              },
+            ],
+            array: [
+              {
+                id: "contains",
+                value: "Contains",
+                allowTypes: ["unsupported" as never],
+              },
+            ],
+          },
+        },
+      },
+    })
+
+    expect(runtimeStore.getState().runtime.evaluator?.operators).toEqual(
+      DEFAULT_EVALUATOR_OPERATOR_OPTIONS
+    )
+  })
+
+  it("falls back to the default evaluator operator catalog for unsupported flat operator arrays", () => {
+    const runtimeStore = createWorkflowStore({
+      runtime: {
+        evaluator: {
           operators: [
-            { id: " ", value: "Missing id", requiresTarget: true },
-            { id: "missing-value", value: " ", requiresTarget: false },
-          ],
+            { id: "matches", value: "Matches", allowTypes: ["string"] },
+          ] as never,
         },
       },
     })
@@ -544,7 +591,9 @@ describe("workflow store", () => {
 
     expect(store.getState().history.present).toBe(beforeGraph)
     expect(store.getState().history.past).toHaveLength(beforePastLength)
-    expect(selectVisibleGlobalValidationMessages(store.getState())).toHaveLength(1)
+    expect(
+      selectVisibleGlobalValidationMessages(store.getState())
+    ).toHaveLength(1)
     expect(
       selectVisibleValidationMessagesForNode(store.getState(), targetNode.id)
     ).toMatchObject([
@@ -565,7 +614,9 @@ describe("workflow store", () => {
 
     store.getState().setValidation(null)
 
-    expect(selectVisibleGlobalValidationMessages(store.getState())).toHaveLength(0)
+    expect(
+      selectVisibleGlobalValidationMessages(store.getState())
+    ).toHaveLength(0)
     expect(store.getState().validation.server).toBeNull()
   })
 
@@ -662,7 +713,9 @@ describe("workflow store", () => {
 
     store.getState().onConnect({ source: source.id, target: target.id })
 
-    expect(selectVisibleGlobalValidationMessages(store.getState())).toHaveLength(0)
+    expect(
+      selectVisibleGlobalValidationMessages(store.getState())
+    ).toHaveLength(0)
     expect(
       selectVisibleValidationMessagesForNode(store.getState(), source.id)
     ).toHaveLength(0)

@@ -78,6 +78,8 @@ export type {
   SetVariableNodeConfig,
   WorkflowEdge,
   WorkflowEdgeData,
+  WorkflowEvaluatorOperatorAllowType,
+  WorkflowEvaluatorOperatorCatalog,
   WorkflowEvaluatorOperatorOption,
   WorkflowGraphState,
   WorkflowNode,

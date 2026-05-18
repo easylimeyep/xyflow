@@ -1,31 +1,56 @@
 "use client"
 
 import { WorkflowEditor, createInitialGraph } from "@workspace/flow"
+import type { WorkflowEvaluatorOperatorCatalog } from "@workspace/flow"
 
 import { ExamplePreview } from "./example-preview"
 
-const operators = [
-  {
-    id: "includes",
-    value: "includes domain",
-    requiresTarget: true,
-  },
-  {
-    id: "excludes",
-    value: "excludes domain",
-    requiresTarget: true,
-  },
-  {
-    id: "has-value",
-    value: "has value",
-    requiresTarget: false,
-  },
-  {
-    id: "is-missing",
-    value: "is missing",
-    requiresTarget: false,
-  },
-]
+const operators = {
+  string: [
+    {
+      id: "includes",
+      value: "includes domain",
+      allowTypes: ["string"],
+    },
+    {
+      id: "excludes",
+      value: "excludes domain",
+      allowTypes: ["string"],
+    },
+    {
+      id: "has-value",
+      value: "has value",
+      allowTypes: ["none"],
+    },
+    {
+      id: "is-missing",
+      value: "is missing",
+      allowTypes: ["none"],
+    },
+  ],
+  array: [
+    {
+      id: "includes",
+      value: "includes value",
+      allowTypes: ["string"],
+    },
+    {
+      id: "excludes",
+      value: "excludes value",
+      allowTypes: ["string"],
+    },
+    {
+      id: "has-value",
+      value: "has values",
+      allowTypes: ["none"],
+    },
+    {
+      id: "is-missing",
+      value: "is missing",
+      allowTypes: ["none"],
+    },
+  ],
+} satisfies WorkflowEvaluatorOperatorCatalog
 
 const initialGraph = createInitialGraph({
   nodes: [
@@ -142,12 +167,20 @@ export function Example() {
       initialGraph={initialGraph}
       runtime={{
         evaluator: {
-          operators: [
-            { id: "includes", value: "includes domain", requiresTarget: true },
-            { id: "excludes", value: "excludes domain", requiresTarget: true },
-            { id: "has-value", value: "has value", requiresTarget: false },
-            { id: "is-missing", value: "is missing", requiresTarget: false },
-          ],
+          operators: {
+            string: [
+              { id: "includes", value: "includes domain", allowTypes: ["string"] },
+              { id: "excludes", value: "excludes domain", allowTypes: ["string"] },
+              { id: "has-value", value: "has value", allowTypes: ["none"] },
+              { id: "is-missing", value: "is missing", allowTypes: ["none"] },
+            ],
+            array: [
+              { id: "includes", value: "includes value", allowTypes: ["string"] },
+              { id: "excludes", value: "excludes value", allowTypes: ["string"] },
+              { id: "has-value", value: "has values", allowTypes: ["none"] },
+              { id: "is-missing", value: "is missing", allowTypes: ["none"] },
+            ],
+          },
         },
       }}
     />
@@ -158,7 +191,7 @@ export function CustomOperatorsExample() {
   return (
     <ExamplePreview
       title="With custom boolean operators"
-      description="Пример кастомизации boolean evaluator-блока через `runtime.evaluator.operators`, где снаружи прокидываются id, label и признак `requiresTarget`."
+      description="Пример кастомизации boolean evaluator-блока через `runtime.evaluator.operators`, где снаружи прокидываются группы операторов для string/array и допустимые типы правого операнда."
       code={code}
     >
       <WorkflowEditor

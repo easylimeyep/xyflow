@@ -1,9 +1,5 @@
-# workflow-evaluator-operator-options Specification
+## MODIFIED Requirements
 
-## Purpose
-
-Define the configurable operator contract for the evaluator boolean block, including default fallback behavior and UI handling for unavailable stored operator ids.
-## Requirements
 ### Requirement: Evaluator boolean block accepts structured operator definitions
 
 The evaluator boolean block SHALL resolve its operator catalog from structured operator definitions grouped by left operand type. Each operator MUST include a stable `id`, a display `value`, and `allowTypes` describing the allowed right operand types.
@@ -47,42 +43,10 @@ The evaluator boolean block MUST determine whether to render the target-value in
 - **THEN** the evaluator boolean block MUST hide the target-value input for that condition
 - **AND** the condition config MUST omit the right operand after the user selects that operator
 
-### Requirement: Evaluator boolean block uses native select controls for evaluator choices
+## REMOVED Requirements
 
-The evaluator boolean block SHALL render interactive evaluator choice controls with the shared native select component used by other workflow nodes, while preserving the existing stored values and display labels.
+### Requirement: Evaluator boolean block remains editable when stored operators are unavailable
 
-#### Scenario: Condition operator uses native select
+**Reason**: Evaluator operator catalogs are now always supplied in the new typed format and are authoritative for the workflow being edited.
 
-- **WHEN** the evaluator boolean block renders a condition operator control
-- **THEN** the control MUST be a native select control
-- **AND** each option value MUST remain the operator `id`
-- **AND** each option label MUST remain the operator `value`
-
-#### Scenario: Logical operator uses native select
-
-- **WHEN** the evaluator boolean block renders the first editable logical operator between multiple conditions and `enableEvaluatorMultipleConditions` is true
-- **THEN** the control MUST be a native select control
-- **AND** selecting `AND` MUST store `and`
-- **AND** selecting `OR` MUST store `or`
-
-#### Scenario: Non-interactive logical separators remain badges
-
-- **WHEN** the evaluator boolean block renders additional logical separators after the first editable separator and `enableEvaluatorMultipleConditions` is true
-- **THEN** those separators MUST remain non-interactive text badges
-
-### Requirement: Evaluator condition UI hides multi-condition controls by default
-
-The evaluator boolean block SHALL hide multi-condition controls unless the mounted editor runtime enables `enableEvaluatorMultipleConditions`.
-
-#### Scenario: Add Condition hidden when flag disabled
-
-- **WHEN** the evaluator boolean block renders with `enableEvaluatorMultipleConditions` unset or `false`
-- **THEN** the `Add Condition` button MUST NOT be rendered
-- **AND** logical operator controls between conditions MUST NOT be rendered
-
-#### Scenario: Only first condition renders when flag disabled
-
-- **WHEN** stored evaluator config contains multiple conditions and `enableEvaluatorMultipleConditions` is unset or `false`
-- **THEN** only the first condition MUST be rendered
-- **AND** the full stored `conditions` array MUST remain unchanged unless the rendered condition is edited
-
+**Migration**: Existing unknown-operator fallback behavior is replaced by strict reconciliation to the first available operator in the condition's active left operand type group when an edit requires reconciliation.

@@ -1,11 +1,7 @@
 import { Scale } from "lucide-react"
 
 import { defineNode } from "../../../node-registry/define-node"
-import {
-  DEFAULT_EVALUATOR_OPERATOR_ID,
-  type EvaluatorCondition,
-  type WorkflowTypedValue,
-} from "../../../types"
+import type { EvaluatorCondition, WorkflowTypedValue } from "../../../types"
 
 function isWorkflowTypedValue(value: unknown): value is WorkflowTypedValue {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
@@ -59,7 +55,7 @@ export const evaluator = defineNode({
       {
         id: crypto.randomUUID(),
         left: { type: "string", value: "" },
-        operator: DEFAULT_EVALUATOR_OPERATOR_ID,
+        operator: "is equal to",
         right: { type: "string", value: "" },
       } satisfies EvaluatorCondition,
     ],

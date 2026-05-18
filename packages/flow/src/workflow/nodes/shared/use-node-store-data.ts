@@ -5,15 +5,18 @@ import {
   useWorkflowStore,
   type WorkflowStoreState,
 } from "../../store"
-import type { WorkflowEvaluatorOperatorOption } from "../../types"
+import {
+  DEFAULT_EVALUATOR_OPERATOR_OPTIONS,
+  type WorkflowEvaluatorOperatorCatalog,
+} from "../../types"
 
 export function useNodeStoreData(nodeId: string) {
   const expressionVariables = useWorkflowStore((state: WorkflowStoreState) =>
     selectExpressionVariablesForNode(state, nodeId)
   )
   const evaluatorOperators = useWorkflowStore(
-    (state: WorkflowStoreState): WorkflowEvaluatorOperatorOption[] =>
-      state.runtime.evaluator?.operators ?? []
+    (state: WorkflowStoreState): WorkflowEvaluatorOperatorCatalog =>
+      state.runtime.evaluator?.operators ?? DEFAULT_EVALUATOR_OPERATOR_OPTIONS
   )
   const enableEvaluatorMultipleConditions = useWorkflowStore(
     (state: WorkflowStoreState): boolean =>

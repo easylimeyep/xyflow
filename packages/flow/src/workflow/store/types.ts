@@ -13,7 +13,7 @@ import type {
   ExpressionVariableOption,
   NodeConfigByKind,
   NodeKind,
-  WorkflowEvaluatorOperatorOption,
+  WorkflowEvaluatorOperatorCatalog,
   WorkflowEdge,
   WorkflowGraphState,
   WorkflowNode,
@@ -78,7 +78,7 @@ export interface WorkflowRuntimeImportDomainConfig {
 }
 
 export interface WorkflowRuntimeEvaluatorConfig {
-  operators?: WorkflowEvaluatorOperatorOption[]
+  operators?: WorkflowEvaluatorOperatorCatalog
 }
 
 export interface WorkflowRuntimeConfig {

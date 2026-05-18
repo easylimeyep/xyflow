@@ -33,12 +33,16 @@ import type {
   ConditionOperator,
   ExpressionVariableOption,
   WorkflowTypedValue,
+  WorkflowEvaluatorOperatorCatalog,
   WorkflowEvaluatorOperatorOption,
 } from "../../../types"
-import { DEFAULT_EVALUATOR_OPERATOR_ID } from "../../../types"
 import type { WorkflowVariableType } from "../../../types/variable-types"
 import { NodeShell } from "../../node-shell/node-shell"
-import { asText, useBaseNodeData, useVariableIdentifierField } from "../../shared"
+import {
+  asText,
+  useBaseNodeData,
+  useVariableIdentifierField,
+} from "../../shared"
 import { useNodeStoreData } from "../../shared/use-node-store-data"
 import { evaluator } from "./definition"
 
@@ -55,6 +59,10 @@ function normalizeArrayValues(values: string[]): string[] {
 
 function createArrayOperand(value: string[] = [""]): WorkflowTypedValue {
   return { type: "array", value: normalizeArrayValues(value) }
+}
+
+function createEmptyOperand(type: WorkflowVariableType): WorkflowTypedValue {
+  return type === "array" ? createArrayOperand() : createStringOperand()
 }
 
 function areStringArraysEqual(left: string[], right: string[]): boolean {
@@ -74,7 +82,7 @@ function switchOperandType(
 
   if (nextType === "string") {
     return createStringOperand(
-      operand.type === "array" ? operand.value[0] ?? "" : ""
+      operand.type === "array" ? (operand.value[0] ?? "") : ""
     )
   }
 
@@ -84,15 +92,45 @@ function switchOperandType(
 }
 
 function createDefaultCondition(
-  operator: ConditionOperator,
-  requiresTarget: boolean
+  operator: WorkflowEvaluatorOperatorOption
 ): EvaluatorCondition {
   return {
     id: crypto.randomUUID(),
     left: createStringOperand(),
-    operator,
-    ...(requiresTarget ? { right: createStringOperand() } : {}),
+    operator: operator.id,
+    ...reconcileRightOperand(undefined, operator),
   }
+}
+
+function getAllowedRightOperandTypes(
+  operator: WorkflowEvaluatorOperatorOption | undefined
+): WorkflowVariableType[] {
+  if (!operator || operator.allowTypes.includes("none")) {
+    return []
+  }
+
+  return operator.allowTypes.filter(
+    (type): type is WorkflowVariableType =>
+      type === "string" || type === "array"
+  )
+}
+
+function reconcileRightOperand(
+  currentRight: WorkflowTypedValue | undefined,
+  operator: WorkflowEvaluatorOperatorOption | undefined
+): Pick<EvaluatorCondition, "right"> {
+  const allowedTypes = getAllowedRightOperandTypes(operator)
+  const defaultRightType = allowedTypes[0]
+
+  if (!defaultRightType) {
+    return {}
+  }
+
+  if (currentRight && allowedTypes.includes(currentRight.type)) {
+    return { right: currentRight }
+  }
+
+  return { right: createEmptyOperand(defaultRightType) }
 }
 
 // ─── ConditionRow ────────────────────────────────────────────────────────────
@@ -100,7 +138,7 @@ function createDefaultCondition(
 interface ConditionRowProps {
   condition: EvaluatorCondition
   variables: ExpressionVariableOption[]
-  operators: WorkflowEvaluatorOperatorOption[]
+  operators: WorkflowEvaluatorOperatorCatalog
   canDelete: boolean
   showDragHandle: boolean
   isOverlay?: boolean
@@ -113,6 +151,7 @@ interface OperandEditorProps {
   label: string
   placeholder: string
   variables: ExpressionVariableOption[]
+  allowedTypes?: WorkflowVariableType[]
   onChange: (nextOperand: WorkflowTypedValue) => void
 }
 
@@ -121,6 +160,7 @@ function OperandEditor({
   label,
   placeholder,
   variables,
+  allowedTypes,
   onChange,
 }: OperandEditorProps) {
   return (
@@ -130,6 +170,7 @@ function OperandEditor({
         className={styles.operandTypeSelect()}
         size="sm"
         value={operand.type}
+        allowedTypes={allowedTypes}
         onChange={(value) => onChange(switchOperandType(operand, value))}
       />
 
@@ -327,38 +368,38 @@ function ConditionRow({
   onUpdate,
   onDelete,
 }: ConditionRowProps) {
-  const activeOperators = useMemo(() => {
-    const hasCurrentOperator = operators.some(
-      (op) => op.id === condition.operator
-    )
-    if (hasCurrentOperator) {
-      return operators
-    }
-
-    return [
-      ...operators,
-      {
-        id: condition.operator,
-        value: condition.operator,
-        requiresTarget: condition.right !== undefined,
-      },
-    ]
-  }, [condition.operator, condition.right, operators])
+  const activeOperators = operators[condition.left.type]
 
   const selectedOperator = activeOperators.find(
     (op) => op.id === condition.operator
   )
-  const needsTarget = selectedOperator?.requiresTarget ?? false
+  const allowedRightTypes = getAllowedRightOperandTypes(selectedOperator)
+  const needsTarget = allowedRightTypes.length > 0
+
+  const updateLeftOperand = (left: WorkflowTypedValue) => {
+    const nextOperators = operators[left.type]
+    const nextOperator =
+      nextOperators.find((op) => op.id === condition.operator) ??
+      nextOperators[0]
+
+    if (!nextOperator) {
+      onUpdate(condition.id, { left })
+      return
+    }
+
+    onUpdate(condition.id, {
+      left,
+      operator: nextOperator.id,
+      right: reconcileRightOperand(condition.right, nextOperator).right,
+    })
+  }
 
   const updateOperator = (operatorId: ConditionOperator) => {
     const nextOperator = activeOperators.find((op) => op.id === operatorId)
-    const nextRequiresTarget = nextOperator?.requiresTarget ?? false
 
     onUpdate(condition.id, {
       operator: operatorId,
-      right: nextRequiresTarget
-        ? condition.right ?? createStringOperand()
-        : undefined,
+      right: reconcileRightOperand(condition.right, nextOperator).right,
     })
   }
 
@@ -390,7 +431,7 @@ function ConditionRow({
           label="Left"
           placeholder="value"
           variables={variables}
-          onChange={(left) => onUpdate(condition.id, { left })}
+          onChange={updateLeftOperand}
         />
 
         <div className={styles.operatorRow()}>
@@ -417,6 +458,7 @@ function ConditionRow({
             label="Right"
             placeholder="target value"
             variables={variables}
+            allowedTypes={allowedRightTypes}
             onChange={(right) => onUpdate(condition.id, { right })}
           />
         ) : null}
@@ -504,17 +546,10 @@ export function EvaluatorNode({ id, data, selected }: NodeProps) {
   )
 
   const handleAddCondition = useCallback(() => {
-    const defaultOperator =
-      evaluatorOperators[0] ?? {
-        id: DEFAULT_EVALUATOR_OPERATOR_ID,
-        requiresTarget: true,
-        value: DEFAULT_EVALUATOR_OPERATOR_ID,
-      }
+    const defaultOperator = evaluatorOperators.string[0]
+    if (!defaultOperator) return
 
-    setConditions([
-      ...conditions,
-      createDefaultCondition(defaultOperator.id, defaultOperator.requiresTarget),
-    ])
+    setConditions([...conditions, createDefaultCondition(defaultOperator)])
   }, [evaluatorOperators, conditions, setConditions])
 
   const handleUpdateCondition = useCallback(
@@ -587,9 +622,7 @@ export function EvaluatorNode({ id, data, selected }: NodeProps) {
             value={resultLabelField.shownValue}
             placeholder="conditionMatched"
             onFocus={resultLabelField.onFocus}
-            onChange={(event) =>
-              resultLabelField.onChange(event.target.value)
-            }
+            onChange={(event) => resultLabelField.onChange(event.target.value)}
             onBlur={resultLabelField.onBlur}
             onKeyDown={resultLabelField.onKeyDown}
           />

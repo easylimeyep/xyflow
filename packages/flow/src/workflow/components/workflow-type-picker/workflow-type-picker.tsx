@@ -19,6 +19,7 @@ interface WorkflowTypePickerProps {
   value: WorkflowVariableType
   onChange: (value: WorkflowVariableType) => void
   ariaLabel: string
+  allowedTypes?: WorkflowVariableType[]
   className?: string
   size?: "sm" | "default"
 }
@@ -50,6 +51,7 @@ export function WorkflowTypePicker({
   value,
   onChange,
   ariaLabel,
+  allowedTypes = WORKFLOW_VARIABLE_TYPES,
   className,
   size = "default",
 }: WorkflowTypePickerProps) {
@@ -75,7 +77,7 @@ export function WorkflowTypePicker({
         </Button>
       </PopoverTrigger>
       <PopoverContent align="start" className={styles.content()}>
-        {WORKFLOW_VARIABLE_TYPES.map((type) => {
+        {allowedTypes.map((type) => {
           const option = TYPE_META[type]
           const OptionIcon = option.Icon
           const selected = type === value

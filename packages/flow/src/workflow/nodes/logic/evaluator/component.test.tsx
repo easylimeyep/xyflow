@@ -5,16 +5,28 @@ import type { NodeProps } from "@xyflow/react"
 import type { ReactNode } from "react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-import type { WorkflowEvaluatorOperatorOption } from "../../../types"
+import type { WorkflowEvaluatorOperatorCatalog } from "../../../types"
 import { EvaluatorNode } from "./component"
 
 const mockUpdateNodeConfig = vi.fn()
 
-let mockEvaluatorOperators: WorkflowEvaluatorOperatorOption[] = [
-  { id: "is equal to", value: "is equal to", requiresTarget: true },
-  { id: "is empty", value: "is empty", requiresTarget: false },
-]
+let mockEvaluatorOperators: WorkflowEvaluatorOperatorCatalog =
+  createMockEvaluatorOperators()
 let mockEnableEvaluatorMultipleConditions = false
+
+function createMockEvaluatorOperators(): WorkflowEvaluatorOperatorCatalog {
+  return {
+    string: [
+      { id: "is equal to", value: "is equal to", allowTypes: ["string"] },
+      { id: "is empty", value: "is empty", allowTypes: ["none"] },
+    ],
+    array: [
+      { id: "is equal to", value: "is equal to", allowTypes: ["array"] },
+      { id: "contains", value: "contains", allowTypes: ["string"] },
+      { id: "is empty", value: "is empty", allowTypes: ["none"] },
+    ],
+  }
+}
 
 function stringCondition(
   id: string,
@@ -149,10 +161,7 @@ function createNodeProps(
 describe("EvaluatorNode", () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockEvaluatorOperators = [
-      { id: "is equal to", value: "is equal to", requiresTarget: true },
-      { id: "is empty", value: "is empty", requiresTarget: false },
-    ]
+    mockEvaluatorOperators = createMockEvaluatorOperators()
     mockEnableEvaluatorMultipleConditions = false
     vi.spyOn(globalThis.crypto, "randomUUID").mockReturnValue(
       "00000000-0000-0000-0000-000000000001"
@@ -165,10 +174,13 @@ describe("EvaluatorNode", () => {
   })
 
   it("renders runtime-provided operator labels and updates the stored operator id", () => {
-    mockEvaluatorOperators = [
-      { id: "matches", value: "Matches", requiresTarget: true },
-      { id: "missing", value: "Is Missing", requiresTarget: false },
-    ]
+    mockEvaluatorOperators = {
+      string: [
+        { id: "matches", value: "Matches", allowTypes: ["string"] },
+        { id: "missing", value: "Is Missing", allowTypes: ["none"] },
+      ],
+      array: [{ id: "contains", value: "Contains", allowTypes: ["string"] }],
+    }
 
     render(
       <EvaluatorNode
@@ -202,9 +214,7 @@ describe("EvaluatorNode", () => {
     expect(mockUpdateNodeConfig).toHaveBeenCalledWith("evaluator-node-1", {
       kind: "evaluator",
       key: "conditions",
-      value: [
-        stringCondition("condition-1", "{{ source }}", "missing"),
-      ],
+      value: [stringCondition("condition-1", "{{ source }}", "missing")],
     })
   })
 
@@ -301,7 +311,9 @@ describe("EvaluatorNode", () => {
     fireEvent.blur(labelInput)
 
     expect(mockUpdateNodeConfig).not.toHaveBeenCalled()
-    expect(screen.getByText("Label must be a valid JavaScript identifier.")).toBeDefined()
+    expect(
+      screen.getByText("Label must be a valid JavaScript identifier.")
+    ).toBeDefined()
   })
 
   it("shows or hides the target input from operator metadata", () => {
@@ -325,7 +337,7 @@ describe("EvaluatorNode", () => {
     expect(screen.queryByLabelText("target value")).toBeNull()
   })
 
-  it("updates left and right operand types independently", () => {
+  it("reconciles right operand when changing the left operand type", () => {
     render(<EvaluatorNode {...createNodeProps()} />)
 
     selectWorkflowType("Left operand type", "array")
@@ -342,13 +354,75 @@ describe("EvaluatorNode", () => {
             "{{ target }}"
           ),
           left: { type: "array", value: ["{{ source }}"] },
+          right: { type: "array", value: [""] },
         },
       ],
     })
+  })
+
+  it("uses the first operator from the new left operand type when the current operator is unavailable", () => {
+    mockEvaluatorOperators = {
+      string: [
+        { id: "starts with", value: "starts with", allowTypes: ["string"] },
+      ],
+      array: [{ id: "contains", value: "contains", allowTypes: ["string"] }],
+    }
+
+    render(
+      <EvaluatorNode
+        {...createNodeProps({
+          config: {
+            conditions: [
+              stringCondition(
+                "condition-1",
+                "{{ source }}",
+                "starts with",
+                "{{ target }}"
+              ),
+            ],
+            label: "conditionMatched",
+            logicalOperator: "and",
+            caseSensitive: false,
+          },
+        })}
+      />
+    )
+
+    selectWorkflowType("Left operand type", "array")
+
+    expect(mockUpdateNodeConfig).toHaveBeenCalledWith("evaluator-node-1", {
+      kind: "evaluator",
+      key: "conditions",
+      value: [
+        {
+          id: "condition-1",
+          left: { type: "array", value: ["{{ source }}"] },
+          operator: "contains",
+          right: { type: "string", value: "{{ target }}" },
+        },
+      ],
+    })
+  })
+
+  it("updates the right operand type without changing the left operand", () => {
+    mockEvaluatorOperators = {
+      string: [
+        {
+          id: "is equal to",
+          value: "is equal to",
+          allowTypes: ["string", "array"],
+        },
+      ],
+      array: [
+        { id: "is equal to", value: "is equal to", allowTypes: ["array"] },
+      ],
+    }
+
+    render(<EvaluatorNode {...createNodeProps()} />)
 
     selectWorkflowType("Right operand type", "array")
 
-    expect(mockUpdateNodeConfig).toHaveBeenLastCalledWith("evaluator-node-1", {
+    expect(mockUpdateNodeConfig).toHaveBeenCalledWith("evaluator-node-1", {
       kind: "evaluator",
       key: "conditions",
       value: [
@@ -451,7 +525,7 @@ describe("EvaluatorNode", () => {
                     "fifth value",
                   ],
                 },
-                operator: "is equal to",
+                operator: "contains",
                 right: { type: "string", value: "{{ target }}" },
               },
             ],
@@ -483,7 +557,7 @@ describe("EvaluatorNode", () => {
               {
                 id: "condition-1",
                 left: { type: "array", value: ["", ""] },
-                operator: "is equal to",
+                operator: "contains",
                 right: { type: "string", value: "{{ target }}" },
               },
             ],
@@ -580,10 +654,13 @@ describe("EvaluatorNode", () => {
 
   it("uses the active runtime catalog when adding a new condition", () => {
     mockEnableEvaluatorMultipleConditions = true
-    mockEvaluatorOperators = [
-      { id: "matches", value: "Matches", requiresTarget: true },
-      { id: "missing", value: "Is Missing", requiresTarget: false },
-    ]
+    mockEvaluatorOperators = {
+      string: [
+        { id: "matches", value: "Matches", allowTypes: ["string"] },
+        { id: "missing", value: "Is Missing", allowTypes: ["none"] },
+      ],
+      array: [{ id: "contains", value: "Contains", allowTypes: ["string"] }],
+    }
 
     render(<EvaluatorNode {...createNodeProps()} />)
 
@@ -610,10 +687,13 @@ describe("EvaluatorNode", () => {
   })
 
   it("creates a default right operand when switching to a target-required operator", () => {
-    mockEvaluatorOperators = [
-      { id: "matches", value: "Matches", requiresTarget: true },
-      { id: "missing", value: "Is Missing", requiresTarget: false },
-    ]
+    mockEvaluatorOperators = {
+      string: [
+        { id: "matches", value: "Matches", allowTypes: ["string"] },
+        { id: "missing", value: "Is Missing", allowTypes: ["none"] },
+      ],
+      array: [{ id: "contains", value: "Contains", allowTypes: ["string"] }],
+    }
 
     render(
       <EvaluatorNode
@@ -648,6 +728,44 @@ describe("EvaluatorNode", () => {
     })
   })
 
+  it("recreates an incompatible right operand with the first allowed type", () => {
+    mockEvaluatorOperators = {
+      string: [
+        { id: "matches", value: "Matches", allowTypes: ["string"] },
+        { id: "in-list", value: "In List", allowTypes: ["array"] },
+      ],
+      array: [{ id: "contains", value: "Contains", allowTypes: ["string"] }],
+    }
+
+    render(<EvaluatorNode {...createNodeProps()} />)
+
+    fireEvent.change(screen.getByLabelText("Condition operator"), {
+      target: { value: "in-list" },
+    })
+
+    expect(mockUpdateNodeConfig).toHaveBeenCalledWith("evaluator-node-1", {
+      kind: "evaluator",
+      key: "conditions",
+      value: [
+        {
+          id: "condition-1",
+          left: { type: "string", value: "{{ source }}" },
+          operator: "in-list",
+          right: { type: "array", value: [""] },
+        },
+      ],
+    })
+  })
+
+  it("restricts right operand type choices to the selected operator allowTypes", () => {
+    render(<EvaluatorNode {...createNodeProps()} />)
+
+    fireEvent.click(screen.getByLabelText("Right operand type"))
+
+    expect(screen.getByRole("option", { name: "string" })).toBeTruthy()
+    expect(screen.queryByRole("option", { name: "array" })).toBeNull()
+  })
+
   it("renders Case sensitive checkbox before conditions", () => {
     render(<EvaluatorNode {...createNodeProps()} />)
 
@@ -674,17 +792,23 @@ describe("EvaluatorNode", () => {
     })
   })
 
-  it("keeps unknown stored operators editable by adding a fallback option", () => {
-    mockEvaluatorOperators = [
-      { id: "matches", value: "Matches", requiresTarget: true },
-    ]
+  it("filters operators by the left operand type", () => {
+    mockEvaluatorOperators = {
+      string: [{ id: "matches", value: "Matches", allowTypes: ["string"] }],
+      array: [{ id: "contains", value: "Contains", allowTypes: ["string"] }],
+    }
 
     render(
       <EvaluatorNode
         {...createNodeProps({
           config: {
             conditions: [
-              stringCondition("condition-1", "{{ source }}", "legacy-op", ""),
+              {
+                id: "condition-1",
+                left: { type: "array", value: ["{{ source }}"] },
+                operator: "contains",
+                right: { type: "string", value: "{{ target }}" },
+              },
             ],
             logicalOperator: "and",
           },
@@ -696,9 +820,9 @@ describe("EvaluatorNode", () => {
       "Condition operator"
     ) as HTMLSelectElement
 
-    expect(operatorSelect.value).toBe("legacy-op")
-    expect(screen.getByRole("option", { name: "legacy-op" })).toBeTruthy()
-    expect(screen.getByLabelText("target value")).toBeTruthy()
+    expect(operatorSelect.value).toBe("contains")
+    expect(screen.getByRole("option", { name: "Contains" })).toBeTruthy()
+    expect(screen.queryByRole("option", { name: "Matches" })).toBeNull()
   })
 
   it("hides multi-condition controls and renders only the first condition by default", () => {
