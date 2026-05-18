@@ -51,3 +51,18 @@
 .react-flow__controls-button:hover {
   background-color: var(--muted);
 }
+
+/* Lucide icons are stroke-based; xyflow defaults to fill: currentColor */
+.react-flow__controls-button svg {
+  fill: none;
+  width: auto;
+  height: auto;
+  max-width: none;
+  max-height: none;
+}
+
+.react-flow__controls-button:disabled svg {
+  fill: none;
+  fill-opacity: unset;
+  opacity: 0.4;
+}
