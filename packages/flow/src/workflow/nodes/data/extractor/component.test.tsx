@@ -153,11 +153,13 @@ describe("ExtractorNode", () => {
   it("commits variable type via updateNodeConfig on change", () => {
     render(<ExtractorNode {...createNodeProps(3, "myVar", false, "value")} />)
 
-    const typePicker = screen.getByLabelText("Variable type")
-    expect(typePicker.getAttribute("title")).toBe("Variable type: value")
+    const typeSelect = screen.getByLabelText(
+      "Variable type"
+    ) as HTMLSelectElement
+    expect(typeSelect.value).toBe("value")
+    expect(typeSelect.getAttribute("title")).toBe("Variable type: value")
 
-    fireEvent.click(typePicker)
-    fireEvent.click(screen.getByRole("option", { name: "array" }))
+    fireEvent.change(typeSelect, { target: { value: "array" } })
 
     expect(mockUpdateNodeConfig).toHaveBeenCalledWith("extractor-node-1", {
       kind: "extractor",

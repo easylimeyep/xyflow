@@ -45,8 +45,7 @@ function stringCondition(
 }
 
 function selectWorkflowType(label: string, type: "value" | "array") {
-  fireEvent.click(screen.getByLabelText(label))
-  fireEvent.click(screen.getByRole("option", { name: type }))
+  fireEvent.change(screen.getByLabelText(label), { target: { value: type } })
 }
 
 function closeArrayPopover(label: string) {
@@ -461,7 +460,9 @@ describe("EvaluatorNode", () => {
     )
 
     expect(screen.getByText("first value")).toBeDefined()
-    expect(screen.queryByText("value")).toBeNull()
+    expect(
+      (screen.getByLabelText("Left operand type") as HTMLSelectElement).value
+    ).toBe("array")
     fireEvent.click(screen.getByLabelText("Edit Left array values"))
 
     fireEvent.change(screen.getByLabelText("Left array value 1"), {
@@ -762,10 +763,14 @@ describe("EvaluatorNode", () => {
   it("restricts right operand type choices to the selected operator allowTypes", () => {
     render(<EvaluatorNode {...createNodeProps()} />)
 
-    fireEvent.click(screen.getByLabelText("Right operand type"))
+    const rightOperandTypeSelect = screen.getByLabelText(
+      "Right operand type"
+    ) as HTMLSelectElement
+    const optionValues = Array.from(rightOperandTypeSelect.options).map(
+      (option) => option.value
+    )
 
-    expect(screen.getByRole("option", { name: "value" })).toBeTruthy()
-    expect(screen.queryByRole("option", { name: "array" })).toBeNull()
+    expect(optionValues).toEqual(["value"])
   })
 
   it("renders Case sensitive checkbox before conditions", () => {

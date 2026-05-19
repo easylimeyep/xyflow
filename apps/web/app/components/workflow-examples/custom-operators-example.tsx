@@ -6,16 +6,16 @@ import type { WorkflowEvaluatorOperatorCatalog } from "@workspace/flow"
 import { ExamplePreview } from "./example-preview"
 
 const operators = {
-  string: [
+  value: [
     {
       id: "includes",
       value: "includes domain",
-      allowTypes: ["string"],
+      allowTypes: ["value"],
     },
     {
       id: "excludes",
       value: "excludes domain",
-      allowTypes: ["string"],
+      allowTypes: ["value"],
     },
     {
       id: "has-value",
@@ -32,12 +32,12 @@ const operators = {
     {
       id: "includes",
       value: "includes value",
-      allowTypes: ["string"],
+      allowTypes: ["value"],
     },
     {
       id: "excludes",
       value: "excludes value",
-      allowTypes: ["string"],
+      allowTypes: ["value"],
     },
     {
       id: "has-value",
@@ -71,13 +71,13 @@ const initialGraph = createInitialGraph({
         conditions: [
           {
             id: "demo-custom-operators-condition-contains",
-            left: { type: "string", value: "{{ lead.email }}" },
+            left: { type: "value", value: "{{ lead.email }}" },
             operator: "includes",
-            right: { type: "string", value: "@company.com" },
+            right: { type: "value", value: "@company.com" },
           },
           {
             id: "demo-custom-operators-condition-presence",
-            left: { type: "string", value: "{{ lead.email }}" },
+            left: { type: "value", value: "{{ lead.email }}" },
             operator: "has-value",
           },
         ],

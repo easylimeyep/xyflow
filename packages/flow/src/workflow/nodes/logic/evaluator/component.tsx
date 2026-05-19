@@ -27,7 +27,7 @@ import { useCallback, useMemo, useState } from "react"
 
 import { evaluatorNodeStyles } from "../../../../styles/components/nodes"
 import { ExpressionInput } from "../../../components/expression-input"
-import { WorkflowTypePicker } from "../../../components/workflow-type-picker/workflow-type-picker"
+import { WorkflowTypeNativeSelect } from "../../../components/workflow-type-native-select/workflow-type-native-select"
 import type {
   EvaluatorCondition,
   ConditionOperator,
@@ -164,7 +164,7 @@ function OperandEditor({
 }: OperandEditorProps) {
   return (
     <div className={styles.operandRow()}>
-      <WorkflowTypePicker
+      <WorkflowTypeNativeSelect
         ariaLabel={`${label} operand type`}
         className={styles.operandTypeSelect()}
         size="sm"

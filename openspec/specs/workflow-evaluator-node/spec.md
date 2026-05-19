@@ -164,7 +164,7 @@ Evaluator condition config SHALL represent operands as typed objects. The suppor
 
 ### Requirement: Evaluator edits operand types independently
 
-Evaluator condition editing SHALL allow the left and right operands to choose operand types according to the selected operator catalog. Changing the right operand type MUST NOT change the left operand type. Changing the left operand type MUST reconcile the selected operator and right operand against the operator group for the new left operand type.
+Evaluator condition editing SHALL allow the left and right operands to choose operand types according to the selected operator catalog. Changing the right operand type MUST NOT change the left operand type. Changing the left operand type MUST reconcile the selected operator and right operand against the operator group for the new left operand type. Operand type controls SHALL use native select interaction while keeping a compact icon-style collapsed presentation.
 
 #### Scenario: Left operand type change reconciles operator and right operand
 
@@ -187,6 +187,12 @@ Evaluator condition editing SHALL allow the left and right operands to choose op
 - **THEN** the right operand type picker MUST NOT offer `array`
 - **WHEN** a selected operator allows only `array` right operands
 - **THEN** the right operand type picker MUST NOT offer `value`
+
+#### Scenario: Operand type controls use native icon selects
+
+- **WHEN** an evaluator condition editor renders left and right operand type controls
+- **THEN** each operand type control MUST be backed by a native select
+- **AND** each collapsed operand type control MUST present the selected operand type as an icon-sized control
 
 #### Scenario: Array operand changes to value operand
 
@@ -252,3 +258,4 @@ Evaluator typed operands SHALL resolve available evaluator operators from the ac
 - **WHEN** an evaluator node editor is rendered after value operands are introduced
 - **THEN** the Case sensitive control MUST remain available
 - **AND** changing operand types MUST NOT change `config.caseSensitive`
+
