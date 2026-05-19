@@ -39,9 +39,12 @@ vi.mock("../../../components/expression-input", () => ({
   ),
 }))
 
-vi.mock("../../output-quick-add-affordance/output-quick-add-affordance", () => ({
-  OutputQuickAddAffordance: () => null,
-}))
+vi.mock(
+  "../../output-quick-add-affordance/output-quick-add-affordance",
+  () => ({
+    OutputQuickAddAffordance: () => null,
+  })
+)
 
 function createNodeProps(
   label: string,
@@ -82,7 +85,9 @@ describe("SetVariableNode", () => {
   })
 
   it("renders variable name input independently from node title", () => {
-    render(<SetVariableNode {...createNodeProps("Setter Title", "myVar", "")} />)
+    render(
+      <SetVariableNode {...createNodeProps("Setter Title", "myVar", "")} />
+    )
 
     const nameInput = screen.getByPlaceholderText("myVar")
     const typeSelect = screen.getByLabelText("Variable type")
@@ -120,11 +125,15 @@ describe("SetVariableNode", () => {
     fireEvent.blur(nameInput)
 
     expect(mockUpdateNodeConfig).not.toHaveBeenCalled()
-    expect(screen.getByText("Label must be a valid JavaScript identifier.")).toBeDefined()
+    expect(
+      screen.getByText("Label must be a valid JavaScript identifier.")
+    ).toBeDefined()
   })
 
   it("commits value expression on change", () => {
-    render(<SetVariableNode {...createNodeProps("Setter", "myVar", "{{ myVar }}")} />)
+    render(
+      <SetVariableNode {...createNodeProps("Setter", "myVar", "{{ myVar }}")} />
+    )
 
     const expressionInput = screen.getByTestId("set-variable-expression-input")
     fireEvent.change(expressionInput, { target: { value: "{{ newVar }}" } })
@@ -139,12 +148,12 @@ describe("SetVariableNode", () => {
   it("commits variable type via updateNodeConfig on change", () => {
     render(
       <SetVariableNode
-        {...createNodeProps("Setter", "myVar", "{{ myVar }}", false, "string")}
+        {...createNodeProps("Setter", "myVar", "{{ myVar }}", false, "value")}
       />
     )
 
     const typePicker = screen.getByLabelText("Variable type")
-    expect(typePicker.getAttribute("title")).toBe("Variable type: string")
+    expect(typePicker.getAttribute("title")).toBe("Variable type: value")
 
     fireEvent.click(typePicker)
     fireEvent.click(screen.getByRole("option", { name: "array" }))
@@ -157,7 +166,9 @@ describe("SetVariableNode", () => {
   })
 
   it("toggles clear flag", () => {
-    render(<SetVariableNode {...createNodeProps("Setter", "myVar", "", false)} />)
+    render(
+      <SetVariableNode {...createNodeProps("Setter", "myVar", "", false)} />
+    )
 
     const checkbox = screen.getByRole("checkbox")
     fireEvent.click(checkbox)

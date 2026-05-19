@@ -50,7 +50,7 @@ export const extractor = defineNode({
   buildDefaultConfig: () => ({
     tokenNumber: 0,
     extractExpression: "",
-    variableType: "string" as WorkflowVariableType,
+    variableType: "value" as WorkflowVariableType,
     unlimited: false,
   }),
   renameConfigKey: "extractExpression",
@@ -61,7 +61,7 @@ export const extractor = defineNode({
       case "extractExpression":
         return typeof value === "string"
       case "variableType":
-        return value === "string" || value === "array"
+        return value === "value" || value === "array"
       case "unlimited":
         return typeof value === "boolean"
       default:

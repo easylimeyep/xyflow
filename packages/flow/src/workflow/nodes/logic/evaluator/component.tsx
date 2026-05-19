@@ -49,8 +49,8 @@ import { evaluator } from "./definition"
 const styles = evaluatorNodeStyles()
 const ARRAY_PREVIEW_LIMIT = 3
 
-function createStringOperand(value = ""): WorkflowTypedValue {
-  return { type: "string", value }
+function createValueOperand(value = ""): WorkflowTypedValue {
+  return { type: "value", value }
 }
 
 function normalizeArrayValues(values: string[]): string[] {
@@ -62,7 +62,7 @@ function createArrayOperand(value: string[] = [""]): WorkflowTypedValue {
 }
 
 function createEmptyOperand(type: WorkflowVariableType): WorkflowTypedValue {
-  return type === "array" ? createArrayOperand() : createStringOperand()
+  return type === "array" ? createArrayOperand() : createValueOperand()
 }
 
 function areStringArraysEqual(left: string[], right: string[]): boolean {
@@ -80,14 +80,14 @@ function switchOperandType(
     return operand
   }
 
-  if (nextType === "string") {
-    return createStringOperand(
+  if (nextType === "value") {
+    return createValueOperand(
       operand.type === "array" ? (operand.value[0] ?? "") : ""
     )
   }
 
   return createArrayOperand(
-    operand.type === "string" && operand.value !== "" ? [operand.value] : [""]
+    operand.type === "value" && operand.value !== "" ? [operand.value] : [""]
   )
 }
 
@@ -96,7 +96,7 @@ function createDefaultCondition(
 ): EvaluatorCondition {
   return {
     id: crypto.randomUUID(),
-    left: createStringOperand(),
+    left: createValueOperand(),
     operator: operator.id,
     ...reconcileRightOperand(undefined, operator),
   }
@@ -110,8 +110,7 @@ function getAllowedRightOperandTypes(
   }
 
   return operator.allowTypes.filter(
-    (type): type is WorkflowVariableType =>
-      type === "string" || type === "array"
+    (type): type is WorkflowVariableType => type === "value" || type === "array"
   )
 }
 
@@ -175,12 +174,12 @@ function OperandEditor({
       />
 
       <div className={styles.operandEditor()}>
-        {operand.type === "string" ? (
+        {operand.type === "value" ? (
           <ExpressionInput
             value={operand.value}
             placeholder={placeholder}
             variables={variables}
-            onChange={(value) => onChange(createStringOperand(value))}
+            onChange={(value) => onChange(createValueOperand(value))}
           />
         ) : (
           <ArrayOperandPopover
@@ -546,7 +545,7 @@ export function EvaluatorNode({ id, data, selected }: NodeProps) {
   )
 
   const handleAddCondition = useCallback(() => {
-    const defaultOperator = evaluatorOperators.string[0]
+    const defaultOperator = evaluatorOperators.value[0]
     if (!defaultOperator) return
 
     setConditions([...conditions, createDefaultCondition(defaultOperator)])

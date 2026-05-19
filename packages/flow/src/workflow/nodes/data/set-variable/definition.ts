@@ -33,7 +33,7 @@ export const setVariable = defineNode({
   ],
   buildDefaultConfig: () => ({
     variableName: "myVar",
-    variableType: "string" as WorkflowVariableType,
+    variableType: "value" as WorkflowVariableType,
     valueExpression: "",
     clear: false,
   }),
@@ -45,7 +45,7 @@ export const setVariable = defineNode({
       case "valueExpression":
         return typeof value === "string"
       case "variableType":
-        return value === "string" || value === "array"
+        return value === "value" || value === "array"
       case "clear":
         return typeof value === "boolean"
       default:

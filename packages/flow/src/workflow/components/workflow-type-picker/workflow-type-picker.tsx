@@ -25,8 +25,8 @@ interface WorkflowTypePickerProps {
 }
 
 const TYPE_META = {
-  string: {
-    label: "string",
+  value: {
+    label: "value",
     Icon: Type,
   },
   array: {

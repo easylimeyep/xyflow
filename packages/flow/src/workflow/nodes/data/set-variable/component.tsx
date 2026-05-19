@@ -10,7 +10,11 @@ import { ExpressionInput } from "../../../components/expression-input"
 import { WorkflowTypePicker } from "../../../components/workflow-type-picker/workflow-type-picker"
 import { isValidJsIdentifier } from "../../../expression/variable-name/variable-name"
 import { NodeShell } from "../../node-shell/node-shell"
-import { asText, useBaseNodeData, useVariableIdentifierField } from "../../shared"
+import {
+  asText,
+  useBaseNodeData,
+  useVariableIdentifierField,
+} from "../../shared"
 import { useNodeStoreData } from "../../shared/use-node-store-data"
 
 export function SetVariableNode({ id, data, selected }: NodeProps) {
@@ -24,7 +28,7 @@ export function SetVariableNode({ id, data, selected }: NodeProps) {
   const fallbackVariableName = isValidJsIdentifier(label) ? label : "myVar"
   const variableName = variableNameFromConfig || fallbackVariableName
   const variableTypeFromStore =
-    config.variableType === "array" ? "array" : "string"
+    config.variableType === "array" ? "array" : "value"
   const clearFromStore = config.clear === true
 
   const styles = setVariableNodeStyles()
@@ -87,9 +91,7 @@ export function SetVariableNode({ id, data, selected }: NodeProps) {
         </div>
 
         <div className={styles.inlineEditField()}>
-          <label className={styles.label()}>
-            Value expression
-          </label>
+          <label className={styles.label()}>Value expression</label>
           <ExpressionInput
             value={valueExpressionFromStore}
             placeholder="{{ myVariable }}"

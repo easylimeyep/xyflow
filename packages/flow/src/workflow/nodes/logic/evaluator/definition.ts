@@ -8,8 +8,8 @@ function isWorkflowTypedValue(value: unknown): value is WorkflowTypedValue {
     return false
   }
 
-  const candidate = value as Partial<WorkflowTypedValue>
-  if (candidate.type === "string") {
+  const candidate = value as { type?: unknown; value?: unknown }
+  if (candidate.type === "value") {
     return typeof candidate.value === "string"
   }
 
@@ -54,9 +54,9 @@ export const evaluator = defineNode({
     conditions: [
       {
         id: crypto.randomUUID(),
-        left: { type: "string", value: "" },
+        left: { type: "value", value: "" },
         operator: "is equal to",
-        right: { type: "string", value: "" },
+        right: { type: "value", value: "" },
       } satisfies EvaluatorCondition,
     ],
     logicalOperator: "and" as const,

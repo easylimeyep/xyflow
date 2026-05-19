@@ -338,17 +338,17 @@ describe("workflow store", () => {
       runtime: {
         evaluator: {
           operators: {
-            string: [
+            value: [
               {
                 id: "  matches  ",
                 value: "  Matches  ",
-                allowTypes: ["string"],
+                allowTypes: ["value"],
               },
               { id: "matches", value: "Duplicate", allowTypes: ["none"] },
               { id: "missing", value: "Is Missing", allowTypes: ["none"] },
             ],
             array: [
-              { id: "contains", value: "Contains", allowTypes: ["string"] },
+              { id: "contains", value: "Contains", allowTypes: ["value"] },
               { id: "contains", value: "Duplicate", allowTypes: ["array"] },
               {
                 id: "is-empty",
@@ -362,15 +362,36 @@ describe("workflow store", () => {
     })
 
     expect(runtimeStore.getState().runtime.evaluator?.operators).toEqual({
-      string: [
-        { id: "matches", value: "Matches", allowTypes: ["string"] },
+      value: [
+        { id: "matches", value: "Matches", allowTypes: ["value"] },
         { id: "missing", value: "Is Missing", allowTypes: ["none"] },
       ],
       array: [
-        { id: "contains", value: "Contains", allowTypes: ["string"] },
+        { id: "contains", value: "Contains", allowTypes: ["value"] },
         { id: "is-empty", value: "Is Empty", allowTypes: ["none"] },
       ],
     })
+  })
+
+  it("rejects string runtime evaluator operator metadata", () => {
+    const runtimeStore = createWorkflowStore({
+      runtime: {
+        evaluator: {
+          operators: {
+            string: [
+              { id: "matches", value: "Matches", allowTypes: ["string"] },
+            ],
+            array: [
+              { id: "contains", value: "Contains", allowTypes: ["string"] },
+            ],
+          } as never,
+        },
+      },
+    })
+
+    expect(runtimeStore.getState().runtime.evaluator?.operators).toEqual(
+      DEFAULT_EVALUATOR_OPERATOR_OPTIONS
+    )
   })
 
   it("falls back to the default evaluator operator catalog when runtime evaluator operators are invalid", () => {
@@ -378,13 +399,13 @@ describe("workflow store", () => {
       runtime: {
         evaluator: {
           operators: {
-            string: [
-              { id: " ", value: "Missing id", allowTypes: ["string"] },
+            value: [
+              { id: " ", value: "Missing id", allowTypes: ["value"] },
               { id: "missing-value", value: " ", allowTypes: ["none"] },
               {
                 id: "mixed-none",
                 value: "Mixed none",
-                allowTypes: ["none", "string"],
+                allowTypes: ["none", "value"],
               },
             ],
             array: [
@@ -409,7 +430,7 @@ describe("workflow store", () => {
       runtime: {
         evaluator: {
           operators: [
-            { id: "matches", value: "Matches", allowTypes: ["string"] },
+            { id: "matches", value: "Matches", allowTypes: ["value"] },
           ] as never,
         },
       },

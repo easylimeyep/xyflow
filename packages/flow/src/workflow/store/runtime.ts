@@ -7,7 +7,7 @@ import {
 import type { WorkflowRuntimeConfig } from "./types"
 
 const ALLOWED_OPERATOR_TYPES = new Set<WorkflowEvaluatorOperatorAllowType>([
-  "string",
+  "value",
   "array",
   "none",
 ])
@@ -81,9 +81,9 @@ function normalizeEvaluatorOperatorCatalog(
   }
 
   return {
-    string: normalizeEvaluatorOperators(
-      operators.string,
-      DEFAULT_EVALUATOR_OPERATOR_OPTIONS.string
+    value: normalizeEvaluatorOperators(
+      operators.value,
+      DEFAULT_EVALUATOR_OPERATOR_OPTIONS.value
     ),
     array: normalizeEvaluatorOperators(
       operators.array,

@@ -33,7 +33,7 @@ export function ExtractorNode({ id, data, selected }: NodeProps) {
       : 1
   const unlimitedFromStore = config.unlimited === true
   const variableTypeFromStore =
-    config.variableType === "array" ? "array" : "string"
+    config.variableType === "array" ? "array" : "value"
 
   const [draftTokenNumber, setDraftTokenNumber] = useState(
     String(tokenNumberFromStore)

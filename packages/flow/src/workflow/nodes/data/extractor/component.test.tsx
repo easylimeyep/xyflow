@@ -22,9 +22,12 @@ vi.mock("../../shared/use-node-store-data", () => ({
   }),
 }))
 
-vi.mock("../../output-quick-add-affordance/output-quick-add-affordance", () => ({
-  OutputQuickAddAffordance: () => null,
-}))
+vi.mock(
+  "../../output-quick-add-affordance/output-quick-add-affordance",
+  () => ({
+    OutputQuickAddAffordance: () => null,
+  })
+)
 
 function createNodeProps(
   tokenNumber: number,
@@ -129,7 +132,9 @@ describe("ExtractorNode", () => {
       key: "extractExpression",
       value: "my var!",
     })
-    expect(screen.getByText("Label must be a valid JavaScript identifier.")).toBeDefined()
+    expect(
+      screen.getByText("Label must be a valid JavaScript identifier.")
+    ).toBeDefined()
   })
 
   it("toggles unlimited flag", () => {
@@ -146,10 +151,10 @@ describe("ExtractorNode", () => {
   })
 
   it("commits variable type via updateNodeConfig on change", () => {
-    render(<ExtractorNode {...createNodeProps(3, "myVar", false, "string")} />)
+    render(<ExtractorNode {...createNodeProps(3, "myVar", false, "value")} />)
 
     const typePicker = screen.getByLabelText("Variable type")
-    expect(typePicker.getAttribute("title")).toBe("Variable type: string")
+    expect(typePicker.getAttribute("title")).toBe("Variable type: value")
 
     fireEvent.click(typePicker)
     fireEvent.click(screen.getByRole("option", { name: "array" }))

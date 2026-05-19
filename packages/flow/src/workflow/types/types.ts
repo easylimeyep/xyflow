@@ -43,47 +43,47 @@ export interface WorkflowEvaluatorOperatorOption {
 }
 
 export interface WorkflowEvaluatorOperatorCatalog {
-  string: WorkflowEvaluatorOperatorOption[]
+  value: WorkflowEvaluatorOperatorOption[]
   array: WorkflowEvaluatorOperatorOption[]
 }
 
 export const DEFAULT_EVALUATOR_OPERATOR_ID = "is equal to"
 export type WorkflowTypedValue =
-  | { type: "string"; value: string }
+  | { type: "value"; value: string }
   | { type: "array"; value: string[] }
 
 export const DEFAULT_EVALUATOR_OPERATOR_OPTIONS: WorkflowEvaluatorOperatorCatalog =
   {
-    string: [
-      { id: "is equal to", value: "is equal to", allowTypes: ["string"] },
+    value: [
+      { id: "is equal to", value: "is equal to", allowTypes: ["value"] },
       {
         id: "is not equal to",
         value: "is not equal to",
-        allowTypes: ["string"],
+        allowTypes: ["value"],
       },
-      { id: "contains", value: "contains", allowTypes: ["string"] },
+      { id: "contains", value: "contains", allowTypes: ["value"] },
       {
         id: "does not contain",
         value: "does not contain",
-        allowTypes: ["string"],
+        allowTypes: ["value"],
       },
-      { id: "starts with", value: "starts with", allowTypes: ["string"] },
-      { id: "ends with", value: "ends with", allowTypes: ["string"] },
+      { id: "starts with", value: "starts with", allowTypes: ["value"] },
+      { id: "ends with", value: "ends with", allowTypes: ["value"] },
       {
         id: "is greater than",
         value: "is greater than",
-        allowTypes: ["string"],
+        allowTypes: ["value"],
       },
-      { id: "is less than", value: "is less than", allowTypes: ["string"] },
+      { id: "is less than", value: "is less than", allowTypes: ["value"] },
       {
         id: "is greater or equal",
         value: "is greater or equal",
-        allowTypes: ["string"],
+        allowTypes: ["value"],
       },
       {
         id: "is less or equal",
         value: "is less or equal",
-        allowTypes: ["string"],
+        allowTypes: ["value"],
       },
       { id: "is empty", value: "is empty", allowTypes: ["none"] },
       { id: "is not empty", value: "is not empty", allowTypes: ["none"] },
@@ -99,11 +99,11 @@ export const DEFAULT_EVALUATOR_OPERATOR_OPTIONS: WorkflowEvaluatorOperatorCatalo
         value: "is not equal to",
         allowTypes: ["array"],
       },
-      { id: "contains", value: "contains", allowTypes: ["string"] },
+      { id: "contains", value: "contains", allowTypes: ["value"] },
       {
         id: "does not contain",
         value: "does not contain",
-        allowTypes: ["string"],
+        allowTypes: ["value"],
       },
       { id: "is empty", value: "is empty", allowTypes: ["none"] },
       { id: "is not empty", value: "is not empty", allowTypes: ["none"] },

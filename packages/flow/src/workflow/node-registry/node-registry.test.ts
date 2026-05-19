@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest"
 
 import { createWorkflowNode } from "./node-factory"
-import { normalizeNodeConfig } from "./node-config-normalization"
+import {
+  decodeNodeConfig,
+  normalizeNodeConfig,
+} from "./node-config-normalization"
 import { nodeRegistry } from "./registry"
 
 describe("workflow node registry", () => {
@@ -11,14 +14,14 @@ describe("workflow node registry", () => {
     expect(definition.kind).toBe("setVariable")
     expect(definition.title).toBe("Setter")
     expect(definition.buildDefaultConfig().variableName).toBe("myVar")
-    expect(definition.buildDefaultConfig().variableType).toBe("string")
+    expect(definition.buildDefaultConfig().variableType).toBe("value")
     expect(definition.buildDefaultConfig().valueExpression).toBeDefined()
     expect(definition.buildDefaultConfig().clear).toBe(false)
     expect(definition.renameConfigKey).toBe("variableName")
     expect(
       definition.fields.find((field) => field.key === "variableType")?.options
     ).toEqual([
-      { label: "string", value: "string" },
+      { label: "value", value: "value" },
       { label: "array", value: "array" },
     ])
   })
@@ -29,7 +32,7 @@ describe("workflow node registry", () => {
     expect(node.type).toBe("setVariable")
     expect(node.data.label).toBe("Setter")
     expect(node.data.config.variableName).toBe("myVar")
-    expect(node.data.config.variableType).toBe("string")
+    expect(node.data.config.variableType).toBe("value")
     expect(node.data.config.valueExpression).toBeDefined()
     expect(node.data.config.clear).toBe(false)
   })
@@ -89,7 +92,7 @@ describe("workflow node registry", () => {
         extractExpression: "email",
         unlimited: false,
       }).variableType
-    ).toBe("string")
+    ).toBe("value")
 
     expect(
       normalizeNodeConfig("setVariable", {
@@ -102,7 +105,7 @@ describe("workflow node registry", () => {
         variableName: "email",
         valueExpression: "{{ email }}",
       }).variableType
-    ).toBe("string")
+    ).toBe("value")
 
     expect(
       normalizeNodeConfig("evaluator", {
@@ -111,6 +114,41 @@ describe("workflow node registry", () => {
         caseSensitive: false,
       }).label
     ).toBe("conditionMatched")
+  })
+
+  it("rejects string workflow type literals", () => {
+    expect(
+      decodeNodeConfig("extractor", {
+        tokenNumber: 1,
+        extractExpression: "email",
+        variableType: "string",
+        unlimited: false,
+      }).success
+    ).toBe(false)
+
+    expect(
+      decodeNodeConfig("setVariable", {
+        variableName: "email",
+        variableType: "string",
+        valueExpression: "{{ email }}",
+        clear: false,
+      }).success
+    ).toBe(false)
+
+    expect(
+      decodeNodeConfig("evaluator", {
+        conditions: [
+          {
+            id: "condition-1",
+            left: { type: "string", value: "{{ source }}" },
+            operator: "is equal to",
+            right: { type: "string", value: "{{ target }}" },
+          },
+        ],
+        logicalOperator: "and",
+        caseSensitive: false,
+      }).success
+    ).toBe(false)
   })
 
   it("does not expose trigger node in registry", () => {
@@ -122,7 +160,7 @@ describe("workflow node registry", () => {
 
     expect(definition.kind).toBe("extractor")
     expect(definition.renameConfigKey).toBe("extractExpression")
-    expect(definition.buildDefaultConfig().variableType).toBe("string")
+    expect(definition.buildDefaultConfig().variableType).toBe("value")
     expect(
       definition.fields.find((field) => field.key === "extractExpression")
         ?.label
@@ -130,7 +168,7 @@ describe("workflow node registry", () => {
     expect(
       definition.fields.find((field) => field.key === "variableType")?.options
     ).toEqual([
-      { label: "string", value: "string" },
+      { label: "value", value: "value" },
       { label: "array", value: "array" },
     ])
   })

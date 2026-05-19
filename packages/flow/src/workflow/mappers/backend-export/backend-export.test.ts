@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest"
 
 import { exportDomainWorkflowForBackend } from "./backend-export"
-import type { DomainWorkflowConnectionDTO, DomainWorkflowDTO, DomainWorkflowNodeDTO } from "../../types"
+import type {
+  DomainWorkflowConnectionDTO,
+  DomainWorkflowDTO,
+  DomainWorkflowNodeDTO,
+} from "../../types"
 
 function node(
   id: string,
@@ -51,7 +55,10 @@ function workflow(
 describe("exportDomainWorkflowForBackend", () => {
   it("orders a linear graph by topology and remaps links to numeric ids", () => {
     const root = node("root", "inlineExpression", 0, 0, { isRoot: true })
-    const step = node("step", "setVariable", 200, 0, { variableName: "value", valueExpression: "{{ root }}" })
+    const step = node("step", "setVariable", 200, 0, {
+      variableName: "value",
+      valueExpression: "{{ root }}",
+    })
     const result = node("result", "result", 400, 0, { category: "true" })
     const dto = workflow(
       [result, step, root],
@@ -66,7 +73,9 @@ describe("exportDomainWorkflowForBackend", () => {
       version: 1,
       metadata: { source: "test" },
     })
-    expect(backend.nodes.map((backendNode) => backendNode.id)).toEqual([1, 2, 3])
+    expect(backend.nodes.map((backendNode) => backendNode.id)).toEqual([
+      1, 2, 3,
+    ])
     expect(backend.nodes.map((backendNode) => backendNode.label)).toEqual([
       "root",
       "step",
@@ -121,8 +130,12 @@ describe("exportDomainWorkflowForBackend", () => {
       logicalOperator: "and",
       caseSensitive: false,
     })
-    const trueResult = node("true-result", "result", 400, -100, { category: "true" })
-    const falseResult = node("false-result", "result", 400, 100, { category: "false" })
+    const trueResult = node("true-result", "result", 400, -100, {
+      category: "true",
+    })
+    const falseResult = node("false-result", "result", 400, 100, {
+      category: "false",
+    })
     const dto = workflow(
       [falseResult, trueResult, evaluator, root],
       [
@@ -165,7 +178,7 @@ describe("exportDomainWorkflowForBackend", () => {
           id: "cond-1",
           left: { type: "array", value: ["a", "b"] },
           operator: "contains",
-          right: { type: "string", value: "a" },
+          right: { type: "value", value: "a" },
         },
       ],
       logicalOperator: "and",
@@ -200,7 +213,7 @@ describe("exportDomainWorkflowForBackend", () => {
           id: "cond-1",
           left: { type: "array", value: ["a", "b"] },
           operator: "contains",
-          right: { type: "string", value: "a" },
+          right: { type: "value", value: "a" },
         },
       ],
     })

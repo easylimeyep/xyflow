@@ -1,10 +1,4 @@
-# workflow-variable-config Specification
-
-## Purpose
-
-Define variable-producing node metadata, including Extractor variable type, Setter variable type, and Setter clear-before-write behavior.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Extractor declares persisted variable type
 
@@ -40,31 +34,6 @@ Extractor nodes SHALL persist a config-level variable type for the value they pr
 #### Scenario: Extractor rejects unsupported variable type config
 
 - **WHEN** a config update or import payload provides an extractor `variableType` other than `value` or `array`
-- **THEN** the config value MUST be rejected by the node config schema
-
-### Requirement: Setter declares clear-before-write behavior
-
-Setter nodes SHALL persist a boolean `clear` config flag. When `clear` is `true`, runtime consumers MUST interpret the setter as clearing the existing `variableName` value before evaluating and writing `valueExpression`.
-
-#### Scenario: Setter defaults clear to false
-
-- **WHEN** a setter node is created or imported without `config.clear`
-- **THEN** the normalized setter config MUST include `clear` equal to `false`
-
-#### Scenario: Setter toggles clear from the node UI
-
-- **WHEN** the user toggles the Setter `Clear` checkbox on
-- **THEN** the setter config MUST be updated with `key: "clear"` and `value: true`
-
-#### Scenario: Setter clear true means clear before write
-
-- **WHEN** a setter node has `config.clear` equal to `true`
-- **THEN** runtime consumers MUST clear the variable named by `config.variableName` before evaluating `config.valueExpression`
-- **AND** runtime consumers MUST write the evaluated result into `config.variableName` after clearing
-
-#### Scenario: Setter rejects non-boolean clear config
-
-- **WHEN** a config update or import payload provides a setter `clear` value that is not boolean
 - **THEN** the config value MUST be rejected by the node config schema
 
 ### Requirement: Setter declares persisted variable type

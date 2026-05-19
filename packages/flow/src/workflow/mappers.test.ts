@@ -98,9 +98,9 @@ describe("workflow mappers", () => {
             conditions: [
               {
                 id: "condition-1",
-                left: { type: "string", value: "{{ score }}" },
+                left: { type: "value", value: "{{ score }}" },
                 operator: "is equal to",
-                right: { type: "string", value: "100" },
+                right: { type: "value", value: "100" },
               },
             ],
             logicalOperator: "and",
@@ -307,7 +307,7 @@ describe("workflow mappers", () => {
         id: "cond-1",
         left: { type: "array", value: ["Alice", "Bob"] },
         operator: "is equal to",
-        right: { type: "string", value: "Alice" },
+        right: { type: "value", value: "Alice" },
       },
     ]
     evaluatorNode.data.config.logicalOperator = "or"
@@ -385,16 +385,20 @@ describe("workflow mappers", () => {
 
     expect(parsed.success).toBe(true)
     expect(
-      parsed.value?.nodes.find((node) => node.id === "legacy-extractor")?.data.config.variableType
-    ).toBe("string")
+      parsed.value?.nodes.find((node) => node.id === "legacy-extractor")?.data
+        .config.variableType
+    ).toBe("value")
     expect(
-      parsed.value?.nodes.find((node) => node.id === "legacy-setter")?.data.config.clear
+      parsed.value?.nodes.find((node) => node.id === "legacy-setter")?.data
+        .config.clear
     ).toBe(false)
     expect(
-      parsed.value?.nodes.find((node) => node.id === "legacy-setter")?.data.config.variableType
-    ).toBe("string")
+      parsed.value?.nodes.find((node) => node.id === "legacy-setter")?.data
+        .config.variableType
+    ).toBe("value")
     expect(
-      parsed.value?.nodes.find((node) => node.id === "legacy-evaluator")?.data.config.label
+      parsed.value?.nodes.find((node) => node.id === "legacy-evaluator")?.data
+        .config.label
     ).toBe("conditionMatched")
   })
 

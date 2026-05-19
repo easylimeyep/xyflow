@@ -58,7 +58,7 @@ describe("initial graph builders", () => {
           config: {
             tokenNumber: 0,
             extractExpression: "email",
-            variableType: "string",
+            variableType: "value",
             unlimited: false,
           },
         },
@@ -124,9 +124,9 @@ describe("initial graph builders", () => {
             conditions: [
               {
                 id: "condition-1",
-                left: { type: "string", value: "{{ email }}" },
+                left: { type: "value", value: "{{ email }}" },
                 operator: "contains",
-                right: { type: "string", value: "@" },
+                right: { type: "value", value: "@" },
               },
             ],
           },
@@ -184,9 +184,9 @@ describe("initial graph builders", () => {
             conditions: [
               {
                 id: "condition-1",
-                left: { type: "string", value: "{{ score }}" },
+                left: { type: "value", value: "{{ score }}" },
                 operator: "is greater than",
-                right: { type: "string", value: "90" },
+                right: { type: "value", value: "90" },
               },
             ],
           },

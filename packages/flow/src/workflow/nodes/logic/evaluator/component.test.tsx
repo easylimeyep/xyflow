@@ -16,13 +16,13 @@ let mockEnableEvaluatorMultipleConditions = false
 
 function createMockEvaluatorOperators(): WorkflowEvaluatorOperatorCatalog {
   return {
-    string: [
-      { id: "is equal to", value: "is equal to", allowTypes: ["string"] },
+    value: [
+      { id: "is equal to", value: "is equal to", allowTypes: ["value"] },
       { id: "is empty", value: "is empty", allowTypes: ["none"] },
     ],
     array: [
       { id: "is equal to", value: "is equal to", allowTypes: ["array"] },
-      { id: "contains", value: "contains", allowTypes: ["string"] },
+      { id: "contains", value: "contains", allowTypes: ["value"] },
       { id: "is empty", value: "is empty", allowTypes: ["none"] },
     ],
   }
@@ -36,15 +36,15 @@ function stringCondition(
 ) {
   return {
     id,
-    left: { type: "string" as const, value },
+    left: { type: "value" as const, value },
     operator,
     ...(targetValue === undefined
       ? {}
-      : { right: { type: "string" as const, value: targetValue } }),
+      : { right: { type: "value" as const, value: targetValue } }),
   }
 }
 
-function selectWorkflowType(label: string, type: "string" | "array") {
+function selectWorkflowType(label: string, type: "value" | "array") {
   fireEvent.click(screen.getByLabelText(label))
   fireEvent.click(screen.getByRole("option", { name: type }))
 }
@@ -175,11 +175,11 @@ describe("EvaluatorNode", () => {
 
   it("renders runtime-provided operator labels and updates the stored operator id", () => {
     mockEvaluatorOperators = {
-      string: [
-        { id: "matches", value: "Matches", allowTypes: ["string"] },
+      value: [
+        { id: "matches", value: "Matches", allowTypes: ["value"] },
         { id: "missing", value: "Is Missing", allowTypes: ["none"] },
       ],
-      array: [{ id: "contains", value: "Contains", allowTypes: ["string"] }],
+      array: [{ id: "contains", value: "Contains", allowTypes: ["value"] }],
     }
 
     render(
@@ -362,10 +362,10 @@ describe("EvaluatorNode", () => {
 
   it("uses the first operator from the new left operand type when the current operator is unavailable", () => {
     mockEvaluatorOperators = {
-      string: [
-        { id: "starts with", value: "starts with", allowTypes: ["string"] },
+      value: [
+        { id: "starts with", value: "starts with", allowTypes: ["value"] },
       ],
-      array: [{ id: "contains", value: "contains", allowTypes: ["string"] }],
+      array: [{ id: "contains", value: "contains", allowTypes: ["value"] }],
     }
 
     render(
@@ -398,7 +398,7 @@ describe("EvaluatorNode", () => {
           id: "condition-1",
           left: { type: "array", value: ["{{ source }}"] },
           operator: "contains",
-          right: { type: "string", value: "{{ target }}" },
+          right: { type: "value", value: "{{ target }}" },
         },
       ],
     })
@@ -406,11 +406,11 @@ describe("EvaluatorNode", () => {
 
   it("updates the right operand type without changing the left operand", () => {
     mockEvaluatorOperators = {
-      string: [
+      value: [
         {
           id: "is equal to",
           value: "is equal to",
-          allowTypes: ["string", "array"],
+          allowTypes: ["value", "array"],
         },
       ],
       array: [
@@ -526,7 +526,7 @@ describe("EvaluatorNode", () => {
                   ],
                 },
                 operator: "contains",
-                right: { type: "string", value: "{{ target }}" },
+                right: { type: "value", value: "{{ target }}" },
               },
             ],
             label: "conditionMatched",
@@ -558,7 +558,7 @@ describe("EvaluatorNode", () => {
                 id: "condition-1",
                 left: { type: "array", value: ["", ""] },
                 operator: "contains",
-                right: { type: "string", value: "{{ target }}" },
+                right: { type: "value", value: "{{ target }}" },
               },
             ],
             label: "conditionMatched",
@@ -569,7 +569,9 @@ describe("EvaluatorNode", () => {
       />
     )
 
-    expect(screen.getByText("value")).toBeDefined()
+    expect(
+      screen.getByLabelText("Edit Left array values").textContent
+    ).toContain("value")
     expect(screen.queryByText("+1")).toBeNull()
   })
 
@@ -625,7 +627,7 @@ describe("EvaluatorNode", () => {
                 id: "condition-1",
                 left: { type: "array", value: ["first", "second"] },
                 operator: "is equal to",
-                right: { type: "string", value: "{{ target }}" },
+                right: { type: "value", value: "{{ target }}" },
               },
             ],
             label: "conditionMatched",
@@ -636,7 +638,7 @@ describe("EvaluatorNode", () => {
       />
     )
 
-    selectWorkflowType("Left operand type", "string")
+    selectWorkflowType("Left operand type", "value")
 
     expect(mockUpdateNodeConfig).toHaveBeenCalledWith("evaluator-node-1", {
       kind: "evaluator",
@@ -644,9 +646,9 @@ describe("EvaluatorNode", () => {
       value: [
         {
           id: "condition-1",
-          left: { type: "string", value: "first" },
+          left: { type: "value", value: "first" },
           operator: "is equal to",
-          right: { type: "string", value: "{{ target }}" },
+          right: { type: "value", value: "{{ target }}" },
         },
       ],
     })
@@ -655,11 +657,11 @@ describe("EvaluatorNode", () => {
   it("uses the active runtime catalog when adding a new condition", () => {
     mockEnableEvaluatorMultipleConditions = true
     mockEvaluatorOperators = {
-      string: [
-        { id: "matches", value: "Matches", allowTypes: ["string"] },
+      value: [
+        { id: "matches", value: "Matches", allowTypes: ["value"] },
         { id: "missing", value: "Is Missing", allowTypes: ["none"] },
       ],
-      array: [{ id: "contains", value: "Contains", allowTypes: ["string"] }],
+      array: [{ id: "contains", value: "Contains", allowTypes: ["value"] }],
     }
 
     render(<EvaluatorNode {...createNodeProps()} />)
@@ -678,9 +680,9 @@ describe("EvaluatorNode", () => {
         ),
         {
           id: "00000000-0000-0000-0000-000000000001",
-          left: { type: "string", value: "" },
+          left: { type: "value", value: "" },
           operator: "matches",
-          right: { type: "string", value: "" },
+          right: { type: "value", value: "" },
         },
       ],
     })
@@ -688,11 +690,11 @@ describe("EvaluatorNode", () => {
 
   it("creates a default right operand when switching to a target-required operator", () => {
     mockEvaluatorOperators = {
-      string: [
-        { id: "matches", value: "Matches", allowTypes: ["string"] },
+      value: [
+        { id: "matches", value: "Matches", allowTypes: ["value"] },
         { id: "missing", value: "Is Missing", allowTypes: ["none"] },
       ],
-      array: [{ id: "contains", value: "Contains", allowTypes: ["string"] }],
+      array: [{ id: "contains", value: "Contains", allowTypes: ["value"] }],
     }
 
     render(
@@ -720,9 +722,9 @@ describe("EvaluatorNode", () => {
       value: [
         {
           id: "condition-1",
-          left: { type: "string", value: "{{ source }}" },
+          left: { type: "value", value: "{{ source }}" },
           operator: "matches",
-          right: { type: "string", value: "" },
+          right: { type: "value", value: "" },
         },
       ],
     })
@@ -730,11 +732,11 @@ describe("EvaluatorNode", () => {
 
   it("recreates an incompatible right operand with the first allowed type", () => {
     mockEvaluatorOperators = {
-      string: [
-        { id: "matches", value: "Matches", allowTypes: ["string"] },
+      value: [
+        { id: "matches", value: "Matches", allowTypes: ["value"] },
         { id: "in-list", value: "In List", allowTypes: ["array"] },
       ],
-      array: [{ id: "contains", value: "Contains", allowTypes: ["string"] }],
+      array: [{ id: "contains", value: "Contains", allowTypes: ["value"] }],
     }
 
     render(<EvaluatorNode {...createNodeProps()} />)
@@ -749,7 +751,7 @@ describe("EvaluatorNode", () => {
       value: [
         {
           id: "condition-1",
-          left: { type: "string", value: "{{ source }}" },
+          left: { type: "value", value: "{{ source }}" },
           operator: "in-list",
           right: { type: "array", value: [""] },
         },
@@ -762,7 +764,7 @@ describe("EvaluatorNode", () => {
 
     fireEvent.click(screen.getByLabelText("Right operand type"))
 
-    expect(screen.getByRole("option", { name: "string" })).toBeTruthy()
+    expect(screen.getByRole("option", { name: "value" })).toBeTruthy()
     expect(screen.queryByRole("option", { name: "array" })).toBeNull()
   })
 
@@ -794,8 +796,8 @@ describe("EvaluatorNode", () => {
 
   it("filters operators by the left operand type", () => {
     mockEvaluatorOperators = {
-      string: [{ id: "matches", value: "Matches", allowTypes: ["string"] }],
-      array: [{ id: "contains", value: "Contains", allowTypes: ["string"] }],
+      value: [{ id: "matches", value: "Matches", allowTypes: ["value"] }],
+      array: [{ id: "contains", value: "Contains", allowTypes: ["value"] }],
     }
 
     render(
@@ -807,7 +809,7 @@ describe("EvaluatorNode", () => {
                 id: "condition-1",
                 left: { type: "array", value: ["{{ source }}"] },
                 operator: "contains",
-                right: { type: "string", value: "{{ target }}" },
+                right: { type: "value", value: "{{ target }}" },
               },
             ],
             logicalOperator: "and",

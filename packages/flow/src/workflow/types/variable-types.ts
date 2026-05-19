@@ -1,6 +1,6 @@
-export type WorkflowVariableType = "string" | "array"
+export type WorkflowVariableType = "value" | "array"
 
 export const WORKFLOW_VARIABLE_TYPES = [
-  "string",
+  "value",
   "array",
 ] satisfies WorkflowVariableType[]

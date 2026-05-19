@@ -95,21 +95,21 @@ describe("workflow ELK layout adapter", () => {
     multiConditionEvaluator.data.config.conditions = [
       {
         id: "condition-1",
-        left: { type: "string", value: "{{ score }}" },
+        left: { type: "value", value: "{{ score }}" },
         operator: "contains",
-        right: { type: "string", value: "a" },
+        right: { type: "value", value: "a" },
       },
       {
         id: "condition-2",
-        left: { type: "string", value: "{{ score }}" },
+        left: { type: "value", value: "{{ score }}" },
         operator: "contains",
-        right: { type: "string", value: "b" },
+        right: { type: "value", value: "b" },
       },
       {
         id: "condition-3",
-        left: { type: "string", value: "{{ score }}" },
+        left: { type: "value", value: "{{ score }}" },
         operator: "contains",
-        right: { type: "string", value: "c" },
+        right: { type: "value", value: "c" },
       },
     ]
 
