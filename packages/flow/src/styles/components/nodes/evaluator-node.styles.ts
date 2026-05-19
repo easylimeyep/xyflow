@@ -13,18 +13,6 @@ export const evaluatorNodeStyles = tv({
     operandRow: "flex items-start gap-1",
     operandEditor: "min-w-0 flex-1 space-y-1",
     operandTypeSelect: "shrink-0",
-    operandArrayTrigger: "min-w-0 w-full justify-between overflow-hidden px-2",
-    operandArrayTriggerLabel: "min-w-0 truncate text-muted-foreground",
-    operandArrayPreviewList: "flex min-w-0 flex-1 items-center gap-1 overflow-hidden",
-    operandArrayPreviewChip: "h-4 max-w-[4.5rem] min-w-0 px-1.5 text-[0.625rem]",
-    operandArrayPreviewChipText: "min-w-0 truncate",
-    operandArrayOverflowBadge: "h-4 shrink-0 px-1.5 text-[0.625rem]",
-    operandArrayPopover: "w-56 gap-1 p-2",
-    operandArrayList: "space-y-1",
-    operandArrayRow: "group/operand-row relative flex items-center gap-1",
-    operandArrayInput: "min-w-0 flex-1",
-    operandArrayDeleteButton:
-      "flex h-7 w-7 shrink-0 items-center justify-center rounded text-muted-foreground hover:text-destructive",
     operatorRow: "flex items-center gap-1",
     operatorSelect: "w-full text-[11px]",
     deleteButton:
@@ -37,7 +25,6 @@ export const evaluatorNodeStyles = tv({
     optionToggle: "size-3.5 rounded-[3px]",
     optionToggleLabel: "text-[11px] font-medium text-muted-foreground",
     addButton: "mt-1 h-7 w-full text-[11px]",
-    operandAddButton: "h-7 w-full text-[11px]",
     label: "text-[11px] font-medium text-muted-foreground",
   },
 })

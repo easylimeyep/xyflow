@@ -22,7 +22,7 @@ export const EMPTY_WORKFLOW_VALIDATION_STATE: WorkflowValidationStoreState = {
   locallyHiddenKeys: new Set<string>(),
 }
 
-export const createValidationSlice: WorkflowSliceCreator = (set, get) => ({
+export const createValidationSlice: WorkflowSliceCreator = (set) => ({
   validation: EMPTY_WORKFLOW_VALIDATION_STATE,
   setValidation: (snapshot) => {
     if (!snapshot) {
@@ -54,7 +54,9 @@ export const createValidationSlice: WorkflowSliceCreator = (set, get) => ({
     })
   },
   hideValidationForNode: (nodeId) => {
-    set((state) => hideValidationKeys(state, getValidationKeysForNode(state, nodeId)))
+    set((state) =>
+      hideValidationKeys(state, getValidationKeysForNode(state, nodeId))
+    )
   },
   hideValidationForNodes: (nodeIds) => {
     set((state) => {
@@ -90,7 +92,8 @@ export function normalizeWorkflowValidation(
   const global = (snapshot.global ?? []).map((message, index) =>
     normalizeGlobalValidationMessage(message, index)
   )
-  const nodesById: Record<string, NormalizedWorkflowNodeValidationMessage[]> = {}
+  const nodesById: Record<string, NormalizedWorkflowNodeValidationMessage[]> =
+    {}
 
   ;(snapshot.nodes ?? []).forEach((message, index) => {
     const nodeId = message.nodeId.trim()

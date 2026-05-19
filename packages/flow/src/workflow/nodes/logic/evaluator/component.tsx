@@ -1,7 +1,7 @@
 "use client"
 
 import type { NodeProps } from "@xyflow/react"
-import { Badge } from "@workspace/ui/components/badge"
+import { ArrayInputPopover } from "@workspace/ui/components/array-input-popover"
 import { Button } from "@workspace/ui/components/button"
 import { Checkbox } from "@workspace/ui/components/checkbox"
 import { Input } from "@workspace/ui/components/input"
@@ -11,18 +11,13 @@ import {
   NativeSelectOption,
 } from "@workspace/ui/components/native-select"
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@workspace/ui/components/popover"
-import {
   Sortable,
   SortableContent,
   SortableItem,
   SortableItemHandle,
   SortableOverlay,
 } from "@workspace/ui/components/sortable"
-import { GripVertical, Plus, Trash2 } from "lucide-react"
+import { GripVertical, Trash2 } from "lucide-react"
 import { useCallback, useMemo, useState } from "react"
 
 import { evaluatorNodeStyles } from "../../../../styles/components/nodes"
@@ -211,19 +206,6 @@ function ArrayOperandPopover({
   const [draftValues, setDraftValues] = useState(() =>
     normalizeArrayValues(operand.value)
   )
-  const previewSourceValues = open
-    ? draftValues.length
-      ? draftValues
-      : normalizeArrayValues(operand.value)
-    : normalizeArrayValues(operand.value)
-  const previewValues = previewSourceValues.filter(
-    (value) => value.trim() !== ""
-  )
-  const visiblePreviewValues = previewValues.slice(0, ARRAY_PREVIEW_LIMIT)
-  const hiddenPreviewCount = Math.max(
-    0,
-    previewValues.length - visiblePreviewValues.length
-  )
 
   const commitDraft = useCallback(
     (nextValues: string[]) => {
@@ -252,108 +234,18 @@ function ArrayOperandPopover({
     setOpen(false)
   }
 
-  const updateArrayEntry = (index: number, nextValue: string) => {
-    setDraftValues((currentValues) =>
-      normalizeArrayValues(
-        currentValues.map((entry, entryIndex) =>
-          entryIndex === index ? nextValue : entry
-        )
-      )
-    )
-  }
-
-  const addArrayEntry = () => {
-    setDraftValues((currentValues) => [
-      ...normalizeArrayValues(currentValues),
-      "",
-    ])
-  }
-
-  const removeArrayEntry = (index: number) => {
-    setDraftValues((currentValues) =>
-      normalizeArrayValues(
-        currentValues.filter((_, entryIndex) => entryIndex !== index)
-      )
-    )
-  }
-
   return (
-    <Popover open={open} onOpenChange={handleOpenChange}>
-      <PopoverTrigger asChild>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className={styles.operandArrayTrigger()}
-          aria-label={`Edit ${label} array values`}
-        >
-          {visiblePreviewValues.length > 0 ? (
-            <>
-              <span className={styles.operandArrayPreviewList()}>
-                {visiblePreviewValues.map((value, index) => (
-                  <Badge
-                    key={`${value}-${index}`}
-                    variant="outline"
-                    className={styles.operandArrayPreviewChip()}
-                    title={value}
-                  >
-                    <span className={styles.operandArrayPreviewChipText()}>
-                      {value}
-                    </span>
-                  </Badge>
-                ))}
-              </span>
-              {hiddenPreviewCount > 0 ? (
-                <Badge
-                  variant="secondary"
-                  className={styles.operandArrayOverflowBadge()}
-                >
-                  +{hiddenPreviewCount}
-                </Badge>
-              ) : null}
-            </>
-          ) : (
-            <span className={styles.operandArrayTriggerLabel()}>
-              {placeholder}
-            </span>
-          )}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent align="start" className={styles.operandArrayPopover()}>
-        <div className={styles.operandArrayList()}>
-          {draftValues.map((entry, index) => (
-            <div key={index} className={styles.operandArrayRow()}>
-              <Input
-                aria-label={`${label} array value ${index + 1}`}
-                className={styles.operandArrayInput()}
-                value={entry}
-                onChange={(event) =>
-                  updateArrayEntry(index, event.target.value)
-                }
-              />
-              <button
-                type="button"
-                aria-label={`Delete ${label} array value ${index + 1}`}
-                className={styles.operandArrayDeleteButton()}
-                onClick={() => removeArrayEntry(index)}
-              >
-                <Trash2 className="h-3 w-3" />
-              </button>
-            </div>
-          ))}
-          <Button
-            type="button"
-            variant="outline"
-            size="xs"
-            className={styles.operandAddButton()}
-            onClick={addArrayEntry}
-          >
-            <Plus data-icon="inline-start" />
-            Add value
-          </Button>
-        </div>
-      </PopoverContent>
-    </Popover>
+    <ArrayInputPopover
+      open={open}
+      values={open ? draftValues : normalizeArrayValues(operand.value)}
+      label={label}
+      placeholder={placeholder}
+      previewLimit={ARRAY_PREVIEW_LIMIT}
+      onOpenChange={handleOpenChange}
+      onValuesChange={(nextValues) =>
+        setDraftValues(normalizeArrayValues(nextValues))
+      }
+    />
   )
 }
 
