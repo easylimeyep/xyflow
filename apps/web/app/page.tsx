@@ -36,7 +36,7 @@ export default function Page() {
           </p>
         </div>
       </div>
-      <Tabs defaultValue="base" className="">
+      <Tabs defaultValue="with-custom-operators" className="">
         <TabsList className="w-full overflow-x-auto">
           <TabsTrigger value="base">base</TabsTrigger>
           <TabsTrigger value="with-default-graph">

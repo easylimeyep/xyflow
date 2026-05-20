@@ -5,11 +5,13 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
   type PropsWithChildren,
   type ReactNode,
 } from "react"
 
+import type { XYPosition } from "@xyflow/react"
 import { Button } from "@workspace/ui/components/button"
 import {
   Alert,
@@ -59,6 +61,8 @@ interface WorkflowEditorLayoutContextValue {
   quickAddActive: boolean
   autoLayoutOnInit?: "after-measure"
   anchorRefs?: WorkflowEditorAnchorRefs
+  getLastPointerFlowPosition: () => XYPosition | null
+  setLastPointerFlowPosition: (position: XYPosition) => void
 }
 
 const WorkflowEditorLayoutContext =
@@ -130,10 +134,14 @@ function useNodeEditHotkeys(
 function WorkflowEditorLayoutProvider({
   anchorRefs,
   autoLayoutOnInit,
+  getLastPointerFlowPosition,
+  setLastPointerFlowPosition,
   children,
 }: PropsWithChildren<{
   anchorRefs?: WorkflowEditorAnchorRefs
   autoLayoutOnInit?: "after-measure"
+  getLastPointerFlowPosition: () => XYPosition | null
+  setLastPointerFlowPosition: (position: XYPosition) => void
 }>) {
   const quickAddPending = useWorkflowStore(selectQuickAddPending)
   const edgeInsertPending = useWorkflowStore(selectEdgeInsertPending)
@@ -158,9 +166,13 @@ function WorkflowEditorLayoutProvider({
     cancelQuickAdd: state.cancelQuickAdd,
     cancelEdgeInsert: state.cancelEdgeInsert,
   }))
+  const pasteSelectionNearPointer = useCallback(
+    () => pasteFromClipboard(getLastPointerFlowPosition()),
+    [getLastPointerFlowPosition, pasteFromClipboard]
+  )
 
   useUndoRedoHotkeys(undo, redo)
-  useClipboardHotkeys(copySelectionToClipboard, pasteFromClipboard)
+  useClipboardHotkeys(copySelectionToClipboard, pasteSelectionNearPointer)
   useNodeEditHotkeys(duplicateNodes, deleteNodes)
   useCancelInsertHotkey(() => {
     cancelQuickAdd()
@@ -181,6 +193,8 @@ function WorkflowEditorLayoutProvider({
         quickAddActive,
         autoLayoutOnInit,
         anchorRefs,
+        getLastPointerFlowPosition,
+        setLastPointerFlowPosition,
       }}
     >
       {children}
@@ -220,6 +234,17 @@ function WorkflowEditorRoot({
 }: WorkflowEditorProps = {}) {
   const styles = workflowEditorStyles()
   const rootRef = useWorkflowEditorAnchorRef(anchorRefs, "root")
+  const lastPointerFlowPositionRef = useRef<XYPosition | null>(null)
+  const getLastPointerFlowPosition = useCallback(
+    () => lastPointerFlowPositionRef.current,
+    []
+  )
+  const setLastPointerFlowPosition = useCallback((position: XYPosition) => {
+    lastPointerFlowPositionRef.current = {
+      x: position.x,
+      y: position.y,
+    }
+  }, [])
 
   return (
     <WorkflowStoreProvider initialGraph={initialGraph} runtime={runtime}>
@@ -227,6 +252,8 @@ function WorkflowEditorRoot({
       <WorkflowEditorLayoutProvider
         anchorRefs={anchorRefs}
         autoLayoutOnInit={autoLayoutOnInit}
+        getLastPointerFlowPosition={getLastPointerFlowPosition}
+        setLastPointerFlowPosition={setLastPointerFlowPosition}
       >
         <div ref={rootRef} className={styles.root()}>
           {children == null ? <DefaultWorkflowEditorComposition /> : children}
@@ -398,7 +425,6 @@ export function WorkflowEditorCanvas() {
     cancelQuickAdd,
     cancelEdgeInsert,
     startEdgeInsertFromEdge,
-    setLastPointerPosition,
   } = useWorkflowShallowStore((state: WorkflowStoreState) => ({
     onNodesChange: state.onNodesChange,
     onEdgesChange: state.onEdgesChange,
@@ -411,7 +437,6 @@ export function WorkflowEditorCanvas() {
     cancelQuickAdd: state.cancelQuickAdd,
     cancelEdgeInsert: state.cancelEdgeInsert,
     startEdgeInsertFromEdge: state.startEdgeInsertFromEdge,
-    setLastPointerPosition: state.setLastPointerPosition,
   }))
   const handlePaneClick = useCallback(() => {
     setSelectedNodes([])
@@ -425,6 +450,13 @@ export function WorkflowEditorCanvas() {
     [onEdgesChange]
   )
   const isPaletteOpen = layout?.isPaletteOpen ?? true
+  const setLastPointerFlowPosition = layout?.setLastPointerFlowPosition
+  const handlePointerFlowPosition = useCallback(
+    (position: XYPosition) => {
+      setLastPointerFlowPosition?.(position)
+    },
+    [setLastPointerFlowPosition]
+  )
 
   return (
     <div ref={canvasRef} className={styles.canvasWrap()}>
@@ -463,7 +495,7 @@ export function WorkflowEditorCanvas() {
         onAddNodeAt={addNode}
         onStartInsertFromEdge={startEdgeInsertFromEdge}
         onDeleteEdge={handleDeleteEdge}
-        onPointerFlowPosition={setLastPointerPosition}
+        onPointerFlowPosition={handlePointerFlowPosition}
         edgeInsertPendingId={edgeInsertPending?.edgeId ?? null}
         onAutoLayout={autoLayout}
         autoLayoutOnInit={layout?.autoLayoutOnInit}

@@ -77,7 +77,7 @@ describe("workflow store clipboard actions", () => {
     expect(parsed.value?.connections.length).toBeGreaterThan(0)
   })
 
-  it("pastes nodes at last pointer and ensures unique label/variable names", async () => {
+  it("pastes nodes at explicit anchor and ensures unique label/variable names", async () => {
     const store = createWorkflowStore()
     const state = store.getState()
     state.addNode("setVariable", { x: 600, y: 160 })
@@ -128,9 +128,8 @@ describe("workflow store clipboard actions", () => {
     clipboardReadTextMock.mockResolvedValue(payload)
 
     const beforeNodeCount = store.getState().history.present.nodes.length
-    store.getState().setLastPointerPosition({ x: 300, y: 200 })
 
-    const pasted = await store.getState().pasteFromClipboard()
+    const pasted = await store.getState().pasteFromClipboard({ x: 300, y: 200 })
     expect(pasted).toBe(true)
 
     const nextState = store.getState()
@@ -157,6 +156,37 @@ describe("workflow store clipboard actions", () => {
     const selectedSet = new Set(stateAfterReselect.selectedNodeIds)
     expect(selectedSet.size).toBe(pastedNodeIds.length)
     expect([...selectedSet]).toEqual(expect.arrayContaining(pastedNodeIds))
+  })
+
+  it("pastes nodes at viewport fallback when no anchor is provided", async () => {
+    const store = createWorkflowStore()
+    const payload = exportSelectionClipboardJson(
+      [
+        {
+          id: "fallback-copy-extractor",
+          kind: "extractor",
+          position: { x: 40, y: 30 },
+          label: "Extractor",
+          config: {
+            tokenNumber: 0,
+            extractExpression: "{{ $input.item.json }}",
+            variableType: "value",
+            unlimited: false,
+          },
+        },
+      ],
+      []
+    )
+    clipboardReadTextMock.mockResolvedValue(payload)
+
+    const pasted = await store.getState().pasteFromClipboard()
+
+    expect(pasted).toBe(true)
+    const nextState = store.getState()
+    const pastedExtractor = nextState.history.present.nodes.find((node) =>
+      nextState.selectedNodeIds.includes(node.id)
+    )
+    expect(pastedExtractor?.position).toEqual({ x: 120, y: 120 })
   })
 
   it("returns false for invalid clipboard payload", async () => {
@@ -376,9 +406,8 @@ describe("workflow store clipboard actions", () => {
       ]
     )
     clipboardReadTextMock.mockResolvedValue(payload)
-    store.getState().setLastPointerPosition({ x: 400, y: 220 })
 
-    const pasted = await store.getState().pasteFromClipboard()
+    const pasted = await store.getState().pasteFromClipboard({ x: 400, y: 220 })
 
     expect(pasted).toBe(true)
     const pastedNodes = store

@@ -6,7 +6,9 @@ import type { ReactNode, Ref } from "react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { WorkflowEditor } from "./workflow-editor"
+import { exportSelectionClipboardJson } from "../../mappers"
 import type { WorkflowEditorAnchorRefs } from "../../tour"
+import type { DomainWorkflowNodeDTO } from "../../types"
 
 const paletteRenderSpy = vi.fn()
 const canvasRenderSpy = vi.fn()
@@ -216,6 +218,21 @@ function LastErrorControls() {
   )
 }
 
+function SelectedNodePositionProbe() {
+  const selectedNode = WorkflowEditor.use.store((state) => {
+    const selectedNodeId = state.selectedNodeIds[0]
+    return state.history.present.nodes.find((node) => node.id === selectedNodeId)
+  })
+
+  return (
+    <span data-testid="selected-node-position">
+      {selectedNode
+        ? `${selectedNode.position.x},${selectedNode.position.y}`
+        : "none"}
+    </span>
+  )
+}
+
 function renderCustomEditor(extraChildren?: ReactNode) {
   return render(
     <WorkflowEditor>
@@ -248,6 +265,7 @@ describe("WorkflowEditor wiring", () => {
     cleanup()
     paletteRenderSpy.mockClear()
     canvasRenderSpy.mockClear()
+    vi.restoreAllMocks()
   })
 
   it("renders the default composition without custom children", () => {
@@ -403,6 +421,47 @@ describe("WorkflowEditor wiring", () => {
 
     expect(paletteRenderSpy.mock.calls.length).toBe(baselinePaletteRenders)
     expect(canvasRenderSpy.mock.calls.length).toBe(baselineCanvasRenders)
+  })
+
+  it("passes latest canvas pointer position to paste hotkey without reactive pointer rerenders", async () => {
+    const user = userEvent.setup()
+    const payloadNode: DomainWorkflowNodeDTO = {
+      id: "hotkey-copy-extractor",
+      kind: "extractor",
+      position: { x: 40, y: 30 },
+      label: "Extractor",
+      config: {
+        tokenNumber: 0,
+        extractExpression: "{{ $input.item.json }}",
+        variableType: "value",
+        unlimited: false,
+      },
+    }
+    const readText = vi.fn().mockResolvedValue(
+      exportSelectionClipboardJson([payloadNode], [])
+    )
+    Object.defineProperty(window.navigator, "clipboard", {
+      configurable: true,
+      value: {
+        readText,
+        writeText: vi.fn(),
+      },
+    })
+
+    renderCustomEditor(<SelectedNodePositionProbe />)
+    const baselinePaletteRenders = paletteRenderSpy.mock.calls.length
+    const baselineCanvasRenders = canvasRenderSpy.mock.calls.length
+
+    await user.click(screen.getByRole("button", { name: "canvas-update-pointer" }))
+    expect(paletteRenderSpy.mock.calls.length).toBe(baselinePaletteRenders)
+    expect(canvasRenderSpy.mock.calls.length).toBe(baselineCanvasRenders)
+
+    await user.keyboard("{Control>}v{/Control}")
+
+    expect(readText).toHaveBeenCalledTimes(1)
+    expect(screen.getByTestId("selected-node-position").textContent).toBe(
+      "320,240"
+    )
   })
 
   it("routes palette click to quick add confirmation when quick add is active", async () => {

@@ -98,7 +98,6 @@ export interface WorkflowStoreQueries {
   expressionCatalogCache: Map<string, ExpressionVariableOption[]>
   selectedNodeIds: string[]
   nodeDragOriginGraph: WorkflowGraphState | null
-  lastPointerFlowPosition: XYPosition | null
   quickAddPending: PendingQuickAdd | null
   edgeInsertPending: PendingEdgeInsert | null
   lastError: WorkflowError | null
@@ -128,7 +127,6 @@ export interface WorkflowStoreUICommands {
   hideAllValidation: () => void
   setSelectedNodes: (nodeIds: string[]) => void
   setSelectedNode: (nodeId: string | null) => void
-  setLastPointerPosition: (position: XYPosition) => void
   startQuickAddFromOutput: (
     sourceNodeId: string,
     sourceHandle?: string | null
@@ -142,7 +140,7 @@ export interface WorkflowStoreUICommands {
 
 export interface WorkflowStoreIOCommands {
   copySelectionToClipboard: () => Promise<boolean>
-  pasteFromClipboard: () => Promise<boolean>
+  pasteFromClipboard: (anchor?: XYPosition | null) => Promise<boolean>
   importFromJson: (rawJson: string) => boolean
   exportDomain: () => DomainWorkflowDTO
 }

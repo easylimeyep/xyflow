@@ -64,7 +64,7 @@ export const createIoSlice: WorkflowSliceCreator = (set, get) => ({
     set({ lastError: null })
     return true
   },
-  pasteFromClipboard: async () => {
+  pasteFromClipboard: async (pasteAnchor = null) => {
     const clipboardText = await readTextFromClipboard()
     if (!clipboardText) {
       set({ lastError: createWorkflowError("CLIPBOARD_EMPTY", "Clipboard is empty or unavailable.") })
@@ -77,7 +77,7 @@ export const createIoSlice: WorkflowSliceCreator = (set, get) => ({
     }
 
     const currentGraph = get().history.present
-    const anchor = get().lastPointerFlowPosition ?? getFallbackPasteAnchor(currentGraph.viewport)
+    const anchor = pasteAnchor ?? getFallbackPasteAnchor(currentGraph.viewport)
     const usedLabels = new Set(currentGraph.nodes.map((n) => n.data.label.trim()).filter(Boolean))
 
     const { nodes: nextNodesWithRefactors, nodeIdMap } = buildPastedNodes(

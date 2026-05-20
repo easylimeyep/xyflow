@@ -8,7 +8,7 @@ import { ExamplePreview } from "./example-preview"
 const operators = {
   value: [
     {
-      id: "includes",
+      id: "includes-123",
       value: "includes domain",
       allowTypes: ["value"],
     },
@@ -72,7 +72,7 @@ const initialGraph = createInitialGraph({
           {
             id: "demo-custom-operators-condition-contains",
             left: { type: "value", value: "{{ lead.email }}" },
-            operator: "includes",
+            operator: "includes-123",
             right: { type: "value", value: "@company.com" },
           },
           {

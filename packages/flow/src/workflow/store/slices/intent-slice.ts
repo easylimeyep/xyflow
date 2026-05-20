@@ -2,25 +2,10 @@ import { hasOutgoingConnection } from "../helpers"
 import type { WorkflowSliceCreator } from "../types"
 
 export const createIntentSlice: WorkflowSliceCreator = (set, get) => ({
-  lastPointerFlowPosition: null,
   quickAddPending: null,
   edgeInsertPending: null,
   lastError: null,
   setLastError: (message) => set({ lastError: message }),
-  setLastPointerPosition: (position) => {
-    set((state) => {
-      const current = state.lastPointerFlowPosition
-      if (current && current.x === position.x && current.y === position.y) {
-        return state
-      }
-      return {
-        lastPointerFlowPosition: {
-          x: position.x,
-          y: position.y,
-        },
-      }
-    })
-  },
   startQuickAddFromOutput: (sourceNodeId, sourceHandle = null) => {
     const currentGraph = get().history.present
     const sourceNode = currentGraph.nodes.find((node) => node.id === sourceNodeId)
