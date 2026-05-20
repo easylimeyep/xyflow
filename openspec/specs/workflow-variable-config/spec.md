@@ -73,7 +73,13 @@ Setter nodes SHALL persist a boolean `clear` config flag. When `clear` is `true`
 
 ### Requirement: Setter declares persisted variable type
 
-Setter nodes SHALL persist a config-level variable type for the value they produce. The supported variable types SHALL be `value` and `array`, and missing variable type config SHALL normalize to `value`. Setter variable type storage SHALL use the same `config.variableType` key as Extractor. The Setter node editor Type control SHALL use native select interaction while keeping a compact icon-style collapsed presentation.
+Setter nodes SHALL persist a config-level variable type for the value they produce. The supported variable types SHALL be `value` and `array`, and missing variable type config SHALL normalize to `value`. Setter variable type storage SHALL use the same `config.variableType` key as Extractor. The Setter node editor Type control SHALL use native select interaction while keeping a compact icon-style collapsed presentation. Setter nodes SHALL default their variable identifier `config.variableName` to an empty string.
+
+#### Scenario: Setter defaults variable name to empty
+
+- **WHEN** a setter node is created or imported without `config.variableName`
+- **THEN** the normalized setter config MUST include `variableName` equal to an empty string
+- **AND** the normalized config MUST NOT synthesize `myVar` as a stored variable name
 
 #### Scenario: Setter defaults variable type to value
 
@@ -118,4 +124,3 @@ Setter nodes SHALL persist a config-level variable type for the value they produ
 
 - **WHEN** a config update or import payload provides a setter `variableType` other than `value` or `array`
 - **THEN** the config value MUST be rejected by the node config schema
-

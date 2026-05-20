@@ -8,7 +8,6 @@ import { Input } from "@workspace/ui/components/input"
 import { setVariableNodeStyles } from "../../../../styles/components/nodes"
 import { ExpressionInput } from "../../../components/expression-input"
 import { WorkflowTypeNativeSelect } from "../../../components/workflow-type-native-select/workflow-type-native-select"
-import { isValidJsIdentifier } from "../../../expression/variable-name/variable-name"
 import { NodeShell } from "../../node-shell/node-shell"
 import {
   asText,
@@ -24,9 +23,7 @@ export function SetVariableNode({ id, data, selected }: NodeProps) {
     useNodeStoreData(id)
 
   const valueExpressionFromStore = asText(config.valueExpression)
-  const variableNameFromConfig = asText(config.variableName).trim()
-  const fallbackVariableName = isValidJsIdentifier(label) ? label : "myVar"
-  const variableName = variableNameFromConfig || fallbackVariableName
+  const variableName = asText(config.variableName).trim()
   const variableTypeFromStore =
     config.variableType === "array" ? "array" : "value"
   const clearFromStore = config.clear === true

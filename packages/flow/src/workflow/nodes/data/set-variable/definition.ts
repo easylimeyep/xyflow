@@ -32,7 +32,7 @@ export const setVariable = defineNode({
     "result",
   ],
   buildDefaultConfig: () => ({
-    variableName: "myVar",
+    variableName: "",
     variableType: "value" as WorkflowVariableType,
     valueExpression: "",
     clear: false,

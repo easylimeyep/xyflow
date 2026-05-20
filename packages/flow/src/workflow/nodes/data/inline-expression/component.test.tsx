@@ -45,15 +45,18 @@ vi.mock("../../node-shell/node-shell", () => ({
 vi.mock("../../../components/expression-input", () => ({
   ExpressionInput: ({
     value,
+    placeholder,
     onChange,
     onLiveChange,
   }: {
     value: string
+    placeholder?: string
     onChange: (nextValue: string) => void
     onLiveChange?: (nextValue: string) => void
   }) => (
     <input
       data-testid="inline-expression-input"
+      placeholder={placeholder}
       value={value}
       onChange={(event) => {
         onLiveChange?.(event.target.value)
@@ -290,6 +293,7 @@ describe("InlineExpressionNode", () => {
     expect(
       (screen.getByTestId("inline-expression-input") as HTMLInputElement).value
     ).toBe("")
+    expect(screen.getByPlaceholderText("token")).toBeDefined()
   })
 
   it("appends a new token row from the add button", () => {

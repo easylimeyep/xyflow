@@ -1085,6 +1085,11 @@ describe("workflow store", () => {
     if (!firstInlineNode || !firstSetVariable) {
       throw new Error("first store fixtures not found")
     }
+    firstStore.getState().updateNodeConfig(firstSetVariable.id, {
+      kind: "setVariable",
+      key: "variableName",
+      value: "myVar",
+    })
     firstStore
       .getState()
       .onConnect({ source: firstSetVariable.id, target: firstInlineNode.id })
@@ -1872,14 +1877,16 @@ describe("workflow store", () => {
     if (!setVariableNode || !inlineExpressionNode) {
       throw new Error("set variable fixture nodes not found")
     }
-    const initialVariableName = String(
-      setVariableNode.data.config.variableName ?? ""
-    )
+    state.updateNodeConfig(setVariableNode.id, {
+      kind: "setVariable",
+      key: "variableName",
+      value: "oldName",
+    })
 
     state.updateNodeConfig(inlineExpressionNode.id, {
       kind: "inlineExpression",
       key: "template",
-      value: [`{{ ${initialVariableName} }}`],
+      value: ["{{ oldName }}"],
     })
 
     state.updateNodeConfig(setVariableNode.id, {

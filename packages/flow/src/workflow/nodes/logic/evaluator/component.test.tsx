@@ -137,7 +137,7 @@ function createNodeProps(
             "{{ target }}"
           ),
         ],
-        label: "conditionMatched",
+        label: "",
         logicalOperator: "and",
         caseSensitive: false,
       },
@@ -259,7 +259,7 @@ describe("EvaluatorNode", () => {
     })
   })
 
-  it("renders Label input independently from node title", () => {
+  it("renders empty Label input independently from node title", () => {
     render(
       <EvaluatorNode
         {...createNodeProps({
@@ -273,7 +273,7 @@ describe("EvaluatorNode", () => {
                 "{{ target }}"
               ),
             ],
-            label: "conditionMatched",
+            label: "",
             logicalOperator: "and",
             caseSensitive: false,
           },
@@ -283,7 +283,7 @@ describe("EvaluatorNode", () => {
 
     const labelInput = screen.getByPlaceholderText("conditionMatched")
     expect(screen.getByText("Evaluator Title")).toBeDefined()
-    expect((labelInput as HTMLInputElement).value).toBe("conditionMatched")
+    expect((labelInput as HTMLInputElement).value).toBe("")
   })
 
   it("commits Label via updateNodeConfig on blur", () => {

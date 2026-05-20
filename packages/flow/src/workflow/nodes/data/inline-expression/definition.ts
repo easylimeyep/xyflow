@@ -14,7 +14,7 @@ export const inlineExpression = defineNode({
       label: "Tokens",
       type: "text",
       ui: "expression",
-      placeholder: "{{ myVariable }}",
+      placeholder: "token",
     },
     {
       key: "isRoot",

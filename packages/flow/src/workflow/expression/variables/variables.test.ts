@@ -78,7 +78,7 @@ describe("collectWorkflowVariables", () => {
     expect(options[0]?.value).toBe("total")
   })
 
-  it("falls back to setVariable label when variableName is missing", () => {
+  it("does not expose setVariable when variableName is missing", () => {
     const setVar = createWorkflowNode("setVariable", { x: 0, y: 0 }, "fallbackLabel")
     setVar.data.config.variableName = ""
     const inline = createWorkflowNode("inlineExpression", { x: 200, y: 0 }, "InlineA")
@@ -96,8 +96,7 @@ describe("collectWorkflowVariables", () => {
 
     const options = collectWorkflowVariables([setVar, inline], edges, inline.id)
 
-    expect(options).toHaveLength(1)
-    expect(options[0]?.value).toBe("fallbackLabel")
+    expect(options).toHaveLength(0)
   })
 
   it("does not expose other node kinds as variables", () => {
@@ -139,6 +138,28 @@ describe("collectWorkflowVariables", () => {
 
     expect(options).toHaveLength(1)
     expect(options[0]?.value).toBe("conditionMatched")
+  })
+
+  it("does not expose empty upstream evaluator label", () => {
+    const evaluator = createWorkflowNode("evaluator", { x: 0, y: 0 }, "Evaluator")
+    evaluator.data.config.label = ""
+    const inline = createWorkflowNode("inlineExpression", { x: 200, y: 0 }, "InlineA")
+
+    const edges: WorkflowEdge[] = [
+      {
+        id: "edge-1",
+        source: evaluator.id,
+        target: inline.id,
+        sourceHandle: "evaluator-true",
+        targetHandle: null,
+        data: { sourceKind: evaluator.data.kind, targetKind: inline.data.kind },
+      },
+    ]
+
+    const options = collectWorkflowVariables([evaluator, inline], edges, inline.id)
+
+    expect(options.map((o) => o.value)).not.toContain("")
+    expect(options.map((o) => o.value)).not.toContain("conditionMatched")
   })
 
   it("does not expose non-upstream evaluator labels", () => {

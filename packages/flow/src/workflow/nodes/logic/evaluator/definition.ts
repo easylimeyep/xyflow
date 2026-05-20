@@ -41,7 +41,7 @@ export const evaluator = defineNode({
   icon: Scale,
   category: "logic",
   fields: [],
-  outputPaths: ["conditionMatched"],
+  outputPaths: [],
   allowedTargets: [
     "evaluator",
     "setVariable",
@@ -50,7 +50,7 @@ export const evaluator = defineNode({
     "result",
   ],
   buildDefaultConfig: () => ({
-    label: "conditionMatched",
+    label: "",
     conditions: [
       {
         id: crypto.randomUUID(),

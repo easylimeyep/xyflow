@@ -22,50 +22,45 @@ import {
 export default function Page() {
   return (
     <div className="min-h-svh bg-gray-100 p-6">
-      <Tabs
-        defaultValue="base"
-        className="mx-auto flex min-h-[calc(100svh-3rem)] w-full max-w-[1600px]"
-      >
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-lg font-semibold text-gray-950">
-              Workflow editor examples
-            </h1>
-            <p className="text-sm text-gray-600">
-              Переключайся между базовым использованием и сценарием с{" "}
-              <code className="rounded bg-gray-200 px-1 py-0.5 text-xs text-gray-900">
-                initialGraph
-              </code>
-              , ELK layout и кастомными boolean-операторами.
-            </p>
-          </div>
-          <TabsList>
-            <TabsTrigger value="base">base</TabsTrigger>
-            <TabsTrigger value="with-default-graph">
-              with default graph
-            </TabsTrigger>
-            <TabsTrigger value="with-elk-graph">with elk graph</TabsTrigger>
-            <TabsTrigger value="with-large-elk-graph">
-              with large elk graph
-            </TabsTrigger>
-            <TabsTrigger value="with-custom-operators">
-              with custom operators
-            </TabsTrigger>
-            <TabsTrigger value="with-backend-transform">
-              with backend transform
-            </TabsTrigger>
-            <TabsTrigger value="with-tour-anchors">
-              with tour anchors
-            </TabsTrigger>
-            <TabsTrigger value="with-validation">with validation</TabsTrigger>
-            <TabsTrigger value="with-global-validation">
-              global validation
-            </TabsTrigger>
-            <TabsTrigger value="with-fullscreen-modal">
-              with fullscreen modal
-            </TabsTrigger>
-          </TabsList>
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 className="text-lg font-semibold text-gray-950">
+            Workflow editor examples
+          </h1>
+          <p className="text-sm text-gray-600">
+            Переключайся между базовым использованием и сценарием с{" "}
+            <code className="rounded bg-gray-200 px-1 py-0.5 text-xs text-gray-900">
+              initialGraph
+            </code>
+            , ELK layout и кастомными boolean-операторами.
+          </p>
         </div>
+      </div>
+      <Tabs defaultValue="base" className="">
+        <TabsList className="w-full overflow-x-auto">
+          <TabsTrigger value="base">base</TabsTrigger>
+          <TabsTrigger value="with-default-graph">
+            with default graph
+          </TabsTrigger>
+          <TabsTrigger value="with-elk-graph">with elk graph</TabsTrigger>
+          <TabsTrigger value="with-large-elk-graph">
+            with large elk graph
+          </TabsTrigger>
+          <TabsTrigger value="with-custom-operators">
+            with custom operators
+          </TabsTrigger>
+          <TabsTrigger value="with-backend-transform">
+            with backend transform
+          </TabsTrigger>
+          <TabsTrigger value="with-tour-anchors">with tour anchors</TabsTrigger>
+          <TabsTrigger value="with-validation">with validation</TabsTrigger>
+          <TabsTrigger value="with-global-validation">
+            global validation
+          </TabsTrigger>
+          <TabsTrigger value="with-fullscreen-modal">
+            with fullscreen modal
+          </TabsTrigger>
+        </TabsList>
 
         <TabsContent
           value="base"

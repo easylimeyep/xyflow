@@ -399,7 +399,7 @@ describe("workflow mappers", () => {
     expect(
       parsed.value?.nodes.find((node) => node.id === "legacy-evaluator")?.data
         .config.label
-    ).toBe("conditionMatched")
+    ).toBe("")
   })
 
   it("exports and parses selection clipboard json with relative positions", () => {

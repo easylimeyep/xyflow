@@ -13,7 +13,7 @@ describe("workflow node registry", () => {
 
     expect(definition.kind).toBe("setVariable")
     expect(definition.title).toBe("Setter")
-    expect(definition.buildDefaultConfig().variableName).toBe("myVar")
+    expect(definition.buildDefaultConfig().variableName).toBe("")
     expect(definition.buildDefaultConfig().variableType).toBe("value")
     expect(definition.buildDefaultConfig().valueExpression).toBeDefined()
     expect(definition.buildDefaultConfig().clear).toBe(false)
@@ -31,7 +31,7 @@ describe("workflow node registry", () => {
 
     expect(node.type).toBe("setVariable")
     expect(node.data.label).toBe("Setter")
-    expect(node.data.config.variableName).toBe("myVar")
+    expect(node.data.config.variableName).toBe("")
     expect(node.data.config.variableType).toBe("value")
     expect(node.data.config.valueExpression).toBeDefined()
     expect(node.data.config.clear).toBe(false)
@@ -113,7 +113,7 @@ describe("workflow node registry", () => {
         logicalOperator: "and",
         caseSensitive: false,
       }).label
-    ).toBe("conditionMatched")
+    ).toBe("")
   })
 
   it("rejects string workflow type literals", () => {

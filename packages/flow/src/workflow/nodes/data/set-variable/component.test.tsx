@@ -84,17 +84,15 @@ describe("SetVariableNode", () => {
     cleanup()
   })
 
-  it("renders variable name input independently from node title", () => {
-    render(
-      <SetVariableNode {...createNodeProps("Setter Title", "myVar", "")} />
-    )
+  it("renders empty variable name input independently from node title", () => {
+    render(<SetVariableNode {...createNodeProps("Setter Title", "", "")} />)
 
     const nameInput = screen.getByPlaceholderText("myVar")
     const typeSelect = screen.getByLabelText("Variable type")
     expect(screen.getByText("Label")).toBeDefined()
     expect(screen.getByText("Setter Title")).toBeDefined()
     expect(nameInput).toBeDefined()
-    expect((nameInput as HTMLInputElement).value).toBe("myVar")
+    expect((nameInput as HTMLInputElement).value).toBe("")
     expect(
       nameInput.compareDocumentPosition(typeSelect) &
         Node.DOCUMENT_POSITION_FOLLOWING

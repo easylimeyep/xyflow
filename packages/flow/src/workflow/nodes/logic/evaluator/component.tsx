@@ -413,7 +413,7 @@ export function EvaluatorNode({ id, data, selected }: NodeProps) {
   const logicalOperator =
     (config.logicalOperator as "and" | "or" | undefined) ?? "and"
   const isCaseSensitiveFromStore = config.caseSensitive === true
-  const resultLabel = asText(config.label).trim() || "conditionMatched"
+  const resultLabel = asText(config.label).trim()
   const resultLabelField = useVariableIdentifierField({
     value: resultLabel,
     onCommit: (nextLabel) => {

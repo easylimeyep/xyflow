@@ -149,7 +149,7 @@ export function KeywordExpressionListInput({
             <div className={styles.tokenRowInput()}>
               <ExpressionInput
                 value={committedRowValue}
-                placeholder="{{ myVariable }}"
+                placeholder="token"
                 variables={variables}
                 onChange={(nextValue) => updateRow(index, nextValue)}
                 onLiveChange={(nextValue) => {

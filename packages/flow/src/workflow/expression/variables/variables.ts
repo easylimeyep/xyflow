@@ -57,7 +57,7 @@ function readSetVariableName(node: WorkflowNode): string {
       return trimmedConfig
     }
   }
-  return node.data.label.trim()
+  return ""
 }
 
 function readExtractorVariableName(node: WorkflowNode): string {
