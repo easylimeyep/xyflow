@@ -15,6 +15,7 @@
     "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
+    "@rc-component/tour": "^2.4.0",
     "@workspace/expression-editor": "workspace:*",
     "@workspace/flow": "workspace:*",
     "@workspace/store": "workspace:*",
