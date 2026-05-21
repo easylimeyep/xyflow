@@ -301,6 +301,40 @@ describe("EvaluatorNode", () => {
     })
   })
 
+  it("commits empty Label via updateNodeConfig on blur", () => {
+    render(
+      <EvaluatorNode
+        {...createNodeProps({
+          config: {
+            conditions: [
+              stringCondition(
+                "condition-1",
+                "{{ source }}",
+                "is equal to",
+                "{{ target }}"
+              ),
+            ],
+            label: "conditionMatched",
+            logicalOperator: "and",
+            caseSensitive: false,
+          },
+        })}
+      />
+    )
+
+    const labelInput = screen.getByPlaceholderText("conditionMatched")
+    fireEvent.focus(labelInput)
+    fireEvent.change(labelInput, { target: { value: "" } })
+    fireEvent.blur(labelInput)
+
+    expect(mockUpdateNodeConfig).toHaveBeenCalledWith("evaluator-node-1", {
+      kind: "evaluator",
+      key: "label",
+      value: "",
+    })
+    expect(screen.queryByText("Label cannot be empty.")).toBeNull()
+  })
+
   it("shows error and does not commit for invalid Label", () => {
     render(<EvaluatorNode {...createNodeProps()} />)
 

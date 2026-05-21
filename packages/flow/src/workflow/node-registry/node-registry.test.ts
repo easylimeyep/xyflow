@@ -116,6 +116,42 @@ describe("workflow node registry", () => {
     ).toBe("")
   })
 
+  it("keeps evaluator result label separate from variable type metadata", () => {
+    const evaluatorConfig = normalizeNodeConfig("evaluator", {
+      label: "",
+      conditions: [],
+      logicalOperator: "and",
+      caseSensitive: false,
+    })
+
+    expect(evaluatorConfig.label).toBe("")
+    expect(evaluatorConfig).not.toHaveProperty("labelType")
+    expect(evaluatorConfig).not.toHaveProperty("variableType")
+
+    expect(
+      normalizeNodeConfig("setVariable", {
+        variableName: "email",
+        variableType: "array",
+        valueExpression: "{{ email }}",
+        clear: false,
+      })
+    ).toMatchObject({
+      variableName: "email",
+      variableType: "array",
+    })
+    expect(
+      normalizeNodeConfig("extractor", {
+        tokenNumber: 1,
+        extractExpression: "email",
+        variableType: "array",
+        unlimited: false,
+      })
+    ).toMatchObject({
+      extractExpression: "email",
+      variableType: "array",
+    })
+  })
+
   it("rejects string workflow type literals", () => {
     expect(
       decodeNodeConfig("extractor", {

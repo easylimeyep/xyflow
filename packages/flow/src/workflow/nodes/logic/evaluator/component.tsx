@@ -416,6 +416,7 @@ export function EvaluatorNode({ id, data, selected }: NodeProps) {
   const resultLabel = asText(config.label).trim()
   const resultLabelField = useVariableIdentifierField({
     value: resultLabel,
+    allowEmpty: true,
     onCommit: (nextLabel) => {
       updateNodeConfig(id, {
         kind: "evaluator",

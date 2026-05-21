@@ -121,6 +121,26 @@ describe("applyNodeConfigUpdate", () => {
     expect(result.nextGraph?.nodes[1]?.data.config.template).toEqual(["{{ isQualified }}"])
   })
 
+  it("does not blank plain variable references when evaluator Label is cleared", () => {
+    const evaluatorNode = createWorkflowNode("evaluator", { x: 0, y: 0 })
+    const inlineNode = createWorkflowNode("inlineExpression", { x: 300, y: 0 })
+    evaluatorNode.data.config.label = "conditionMatched"
+    inlineNode.data.config.template = ["{{ conditionMatched }}"]
+
+    const graph = createGraph([evaluatorNode, inlineNode])
+    const result = applyNodeConfigUpdate(graph, evaluatorNode.id, {
+      kind: "evaluator",
+      key: "label",
+      value: "",
+    })
+
+    expect(result.error).toBeNull()
+    expect(result.nextGraph?.nodes[0]?.data.config.label).toBe("")
+    expect(result.nextGraph?.nodes[1]?.data.config.template).toEqual([
+      "{{ conditionMatched }}",
+    ])
+  })
+
   it("does not refactor references on extractor non-rename config updates", () => {
     const extractorNode = createWorkflowNode("extractor", { x: 0, y: 0 })
     const inlineNode = createWorkflowNode("inlineExpression", { x: 300, y: 0 })

@@ -8,6 +8,7 @@ import { isValidJsIdentifier } from "../../expression/variable-name/variable-nam
 interface UseVariableIdentifierFieldOptions {
   value: string
   onCommit: (nextValue: string) => void
+  allowEmpty?: boolean
   emptyErrorText?: string
   invalidErrorText?: string
 }
@@ -25,6 +26,7 @@ interface UseVariableIdentifierFieldResult {
 export function useVariableIdentifierField({
   value,
   onCommit,
+  allowEmpty = false,
   emptyErrorText = "Label cannot be empty.",
   invalidErrorText = "Label must be a valid JavaScript identifier.",
 }: UseVariableIdentifierFieldOptions): UseVariableIdentifierFieldResult {
@@ -45,6 +47,11 @@ export function useVariableIdentifierField({
   const commit = useCallback((): boolean => {
     const nextValue = draftValue.trim()
     if (!nextValue) {
+      if (allowEmpty) {
+        setErrorText(null)
+        onCommit("")
+        return true
+      }
       setErrorText(emptyErrorText)
       return false
     }
@@ -57,7 +64,7 @@ export function useVariableIdentifierField({
     setErrorText(null)
     onCommit(nextValue)
     return true
-  }, [draftValue, emptyErrorText, invalidErrorText, onCommit])
+  }, [allowEmpty, draftValue, emptyErrorText, invalidErrorText, onCommit])
 
   const onFocus = useCallback(() => {
     setDraftValue(value)

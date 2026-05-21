@@ -2,6 +2,7 @@ import { getNodeDefinition } from "../node-registry/registry"
 import type { NodeKind } from "../node-registry/registry"
 import type { WorkflowEdge, WorkflowNode } from "../types/types"
 import { refactorPlainVariableReferencesInGraph } from "../expression/refactor/refactor"
+import { isValidJsIdentifier } from "../expression/variable-name/variable-name"
 
 import type { NodeConfigUpdate } from "../store/types"
 
@@ -40,7 +41,9 @@ function maybeRefactorExpressions(
   const isRenameFieldUpdate =
     definition.renameConfigKey === context.update.key &&
     oldName !== null &&
-    newName !== null
+    newName !== null &&
+    isValidJsIdentifier(oldName.trim()) &&
+    isValidJsIdentifier(newName.trim())
 
   return isRenameFieldUpdate
     ? refactorPlainVariableReferencesInGraph(nodes, oldName, newName)
