@@ -304,8 +304,9 @@ describe("InlineExpressionNode", () => {
     expect(mockUpdateNodeConfig).toHaveBeenCalledWith("inline-node-1", {
       kind: "inlineExpression",
       key: "template",
-      value: ["{{ first }}", ""],
+      value: ["{{ first }}"],
     })
+    expect(screen.getAllByTestId("inline-expression-input")).toHaveLength(2)
   })
 
   it("renders the add button below token rows", () => {
@@ -319,7 +320,7 @@ describe("InlineExpressionNode", () => {
     expect(tokenRows.some((row) => row.contains(addButton))).toBe(false)
   })
 
-  it("appends two visible rows when adding from the empty visual state", () => {
+  it("keeps empty visual rows out of config when adding from the empty visual state", () => {
     render(<InlineExpressionNode {...createNodeProps([])} />)
 
     fireEvent.click(screen.getByRole("button", { name: /Add token/i }))
@@ -327,7 +328,40 @@ describe("InlineExpressionNode", () => {
     expect(mockUpdateNodeConfig).toHaveBeenCalledWith("inline-node-1", {
       kind: "inlineExpression",
       key: "template",
-      value: ["", ""],
+      value: [],
+    })
+    expect(screen.getAllByTestId("inline-expression-input")).toHaveLength(2)
+  })
+
+  it("persists an empty array when clearing the only token row", () => {
+    render(<InlineExpressionNode {...createNodeProps(["email"])} />)
+
+    fireEvent.change(screen.getByTestId("inline-expression-input"), {
+      target: { value: "" },
+    })
+
+    expect(mockUpdateNodeConfig).toHaveBeenCalledWith("inline-node-1", {
+      kind: "inlineExpression",
+      key: "template",
+      value: [],
+    })
+    expect(screen.getAllByTestId("inline-expression-input")).toHaveLength(1)
+  })
+
+  it("persists only non-empty keyword tokens in order", () => {
+    render(<InlineExpressionNode {...createNodeProps(["email", "phone"])} />)
+
+    const inputs = screen.getAllByTestId("inline-expression-input")
+    expect(inputs).toHaveLength(2)
+
+    fireEvent.change(inputs[0]!, {
+      target: { value: "" },
+    })
+
+    expect(mockUpdateNodeConfig).toHaveBeenCalledWith("inline-node-1", {
+      kind: "inlineExpression",
+      key: "template",
+      value: ["phone"],
     })
   })
 

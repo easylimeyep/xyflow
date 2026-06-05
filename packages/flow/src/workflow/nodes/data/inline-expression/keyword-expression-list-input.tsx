@@ -45,8 +45,19 @@ export function KeywordExpressionListInput({
       ? liveDraft.rowsByIndex
       : null
   const rows = useMemo(
-    () =>
-      committedRows.map((rowValue, index) => {
+    () => {
+      const liveRowIndexes = liveRowsByIndex
+        ? Object.keys(liveRowsByIndex)
+            .map(Number)
+            .filter((index) => Number.isInteger(index) && index >= 0)
+        : []
+      const rowCount = Math.max(
+        committedRows.length,
+        ...liveRowIndexes.map((index) => index + 1)
+      )
+
+      return Array.from({ length: rowCount }, (_, index) => {
+        const rowValue = committedRows[index] ?? ""
         if (
           !liveRowsByIndex ||
           !Object.prototype.hasOwnProperty.call(liveRowsByIndex, index)
@@ -55,7 +66,8 @@ export function KeywordExpressionListInput({
         }
 
         return liveRowsByIndex[index] ?? rowValue
-      }),
+      })
+    },
     [committedRows, liveRowsByIndex]
   )
 
@@ -82,21 +94,25 @@ export function KeywordExpressionListInput({
     })
   }
 
+  const setLiveRows = (nextRows: string[]) => {
+    setLiveDraft({
+      baseValue: value,
+      rowsByIndex: Object.fromEntries(
+        nextRows.map((rowValue, index) => [index, rowValue])
+      ),
+    })
+  }
+
   const updateRow = (index: number, nextRowValue: string) => {
-    setLiveRow(index, nextRowValue)
+    const nextRows = rows.map((rowValue, rowIndex) =>
+      rowIndex === index ? nextRowValue : rowValue
+    )
+    setLiveRows(nextRows)
     if (getKeywordTokenValidationError(nextRowValue)) {
       return
     }
 
-    if (value.length === 0) {
-      onChange(nextRowValue === "" ? [] : [nextRowValue])
-      return
-    }
-
-    const nextValue = value.map((rowValue, rowIndex) =>
-      rowIndex === index ? nextRowValue : rowValue
-    )
-    onChange(nextValue)
+    onChange(normalizeKeywordTokenRows(nextRows))
   }
 
   const addRow = () => {
@@ -104,7 +120,9 @@ export function KeywordExpressionListInput({
       return
     }
 
-    onChange([...rows, ""])
+    const nextRows = [...rows, ""]
+    setLiveRows(nextRows)
+    onChange(normalizeKeywordTokenRows(nextRows))
   }
 
   const removeRow = (index: number) => {
@@ -113,11 +131,14 @@ export function KeywordExpressionListInput({
     }
 
     if (rows.length <= 1) {
+      setLiveRows([""])
       onChange([])
       return
     }
 
-    onChange(rows.filter((_, rowIndex) => rowIndex !== index))
+    const nextRows = rows.filter((_, rowIndex) => rowIndex !== index)
+    setLiveRows(nextRows)
+    onChange(normalizeKeywordTokenRows(nextRows))
   }
 
   return (
@@ -201,6 +222,10 @@ function getKeywordTokenValidationError(value: string): string | null {
   }
 
   return null
+}
+
+function normalizeKeywordTokenRows(rows: string[]): string[] {
+  return rows.filter((rowValue) => rowValue !== "")
 }
 
 function areStringArraysEqual(left: string[], right: string[]): boolean {
