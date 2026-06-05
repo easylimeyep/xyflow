@@ -27,11 +27,10 @@ export interface WorkflowEditorAnchorElementMap {
   configPanel: HTMLElement
 }
 
-export type WorkflowEditorAnchorElements = Partial<
-  WorkflowEditorAnchorElementMap
-> & {
-  paletteItems?: Partial<Record<NodeKind, HTMLElement>>
-}
+export type WorkflowEditorAnchorElements =
+  Partial<WorkflowEditorAnchorElementMap> & {
+    paletteItems?: Partial<Record<NodeKind, HTMLElement>>
+  }
 
 export interface WorkflowEditorAnchorRefs {
   current: WorkflowEditorAnchorElements
@@ -46,5 +45,18 @@ export interface WorkflowTourStep {
   anchor: WorkflowTourAnchor
   title: string
   body: string
-  placement?: "top" | "right" | "bottom" | "left"
+  placement?:
+    | "left"
+    | "leftTop"
+    | "leftBottom"
+    | "right"
+    | "rightTop"
+    | "rightBottom"
+    | "top"
+    | "topLeft"
+    | "topRight"
+    | "bottom"
+    | "bottomLeft"
+    | "bottomRight"
+    | "center"
 }
