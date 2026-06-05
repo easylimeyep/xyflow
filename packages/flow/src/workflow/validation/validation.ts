@@ -141,6 +141,20 @@ export function validateConnection(
     }
   }
 
+  if (
+    sourceKind === "evaluator" &&
+    edges.some(
+      (edge) =>
+        edge.source === connection.source &&
+        edge.sourceHandle === (connection.sourceHandle ?? null)
+    )
+  ) {
+    return {
+      valid: false,
+      reason: "Evaluator output already has an outgoing connection.",
+    }
+  }
+
   if (wouldCreateCycle(edges, connection.source, connection.target)) {
     return {
       valid: false,

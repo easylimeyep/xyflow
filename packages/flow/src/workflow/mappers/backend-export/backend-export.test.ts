@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest"
 
-import { exportDomainWorkflowForBackend } from "./backend-export"
+import {
+  exportDomainWorkflowForBackend,
+  exportDraftDomainWorkflowForBackend,
+} from "./backend-export"
 import type {
   DomainWorkflowConnectionDTO,
   DomainWorkflowDTO,
@@ -299,5 +302,134 @@ describe("exportDomainWorkflowForBackend", () => {
     )
 
     expect(() => exportDomainWorkflowForBackend(dto)).toThrow("duplicate")
+  })
+})
+
+describe("exportDraftDomainWorkflowForBackend", () => {
+  it("preserves workflow fields and node semantic fields", () => {
+    const step = node("step", "setVariable", 200, 0, {
+      variableName: "value",
+      valueExpression: "{{ root }}",
+    })
+    const result = node("result", "result", 400, 0, { category: "true" })
+    const dto = workflow([result, step], [connection("step", "result")])
+
+    const backend = exportDraftDomainWorkflowForBackend(dto)
+
+    expect(backend).toMatchObject({
+      id: "workflow-1",
+      name: "Workflow",
+      version: 1,
+      metadata: { source: "test" },
+    })
+    expect(backend.nodes).toHaveLength(2)
+    expect(backend.nodes[0]).toMatchObject({
+      id: 1,
+      kind: "setVariable",
+      position: { x: 200, y: 0 },
+      label: "step",
+      config: {
+        variableName: "value",
+        valueExpression: "{{ root }}",
+      },
+      next: [2],
+    })
+    expect(backend.nodes[1]).toMatchObject({
+      id: 2,
+      kind: "result",
+      position: { x: 400, y: 0 },
+      label: "result",
+      config: { category: "true" },
+      next: [],
+    })
+  })
+
+  it("exports drafts without roots and includes unreachable nodes", () => {
+    const source = node("source", "setVariable", 0, 0)
+    const target = node("target", "extractor", 200, 0)
+    const unreachable = node("unreachable", "result", 500, 0)
+    const dto = workflow(
+      [unreachable, target, source],
+      [connection("source", "target")]
+    )
+
+    const backend = exportDraftDomainWorkflowForBackend(dto)
+
+    expect(backend.nodes.map((backendNode) => backendNode.label)).toEqual([
+      "source",
+      "target",
+      "unreachable",
+    ])
+    expect(backend.nodes[0]).toMatchObject({ id: 1, next: [2] })
+    expect(backend.nodes[1]).toMatchObject({ id: 2, next: [] })
+    expect(backend.nodes[2]).toMatchObject({ id: 3, next: [] })
+  })
+
+  it("exports cyclic drafts by appending remaining nodes deterministically", () => {
+    const a = node("a", "setVariable", 0, 0)
+    const b = node("b", "extractor", 200, 0)
+    const dto = workflow([b, a], [connection("a", "b"), connection("b", "a")])
+
+    const backend = exportDraftDomainWorkflowForBackend(dto)
+
+    expect(backend.nodes.map((backendNode) => backendNode.label)).toEqual([
+      "a",
+      "b",
+    ])
+    expect(backend.nodes[0]).toMatchObject({ id: 1, next: [2] })
+    expect(backend.nodes[1]).toMatchObject({ id: 2, next: [1] })
+  })
+
+  it("produces deterministic order and numeric links across repeated exports", () => {
+    const root = node("root", "inlineExpression", 0, 0, { isRoot: true })
+    const branchB = node("branch-b", "setVariable", 200, 100)
+    const branchA = node("branch-a", "setVariable", 200, 0)
+    const disconnected = node("disconnected", "result", 500, 0)
+    const dto = workflow(
+      [disconnected, branchB, root, branchA],
+      [connection("root", "branch-b"), connection("root", "branch-a")]
+    )
+
+    const first = exportDraftDomainWorkflowForBackend(dto)
+    const second = exportDraftDomainWorkflowForBackend(dto)
+
+    expect(second).toEqual(first)
+    expect(first.nodes.map((backendNode) => backendNode.label)).toEqual([
+      "root",
+      "branch-a",
+      "branch-b",
+      "disconnected",
+    ])
+    expect(first.nodes[0]).toMatchObject({ id: 1, next: [2, 3] })
+  })
+
+  it("maps evaluator branches and missing draft branches", () => {
+    const evaluator = node("evaluator", "evaluator", 0, 0, {
+      conditions: [],
+      logicalOperator: "and",
+      caseSensitive: false,
+    })
+    const trueResult = node("true-result", "result", 200, -100)
+    const dto = workflow(
+      [trueResult, evaluator],
+      [connection("evaluator", "true-result", "evaluator-true")]
+    )
+
+    const backend = exportDraftDomainWorkflowForBackend(dto)
+
+    expect(backend.nodes[0]).toMatchObject({
+      id: 1,
+      kind: "evaluator",
+      next_true: 2,
+      next_false: null,
+    })
+    expect(backend.nodes[1]).toMatchObject({ id: 2, next: [] })
+  })
+
+  it("rejects connections with unknown endpoints", () => {
+    const step = node("step", "setVariable", 0, 0)
+    const dto = workflow([step], [connection("step", "missing")])
+
+    expect(() => exportDraftDomainWorkflowForBackend(dto)).toThrow("unknown")
   })
 })

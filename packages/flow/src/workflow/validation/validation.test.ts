@@ -60,6 +60,101 @@ describe("validateConnection", () => {
     expect(falseConnection.valid).toBe(true)
   })
 
+  it("rejects a second evaluator true branch to another target", () => {
+    const evaluator = createWorkflowNode("evaluator", { x: 0, y: 0 })
+    const firstResult = createWorkflowNode("result", { x: 300, y: -80 })
+    const secondResult = createWorkflowNode("result", { x: 300, y: 80 })
+    const existing = [
+      {
+        id: "evaluator-true-first",
+        source: evaluator.id,
+        target: firstResult.id,
+        sourceHandle: "evaluator-true",
+        targetHandle: null,
+        data: {
+          sourceKind: evaluator.data.kind,
+          targetKind: firstResult.data.kind,
+        },
+      },
+    ]
+
+    const result = validateConnection(
+      {
+        source: evaluator.id,
+        target: secondResult.id,
+        sourceHandle: "evaluator-true",
+      },
+      [evaluator, firstResult, secondResult],
+      existing
+    )
+
+    expect(result.valid).toBe(false)
+    expect(result.reason).toContain("already has an outgoing connection")
+  })
+
+  it("rejects a second evaluator false branch to another target", () => {
+    const evaluator = createWorkflowNode("evaluator", { x: 0, y: 0 })
+    const firstResult = createWorkflowNode("result", { x: 300, y: -80 })
+    const secondResult = createWorkflowNode("result", { x: 300, y: 80 })
+    const existing = [
+      {
+        id: "evaluator-false-first",
+        source: evaluator.id,
+        target: firstResult.id,
+        sourceHandle: "evaluator-false",
+        targetHandle: null,
+        data: {
+          sourceKind: evaluator.data.kind,
+          targetKind: firstResult.data.kind,
+        },
+      },
+    ]
+
+    const result = validateConnection(
+      {
+        source: evaluator.id,
+        target: secondResult.id,
+        sourceHandle: "evaluator-false",
+      },
+      [evaluator, firstResult, secondResult],
+      existing
+    )
+
+    expect(result.valid).toBe(false)
+    expect(result.reason).toContain("already has an outgoing connection")
+  })
+
+  it("allows an evaluator false branch when true is already connected", () => {
+    const evaluator = createWorkflowNode("evaluator", { x: 0, y: 0 })
+    const trueResult = createWorkflowNode("result", { x: 300, y: -80 })
+    const falseResult = createWorkflowNode("result", { x: 300, y: 80 })
+    const existing = [
+      {
+        id: "evaluator-true",
+        source: evaluator.id,
+        target: trueResult.id,
+        sourceHandle: "evaluator-true",
+        targetHandle: null,
+        data: {
+          sourceKind: evaluator.data.kind,
+          targetKind: trueResult.data.kind,
+        },
+      },
+    ]
+
+    const result = validateConnection(
+      {
+        source: evaluator.id,
+        target: falseResult.id,
+        sourceHandle: "evaluator-false",
+      },
+      [evaluator, trueResult, falseResult],
+      existing
+    )
+
+    expect(result.valid).toBe(true)
+  })
+
   it("rejects invalid combination", () => {
     const inline = createWorkflowNode("inlineExpression", { x: 0, y: 0 })
     const rootKeyword = createWorkflowNode("inlineExpression", { x: 300, y: 0 })

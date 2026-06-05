@@ -1,1 +1,4 @@
-export { exportDomainWorkflowForBackend } from "./backend-export"
+export {
+  exportDomainWorkflowForBackend,
+  exportDraftDomainWorkflowForBackend,
+} from "./backend-export"

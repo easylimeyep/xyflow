@@ -108,7 +108,9 @@ function validateRoots(
   incomingByTarget: IncomingByTarget
 ) {
   if (roots.length === 0) {
-    throw new Error("Cannot export backend workflow: workflow must contain at least one root node.")
+    throw new Error(
+      "Cannot export backend workflow: workflow must contain at least one root node."
+    )
   }
 
   const rootWithIncoming = roots.find(
@@ -167,20 +169,33 @@ function sortedOutgoingConnections(
   })
 }
 
+function sortedNodesByPositionLabelAndId(
+  nodes: DomainWorkflowNodeDTO[],
+  nodeById: Map<string, DomainWorkflowNodeDTO>
+): DomainWorkflowNodeDTO[] {
+  return [...nodes].sort((left, right) =>
+    byNodePositionLabelAndId(nodeById, left.id, right.id)
+  )
+}
+
 function resolveBackendOrder(
   dto: DomainWorkflowDTO,
   indexes: GraphIndexes
 ): DomainWorkflowNodeDTO[] {
   const { nodeById, incomingByTarget, outgoingBySource } = indexes
-  const roots = dto.nodes
-    .filter(isRootNode)
-    .sort((left, right) => byNodePositionLabelAndId(nodeById, left.id, right.id))
+  const roots = sortedNodesByPositionLabelAndId(
+    dto.nodes.filter(isRootNode),
+    nodeById
+  )
 
   validateRoots(roots, incomingByTarget)
   validateEvaluatorBranches(nodeById, outgoingBySource)
 
   const remainingIncomingCount = new Map(
-    dto.nodes.map((node) => [node.id, incomingByTarget.get(node.id)?.length ?? 0])
+    dto.nodes.map((node) => [
+      node.id,
+      incomingByTarget.get(node.id)?.length ?? 0,
+    ])
   )
   const available: AvailableNode[] = roots.map((root) => ({
     id: root.id,
@@ -190,7 +205,9 @@ function resolveBackendOrder(
   const orderedIds = new Set<string>()
 
   while (available.length > 0) {
-    available.sort((left, right) => compareAvailableNodes(nodeById, left, right))
+    available.sort((left, right) =>
+      compareAvailableNodes(nodeById, left, right)
+    )
     const current = available.shift()
     if (!current || orderedIds.has(current.id)) {
       continue
@@ -230,6 +247,109 @@ function resolveBackendOrder(
     }
 
     throw new Error("Cannot export backend workflow: graph contains a cycle.")
+  }
+
+  return ordered
+}
+
+function resolveDraftBackendOrder(
+  dto: DomainWorkflowDTO,
+  indexes: GraphIndexes
+): DomainWorkflowNodeDTO[] {
+  const { nodeById, incomingByTarget, outgoingBySource } = indexes
+  const remainingIncomingCount = new Map(
+    dto.nodes.map((node) => [
+      node.id,
+      incomingByTarget.get(node.id)?.length ?? 0,
+    ])
+  )
+  const ordered: DomainWorkflowNodeDTO[] = []
+  const orderedIds = new Set<string>()
+  const remainingIds = new Set(dto.nodes.map((node) => node.id))
+  const queuedIds = new Set<string>()
+  const available: AvailableNode[] = []
+
+  function queueNode(id: string, sourceHandle: string | null) {
+    if (!remainingIds.has(id) || queuedIds.has(id) || orderedIds.has(id)) {
+      return
+    }
+
+    queuedIds.add(id)
+    available.push({ id, sourceHandle })
+  }
+
+  const initialRoots = sortedNodesByPositionLabelAndId(
+    dto.nodes.filter(isRootNode),
+    nodeById
+  )
+  const initialAvailable =
+    initialRoots.length > 0
+      ? initialRoots
+      : sortedNodesByPositionLabelAndId(
+          dto.nodes.filter(
+            (node) => (incomingByTarget.get(node.id)?.length ?? 0) === 0
+          ),
+          nodeById
+        )
+
+  for (const node of initialAvailable) {
+    queueNode(node.id, null)
+  }
+
+  while (remainingIds.size > 0) {
+    if (available.length === 0) {
+      const remainingNodes = sortedNodesByPositionLabelAndId(
+        dto.nodes.filter((node) => remainingIds.has(node.id)),
+        nodeById
+      )
+      const readyNodes = remainingNodes.filter(
+        (node) => (remainingIncomingCount.get(node.id) ?? 0) <= 0
+      )
+      const fallbackNodes =
+        readyNodes.length > 0 ? readyNodes : remainingNodes.slice(0, 1)
+
+      for (const node of fallbackNodes) {
+        queueNode(node.id, null)
+      }
+    }
+
+    available.sort((left, right) =>
+      compareAvailableNodes(nodeById, left, right)
+    )
+    const current = available.shift()
+    if (!current) {
+      continue
+    }
+    queuedIds.delete(current.id)
+
+    if (orderedIds.has(current.id) || !remainingIds.has(current.id)) {
+      continue
+    }
+
+    const currentNode = nodeById.get(current.id)
+    if (!currentNode) {
+      continue
+    }
+
+    ordered.push(currentNode)
+    orderedIds.add(current.id)
+    remainingIds.delete(current.id)
+
+    for (const connection of sortedOutgoingConnections(
+      outgoingBySource.get(current.id) ?? [],
+      nodeById
+    )) {
+      const targetId = connection.targetNodeId
+      if (!remainingIds.has(targetId)) {
+        continue
+      }
+
+      const nextIncomingCount = (remainingIncomingCount.get(targetId) ?? 0) - 1
+      remainingIncomingCount.set(targetId, nextIncomingCount)
+      if (nextIncomingCount <= 0) {
+        queueNode(targetId, connection.sourceHandle)
+      }
+    }
   }
 
   return ordered
@@ -320,11 +440,11 @@ function mapEvaluatorNode(
   }
 }
 
-export function exportDomainWorkflowForBackend(
-  dto: DomainWorkflowDTO
+function mapDomainWorkflowToBackend(
+  dto: DomainWorkflowDTO,
+  orderedNodes: DomainWorkflowNodeDTO[],
+  indexes: GraphIndexes
 ): BackendWorkflowDTO {
-  const indexes = buildGraphIndexes(dto)
-  const orderedNodes = resolveBackendOrder(dto, indexes)
   const backendIdByDomainId = buildBackendIdByDomainId(orderedNodes)
 
   return {
@@ -345,4 +465,22 @@ export function exportDomainWorkflowForBackend(
       return mapRegularNode(node, outgoing, backendIdByDomainId)
     }),
   }
+}
+
+export function exportDomainWorkflowForBackend(
+  dto: DomainWorkflowDTO
+): BackendWorkflowDTO {
+  const indexes = buildGraphIndexes(dto)
+  const orderedNodes = resolveBackendOrder(dto, indexes)
+
+  return mapDomainWorkflowToBackend(dto, orderedNodes, indexes)
+}
+
+export function exportDraftDomainWorkflowForBackend(
+  dto: DomainWorkflowDTO
+): BackendWorkflowDTO {
+  const indexes = buildGraphIndexes(dto)
+  const orderedNodes = resolveDraftBackendOrder(dto, indexes)
+
+  return mapDomainWorkflowToBackend(dto, orderedNodes, indexes)
 }

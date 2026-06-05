@@ -35,7 +35,10 @@ export {
   WORKFLOW_NODE_KINDS,
   isNodeKind,
 } from "./workflow/types"
-export { exportDomainWorkflowForBackend } from "./workflow/mappers"
+export {
+  exportDomainWorkflowForBackend,
+  exportDraftDomainWorkflowForBackend,
+} from "./workflow/mappers"
 export type {
   WorkflowRuntimeConfig,
   WorkflowStoreInitialProps,
