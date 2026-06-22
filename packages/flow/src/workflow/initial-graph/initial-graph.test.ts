@@ -56,7 +56,7 @@ describe("initial graph builders", () => {
           kind: "extractor",
           label: "Extractor",
           config: {
-            tokenNumber: 0,
+            tokenNumber: 1,
             extractExpression: "email",
             variableType: "value",
             unlimited: false,

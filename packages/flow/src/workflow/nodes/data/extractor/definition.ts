@@ -48,7 +48,7 @@ export const extractor = defineNode({
     "result",
   ],
   buildDefaultConfig: () => ({
-    tokenNumber: 0,
+    tokenNumber: 1,
     extractExpression: "",
     variableType: "value" as WorkflowVariableType,
     unlimited: false,

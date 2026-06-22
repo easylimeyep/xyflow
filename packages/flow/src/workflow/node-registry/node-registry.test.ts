@@ -196,6 +196,7 @@ describe("workflow node registry", () => {
 
     expect(definition.kind).toBe("extractor")
     expect(definition.renameConfigKey).toBe("extractExpression")
+    expect(definition.buildDefaultConfig().tokenNumber).toBe(1)
     expect(definition.buildDefaultConfig().variableType).toBe("value")
     expect(
       definition.fields.find((field) => field.key === "extractExpression")
