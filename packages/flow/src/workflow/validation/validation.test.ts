@@ -196,7 +196,7 @@ describe("validateConnection", () => {
     expect(result.reason).toContain("already exists")
   })
 
-  it("rejects cycles", () => {
+  it("allows cycle-forming connections when other guards pass", () => {
     const evaluator = createWorkflowNode("evaluator", { x: 0, y: 0 })
     const inline = createWorkflowNode("inlineExpression", { x: 300, y: 0 })
 
@@ -220,8 +220,7 @@ describe("validateConnection", () => {
       existing
     )
 
-    expect(result.valid).toBe(false)
-    expect(result.reason).toContain("cycle")
+    expect(result.valid).toBe(true)
   })
 
   it("resolves source and target kinds from valid connection", () => {

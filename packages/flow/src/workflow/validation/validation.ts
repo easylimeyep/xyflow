@@ -17,60 +17,6 @@ export type ConnectionLike = Pick<Connection, "source" | "target"> & {
   targetHandle?: string | null
 }
 
-function hasPath(
-  adjacency: Map<string, string[]>,
-  startNodeId: string,
-  targetNodeId: string
-): boolean {
-  const queue: string[] = [startNodeId]
-  const visited = new Set<string>()
-
-  while (queue.length > 0) {
-    const current = queue.shift()
-    if (!current) {
-      continue
-    }
-
-    if (current === targetNodeId) {
-      return true
-    }
-
-    if (visited.has(current)) {
-      continue
-    }
-
-    visited.add(current)
-    const neighbors = adjacency.get(current) ?? []
-    queue.push(...neighbors)
-  }
-
-  return false
-}
-
-function wouldCreateCycle(
-  edges: WorkflowEdge[],
-  sourceNodeId: string,
-  targetNodeId: string
-): boolean {
-  if (sourceNodeId === targetNodeId) {
-    return true
-  }
-
-  const adjacency = new Map<string, string[]>()
-
-  for (const edge of edges) {
-    const existingTargets = adjacency.get(edge.source) ?? []
-    existingTargets.push(edge.target)
-    adjacency.set(edge.source, existingTargets)
-  }
-
-  const pendingTargets = adjacency.get(sourceNodeId) ?? []
-  pendingTargets.push(targetNodeId)
-  adjacency.set(sourceNodeId, pendingTargets)
-
-  return hasPath(adjacency, targetNodeId, sourceNodeId)
-}
-
 export function validateConnection(
   connection: ConnectionLike,
   nodes: WorkflowNode[],
@@ -155,13 +101,8 @@ export function validateConnection(
     }
   }
 
-  if (wouldCreateCycle(edges, connection.source, connection.target)) {
-    return {
-      valid: false,
-      reason: "Connection creates a cycle.",
-    }
-  }
-
+  // Topology is intentionally unrestricted; cycles are valid as long as
+  // structural guardrails (kinds/handles/duplicates/root constraints) pass.
   return { valid: true }
 }
 

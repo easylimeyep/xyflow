@@ -275,7 +275,7 @@ describe("exportDomainWorkflowForBackend", () => {
     expect(() => exportDomainWorkflowForBackend(dto)).toThrow("unreachable")
   })
 
-  it("rejects cyclic reachable graphs", () => {
+  it("serializes cyclic reachable graphs using existing link fields", () => {
     const root = node("root", "inlineExpression", 0, 0, { isRoot: true })
     const a = node("a", "setVariable", 200, 0)
     const b = node("b", "extractor", 400, 0)
@@ -284,7 +284,39 @@ describe("exportDomainWorkflowForBackend", () => {
       [connection("root", "a"), connection("a", "b"), connection("b", "a")]
     )
 
-    expect(() => exportDomainWorkflowForBackend(dto)).toThrow("cycle")
+    const backend = exportDomainWorkflowForBackend(dto)
+
+    expect(backend.nodes.map((backendNode) => backendNode.label)).toEqual([
+      "root",
+      "a",
+      "b",
+    ])
+    expect(backend.nodes[0]).toMatchObject({ id: 1, next: [2] })
+    expect(backend.nodes[1]).toMatchObject({ id: 2, next: [3] })
+    expect(backend.nodes[2]).toMatchObject({ id: 3, next: [2] })
+  })
+
+  it("documents that strict export order is serialization order, not topological", () => {
+    const root = node("root", "inlineExpression", 0, 0, { isRoot: true })
+    const low = node("low", "setVariable", 200, 200)
+    const high = node("high", "setVariable", 200, 0)
+    const dto = workflow(
+      [low, root, high],
+      [
+        connection("root", "high"),
+        connection("high", "low"),
+        connection("low", "high"),
+      ]
+    )
+
+    const backend = exportDomainWorkflowForBackend(dto)
+
+    expect(backend.nodes.map((backendNode) => backendNode.label)).toEqual([
+      "root",
+      "high",
+      "low",
+    ])
+    expect(backend.nodes[2]).toMatchObject({ id: 3, next: [2] })
   })
 
   it("rejects duplicate evaluator true or false branches", () => {

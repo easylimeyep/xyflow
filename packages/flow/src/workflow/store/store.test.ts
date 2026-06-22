@@ -563,6 +563,39 @@ describe("workflow store", () => {
     ).toBe(true)
   })
 
+  it("commits cycle-forming connections without cycle-specific errors", () => {
+    const state = store.getState()
+    state.addNode("evaluator", { x: 420, y: 120 })
+    state.addNode("inlineExpression", { x: 760, y: 120 })
+
+    const evaluatorNode = store
+      .getState()
+      .history.present.nodes.find((node) => node.data.kind === "evaluator")
+    const inlineNode = store
+      .getState()
+      .history.present.nodes.find(
+        (node: WorkflowNode) =>
+          node.data.kind === "inlineExpression" &&
+          node.data.config.isRoot !== true
+      )
+    if (!evaluatorNode || !inlineNode) {
+      throw new Error("fixture nodes not found")
+    }
+
+    state.onConnect({
+      source: evaluatorNode.id,
+      target: inlineNode.id,
+      sourceHandle: "evaluator-true",
+    })
+    const beforeCycleEdgeCount = store.getState().history.present.edges.length
+
+    state.onConnect({ source: inlineNode.id, target: evaluatorNode.id })
+    const nextState = store.getState()
+
+    expect(nextState.history.present.edges.length).toBe(beforeCycleEdgeCount + 1)
+    expect(nextState.lastError).toBeNull()
+  })
+
   it("updates label and config fields as committed history changes", () => {
     const state = store.getState()
     const targetNode = state.history.present.nodes[0]

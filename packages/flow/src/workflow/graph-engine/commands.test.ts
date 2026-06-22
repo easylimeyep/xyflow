@@ -169,6 +169,64 @@ describe("graph-engine commands", () => {
     }
   })
 
+  it("accepts a connect command that closes a cycle", () => {
+    const evaluator = createWorkflowNode("evaluator", { x: 0, y: 0 })
+    const inline = createWorkflowNode("inlineExpression", { x: 320, y: 0 })
+    const graph = {
+      ...createGraph([evaluator, inline]),
+      edges: [
+        {
+          id: "evaluator-inline",
+          source: evaluator.id,
+          target: inline.id,
+          sourceHandle: "evaluator-true",
+          targetHandle: null,
+          data: {
+            sourceKind: evaluator.data.kind,
+            targetKind: inline.data.kind,
+          },
+        },
+      ],
+    }
+
+    const result = applyConnectNodesCommand(graph, {
+      connection: {
+        source: inline.id,
+        target: evaluator.id,
+      },
+    })
+
+    expect(result.ok).toBe(true)
+    if (result.ok) {
+      expect(result.nextGraph.edges).toHaveLength(2)
+      expect(
+        result.nextGraph.edges.some(
+          (edge) => edge.source === inline.id && edge.target === evaluator.id
+        )
+      ).toBe(true)
+    }
+  })
+
+  it("still rejects invalid non-topology connections", () => {
+    const root = createWorkflowNode("inlineExpression", { x: 0, y: 0 })
+    root.data.config.isRoot = true
+    const source = createWorkflowNode("extractor", { x: 320, y: 0 })
+    const graph = createGraph([root, source])
+
+    const result = applyConnectNodesCommand(graph, {
+      connection: {
+        source: source.id,
+        target: root.id,
+      },
+    })
+
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.error.code).toBe("INVALID_CONNECTION")
+      expect(result.error.message).toContain("Root Keyword")
+    }
+  })
+
   it("splits edges deterministically when insertion command provides a node id", () => {
     const source = createWorkflowNode("inlineExpression", { x: 0, y: 0 })
     const target = createWorkflowNode("inlineExpression", { x: 320, y: 0 })

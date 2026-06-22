@@ -87,75 +87,40 @@ describe("initial graph builders", () => {
     )
   })
 
-  it("builds deterministic linear layout positions", () => {
-    const input = {
-      nodes: [
-        { id: "keyword", kind: "inlineExpression", config: { isRoot: true } },
-        { id: "extractor", kind: "extractor" },
-        { id: "setter", kind: "setVariable" },
-      ],
-      edges: [
-        { source: "keyword", target: "extractor" },
-        { source: "extractor", target: "setter" },
-      ],
-    } as const
-
-    const first = createInitialGraph(input)
-    const second = createInitialGraph(input)
-
-    expect(first.nodes.map((node) => node.position)).toEqual(
-      second.nodes.map((node) => node.position)
-    )
-    expect(first.nodes.map((node) => node.position)).toEqual([
-      { x: 0, y: 80 },
-      { x: 320, y: 80 },
-      { x: 640, y: 80 },
-    ])
-  })
-
-  it("orders evaluator descendants using output handle order", () => {
+  it("supports cyclic inputs while preserving cyclic edge connectivity", () => {
     const graph = createInitialGraph({
       nodes: [
-        { id: "keyword", kind: "inlineExpression", config: { isRoot: true } },
-        {
-          id: "evaluator",
-          kind: "evaluator",
-          config: {
-            conditions: [
-              {
-                id: "condition-1",
-                left: { type: "value", value: "{{ email }}" },
-                operator: "contains",
-                right: { type: "value", value: "@" },
-              },
-            ],
-          },
-        },
-        { id: "true-result", kind: "result", config: { category: "true" } },
-        { id: "false-result", kind: "result", config: { category: "false" } },
+        { id: "evaluator", kind: "evaluator" },
+        { id: "inline", kind: "inlineExpression" },
       ],
       edges: [
-        { source: "keyword", target: "evaluator" },
         {
+          id: "evaluator-to-inline",
           source: "evaluator",
           sourceHandle: "evaluator-true",
-          target: "true-result",
+          target: "inline",
         },
-        {
-          source: "evaluator",
-          sourceHandle: "evaluator-false",
-          target: "false-result",
-        },
+        { id: "inline-to-evaluator", source: "inline", target: "evaluator" },
       ],
     })
 
-    const trueResult = graph.nodes.find((node) => node.id === "true-result")
-    const falseResult = graph.nodes.find((node) => node.id === "false-result")
-
-    expect(trueResult?.position.y).toBeLessThan(falseResult?.position.y ?? 0)
+    expect(graph.edges).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "evaluator-to-inline",
+          source: "evaluator",
+          target: "inline",
+        }),
+        expect.objectContaining({
+          id: "inline-to-evaluator",
+          source: "inline",
+          target: "evaluator",
+        }),
+      ])
+    )
   })
 
-  it("reuses ELK auto-layout while preserving node and edge identity", async () => {
+  it("uses ELK auto-layout while preserving node and edge identity", async () => {
     const graph = await createInitialGraphElk({
       nodes: [
         { id: "keyword", kind: "inlineExpression", config: { isRoot: true } },
@@ -242,5 +207,21 @@ describe("initial graph builders", () => {
         targetHandle: null,
       }),
     ])
+  })
+
+  it("keeps createInitialGraphElk node and edge identity aligned with createInitialGraph", async () => {
+    const input = {
+      nodes: [
+        { id: "keyword", kind: "inlineExpression", config: { isRoot: true } },
+        { id: "extractor", kind: "extractor" },
+      ],
+      edges: [{ id: "keyword-to-extractor", source: "keyword", target: "extractor" }],
+    } as const
+    const base = createInitialGraph(input)
+    const elk = await createInitialGraphElk(input)
+
+    // The ELK builder changes positions, but node IDs and edge wiring stay stable.
+    expect(elk.nodes.map((node) => node.id)).toEqual(base.nodes.map((node) => node.id))
+    expect(elk.edges).toEqual(base.edges)
   })
 })

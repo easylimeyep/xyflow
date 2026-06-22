@@ -191,25 +191,34 @@ function resolveBackendOrder(
   validateRoots(roots, incomingByTarget)
   validateEvaluatorBranches(nodeById, outgoingBySource)
 
-  const remainingIncomingCount = new Map(
-    dto.nodes.map((node) => [
-      node.id,
-      incomingByTarget.get(node.id)?.length ?? 0,
-    ])
-  )
+  const reachableIds = collectReachableIds(roots, outgoingBySource)
+  const unreachable = dto.nodes.find((node) => !reachableIds.has(node.id))
+  if (unreachable) {
+    throw new Error(
+      `Cannot export backend workflow: node "${unreachable.id}" is unreachable from root nodes.`
+    )
+  }
+
   const available: AvailableNode[] = roots.map((root) => ({
     id: root.id,
     sourceHandle: null,
   }))
   const ordered: DomainWorkflowNodeDTO[] = []
   const orderedIds = new Set<string>()
+  const queuedIds = new Set(roots.map((root) => root.id))
 
+  // Strict export now emits a deterministic serialization order for all
+  // root-reachable nodes, including cyclic graphs (not a topological order).
   while (available.length > 0) {
     available.sort((left, right) =>
       compareAvailableNodes(nodeById, left, right)
     )
     const current = available.shift()
-    if (!current || orderedIds.has(current.id)) {
+    if (!current) {
+      continue
+    }
+    queuedIds.delete(current.id)
+    if (orderedIds.has(current.id)) {
       continue
     }
 
@@ -226,9 +235,12 @@ function resolveBackendOrder(
       nodeById
     )) {
       const targetId = connection.targetNodeId
-      const nextIncomingCount = (remainingIncomingCount.get(targetId) ?? 0) - 1
-      remainingIncomingCount.set(targetId, nextIncomingCount)
-      if (nextIncomingCount === 0) {
+      if (
+        reachableIds.has(targetId) &&
+        !orderedIds.has(targetId) &&
+        !queuedIds.has(targetId)
+      ) {
+        queuedIds.add(targetId)
         available.push({
           id: targetId,
           sourceHandle: connection.sourceHandle,
@@ -237,16 +249,10 @@ function resolveBackendOrder(
     }
   }
 
-  if (ordered.length !== dto.nodes.length) {
-    const reachableIds = collectReachableIds(roots, outgoingBySource)
-    const unreachable = dto.nodes.find((node) => !reachableIds.has(node.id))
-    if (unreachable) {
-      throw new Error(
-        `Cannot export backend workflow: node "${unreachable.id}" is unreachable from root nodes.`
-      )
-    }
-
-    throw new Error("Cannot export backend workflow: graph contains a cycle.")
+  if (ordered.length !== reachableIds.size) {
+    throw new Error(
+      "Cannot export backend workflow: failed to establish a deterministic serialization order."
+    )
   }
 
   return ordered
