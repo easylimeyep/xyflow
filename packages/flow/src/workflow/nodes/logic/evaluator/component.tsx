@@ -2,6 +2,7 @@
 
 import type { NodeProps } from "@xyflow/react"
 import { ArrayInputPopover } from "@workspace/ui/components/array-input-popover"
+import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
 import { Checkbox } from "@workspace/ui/components/checkbox"
 import { Input } from "@workspace/ui/components/input"
@@ -11,14 +12,20 @@ import {
   NativeSelectOption,
 } from "@workspace/ui/components/native-select"
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@workspace/ui/components/tooltip"
+import {
   Sortable,
   SortableContent,
   SortableItem,
   SortableItemHandle,
   SortableOverlay,
 } from "@workspace/ui/components/sortable"
-import { GripVertical, Trash2 } from "lucide-react"
-import { useCallback, useMemo, useState } from "react"
+import { AlertTriangle, GripVertical, Trash2 } from "lucide-react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 
 import { evaluatorNodeStyles } from "../../../../styles/components/nodes"
 import { ExpressionInput } from "../../../components/expression-input"
@@ -43,6 +50,8 @@ import { evaluator } from "./definition"
 
 const styles = evaluatorNodeStyles()
 const ARRAY_PREVIEW_LIMIT = 3
+const SINGLE_VARIABLE_TEMPLATE_REGEX =
+  /^\s*\{\{\s*([A-Za-z_$][\w$]*)\s*\}\}\s*$/
 
 function createValueOperand(value = ""): WorkflowTypedValue {
   return { type: "value", value }
@@ -132,6 +141,7 @@ function reconcileRightOperand(
 interface ConditionRowProps {
   condition: EvaluatorCondition
   variables: ExpressionVariableOption[]
+  variableTypes: Record<string, WorkflowVariableType>
   operators: WorkflowEvaluatorOperatorCatalog
   canDelete: boolean
   showDragHandle: boolean
@@ -146,7 +156,37 @@ interface OperandEditorProps {
   placeholder: string
   variables: ExpressionVariableOption[]
   allowedTypes?: WorkflowVariableType[]
+  unresolvedVariableName?: string
   onChange: (nextOperand: WorkflowTypedValue) => void
+}
+
+function parseSingleVariableTemplate(value: string): string | undefined {
+  const templateMatch = SINGLE_VARIABLE_TEMPLATE_REGEX.exec(value)
+  return templateMatch?.[1]
+}
+
+function resolveEffectiveLeftOperandType(
+  left: WorkflowTypedValue,
+  variableTypes: Record<string, WorkflowVariableType>
+): {
+  type: WorkflowVariableType
+  unresolvedVariableName?: string
+} {
+  if (left.type === "array") {
+    return { type: "array" }
+  }
+
+  const variableName = parseSingleVariableTemplate(left.value)
+  if (!variableName) {
+    return { type: "value" }
+  }
+
+  const variableType = variableTypes[variableName]
+  if (!variableType) {
+    return { type: "value", unresolvedVariableName: variableName }
+  }
+
+  return { type: variableType }
 }
 
 function OperandEditor({
@@ -155,6 +195,7 @@ function OperandEditor({
   placeholder,
   variables,
   allowedTypes,
+  unresolvedVariableName,
   onChange,
 }: OperandEditorProps) {
   return (
@@ -170,12 +211,34 @@ function OperandEditor({
 
       <div className={styles.operandEditor()}>
         {operand.type === "value" ? (
-          <ExpressionInput
-            value={operand.value}
-            placeholder={placeholder}
-            variables={variables}
-            onChange={(value) => onChange(createValueOperand(value))}
-          />
+          <div className="relative">
+            <ExpressionInput
+              value={operand.value}
+              placeholder={placeholder}
+              variables={variables}
+              onChange={(value) => onChange(createValueOperand(value))}
+            />
+            {unresolvedVariableName ? (
+              <div className="absolute top-1 right-1 z-10">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge
+                        variant="outline"
+                        className="z-10 h-5 border-yellow-500/80 bg-yellow-200 px-1.5 text-[10px] text-yellow-900 dark:text-yellow-200"
+                      >
+                        <AlertTriangle className="mr-1 h-3 w-3" />
+                        Unknown
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {`Could not resolve variable "{{ ${unresolvedVariableName} }}" from upstream nodes.`}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+            ) : null}
+          </div>
         ) : (
           <ArrayOperandPopover
             label={label}
@@ -252,6 +315,7 @@ function ArrayOperandPopover({
 function ConditionRow({
   condition,
   variables,
+  variableTypes,
   operators,
   canDelete,
   showDragHandle,
@@ -259,7 +323,11 @@ function ConditionRow({
   onUpdate,
   onDelete,
 }: ConditionRowProps) {
-  const activeOperators = operators[condition.left.type]
+  const effectiveLeftOperand = useMemo(
+    () => resolveEffectiveLeftOperandType(condition.left, variableTypes),
+    [condition.left, variableTypes]
+  )
+  const activeOperators = operators[effectiveLeftOperand.type]
 
   const selectedOperator = activeOperators.find(
     (op) => op.id === condition.operator
@@ -267,8 +335,34 @@ function ConditionRow({
   const allowedRightTypes = getAllowedRightOperandTypes(selectedOperator)
   const needsTarget = allowedRightTypes.length > 0
 
+  useEffect(() => {
+    if (selectedOperator || activeOperators.length === 0) {
+      return
+    }
+
+    const fallbackOperator = activeOperators[0]
+    if (!fallbackOperator) {
+      return
+    }
+
+    onUpdate(condition.id, {
+      operator: fallbackOperator.id,
+      right: reconcileRightOperand(condition.right, fallbackOperator).right,
+    })
+  }, [
+    activeOperators,
+    condition.id,
+    condition.right,
+    onUpdate,
+    selectedOperator,
+  ])
+
   const updateLeftOperand = (left: WorkflowTypedValue) => {
-    const nextOperators = operators[left.type]
+    const nextEffectiveLeftOperand = resolveEffectiveLeftOperandType(
+      left,
+      variableTypes
+    )
+    const nextOperators = operators[nextEffectiveLeftOperand.type]
     const nextOperator =
       nextOperators.find((op) => op.id === condition.operator) ??
       nextOperators[0]
@@ -322,6 +416,7 @@ function ConditionRow({
           label="Left"
           placeholder="value"
           variables={variables}
+          unresolvedVariableName={effectiveLeftOperand.unresolvedVariableName}
           onChange={updateLeftOperand}
         />
 
@@ -400,6 +495,7 @@ export function EvaluatorNode({ id, data, selected }: NodeProps) {
   const label = baseLabel || "Evaluator"
   const {
     expressionVariables,
+    expressionVariableTypes,
     evaluatorOperators,
     enableEvaluatorMultipleConditions,
     nodeValidationMessages,
@@ -560,6 +656,7 @@ export function EvaluatorNode({ id, data, selected }: NodeProps) {
                   <ConditionRow
                     condition={condition}
                     variables={expressionVariables}
+                    variableTypes={expressionVariableTypes}
                     operators={evaluatorOperators}
                     canDelete={
                       enableEvaluatorMultipleConditions &&
@@ -584,6 +681,7 @@ export function EvaluatorNode({ id, data, selected }: NodeProps) {
                     <ConditionRow
                       condition={overlayCondition}
                       variables={expressionVariables}
+                      variableTypes={expressionVariableTypes}
                       operators={evaluatorOperators}
                       canDelete={false}
                       showDragHandle={true}

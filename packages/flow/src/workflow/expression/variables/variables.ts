@@ -1,4 +1,9 @@
-import type { ExpressionVariableOption, WorkflowEdge, WorkflowNode } from "../../types/types"
+import type {
+  ExpressionVariableOption,
+  WorkflowEdge,
+  WorkflowNode,
+} from "../../types/types"
+import type { WorkflowVariableType } from "../../types/variable-types"
 import { isValidJsIdentifier } from "../variable-name/variable-name"
 
 const VARIABLE_NODE_KINDS = new Set(["extractor", "setVariable", "evaluator"])
@@ -34,6 +39,39 @@ export function collectWorkflowVariables(
   })
 
   return options
+}
+
+export function collectWorkflowVariableTypes(
+  nodes: WorkflowNode[],
+  edges: WorkflowEdge[],
+  selectedNodeId: string | null
+): Record<string, WorkflowVariableType> {
+  if (!selectedNodeId) {
+    return {}
+  }
+
+  const upstreamNodes = getReachableUpstreamNodes(nodes, edges, selectedNodeId)
+  const variableTypes: Record<string, WorkflowVariableType> = {}
+
+  upstreamNodes.forEach((node) => {
+    if (!VARIABLE_NODE_KINDS.has(node.data.kind)) {
+      return
+    }
+
+    const variableName = readVariableName(node)
+    if (!variableName || variableName in variableTypes) {
+      return
+    }
+
+    const variableType = readVariableType(node)
+    if (!variableType) {
+      return
+    }
+
+    variableTypes[variableName] = variableType
+  })
+
+  return variableTypes
 }
 
 function readVariableName(node: WorkflowNode): string {
@@ -81,6 +119,18 @@ function readEvaluatorLabel(node: WorkflowNode): string {
   return trimmedConfig.length > 0 && isValidJsIdentifier(trimmedConfig)
     ? trimmedConfig
     : ""
+}
+
+function readVariableType(node: WorkflowNode): WorkflowVariableType | undefined {
+  switch (node.data.kind) {
+    case "setVariable":
+    case "extractor": {
+      const candidate = node.data.config.variableType
+      return candidate === "array" ? "array" : "value"
+    }
+    default:
+      return undefined
+  }
 }
 
 function getReachableUpstreamNodes(

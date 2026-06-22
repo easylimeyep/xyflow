@@ -1,4 +1,5 @@
 import {
+  selectExpressionVariableTypesForNode,
   selectExpressionVariablesForNode,
   selectVisibleValidationMessagesForNode,
   useWorkflowShallowStore,
@@ -13,6 +14,10 @@ import {
 export function useNodeStoreData(nodeId: string) {
   const expressionVariables = useWorkflowStore((state: WorkflowStoreState) =>
     selectExpressionVariablesForNode(state, nodeId)
+  )
+  const expressionVariableTypes = useWorkflowStore(
+    (state: WorkflowStoreState) =>
+      selectExpressionVariableTypesForNode(state, nodeId)
   )
   const evaluatorOperators = useWorkflowStore(
     (state: WorkflowStoreState): WorkflowEvaluatorOperatorCatalog =>
@@ -34,6 +39,7 @@ export function useNodeStoreData(nodeId: string) {
 
   return {
     expressionVariables,
+    expressionVariableTypes,
     nodeValidationMessages,
     evaluatorOperators,
     enableEvaluatorMultipleConditions,

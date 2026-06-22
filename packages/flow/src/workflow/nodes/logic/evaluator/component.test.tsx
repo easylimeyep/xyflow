@@ -13,6 +13,7 @@ const mockUpdateNodeConfig = vi.fn()
 let mockEvaluatorOperators: WorkflowEvaluatorOperatorCatalog =
   createMockEvaluatorOperators()
 let mockEnableEvaluatorMultipleConditions = false
+let mockExpressionVariableTypes: Record<string, "value" | "array"> = {}
 
 function createMockEvaluatorOperators(): WorkflowEvaluatorOperatorCatalog {
   return {
@@ -113,6 +114,7 @@ vi.mock("../../node-shell/node-shell", () => ({
 vi.mock("../../shared/use-node-store-data", () => ({
   useNodeStoreData: () => ({
     expressionVariables: [],
+    expressionVariableTypes: mockExpressionVariableTypes,
     evaluatorOperators: mockEvaluatorOperators,
     enableEvaluatorMultipleConditions: mockEnableEvaluatorMultipleConditions,
     updateNodeConfig: mockUpdateNodeConfig,
@@ -162,6 +164,7 @@ describe("EvaluatorNode", () => {
     vi.clearAllMocks()
     mockEvaluatorOperators = createMockEvaluatorOperators()
     mockEnableEvaluatorMultipleConditions = false
+    mockExpressionVariableTypes = {}
     vi.spyOn(globalThis.crypto, "randomUUID").mockReturnValue(
       "00000000-0000-0000-0000-000000000001"
     )
@@ -864,6 +867,60 @@ describe("EvaluatorNode", () => {
     expect(operatorSelect.value).toBe("contains")
     expect(screen.getByRole("option", { name: "Contains" })).toBeTruthy()
     expect(screen.queryByRole("option", { name: "Matches" })).toBeNull()
+  })
+
+  it("uses array operators when value operand resolves to upstream array variable type", () => {
+    mockEvaluatorOperators = {
+      value: [{ id: "matches", value: "Matches", allowTypes: ["value"] }],
+      array: [{ id: "contains", value: "Contains", allowTypes: ["value"] }],
+    }
+    mockExpressionVariableTypes = { source: "array" }
+
+    render(<EvaluatorNode {...createNodeProps()} />)
+
+    const operatorSelect = screen.getByLabelText(
+      "Condition operator"
+    ) as HTMLSelectElement
+
+    expect(operatorSelect.value).toBe("contains")
+    expect(screen.getByRole("option", { name: "Contains" })).toBeTruthy()
+    expect(screen.queryByRole("option", { name: "Matches" })).toBeNull()
+  })
+
+  it("shows unknown variable chip and falls back to value operators", () => {
+    mockEvaluatorOperators = {
+      value: [{ id: "matches", value: "Matches", allowTypes: ["value"] }],
+      array: [{ id: "contains", value: "Contains", allowTypes: ["value"] }],
+    }
+
+    render(
+      <EvaluatorNode
+        {...createNodeProps({
+          config: {
+            conditions: [
+              stringCondition(
+                "condition-1",
+                "{{ missingVar }}",
+                "contains",
+                "{{ target }}"
+              ),
+            ],
+            label: "conditionMatched",
+            logicalOperator: "and",
+            caseSensitive: false,
+          },
+        })}
+      />
+    )
+
+    const operatorSelect = screen.getByLabelText(
+      "Condition operator"
+    ) as HTMLSelectElement
+
+    expect(screen.getByText("Unknown")).toBeTruthy()
+    expect(operatorSelect.value).toBe("matches")
+    expect(screen.getByRole("option", { name: "Matches" })).toBeTruthy()
+    expect(screen.queryByRole("option", { name: "Contains" })).toBeNull()
   })
 
   it("hides multi-condition controls and renders only the first condition by default", () => {

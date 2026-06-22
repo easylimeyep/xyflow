@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 
 import { createWorkflowNode } from "../../node-registry/node-factory"
 import type { WorkflowEdge } from "../../types/types"
-import { collectWorkflowVariables } from "./variables"
+import { collectWorkflowVariableTypes, collectWorkflowVariables } from "./variables"
 
 describe("collectWorkflowVariables", () => {
   it("returns empty list when no selectedNodeId", () => {
@@ -214,5 +214,54 @@ describe("collectWorkflowVariables", () => {
     expect(options.every((o) => !o.value.includes("$input"))).toBe(true)
     expect(options.every((o) => !o.value.includes("$node"))).toBe(true)
     expect(options.every((o) => !o.value.includes("$vars"))).toBe(true)
+  })
+})
+
+describe("collectWorkflowVariableTypes", () => {
+  it("returns upstream producer variable types by variable name", () => {
+    const extractor = createWorkflowNode("extractor", { x: 0, y: 0 }, "Extractor")
+    extractor.data.config.extractExpression = "items"
+    extractor.data.config.variableType = "array"
+
+    const setter = createWorkflowNode("setVariable", { x: 0, y: 120 }, "Setter")
+    setter.data.config.variableName = "status"
+    setter.data.config.variableType = "value"
+
+    const inline = createWorkflowNode("inlineExpression", { x: 200, y: 0 }, "InlineA")
+
+    const edges: WorkflowEdge[] = [
+      {
+        id: "edge-1",
+        source: extractor.id,
+        target: setter.id,
+        sourceHandle: null,
+        targetHandle: null,
+        data: { sourceKind: extractor.data.kind, targetKind: setter.data.kind },
+      },
+      {
+        id: "edge-2",
+        source: setter.id,
+        target: inline.id,
+        sourceHandle: null,
+        targetHandle: null,
+        data: { sourceKind: setter.data.kind, targetKind: inline.data.kind },
+      },
+    ]
+
+    const variableTypes = collectWorkflowVariableTypes(
+      [extractor, setter, inline],
+      edges,
+      inline.id
+    )
+
+    expect(variableTypes).toEqual({
+      items: "array",
+      status: "value",
+    })
+  })
+
+  it("returns empty object when selected node id is missing", () => {
+    const inline = createWorkflowNode("inlineExpression", { x: 0, y: 0 }, "InlineA")
+    expect(collectWorkflowVariableTypes([inline], [], null)).toEqual({})
   })
 })

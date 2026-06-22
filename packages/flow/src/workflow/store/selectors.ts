@@ -4,9 +4,11 @@ import type {
   NormalizedWorkflowValidationMessage,
   WorkflowEdge,
   WorkflowNode,
+  WorkflowVariableType,
 } from "../types/types"
 import type { WorkflowStoreState } from "./types"
 import { isValidationMessageVisible } from "./validation"
+import { collectWorkflowVariableTypes } from "../expression/variables/variables"
 
 export const selectCanUndo = (state: WorkflowStoreState): boolean =>
   state.history.past.length > 0
@@ -87,4 +89,19 @@ export const selectExpressionVariablesForNode = (
     return cached
   }
   return []
+}
+
+export const selectExpressionVariableTypesForNode = (
+  state: WorkflowStoreState,
+  nodeId: string | null
+): Record<string, WorkflowVariableType> => {
+  if (!nodeId) {
+    return {}
+  }
+
+  return collectWorkflowVariableTypes(
+    state.history.present.nodes,
+    state.history.present.edges,
+    nodeId
+  )
 }
