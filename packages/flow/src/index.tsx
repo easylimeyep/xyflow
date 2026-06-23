@@ -100,4 +100,5 @@ export type {
   WorkflowValidationMessage,
   WorkflowValidationSeverity,
   WorkflowValidationSnapshot,
+  WorkflowVariableType,
 } from "./workflow/types"
