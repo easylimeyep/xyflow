@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Define the public builder utilities that let consumers describe a compact workflow graph and produce a normalized `WorkflowGraphState` using deterministic linear placement or ELK-based auto-layout.
+Define the public builder utilities that let consumers describe a compact workflow graph and produce a normalized `WorkflowGraphState` using ELK-based auto-layout.
 
 ## Requirements
 
@@ -34,25 +34,9 @@ The system SHALL transform compact initial-graph input into a valid `WorkflowGra
 - **WHEN** a consumer omits document or viewport fields from the compact input
 - **THEN** the resulting graph MUST include a valid document object and viewport object using workflow package defaults
 
-### Requirement: Flow package provides a synchronous linear initial-graph builder
-
-The flow package SHALL expose a synchronous builder that positions normalized workflow nodes using a deterministic left-to-right linear layout.
-
-#### Scenario: Linear builder returns positioned graph synchronously
-
-- **WHEN** a consumer calls the synchronous initial-graph builder
-- **THEN** the builder MUST return a `WorkflowGraphState` without asynchronous work
-- **AND** every node in the returned graph MUST include a resolved position
-
-#### Scenario: Linear builder produces stable evaluator ordering
-
-- **WHEN** the synchronous builder lays out a graph containing a evaluator node with multiple named outputs
-- **THEN** the vertical ordering of evaluator descendants MUST follow the output-handle order declared by the workflow node definition
-- **AND** repeated builds with the same input MUST produce the same node positions
-
 ### Requirement: Flow package provides an ELK-backed initial-graph builder
 
-The flow package SHALL expose an asynchronous initial-graph builder that reuses the workflow ELK auto-layout pipeline to compute initial node positions and route-aware edge presentation data.
+The flow package SHALL expose an ELK-backed initial-graph builder as the default initial positioning mechanism for normalized graphs, including graphs that contain cycles.
 
 #### Scenario: ELK builder returns an asynchronously positioned graph
 
@@ -60,6 +44,12 @@ The flow package SHALL expose an asynchronous initial-graph builder that reuses 
 - **THEN** the builder MUST return a promise that resolves to a `WorkflowGraphState`
 - **AND** the resolved graph MUST preserve the same node ids, edge ids, and edge connectivity as the normalized compact input
 - **AND** the resolved graph MUST include routed edge presentation data for edges where the workflow ELK auto-layout pipeline returns usable route sections.
+
+#### Scenario: ELK builder supports cyclic graphs
+
+- **WHEN** the input graph contains one or more cycle-forming connections
+- **THEN** initial graph building MUST complete without topology-cycle validation failure
+- **AND** the returned graph MUST preserve cyclic edge connectivity.
 
 #### Scenario: ELK builder shares workflow layout semantics
 

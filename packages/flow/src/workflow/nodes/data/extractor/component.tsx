@@ -9,7 +9,6 @@ import { useCallback, useRef, useState } from "react"
 
 import { setVariableNodeStyles } from "../../../../styles/components/nodes"
 import { WorkflowTypeNativeSelect } from "../../../components/workflow-type-native-select/workflow-type-native-select"
-import { isValidJsIdentifier } from "../../../expression/variable-name/variable-name"
 import { NodeShell } from "../../node-shell/node-shell"
 import {
   asText,
@@ -23,9 +22,7 @@ export function ExtractorNode({ id, data, selected }: NodeProps) {
   const label = baseLabel || "Extractor"
   const { nodeValidationMessages, updateNodeConfig } = useNodeStoreData(id)
 
-  const variableLabelFromConfig = asText(config.extractExpression).trim()
-  const fallbackVariableLabel = isValidJsIdentifier(label) ? label : "myVar"
-  const variableLabel = variableLabelFromConfig || fallbackVariableLabel
+  const variableLabel = asText(config.extractExpression).trim()
   const tokenNumberFromStore =
     typeof config.tokenNumber === "number" &&
     Number.isFinite(config.tokenNumber)
@@ -45,6 +42,7 @@ export function ExtractorNode({ id, data, selected }: NodeProps) {
   const unlimitedId = `${id}-unlimited`
   const variableLabelField = useVariableIdentifierField({
     value: variableLabel,
+    allowEmpty: true,
     onCommit: (nextLabel) => {
       updateNodeConfig(id, {
         kind: "extractor",

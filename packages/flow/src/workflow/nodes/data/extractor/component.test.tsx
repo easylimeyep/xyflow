@@ -100,6 +100,31 @@ describe("ExtractorNode", () => {
     ).toBeTruthy()
   })
 
+  it("renders empty Label value when extractor config is empty", () => {
+    render(<ExtractorNode {...createNodeProps(3, "")} />)
+
+    const labelInput = screen.getByPlaceholderText("myVar") as HTMLInputElement
+    expect(labelInput.value).toBe("")
+  })
+
+  it("allows blur on empty Label without validation error", () => {
+    render(<ExtractorNode {...createNodeProps(3, "")} />)
+
+    const labelInput = screen.getByPlaceholderText("myVar")
+    fireEvent.focus(labelInput)
+    fireEvent.blur(labelInput)
+
+    expect(
+      screen.queryByText("Label must be a valid JavaScript identifier.")
+    ).toBeNull()
+    expect(screen.queryByText("Label cannot be empty.")).toBeNull()
+    expect(mockUpdateNodeConfig).toHaveBeenCalledWith("extractor-node-1", {
+      kind: "extractor",
+      key: "extractExpression",
+      value: "",
+    })
+  })
+
   it("commits Label via updateNodeConfig on blur", () => {
     render(<ExtractorNode {...createNodeProps(3, "myVar")} />)
 
