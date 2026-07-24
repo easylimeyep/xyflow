@@ -41,3 +41,5 @@ npm-debug.log*
 
 # Storybook
 storybook-static/
+
+.omc
