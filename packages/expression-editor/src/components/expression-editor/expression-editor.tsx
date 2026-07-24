@@ -10,11 +10,7 @@ import {
   CommandList,
 } from "@workspace/ui/components/command"
 import { FieldError } from "@workspace/ui/components/field"
-import {
-  Popover,
-  PopoverAnchor,
-  PopoverContent,
-} from "@workspace/ui/components/popover"
+import { Popover } from "@workspace/ui/components/popover"
 import CodeMirror from "@uiw/react-codemirror"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
@@ -45,6 +41,7 @@ export function ExpressionEditor({
   onLiveChange,
 }: ExpressionEditorProps) {
   const editorViewRef = useRef<EditorView | null>(null)
+  const anchorRef = useRef<HTMLDivElement>(null)
   const [pickerOpen, setPickerOpen] = useState(false)
 
   // Internal live value for validation display. The committed `value` prop is
@@ -215,59 +212,59 @@ export function ExpressionEditor({
 
   return (
     <div className={styles.root()}>
-      <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
-        <PopoverAnchor asChild>
-          <div
-            className={styles.editorContainer()}
-            onWheelCapture={(event) => {
-              event.stopPropagation()
-            }}
-          >
-            <CodeMirror
-              value={liveValue}
-              placeholder={placeholder}
-              minHeight="26px"
-              basicSetup={basicSetup}
-              extensions={extensions}
-              onCreateEditor={handleCreateEditor}
-              onChange={handleChange}
-            />
-          </div>
-        </PopoverAnchor>
-        <PopoverContent
-          className={styles.popoverContent()}
-          align="start"
-          onOpenAutoFocus={(event) => {
-            event.preventDefault()
-          }}
-        >
-          <Command>
-            <CommandInput placeholder="Search variables..." />
-            <CommandList>
+      <div
+        ref={anchorRef}
+        className={styles.editorContainer()}
+        onWheelCapture={(event) => {
+          event.stopPropagation()
+        }}
+      >
+        <CodeMirror
+          value={liveValue}
+          placeholder={placeholder}
+          minHeight="26px"
+          basicSetup={basicSetup}
+          extensions={extensions}
+          onCreateEditor={handleCreateEditor}
+          onChange={handleChange}
+        />
+      </div>
+      <Popover
+        triggerRef={anchorRef}
+        isOpen={pickerOpen}
+        onOpenChange={setPickerOpen}
+        placement="bottom start"
+        className={styles.popoverContent()}
+      >
+        <Command>
+          <CommandInput placeholder="Search variables..." />
+          <CommandList
+            renderEmptyState={() => (
               <CommandEmpty>No variables available.</CommandEmpty>
-              {groupedVariables.map(([group, options]) => (
-                <CommandGroup key={group} heading={group}>
-                  {options.map((option) => (
-                    <CommandItem
-                      key={`${group}-${option.value}`}
-                      value={`${option.label} ${option.description}`}
-                      onSelect={() => insertVariable(option)}
-                    >
-                      <div className={styles.commandItemContent()}>
-                        <span className={styles.commandItemLabel()}>
-                          {option.label}
-                        </span>
-                        <span className={styles.commandItemDescription()}>
-                          {option.description}
-                        </span>
-                      </div>
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              ))}
-            </CommandList>
-          </Command>
-        </PopoverContent>
+            )}
+          >
+            {groupedVariables.map(([group, options]) => (
+              <CommandGroup key={group} heading={group}>
+                {options.map((option) => (
+                  <CommandItem
+                    key={`${group}-${option.value}`}
+                    textValue={`${option.label} ${option.description}`}
+                    onAction={() => insertVariable(option)}
+                  >
+                    <div className={styles.commandItemContent()}>
+                      <span className={styles.commandItemLabel()}>
+                        {option.label}
+                      </span>
+                      <span className={styles.commandItemDescription()}>
+                        {option.description}
+                      </span>
+                    </div>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            ))}
+          </CommandList>
+        </Command>
       </Popover>
 
       {!validation.valid ? <FieldError errors={validation.errors} /> : null}

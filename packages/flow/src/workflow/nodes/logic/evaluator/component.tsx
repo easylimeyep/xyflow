@@ -13,8 +13,6 @@ import {
 } from "@workspace/ui/components/native-select"
 import {
   Tooltip,
-  TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from "@workspace/ui/components/tooltip"
 import {
@@ -220,22 +218,18 @@ function OperandEditor({
             />
             {unresolvedVariableName ? (
               <div className="absolute top-1 right-1 z-10">
-                <TooltipProvider>
+                <TooltipTrigger>
+                  <Badge
+                    variant="outline"
+                    className="z-10 h-5 border-yellow-500/80 bg-yellow-200 px-1.5 text-[10px] text-yellow-900 dark:text-yellow-200"
+                  >
+                    <AlertTriangle className="mr-1 h-3 w-3" />
+                    Unknown
+                  </Badge>
                   <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Badge
-                        variant="outline"
-                        className="z-10 h-5 border-yellow-500/80 bg-yellow-200 px-1.5 text-[10px] text-yellow-900 dark:text-yellow-200"
-                      >
-                        <AlertTriangle className="mr-1 h-3 w-3" />
-                        Unknown
-                      </Badge>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      {`Could not resolve variable "{{ ${unresolvedVariableName} }}" from upstream nodes.`}
-                    </TooltipContent>
+                    {`Could not resolve variable "{{ ${unresolvedVariableName} }}" from upstream nodes.`}
                   </Tooltip>
-                </TooltipProvider>
+                </TooltipTrigger>
               </div>
             ) : null}
           </div>
@@ -623,9 +617,9 @@ export function EvaluatorNode({ id, data, selected }: NodeProps) {
 
         <label className={styles.optionToggleWrap()}>
           <Checkbox
-            checked={isCaseSensitiveFromStore}
+            isSelected={isCaseSensitiveFromStore}
             className={styles.optionToggle()}
-            onCheckedChange={(checked) => {
+            onChange={(checked) => {
               updateNodeConfig(id, {
                 kind: "evaluator",
                 key: "caseSensitive",

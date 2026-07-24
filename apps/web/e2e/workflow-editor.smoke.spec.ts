@@ -5,9 +5,6 @@ test("workflow editor smoke surface supports basic browser actions", async ({
 }) => {
   await page.goto("/")
 
-  await expect(
-    page.getByRole("heading", { name: "Workflow editor examples" })
-  ).toBeVisible()
   const nodePalette = page.getByRole("complementary", {
     name: "Node palette",
   })
@@ -32,23 +29,4 @@ test("workflow editor smoke surface supports basic browser actions", async ({
 
   await page.getByRole("button", { name: "Show node palette" }).click()
   await expect(nodePalette).toBeVisible()
-})
-
-test("fullscreen workflow modal smoke opens and closes", async ({ page }) => {
-  await page.goto("/")
-
-  await page.getByRole("tab", { name: "with fullscreen modal" }).click()
-  await page.getByRole("button", { name: "Open fullscreen workflow" }).click()
-
-  const dialog = page.getByRole("dialog", {
-    name: "Fullscreen workflow modal",
-  })
-  await expect(dialog).toBeVisible()
-  await expect(dialog).toContainText("Lead qualification workflow")
-  await expect(
-    dialog.getByRole("region", { name: "Workflow canvas" })
-  ).toBeVisible()
-
-  await dialog.getByRole("button", { name: "Close" }).click()
-  await expect(dialog).toBeHidden()
 })

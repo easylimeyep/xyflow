@@ -175,8 +175,8 @@ export function ExtractorNode({ id, data, selected }: NodeProps) {
             <div>
               <Checkbox
                 id={unlimitedId}
-                checked={unlimitedFromStore}
-                onCheckedChange={(checked) => {
+                isSelected={unlimitedFromStore}
+                onChange={(checked) => {
                   updateNodeConfig(id, {
                     kind: "extractor",
                     key: "unlimited",

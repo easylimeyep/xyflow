@@ -3,10 +3,8 @@
 import type { NodeProps } from "@xyflow/react"
 import {
   ContextMenu,
-  ContextMenuContent,
   ContextMenuItem,
   ContextMenuSeparator,
-  ContextMenuShortcut,
   ContextMenuTrigger,
 } from "@workspace/ui/components/context-menu"
 import { Copy, CopyPlus, Trash2 } from "lucide-react"
@@ -44,16 +42,18 @@ export function NodeContextMenu({
   }
 
   return (
-    <ContextMenu>
-      <ContextMenuTrigger
-        className="contents"
-        onContextMenu={ensureNodeContextTarget}
-      >
-        <NodeComponent {...props} />
-      </ContextMenuTrigger>
-      <ContextMenuContent>
+    <ContextMenuTrigger
+      className="contents"
+      onOpenChange={(open) => {
+        if (open) {
+          ensureNodeContextTarget()
+        }
+      }}
+    >
+      <NodeComponent {...props} />
+      <ContextMenu>
         <ContextMenuItem
-          onSelect={() => {
+          onAction={() => {
             void copySelectionToClipboard()
           }}
         >
@@ -61,18 +61,18 @@ export function NodeContextMenu({
           Copy
           <Kbd className="ml-auto">Ctrl+C</Kbd>
         </ContextMenuItem>
-        <ContextMenuItem onSelect={() => duplicateNodes()}>
+        <ContextMenuItem onAction={() => duplicateNodes()}>
           <CopyPlus />
           Duplicate
           <Kbd className="ml-auto">Ctrl+D</Kbd>
         </ContextMenuItem>
         <ContextMenuSeparator />
-        <ContextMenuItem variant="destructive" onSelect={() => deleteNodes()}>
+        <ContextMenuItem variant="destructive" onAction={() => deleteNodes()}>
           <Trash2 />
           Delete
           <Kbd className="ml-auto">Backspace</Kbd>
         </ContextMenuItem>
-      </ContextMenuContent>
-    </ContextMenu>
+      </ContextMenu>
+    </ContextMenuTrigger>
   )
 }

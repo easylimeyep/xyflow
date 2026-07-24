@@ -7,14 +7,8 @@ import { Button } from "@workspace/ui/components/button"
 import {
   Collapsible,
   CollapsibleContent,
-  CollapsibleTrigger,
 } from "@workspace/ui/components/collapsible"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@workspace/ui/components/tooltip"
+import { Tooltip, TooltipTrigger } from "@workspace/ui/components/tooltip"
 
 type ExamplePreviewProps = {
   title: string
@@ -39,26 +33,19 @@ export function ExamplePreview({
               <p className="text-sm text-gray-600">{description}</p>
             </div>
 
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <CollapsibleTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="icon-sm"
-                      className="shrink-0"
-                      aria-label={`Toggle ${title} code example`}
-                    >
-                      <Code2Icon />
-                      <ChevronDownIcon className="transition-transform duration-200 group-data-[state=open]:rotate-180" />
-                    </Button>
-                  </CollapsibleTrigger>
-                </TooltipTrigger>
-                <TooltipContent sideOffset={6}>
-                  Show code example
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <TooltipTrigger>
+              <Button
+                slot="trigger"
+                variant="outline"
+                size="icon-sm"
+                className="shrink-0"
+                aria-label={`Toggle ${title} code example`}
+              >
+                <Code2Icon />
+                <ChevronDownIcon className="transition-transform duration-200 group-data-[expanded]:rotate-180" />
+              </Button>
+              <Tooltip>Show code example</Tooltip>
+            </TooltipTrigger>
           </div>
 
           <CollapsibleContent>

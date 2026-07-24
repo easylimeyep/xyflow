@@ -6,11 +6,7 @@ import { Plus, Trash2 } from "lucide-react"
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
 import { Input } from "@workspace/ui/components/input"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@workspace/ui/components/popover"
+import { Popover, PopoverTrigger } from "@workspace/ui/components/popover"
 import { cn } from "@workspace/ui/lib/utils"
 
 const DEFAULT_PREVIEW_LIMIT = 3
@@ -60,18 +56,17 @@ function ArrayInputPopover({
   }
 
   return (
-    <Popover open={open} onOpenChange={onOpenChange}>
-      <PopoverTrigger asChild>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className={cn(
-            "w-full min-w-0 justify-between overflow-hidden px-2",
-            className
-          )}
-          aria-label={`Edit ${label} array values`}
-        >
+    <PopoverTrigger isOpen={open} onOpenChange={onOpenChange}>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className={cn(
+          "w-full min-w-0 justify-between overflow-hidden px-2",
+          className
+        )}
+        aria-label={`Edit ${label} array values`}
+      >
           {visiblePreviewValues.length > 0 ? (
             <>
               <span className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
@@ -101,8 +96,7 @@ function ArrayInputPopover({
             </span>
           )}
         </Button>
-      </PopoverTrigger>
-      <PopoverContent align="start" className="w-56 gap-1 p-2">
+      <Popover placement="bottom start" className="w-56 gap-1 p-2">
         <div className="space-y-1">
           {values.map((entry, index) => (
             <div
@@ -132,14 +126,14 @@ function ArrayInputPopover({
             variant="outline"
             size="xs"
             className="h-7 w-full text-[11px]"
-            onClick={addArrayEntry}
+            onPress={addArrayEntry}
           >
             <Plus data-icon="inline-start" />
             Add value
           </Button>
         </div>
-      </PopoverContent>
-    </Popover>
+      </Popover>
+    </PopoverTrigger>
   )
 }
 

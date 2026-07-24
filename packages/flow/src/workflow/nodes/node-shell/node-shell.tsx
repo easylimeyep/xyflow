@@ -1,12 +1,7 @@
 "use client"
 
 import { Handle, Position } from "@xyflow/react"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@workspace/ui/components/tooltip"
+import { Tooltip, TooltipTrigger } from "@workspace/ui/components/tooltip"
 import { CircleAlert } from "lucide-react"
 import type { ReactNode } from "react"
 
@@ -67,27 +62,23 @@ export function NodeShell({
           {headerAccessory || hasValidation ? (
             <div className={styles.headerActions()}>
               {hasValidation ? (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        className={styles.validationButton()}
-                        aria-label="Node validation messages"
-                        data-testid="node-validation-indicator"
-                      >
-                        <CircleAlert className="h-3.5 w-3.5" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent className={styles.validationTooltip()}>
-                      <div className={styles.validationList()}>
-                        {validationMessages.map((message) => (
-                          <div key={message.key}>{message.message}</div>
-                        ))}
-                      </div>
-                    </TooltipContent>
+                <TooltipTrigger>
+                  <button
+                    type="button"
+                    className={styles.validationButton()}
+                    aria-label="Node validation messages"
+                    data-testid="node-validation-indicator"
+                  >
+                    <CircleAlert className="h-3.5 w-3.5" />
+                  </button>
+                  <Tooltip className={styles.validationTooltip()}>
+                    <div className={styles.validationList()}>
+                      {validationMessages.map((message) => (
+                        <div key={message.key}>{message.message}</div>
+                      ))}
+                    </div>
                   </Tooltip>
-                </TooltipProvider>
+                </TooltipTrigger>
               ) : null}
               {headerAccessory ? (
                 <div className={styles.headerAccessory()}>{headerAccessory}</div>

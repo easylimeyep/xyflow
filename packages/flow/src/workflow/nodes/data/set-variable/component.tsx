@@ -109,8 +109,8 @@ export function SetVariableNode({ id, data, selected }: NodeProps) {
             <div>
               <Checkbox
                 id={clearId}
-                checked={clearFromStore}
-                onCheckedChange={(checked) => {
+                isSelected={clearFromStore}
+                onChange={(checked) => {
                   updateNodeConfig(id, {
                     kind: "setVariable",
                     key: "clear",

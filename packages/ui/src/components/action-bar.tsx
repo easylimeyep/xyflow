@@ -9,7 +9,7 @@ import * as ReactDOM from "react-dom"
 import { cn } from "@workspace/ui/lib/utils"
 import { useAsRef } from "@workspace/ui/hooks/use-as-ref"
 import { useIsomorphicLayoutEffect } from "@workspace/ui/hooks/use-isomorphic-layout-effect"
-import { Button } from "@workspace/ui/components/button"
+import { buttonVariants } from "@workspace/ui/components/button"
 import { useComposedRefs } from "@workspace/ui/lib/compose-refs"
 
 const ROOT_NAME = "ActionBar"
@@ -414,7 +414,7 @@ function ActionBarGroup(props: DivProps) {
 }
 
 interface ActionBarItemProps extends Omit<
-  React.ComponentProps<typeof Button>,
+  React.ComponentProps<"button">,
   "onSelect"
 > {
   onSelect?: (event: Event) => void
@@ -570,15 +570,19 @@ function ActionBarItem(props: ActionBarItemProps) {
   )
 
   return (
-    <Button
+    <button
       type="button"
       data-slot="action-bar-item"
-      variant="secondary"
-      size="sm"
+      data-variant="secondary"
+      data-size="sm"
       disabled={disabled}
       tabIndex={isTabStop ? 0 : -1}
       {...itemProps}
-      className={cn(orientation === "vertical" && "w-full", className)}
+      className={cn(
+        buttonVariants({ variant: "secondary", size: "sm" }),
+        orientation === "vertical" && "w-full",
+        className
+      )}
       ref={composedRef}
       onClick={onClick}
       onFocus={onFocus}

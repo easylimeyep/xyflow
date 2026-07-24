@@ -53,16 +53,16 @@ export function EditorToolbar({
   return (
     <div ref={anchorRef} className={styles.root()}>
       <div className={styles.actions()}>
-        <Button type="button" variant="outline" onClick={onUndo} disabled={!canUndo}>
+        <Button type="button" variant="outline" onPress={onUndo} isDisabled={!canUndo}>
           Undo
         </Button>
-        <Button type="button" variant="outline" onClick={onRedo} disabled={!canRedo}>
+        <Button type="button" variant="outline" onPress={onRedo} isDisabled={!canRedo}>
           Redo
         </Button>
         <Button
           type="button"
           variant="outline"
-          onClick={async () => {
+          onPress={async () => {
             const copied = await copyToClipboard(
               JSON.stringify(onExportDomain(), null, 2)
             )
@@ -74,7 +74,7 @@ export function EditorToolbar({
         <Button
           type="button"
           variant="outline"
-          onClick={() => setImportOpen((open) => !open)}
+          onPress={() => setImportOpen((open) => !open)}
         >
           {importOpen ? "Close Import" : "Import JSON"}
         </Button>
@@ -92,7 +92,7 @@ export function EditorToolbar({
           />
           <Button
             type="button"
-            onClick={() => {
+            onPress={() => {
               const imported = onImportJson(importText)
               setStatusMessage(imported ? "Workflow imported." : "Import failed.")
             }}
@@ -109,7 +109,7 @@ export function EditorToolbar({
             type="button"
             variant="ghost"
             size="xs"
-            onClick={() => {
+            onPress={() => {
               setStatusMessage(null)
               onClearError()
             }}

@@ -7,7 +7,6 @@ import { WorkflowEditor, createInitialGraph } from "@workspace/flow"
 import { Button } from "@workspace/ui/components/button"
 import {
   Dialog,
-  DialogContent,
   DialogDescription,
   DialogTitle,
 } from "@workspace/ui/components/dialog"
@@ -106,7 +105,6 @@ import { WorkflowEditor, createInitialGraph } from "@workspace/flow"
 import { Button } from "@workspace/ui/components/button"
 import {
   Dialog,
-  DialogContent,
   DialogDescription,
   DialogTitle,
 } from "@workspace/ui/components/dialog"
@@ -138,13 +136,14 @@ export function Example() {
 
   return (
     <>
-      <Button onClick={() => setOpen(true)}>Open fullscreen workflow</Button>
+      <Button onPress={() => setOpen(true)}>Open fullscreen workflow</Button>
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent
-          showCloseButton={false}
-          className="top-0 left-0 h-svh w-screen max-w-none translate-x-0 translate-y-0 rounded-none border-0 p-0"
-        >
+      <Dialog
+        isOpen={open}
+        onOpenChange={setOpen}
+        showCloseButton={false}
+        className="top-0 left-0 h-svh w-screen max-w-none translate-x-0 translate-y-0 rounded-none border-0 p-0"
+      >
           <DialogTitle className="sr-only">Fullscreen workflow modal</DialogTitle>
           <DialogDescription className="sr-only">
             Entire workflow editor rendered inside a fullscreen dialog.
@@ -156,14 +155,13 @@ export function Example() {
                 <p className="text-sm font-semibold text-gray-950">Lead qualification workflow</p>
                 <p className="text-sm text-gray-600">The whole workflow editor is mounted inside the modal.</p>
               </div>
-              <Button variant="outline" onClick={() => setOpen(false)}>Close</Button>
+              <Button variant="outline" onPress={() => setOpen(false)}>Close</Button>
             </div>
 
             <div className="min-h-0 flex-1">
               <WorkflowEditor initialGraph={initialGraph} />
             </div>
           </div>
-        </DialogContent>
       </Dialog>
     </>
   )
@@ -194,7 +192,7 @@ export function FullscreenModalExample() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <Button size="lg" onClick={() => setOpen(true)}>
+            <Button size="lg" onPress={() => setOpen(true)}>
               <ExpandIcon />
               Open fullscreen workflow
             </Button>
@@ -204,11 +202,12 @@ export function FullscreenModalExample() {
           </div>
         </div>
 
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogContent
-            showCloseButton={false}
-            className="top-0 left-0 h-svh w-screen max-w-none! translate-x-0 translate-y-0 rounded-none border-0 p-0"
-          >
+        <Dialog
+          isOpen={open}
+          onOpenChange={setOpen}
+          showCloseButton={false}
+          className="top-0 left-0 h-svh w-screen max-w-none! translate-x-0 translate-y-0 rounded-none border-0 p-0"
+        >
             <DialogTitle className="sr-only">
               Fullscreen workflow modal
             </DialogTitle>
@@ -226,7 +225,7 @@ export function FullscreenModalExample() {
                     Весь workflow editor живёт внутри full-screen модалки.
                   </p>
                 </div>
-                <Button variant="outline" onClick={() => setOpen(false)}>
+                <Button variant="outline" onPress={() => setOpen(false)}>
                   Close
                 </Button>
               </div>
@@ -235,7 +234,6 @@ export function FullscreenModalExample() {
                 <WorkflowEditor initialGraph={initialGraph} />
               </div>
             </div>
-          </DialogContent>
         </Dialog>
       </div>
     </ExamplePreview>

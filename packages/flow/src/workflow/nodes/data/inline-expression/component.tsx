@@ -39,9 +39,9 @@ export function InlineExpressionNode({
       headerAccessory={
         <label className={styles.rootToggleWrap()}>
           <Checkbox
-            checked={isRootFromStore}
+            isSelected={isRootFromStore}
             className={styles.rootToggle()}
-            onCheckedChange={(checked) => {
+            onChange={(checked) => {
               updateNodeConfig(id, {
                 kind: "inlineExpression",
                 key: "isRoot",
@@ -58,9 +58,9 @@ export function InlineExpressionNode({
           <Label className={styles.label()}>Tokens</Label>
           <label className={styles.rootToggleWrap()}>
             <Checkbox
-              checked={isCaseSensitiveFromStore}
+              isSelected={isCaseSensitiveFromStore}
               className={styles.rootToggle()}
-              onCheckedChange={(checked) => {
+              onChange={(checked) => {
                 updateNodeConfig(id, {
                   kind: "inlineExpression",
                   key: "caseSensitive",
@@ -88,9 +88,9 @@ export function InlineExpressionNode({
         </p>
         <label className={styles.rootToggleWrap()}>
           <Checkbox
-            checked={isRepeatableFromStore}
+            isSelected={isRepeatableFromStore}
             className={styles.rootToggle()}
-            onCheckedChange={(checked) => {
+            onChange={(checked) => {
               updateNodeConfig(id, {
                 kind: "inlineExpression",
                 key: "repeatable",

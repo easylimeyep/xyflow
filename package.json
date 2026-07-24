@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "build": "turbo build",
-    "dev": "turbo dev",
+    "dev": "turbo dev --filter=@workspace/storybook",
+    "dev:all": "turbo dev",
     "lint": "turbo lint",
     "test": "turbo test",
     "test:e2e": "turbo test:e2e",
