@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
 import type { NodeProps } from "@xyflow/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
@@ -175,16 +176,15 @@ describe("ExtractorNode", () => {
     })
   })
 
-  it("commits variable type via updateNodeConfig on change", () => {
+  it("commits variable type via updateNodeConfig on change", async () => {
+    const user = userEvent.setup()
     render(<ExtractorNode {...createNodeProps(3, "myVar", false, "value")} />)
 
-    const typeSelect = screen.getByLabelText(
-      "Variable type"
-    ) as HTMLSelectElement
-    expect(typeSelect.value).toBe("value")
+    const typeSelect = screen.getByLabelText("Variable type")
     expect(typeSelect.getAttribute("title")).toBe("Variable type: value")
 
-    fireEvent.change(typeSelect, { target: { value: "array" } })
+    await user.click(typeSelect)
+    await user.click(await screen.findByRole("option", { name: "array" }))
 
     expect(mockUpdateNodeConfig).toHaveBeenCalledWith("extractor-node-1", {
       kind: "extractor",

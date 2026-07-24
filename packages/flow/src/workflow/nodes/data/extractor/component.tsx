@@ -8,7 +8,7 @@ import { Label } from "@workspace/ui/components/label"
 import { useCallback, useRef, useState } from "react"
 
 import { setVariableNodeStyles } from "../../../../styles/components/nodes"
-import { WorkflowTypeNativeSelect } from "../../../components/workflow-type-native-select/workflow-type-native-select"
+import { WorkflowTypeSelect } from "../../../components/workflow-type-select/workflow-type-select"
 import { NodeShell } from "../../node-shell/node-shell"
 import {
   asText,
@@ -115,7 +115,7 @@ export function ExtractorNode({ id, data, selected }: NodeProps) {
 
           <div className={styles.labelTypeSelectField()}>
             <Label className={styles.label()}>Type</Label>
-            <WorkflowTypeNativeSelect
+            <WorkflowTypeSelect
               ariaLabel="Variable type"
               value={variableTypeFromStore}
               onChange={(value) => {

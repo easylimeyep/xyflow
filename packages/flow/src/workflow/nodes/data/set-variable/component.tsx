@@ -7,7 +7,7 @@ import { Input } from "@workspace/ui/components/input"
 
 import { setVariableNodeStyles } from "../../../../styles/components/nodes"
 import { ExpressionInput } from "../../../components/expression-input"
-import { WorkflowTypeNativeSelect } from "../../../components/workflow-type-native-select/workflow-type-native-select"
+import { WorkflowTypeSelect } from "../../../components/workflow-type-select/workflow-type-select"
 import { NodeShell } from "../../node-shell/node-shell"
 import {
   asText,
@@ -73,7 +73,7 @@ export function SetVariableNode({ id, data, selected }: NodeProps) {
 
           <div className={styles.labelTypeSelectField()}>
             <label className={styles.label()}>Type</label>
-            <WorkflowTypeNativeSelect
+            <WorkflowTypeSelect
               ariaLabel="Variable type"
               value={variableTypeFromStore}
               onChange={(value) => {

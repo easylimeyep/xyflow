@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
 import type { NodeProps } from "@xyflow/react"
 import type { ReactNode } from "react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
@@ -45,8 +46,20 @@ function stringCondition(
   }
 }
 
-function selectWorkflowType(label: string, type: "value" | "array") {
-  fireEvent.change(screen.getByLabelText(label), { target: { value: type } })
+// The workflow type control is a react-aria Select rendered as an icon-only
+// button trigger. Selecting a type means opening the listbox and clicking the
+// matching option (keyed/labelled by the type name).
+async function selectWorkflowType(label: string, type: "value" | "array") {
+  const user = userEvent.setup()
+  await user.click(screen.getByLabelText(label))
+  await user.click(await screen.findByRole("option", { name: type }))
+}
+
+// Opens a react-aria Select (button trigger) and clicks the named option.
+async function selectOption(triggerLabel: string, optionName: string) {
+  const user = userEvent.setup()
+  await user.click(screen.getByLabelText(triggerLabel))
+  await user.click(await screen.findByRole("option", { name: optionName }))
 }
 
 function closeArrayPopover(label: string) {
@@ -175,7 +188,8 @@ describe("EvaluatorNode", () => {
     vi.restoreAllMocks()
   })
 
-  it("renders runtime-provided operator labels and updates the stored operator id", () => {
+  it("renders runtime-provided operator labels and updates the stored operator id", async () => {
+    const user = userEvent.setup()
     mockEvaluatorOperators = {
       value: [
         { id: "matches", value: "Matches", allowTypes: ["value"] },
@@ -203,15 +217,15 @@ describe("EvaluatorNode", () => {
       />
     )
 
-    const operatorSelect = screen.getByLabelText(
-      "Condition operator"
-    ) as HTMLSelectElement
+    const operatorSelect = screen.getByLabelText("Condition operator")
 
-    expect(operatorSelect.value).toBe("matches")
+    expect(operatorSelect.textContent).toContain("Matches")
+
+    await user.click(operatorSelect)
     expect(screen.getByRole("option", { name: "Matches" })).toBeTruthy()
     expect(screen.getByRole("option", { name: "Is Missing" })).toBeTruthy()
 
-    fireEvent.change(operatorSelect, { target: { value: "missing" } })
+    await user.click(screen.getByRole("option", { name: "Is Missing" }))
 
     expect(mockUpdateNodeConfig).toHaveBeenCalledWith("evaluator-node-1", {
       kind: "evaluator",
@@ -220,7 +234,8 @@ describe("EvaluatorNode", () => {
     })
   })
 
-  it("updates the editable logical operator with the native select", () => {
+  it("updates the editable logical operator with the select", async () => {
+    const user = userEvent.setup()
     mockEnableEvaluatorMultipleConditions = true
 
     render(
@@ -244,16 +259,16 @@ describe("EvaluatorNode", () => {
       />
     )
 
-    const logicalOperatorSelect = screen.getByLabelText(
-      "Logical operator"
-    ) as HTMLSelectElement
+    const logicalOperatorSelect = screen.getByLabelText("Logical operator")
 
-    expect(logicalOperatorSelect.value).toBe("and")
-    expect(screen.getByRole("option", { name: "AND" })).toBeTruthy()
-    expect(screen.getByRole("option", { name: "OR" })).toBeTruthy()
+    expect(logicalOperatorSelect.textContent).toContain("AND")
     expect(screen.getAllByText("AND").length).toBeGreaterThan(1)
 
-    fireEvent.change(logicalOperatorSelect, { target: { value: "or" } })
+    await user.click(logicalOperatorSelect)
+    expect(screen.getByRole("option", { name: "AND" })).toBeTruthy()
+    expect(screen.getByRole("option", { name: "OR" })).toBeTruthy()
+
+    await user.click(screen.getByRole("option", { name: "OR" }))
 
     expect(mockUpdateNodeConfig).toHaveBeenCalledWith("evaluator-node-1", {
       kind: "evaluator",
@@ -373,10 +388,10 @@ describe("EvaluatorNode", () => {
     expect(screen.queryByLabelText("target value")).toBeNull()
   })
 
-  it("reconciles right operand when changing the left operand type", () => {
+  it("reconciles right operand when changing the left operand type", async () => {
     render(<EvaluatorNode {...createNodeProps()} />)
 
-    selectWorkflowType("Left operand type", "array")
+    await selectWorkflowType("Left operand type", "array")
 
     expect(mockUpdateNodeConfig).toHaveBeenCalledWith("evaluator-node-1", {
       kind: "evaluator",
@@ -396,7 +411,7 @@ describe("EvaluatorNode", () => {
     })
   })
 
-  it("uses the first operator from the new left operand type when the current operator is unavailable", () => {
+  it("uses the first operator from the new left operand type when the current operator is unavailable", async () => {
     mockEvaluatorOperators = {
       value: [
         { id: "starts with", value: "starts with", allowTypes: ["value"] },
@@ -424,7 +439,7 @@ describe("EvaluatorNode", () => {
       />
     )
 
-    selectWorkflowType("Left operand type", "array")
+    await selectWorkflowType("Left operand type", "array")
 
     expect(mockUpdateNodeConfig).toHaveBeenCalledWith("evaluator-node-1", {
       kind: "evaluator",
@@ -440,7 +455,7 @@ describe("EvaluatorNode", () => {
     })
   })
 
-  it("updates the right operand type without changing the left operand", () => {
+  it("updates the right operand type without changing the left operand", async () => {
     mockEvaluatorOperators = {
       value: [
         {
@@ -456,7 +471,7 @@ describe("EvaluatorNode", () => {
 
     render(<EvaluatorNode {...createNodeProps()} />)
 
-    selectWorkflowType("Right operand type", "array")
+    await selectWorkflowType("Right operand type", "array")
 
     expect(mockUpdateNodeConfig).toHaveBeenCalledWith("evaluator-node-1", {
       kind: "evaluator",
@@ -498,8 +513,8 @@ describe("EvaluatorNode", () => {
 
     expect(screen.getByText("first value")).toBeDefined()
     expect(
-      (screen.getByLabelText("Left operand type") as HTMLSelectElement).value
-    ).toBe("array")
+      screen.getByLabelText("Left operand type").getAttribute("title")
+    ).toBe("Left operand type: array")
     fireEvent.click(screen.getByLabelText("Edit Left array values"))
 
     fireEvent.change(screen.getByLabelText("Left array value 1"), {
@@ -655,7 +670,7 @@ describe("EvaluatorNode", () => {
     })
   })
 
-  it("keeps the first array item when changing an array operand to string", () => {
+  it("keeps the first array item when changing an array operand to string", async () => {
     render(
       <EvaluatorNode
         {...createNodeProps({
@@ -676,7 +691,7 @@ describe("EvaluatorNode", () => {
       />
     )
 
-    selectWorkflowType("Left operand type", "value")
+    await selectWorkflowType("Left operand type", "value")
 
     expect(mockUpdateNodeConfig).toHaveBeenCalledWith("evaluator-node-1", {
       kind: "evaluator",
@@ -726,7 +741,7 @@ describe("EvaluatorNode", () => {
     })
   })
 
-  it("creates a default right operand when switching to a target-required operator", () => {
+  it("creates a default right operand when switching to a target-required operator", async () => {
     mockEvaluatorOperators = {
       value: [
         { id: "matches", value: "Matches", allowTypes: ["value"] },
@@ -750,9 +765,7 @@ describe("EvaluatorNode", () => {
       />
     )
 
-    fireEvent.change(screen.getByLabelText("Condition operator"), {
-      target: { value: "matches" },
-    })
+    await selectOption("Condition operator", "Matches")
 
     expect(mockUpdateNodeConfig).toHaveBeenCalledWith("evaluator-node-1", {
       kind: "evaluator",
@@ -768,7 +781,7 @@ describe("EvaluatorNode", () => {
     })
   })
 
-  it("recreates an incompatible right operand with the first allowed type", () => {
+  it("recreates an incompatible right operand with the first allowed type", async () => {
     mockEvaluatorOperators = {
       value: [
         { id: "matches", value: "Matches", allowTypes: ["value"] },
@@ -779,9 +792,7 @@ describe("EvaluatorNode", () => {
 
     render(<EvaluatorNode {...createNodeProps()} />)
 
-    fireEvent.change(screen.getByLabelText("Condition operator"), {
-      target: { value: "in-list" },
-    })
+    await selectOption("Condition operator", "In List")
 
     expect(mockUpdateNodeConfig).toHaveBeenCalledWith("evaluator-node-1", {
       kind: "evaluator",
@@ -797,15 +808,14 @@ describe("EvaluatorNode", () => {
     })
   })
 
-  it("restricts right operand type choices to the selected operator allowTypes", () => {
+  it("restricts right operand type choices to the selected operator allowTypes", async () => {
+    const user = userEvent.setup()
     render(<EvaluatorNode {...createNodeProps()} />)
 
-    const rightOperandTypeSelect = screen.getByLabelText(
-      "Right operand type"
-    ) as HTMLSelectElement
-    const optionValues = Array.from(rightOperandTypeSelect.options).map(
-      (option) => option.value
-    )
+    await user.click(screen.getByLabelText("Right operand type"))
+    const optionValues = screen
+      .getAllByRole("option")
+      .map((option) => option.textContent)
 
     expect(optionValues).toEqual(["value"])
   })
@@ -836,7 +846,8 @@ describe("EvaluatorNode", () => {
     })
   })
 
-  it("filters operators by the left operand type", () => {
+  it("filters operators by the left operand type", async () => {
+    const user = userEvent.setup()
     mockEvaluatorOperators = {
       value: [{ id: "matches", value: "Matches", allowTypes: ["value"] }],
       array: [{ id: "contains", value: "Contains", allowTypes: ["value"] }],
@@ -860,16 +871,17 @@ describe("EvaluatorNode", () => {
       />
     )
 
-    const operatorSelect = screen.getByLabelText(
-      "Condition operator"
-    ) as HTMLSelectElement
+    const operatorSelect = screen.getByLabelText("Condition operator")
 
-    expect(operatorSelect.value).toBe("contains")
+    expect(operatorSelect.textContent).toContain("Contains")
+
+    await user.click(operatorSelect)
     expect(screen.getByRole("option", { name: "Contains" })).toBeTruthy()
     expect(screen.queryByRole("option", { name: "Matches" })).toBeNull()
   })
 
-  it("uses array operators when value operand resolves to upstream array variable type", () => {
+  it("uses array operators when value operand resolves to upstream array variable type", async () => {
+    const user = userEvent.setup()
     mockEvaluatorOperators = {
       value: [{ id: "matches", value: "Matches", allowTypes: ["value"] }],
       array: [{ id: "contains", value: "Contains", allowTypes: ["value"] }],
@@ -878,16 +890,15 @@ describe("EvaluatorNode", () => {
 
     render(<EvaluatorNode {...createNodeProps()} />)
 
-    const operatorSelect = screen.getByLabelText(
-      "Condition operator"
-    ) as HTMLSelectElement
+    const operatorSelect = screen.getByLabelText("Condition operator")
 
-    expect(operatorSelect.value).toBe("contains")
+    await user.click(operatorSelect)
     expect(screen.getByRole("option", { name: "Contains" })).toBeTruthy()
     expect(screen.queryByRole("option", { name: "Matches" })).toBeNull()
   })
 
-  it("shows unknown variable chip and falls back to value operators", () => {
+  it("shows unknown variable chip and falls back to value operators", async () => {
+    const user = userEvent.setup()
     mockEvaluatorOperators = {
       value: [{ id: "matches", value: "Matches", allowTypes: ["value"] }],
       array: [{ id: "contains", value: "Contains", allowTypes: ["value"] }],
@@ -913,12 +924,11 @@ describe("EvaluatorNode", () => {
       />
     )
 
-    const operatorSelect = screen.getByLabelText(
-      "Condition operator"
-    ) as HTMLSelectElement
+    const operatorSelect = screen.getByLabelText("Condition operator")
 
     expect(screen.getByText("Unknown")).toBeTruthy()
-    expect(operatorSelect.value).toBe("matches")
+
+    await user.click(operatorSelect)
     expect(screen.getByRole("option", { name: "Matches" })).toBeTruthy()
     expect(screen.queryByRole("option", { name: "Contains" })).toBeNull()
   })

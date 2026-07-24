@@ -8,9 +8,12 @@ import { Checkbox } from "@workspace/ui/components/checkbox"
 import { Input } from "@workspace/ui/components/input"
 import { Label } from "@workspace/ui/components/label"
 import {
-  NativeSelect,
-  NativeSelectOption,
-} from "@workspace/ui/components/native-select"
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@workspace/ui/components/select"
 import {
   Tooltip,
   TooltipTrigger,
@@ -27,7 +30,7 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 
 import { evaluatorNodeStyles } from "../../../../styles/components/nodes"
 import { ExpressionInput } from "../../../components/expression-input"
-import { WorkflowTypeNativeSelect } from "../../../components/workflow-type-native-select/workflow-type-native-select"
+import { WorkflowTypeSelect } from "../../../components/workflow-type-select/workflow-type-select"
 import type {
   EvaluatorCondition,
   ConditionOperator,
@@ -198,7 +201,7 @@ function OperandEditor({
 }: OperandEditorProps) {
   return (
     <div className={styles.operandRow()}>
-      <WorkflowTypeNativeSelect
+      <WorkflowTypeSelect
         ariaLabel={`${label} operand type`}
         className={styles.operandTypeSelect()}
         size="sm"
@@ -415,21 +418,24 @@ function ConditionRow({
         />
 
         <div className={styles.operatorRow()}>
-          <NativeSelect
+          <Select
             aria-label="Condition operator"
-            className={styles.operatorSelect()}
-            size="sm"
-            value={condition.operator}
-            onChange={(event) =>
-              updateOperator(event.target.value as ConditionOperator)
+            selectedKey={condition.operator}
+            onSelectionChange={(key) =>
+              updateOperator(key as ConditionOperator)
             }
           >
-            {activeOperators.map((operator) => (
-              <NativeSelectOption key={operator.id} value={operator.id}>
-                {operator.value}
-              </NativeSelectOption>
-            ))}
-          </NativeSelect>
+            <SelectTrigger size="sm" className={styles.operatorSelect()}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {activeOperators.map((operator) => (
+                <SelectItem key={operator.id} id={operator.id}>
+                  {operator.value}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {needsTarget && condition.right ? (
@@ -463,16 +469,19 @@ function LogicalOperatorRow({
   return (
     <div className={styles.logicalOperatorSeparator()}>
       {isInteractive ? (
-        <NativeSelect
+        <Select
           aria-label="Logical operator"
-          className={styles.logicalOperatorSelect()}
-          size="sm"
-          value={value}
-          onChange={(event) => onChange(event.target.value as "and" | "or")}
+          selectedKey={value}
+          onSelectionChange={(key) => onChange(key as "and" | "or")}
         >
-          <NativeSelectOption value="and">AND</NativeSelectOption>
-          <NativeSelectOption value="or">OR</NativeSelectOption>
-        </NativeSelect>
+          <SelectTrigger size="sm" className={styles.logicalOperatorSelect()}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem id="and">AND</SelectItem>
+            <SelectItem id="or">OR</SelectItem>
+          </SelectContent>
+        </Select>
       ) : (
         <span className={styles.logicalOperatorBadge()}>
           {value.toUpperCase()}
