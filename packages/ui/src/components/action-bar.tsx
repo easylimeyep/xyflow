@@ -6,10 +6,11 @@ import {
 } from "radix-ui"
 import * as React from "react"
 import * as ReactDOM from "react-dom"
+import type { PressEvent } from "react-aria-components"
 import { cn } from "@workspace/ui/lib/utils"
 import { useAsRef } from "@workspace/ui/hooks/use-as-ref"
 import { useIsomorphicLayoutEffect } from "@workspace/ui/hooks/use-isomorphic-layout-effect"
-import { buttonVariants } from "@workspace/ui/components/button"
+import { Button } from "@workspace/ui/components/button"
 import { useComposedRefs } from "@workspace/ui/lib/compose-refs"
 
 const ROOT_NAME = "ActionBar"
@@ -31,6 +32,10 @@ interface DivProps extends React.ComponentProps<"div"> {
 type RootElement = React.ComponentRef<typeof ActionBar>
 type ItemElement = React.ComponentRef<typeof ActionBarItem>
 type CloseElement = React.ComponentRef<typeof ActionBarClose>
+
+type ButtonComponentProps = React.ComponentProps<typeof Button>
+type ItemFocusEvent = Parameters<NonNullable<ButtonComponentProps["onFocus"]>>[0]
+type ItemKeyboardEvent = Parameters<NonNullable<ButtonComponentProps["onKeyDown"]>>[0]
 
 function focusFirst(
   candidates: React.RefObject<HTMLElement | null>[],
@@ -414,7 +419,7 @@ function ActionBarGroup(props: DivProps) {
 }
 
 interface ActionBarItemProps extends Omit<
-  React.ComponentProps<"button">,
+  React.ComponentProps<typeof Button>,
   "onSelect"
 > {
   onSelect?: (event: Event) => void
@@ -423,12 +428,12 @@ interface ActionBarItemProps extends Omit<
 function ActionBarItem(props: ActionBarItemProps) {
   const {
     onSelect,
-    onClick: onClickProp,
+    onPress: onPressProp,
     onFocus: onFocusProp,
     onKeyDown: onKeyDownProp,
     onMouseDown: onMouseDownProp,
     className,
-    disabled,
+    isDisabled: disabled,
     ref,
     ...itemProps
   } = props
@@ -463,10 +468,9 @@ function ActionBarItem(props: ActionBarItemProps) {
     }
   }, [focusContext, itemId, disabled])
 
-  const onClick = React.useCallback(
-    (event: React.MouseEvent<ItemElement>) => {
-      onClickProp?.(event)
-      if (event.defaultPrevented) return
+  const onPress = React.useCallback(
+    (event: PressEvent) => {
+      onPressProp?.(event)
 
       const item = itemRef.current
       if (!item) return
@@ -476,7 +480,7 @@ function ActionBarItem(props: ActionBarItemProps) {
         cancelable: true,
       })
 
-      item.addEventListener(ITEM_SELECT, (event) => onSelect?.(event), {
+      item.addEventListener(ITEM_SELECT, (selectEvent) => onSelect?.(selectEvent), {
         once: true,
       })
 
@@ -486,11 +490,11 @@ function ActionBarItem(props: ActionBarItemProps) {
         onOpenChange?.(false)
       }
     },
-    [onClickProp, onOpenChange, onSelect]
+    [onPressProp, onOpenChange, onSelect]
   )
 
   const onFocus = React.useCallback(
-    (event: React.FocusEvent<ItemElement>) => {
+    (event: ItemFocusEvent) => {
       onFocusProp?.(event)
       if (event.defaultPrevented) return
 
@@ -501,7 +505,7 @@ function ActionBarItem(props: ActionBarItemProps) {
   )
 
   const onKeyDown = React.useCallback(
-    (event: React.KeyboardEvent<ItemElement>) => {
+    (event: ItemKeyboardEvent) => {
       onKeyDownProp?.(event)
       if (event.defaultPrevented) return
 
@@ -570,21 +574,16 @@ function ActionBarItem(props: ActionBarItemProps) {
   )
 
   return (
-    <button
-      type="button"
+    <Button
+      variant="secondary"
+      size="sm"
       data-slot="action-bar-item"
-      data-variant="secondary"
-      data-size="sm"
-      disabled={disabled}
-      tabIndex={isTabStop ? 0 : -1}
+      isDisabled={disabled}
+      excludeFromTabOrder={!isTabStop}
       {...itemProps}
-      className={cn(
-        buttonVariants({ variant: "secondary", size: "sm" }),
-        orientation === "vertical" && "w-full",
-        className
-      )}
+      className={cn(orientation === "vertical" && "w-full", className)}
       ref={composedRef}
-      onClick={onClick}
+      onPress={onPress}
       onFocus={onFocus}
       onKeyDown={onKeyDown}
       onMouseDown={onMouseDown}
