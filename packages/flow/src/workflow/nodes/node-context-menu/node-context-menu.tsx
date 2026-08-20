@@ -5,13 +5,13 @@ import {
   ContextMenu,
   ContextMenuItem,
   ContextMenuSeparator,
+  ContextMenuShortcut,
   ContextMenuTrigger,
 } from "@workspace/ui/components/context-menu"
 import { Copy, CopyPlus, Trash2 } from "lucide-react"
 import type { ComponentType } from "react"
 
 import { useWorkflowShallowStore, type WorkflowStoreState } from "../../store"
-import { Kbd } from "@workspace/ui/components/kbd"
 
 interface NodeContextMenuProps extends NodeProps {
   children: ComponentType<NodeProps>
@@ -51,7 +51,7 @@ export function NodeContextMenu({
       }}
     >
       <NodeComponent {...props} />
-      <ContextMenu>
+      <ContextMenu className="w-auto min-w-40">
         <ContextMenuItem
           onAction={() => {
             void copySelectionToClipboard()
@@ -59,18 +59,18 @@ export function NodeContextMenu({
         >
           <Copy />
           Copy
-          <Kbd className="ml-auto">Ctrl+C</Kbd>
+          <ContextMenuShortcut>Ctrl+C</ContextMenuShortcut>
         </ContextMenuItem>
         <ContextMenuItem onAction={() => duplicateNodes()}>
           <CopyPlus />
           Duplicate
-          <Kbd className="ml-auto">Ctrl+D</Kbd>
+          <ContextMenuShortcut>Ctrl+D</ContextMenuShortcut>
         </ContextMenuItem>
         <ContextMenuSeparator />
         <ContextMenuItem variant="destructive" onAction={() => deleteNodes()}>
           <Trash2 />
           Delete
-          <Kbd className="ml-auto">Backspace</Kbd>
+          <ContextMenuShortcut>Backspace</ContextMenuShortcut>
         </ContextMenuItem>
       </ContextMenu>
     </ContextMenuTrigger>
