@@ -26,7 +26,7 @@ export const WORKFLOW_EDITOR_TOUR = [
     id: "workflow-canvas",
     anchor: { type: "editor", id: "canvas" },
     title: "Workflow canvas",
-    body: "Arrange nodes, connect paths, and inspect the full workflow structure.",
+    body: "Arrange nodes and connect paths. Drag the canvas to pan, and hold Shift while dragging to select multiple nodes.",
     placement: "top",
   },
   {

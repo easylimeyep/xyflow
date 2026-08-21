@@ -328,9 +328,8 @@ function WorkflowCanvasInner({
           onNodesChange={onReactFlowNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
-          selectionOnDrag
           selectionMode={SelectionMode.Partial}
-          panOnDrag={false}
+          panOnDrag
           panOnScroll
           zoomOnPinch
           zoomOnScroll={false}

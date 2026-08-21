@@ -357,9 +357,9 @@ describe("WorkflowCanvas", () => {
       "true"
     )
     expect(screen.getByTestId("rf-has-viewport").textContent).toBe("false")
-    expect(screen.getByTestId("rf-selection-on-drag").textContent).toBe("true")
+    expect(screen.getByTestId("rf-selection-on-drag").textContent).toBe("false")
     expect(screen.getByTestId("rf-selection-mode").textContent).toBe("partial")
-    expect(screen.getByTestId("rf-pan-on-drag").textContent).toBe("false")
+    expect(screen.getByTestId("rf-pan-on-drag").textContent).toBe("true")
     expect(screen.getByTestId("rf-pan-on-scroll").textContent).toBe("true")
     expect(screen.getByTestId("rf-zoom-on-pinch").textContent).toBe("true")
     expect(screen.getByTestId("rf-zoom-on-scroll").textContent).toBe("false")
