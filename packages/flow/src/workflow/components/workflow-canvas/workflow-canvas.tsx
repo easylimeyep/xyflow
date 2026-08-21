@@ -324,6 +324,7 @@ function WorkflowCanvasInner({
           defaultViewport={viewport}
           minZoom={WORKFLOW_MIN_ZOOM}
           maxZoom={WORKFLOW_MAX_ZOOM}
+          deleteKeyCode={["Backspace", "Delete"]}
           onMoveEnd={(_, nextViewport) => onViewportChange(nextViewport)}
           onNodesChange={onReactFlowNodesChange}
           onEdgesChange={onEdgesChange}

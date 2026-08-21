@@ -70,7 +70,7 @@ export function NodeContextMenu({
         <ContextMenuItem variant="destructive" onAction={() => deleteNodes()}>
           <Trash2 />
           Delete
-          <ContextMenuShortcut>Backspace</ContextMenuShortcut>
+          <ContextMenuShortcut>Del / Backspace</ContextMenuShortcut>
         </ContextMenuItem>
       </ContextMenu>
     </ContextMenuTrigger>
