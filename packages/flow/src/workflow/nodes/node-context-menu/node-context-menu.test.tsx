@@ -110,7 +110,7 @@ describe("NodeContextMenu", () => {
     expect(screen.getByText("Duplicate")).toBeDefined()
     expect(screen.getByText("Ctrl+D")).toBeDefined()
     expect(screen.getByText("Delete")).toBeDefined()
-    expect(screen.getByText("Backspace")).toBeDefined()
+    expect(screen.getByText("Del / Backspace")).toBeDefined()
     expect(
       screen.getByText("Delete").closest("[data-variant]")?.getAttribute(
         "data-variant"

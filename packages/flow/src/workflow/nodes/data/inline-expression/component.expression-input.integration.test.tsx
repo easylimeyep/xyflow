@@ -213,7 +213,7 @@ describe("InlineExpressionNode with real ExpressionInput", () => {
     expect(mockUpdateNodeConfig).toHaveBeenLastCalledWith("inline-node-1", {
       kind: "inlineExpression",
       key: "template",
-      value: ["leadDraft", ""],
+      value: ["leadDraft"],
     })
     expect(
       (screen.getAllByLabelText("expression-editor")[0] as HTMLTextAreaElement)
@@ -240,7 +240,7 @@ describe("InlineExpressionNode with real ExpressionInput", () => {
     expect(mockUpdateNodeConfig).toHaveBeenLastCalledWith("inline-node-1", {
       kind: "inlineExpression",
       key: "template",
-      value: ["editedLead", ""],
+      value: ["editedLead"],
     })
   })
 
