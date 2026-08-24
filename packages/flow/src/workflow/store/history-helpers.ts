@@ -4,7 +4,7 @@ import {
   createHistoryState,
   pushHistoryState,
   type HistoryState,
-} from "@workspace/store"
+} from "@flow/store"
 
 import type { WorkflowGraphState } from "../types/types"
 import { buildExpressionSlicePatch } from "./expression-deps"
@@ -15,7 +15,9 @@ export function cloneGraphState(graph: WorkflowGraphState): WorkflowGraphState {
   return cloneDeep(graph)
 }
 
-export function createInitialHistory(graph: WorkflowGraphState): HistoryState<WorkflowGraphState> {
+export function createInitialHistory(
+  graph: WorkflowGraphState
+): HistoryState<WorkflowGraphState> {
   return createHistoryState(cloneGraphState(graph))
 }
 

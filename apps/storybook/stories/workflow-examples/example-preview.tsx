@@ -3,12 +3,12 @@
 import type { ReactNode } from "react"
 import { ChevronDownIcon, Code2Icon } from "lucide-react"
 
-import { Button } from "@workspace/ui/components/button"
+import { Button } from "@flow/ui/components/button"
 import {
   Collapsible,
   CollapsibleContent,
-} from "@workspace/ui/components/collapsible"
-import { Tooltip, TooltipTrigger } from "@workspace/ui/components/tooltip"
+} from "@flow/ui/components/collapsible"
+import { Tooltip, TooltipTrigger } from "@flow/ui/components/tooltip"
 
 type ExamplePreviewProps = {
   title: string

@@ -2,8 +2,8 @@
 
 import { type ChangeEvent, type Ref, useMemo, useState } from "react"
 
-import { Button } from "@workspace/ui/components/button"
-import { Textarea } from "@workspace/ui/components/textarea"
+import { Button } from "@flow/ui/components/button"
+import { Textarea } from "@flow/ui/components/textarea"
 import { editorToolbarStyles } from "../../../styles/components/editor-shell"
 import type { DomainWorkflowDTO } from "../../types"
 
@@ -20,7 +20,10 @@ interface EditorToolbarProps {
 }
 
 async function copyToClipboard(text: string): Promise<boolean> {
-  if (!navigator.clipboard || typeof navigator.clipboard.writeText !== "function") {
+  if (
+    !navigator.clipboard ||
+    typeof navigator.clipboard.writeText !== "function"
+  ) {
     return false
   }
 
@@ -48,15 +51,28 @@ export function EditorToolbar({
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
   const styles = editorToolbarStyles()
 
-  const shownStatus = useMemo(() => lastError ?? statusMessage, [lastError, statusMessage])
+  const shownStatus = useMemo(
+    () => lastError ?? statusMessage,
+    [lastError, statusMessage]
+  )
 
   return (
     <div ref={anchorRef} className={styles.root()}>
       <div className={styles.actions()}>
-        <Button type="button" variant="outline" onPress={onUndo} isDisabled={!canUndo}>
+        <Button
+          type="button"
+          variant="outline"
+          onPress={onUndo}
+          isDisabled={!canUndo}
+        >
           Undo
         </Button>
-        <Button type="button" variant="outline" onPress={onRedo} isDisabled={!canRedo}>
+        <Button
+          type="button"
+          variant="outline"
+          onPress={onRedo}
+          isDisabled={!canRedo}
+        >
           Redo
         </Button>
         <Button
@@ -66,7 +82,9 @@ export function EditorToolbar({
             const copied = await copyToClipboard(
               JSON.stringify(onExportDomain(), null, 2)
             )
-            setStatusMessage(copied ? "Domain JSON copied." : "Failed to copy domain JSON.")
+            setStatusMessage(
+              copied ? "Domain JSON copied." : "Failed to copy domain JSON."
+            )
           }}
         >
           Export Domain
@@ -94,7 +112,9 @@ export function EditorToolbar({
             type="button"
             onPress={() => {
               const imported = onImportJson(importText)
-              setStatusMessage(imported ? "Workflow imported." : "Import failed.")
+              setStatusMessage(
+                imported ? "Workflow imported." : "Import failed."
+              )
             }}
           >
             Apply Import

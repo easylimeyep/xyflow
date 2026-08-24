@@ -20,7 +20,9 @@ export interface TemplateValidationResult {
   valid: boolean
 }
 
-export function parseTemplateSegments(template: string): TemplateExpressionSegment[] {
+export function parseTemplateSegments(
+  template: string
+): TemplateExpressionSegment[] {
   const segments: TemplateExpressionSegment[] = []
   let cursor = 0
 
@@ -70,7 +72,9 @@ export function parseTemplateSegments(template: string): TemplateExpressionSegme
   return segments
 }
 
-export function validateTemplateExpression(template: string): TemplateValidationResult {
+export function validateTemplateExpression(
+  template: string
+): TemplateValidationResult {
   const segments = parseTemplateSegments(template)
   const errors: TemplateValidationError[] = []
 
@@ -100,11 +104,13 @@ export function validateTemplateExpression(template: string): TemplateValidation
       return
     }
 
-    const leadingWhitespace = rawExpression.length - rawExpression.trimStart().length
+    const leadingWhitespace =
+      rawExpression.length - rawExpression.trimStart().length
 
     if (/\$input\b/.test(expression)) {
       errors.push({
-        message: "$input references are not supported. Use node labels as variables.",
+        message:
+          "$input references are not supported. Use node labels as variables.",
         start: segment.start,
         end: segment.end,
       })
@@ -113,7 +119,8 @@ export function validateTemplateExpression(template: string): TemplateValidation
 
     if (/\$node\b/.test(expression)) {
       errors.push({
-        message: "$node references are not supported. Use node labels as variables.",
+        message:
+          "$node references are not supported. Use node labels as variables.",
         start: segment.start,
         end: segment.end,
       })
@@ -121,7 +128,9 @@ export function validateTemplateExpression(template: string): TemplateValidation
     }
 
     try {
-      const astNode = parseExpressionAt(expression, 0, { ecmaVersion: "latest" })
+      const astNode = parseExpressionAt(expression, 0, {
+        ecmaVersion: "latest",
+      })
       if (astNode.end !== expression.length) {
         errors.push({
           message: "Expression has unexpected trailing tokens.",
@@ -130,7 +139,8 @@ export function validateTemplateExpression(template: string): TemplateValidation
         })
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Invalid expression."
+      const message =
+        error instanceof Error ? error.message : "Invalid expression."
       const parsedError = error as { pos?: number }
       const errorPos = typeof parsedError.pos === "number" ? parsedError.pos : 0
       errors.push({

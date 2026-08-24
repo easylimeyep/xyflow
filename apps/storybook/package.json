@@ -1,5 +1,5 @@
 {
-  "name": "@workspace/storybook",
+  "name": "@flow/storybook",
   "version": "0.0.0",
   "type": "module",
   "private": true,
@@ -11,10 +11,10 @@
   },
   "dependencies": {
     "@rc-component/tour": "^2.4.0",
-    "@workspace/expression-editor": "workspace:*",
-    "@workspace/flow": "workspace:*",
-    "@workspace/store": "workspace:*",
-    "@workspace/ui": "workspace:*",
+    "@flow/expression-editor": "workspace:*",
+    "@flow/flow": "workspace:*",
+    "@flow/store": "workspace:*",
+    "@flow/ui": "workspace:*",
     "lucide-react": "^1.16.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"
@@ -27,8 +27,8 @@
     "@types/react": "^19.2.10",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.0.0",
-    "@workspace/eslint-config": "workspace:*",
-    "@workspace/typescript-config": "workspace:*",
+    "@flow/eslint-config": "workspace:*",
+    "@flow/typescript-config": "workspace:*",
     "eslint": "^9.39.2",
     "storybook": "^10.5.3",
     "tailwindcss": "^4.1.18",

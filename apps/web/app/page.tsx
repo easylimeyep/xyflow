@@ -1,4 +1,4 @@
-import { WorkflowEditor } from "@workspace/flow"
+import { WorkflowEditor } from "@flow/flow"
 
 export default function Page() {
   return (

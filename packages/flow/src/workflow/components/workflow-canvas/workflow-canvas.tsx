@@ -9,7 +9,7 @@ import {
   useState,
 } from "react"
 
-import { useEventCallback } from "@workspace/ui/hooks/use-event-callback"
+import { useEventCallback } from "@flow/ui/hooks/use-event-callback"
 import {
   Background,
   MiniMap,
@@ -106,9 +106,7 @@ function WorkflowCanvasInner({
   const allNodesMeasured =
     nodes.length === 0 ||
     nodes.every(
-      (node) =>
-        node.measured?.width != null &&
-        node.measured.height != null
+      (node) => node.measured?.width != null && node.measured.height != null
     )
   const onReactFlowNodesChange = useNodeChangeRouter({
     nodes,
@@ -255,8 +253,7 @@ function WorkflowCanvasInner({
     initialLayoutAttemptedRef.current = true
     setInitialLayoutPending(true)
 
-    void onMeasuredInitialAutoLayout
-      ?.()
+    void onMeasuredInitialAutoLayout?.()
       .then((didLayout) => {
         if (cancelled) {
           return

@@ -121,7 +121,9 @@ function readEvaluatorLabel(node: WorkflowNode): string {
     : ""
 }
 
-function readVariableType(node: WorkflowNode): WorkflowVariableType | undefined {
+function readVariableType(
+  node: WorkflowNode
+): WorkflowVariableType | undefined {
   switch (node.data.kind) {
     case "setVariable":
     case "extractor": {

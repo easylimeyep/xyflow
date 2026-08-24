@@ -51,4 +51,3 @@ export const WORKFLOW_EDITOR_TOUR = [
     placement: "left",
   },
 ] as const satisfies readonly WorkflowTourStep[]
-

@@ -25,7 +25,9 @@ describe("expression autocomplete helpers", () => {
   it("builds completions from variables", () => {
     const completions = buildExpressionCompletions(VARIABLES)
     expect(
-      completions.some((entry) => entry.label === '$("TriggerA").item.json.eventName')
+      completions.some(
+        (entry) => entry.label === '$("TriggerA").item.json.eventName'
+      )
     ).toBe(true)
   })
 

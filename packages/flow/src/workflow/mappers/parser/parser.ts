@@ -9,7 +9,9 @@ export interface ParseResult<T> {
   error?: string
 }
 
-export function parseDomainGraphJson(rawJson: string): ParseResult<DomainWorkflowDTO> {
+export function parseDomainGraphJson(
+  rawJson: string
+): ParseResult<DomainWorkflowDTO> {
   try {
     const parsed: unknown = JSON.parse(rawJson)
     if (!asRecord(parsed)) {
@@ -23,7 +25,8 @@ export function parseDomainGraphJson(rawJson: string): ParseResult<DomainWorkflo
     if (!domainDTO.success) {
       return {
         success: false,
-        error: domainDTO.error ?? "Workflow JSON must match domain workflow schema.",
+        error:
+          domainDTO.error ?? "Workflow JSON must match domain workflow schema.",
       }
     }
 
@@ -39,7 +42,9 @@ export function parseDomainGraphJson(rawJson: string): ParseResult<DomainWorkflo
   }
 }
 
-export function parseInternalGraphJson(rawJson: string): ParseResult<WorkflowGraphState> {
+export function parseInternalGraphJson(
+  rawJson: string
+): ParseResult<WorkflowGraphState> {
   const domainDTO = parseDomainGraphJson(rawJson)
   if (!domainDTO.success || !domainDTO.value) {
     return {

@@ -68,8 +68,8 @@ describe("workflow store node actions", () => {
     )
     expect(duplicatedState.history.past.length).toBe(pastBeforeDuplicate + 1)
 
-    const duplicatedNodes = duplicatedState.history.present.nodes.filter((node) =>
-      duplicatedNodeIds.includes(node.id)
+    const duplicatedNodes = duplicatedState.history.present.nodes.filter(
+      (node) => duplicatedNodeIds.includes(node.id)
     )
     expect(duplicatedNodes.map((node) => node.data.label).sort()).toEqual([
       "Extractor 2",

@@ -53,7 +53,10 @@ export const createLayoutSlice: WorkflowSliceCreator = (set, get) => ({
       }))
       return true
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to auto-layout workflow graph."
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to auto-layout workflow graph."
       set({
         lastError: createWorkflowError("AUTO_LAYOUT_FAILED", message),
       })

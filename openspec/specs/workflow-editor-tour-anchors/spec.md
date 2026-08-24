@@ -80,4 +80,4 @@ Consuming applications SHALL be able to adapt `WORKFLOW_EDITOR_TOUR` to `@rc-com
 
 #### Scenario: Flow package remains renderer agnostic
 - **WHEN** the rc-tour example is implemented
-- **THEN** `@workspace/flow` does not import, instantiate, or depend on `@rc-component/tour`
+- **THEN** `@flow/flow` does not import, instantiate, or depend on `@rc-component/tour`

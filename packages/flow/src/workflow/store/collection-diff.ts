@@ -1,7 +1,11 @@
 import type { EdgeChange, NodeChange } from "@xyflow/react"
-import type { HistoryState } from "@workspace/store"
+import type { HistoryState } from "@flow/store"
 
-import type { WorkflowEdge, WorkflowGraphState, WorkflowNode } from "../types/types"
+import type {
+  WorkflowEdge,
+  WorkflowGraphState,
+  WorkflowNode,
+} from "../types/types"
 
 function isTransientNodeChange(change: NodeChange<WorkflowNode>): boolean {
   return change.type === "dimensions"
@@ -32,7 +36,9 @@ export function shouldCommitNodeHistory(
 export function shouldCommitEdgeHistory(
   changes: EdgeChange<WorkflowEdge>[]
 ): boolean {
-  return changes.some((change) => change.type === "add" || change.type === "remove")
+  return changes.some(
+    (change) => change.type === "add" || change.type === "remove"
+  )
 }
 
 export function getRemovedNodeIds(
@@ -47,7 +53,8 @@ export function filterEdgesForRemovedNodes(
 ): WorkflowEdge[] {
   if (removedNodeIds.size === 0) return edges
   return edges.filter(
-    (edge) => !removedNodeIds.has(edge.source) && !removedNodeIds.has(edge.target)
+    (edge) =>
+      !removedNodeIds.has(edge.source) && !removedNodeIds.has(edge.target)
   )
 }
 
@@ -125,9 +132,15 @@ export function shouldSquashPreviousEdgeRemovalWithNodeRemoval(
   if (!previousGraph) return false
   const currentGraph = history.present
   if (!haveSameNodeIds(previousGraph.nodes, currentGraph.nodes)) return false
-  const removedEdgeIds = getRemovedEdgeIdSet(previousGraph.edges, currentGraph.edges)
+  const removedEdgeIds = getRemovedEdgeIdSet(
+    previousGraph.edges,
+    currentGraph.edges
+  )
   if (removedEdgeIds.size === 0) return false
-  const incidentEdgeIds = getIncidentEdgeIdSet(previousGraph.edges, removedNodeIds)
+  const incidentEdgeIds = getIncidentEdgeIdSet(
+    previousGraph.edges,
+    removedNodeIds
+  )
   return areSetsEqual(removedEdgeIds, incidentEdgeIds)
 }
 

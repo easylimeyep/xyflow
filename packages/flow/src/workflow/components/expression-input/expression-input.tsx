@@ -3,7 +3,7 @@
 import {
   ExpressionEditor,
   type ExpressionVariableOption,
-} from "@workspace/expression-editor"
+} from "@flow/expression-editor"
 
 interface ExpressionInputProps {
   value: string

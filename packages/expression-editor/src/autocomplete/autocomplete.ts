@@ -1,4 +1,8 @@
-import type { Completion, CompletionContext, CompletionResult } from "@codemirror/autocomplete"
+import type {
+  Completion,
+  CompletionContext,
+  CompletionResult,
+} from "@codemirror/autocomplete"
 
 import { getBuiltinExpressionCompletions } from "../builtins"
 import type { ExpressionVariableOption } from "../types"

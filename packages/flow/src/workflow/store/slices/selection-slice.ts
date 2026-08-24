@@ -11,7 +11,10 @@ function applySelection(
     nextSelectedNodeIds
   )
   const nodesChanged = nextNodes !== state.history.present.nodes
-  if (!nodesChanged && haveSameIdSet(state.selectedNodeIds, nextSelectedNodeIds)) {
+  if (
+    !nodesChanged &&
+    haveSameIdSet(state.selectedNodeIds, nextSelectedNodeIds)
+  ) {
     return state
   }
   if (!nodesChanged) {

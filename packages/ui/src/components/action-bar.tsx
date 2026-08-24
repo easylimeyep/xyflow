@@ -7,11 +7,11 @@ import {
 import * as React from "react"
 import * as ReactDOM from "react-dom"
 import type { PressEvent } from "react-aria-components"
-import { cn } from "@workspace/ui/lib/utils"
-import { useAsRef } from "@workspace/ui/hooks/use-as-ref"
-import { useIsomorphicLayoutEffect } from "@workspace/ui/hooks/use-isomorphic-layout-effect"
-import { Button } from "@workspace/ui/components/button"
-import { useComposedRefs } from "@workspace/ui/lib/compose-refs"
+import { cn } from "@flow/ui/lib/utils"
+import { useAsRef } from "@flow/ui/hooks/use-as-ref"
+import { useIsomorphicLayoutEffect } from "@flow/ui/hooks/use-isomorphic-layout-effect"
+import { Button } from "@flow/ui/components/button"
+import { useComposedRefs } from "@flow/ui/lib/compose-refs"
 
 const ROOT_NAME = "ActionBar"
 const GROUP_NAME = "ActionBarGroup"
@@ -34,8 +34,12 @@ type ItemElement = React.ComponentRef<typeof ActionBarItem>
 type CloseElement = React.ComponentRef<typeof ActionBarClose>
 
 type ButtonComponentProps = React.ComponentProps<typeof Button>
-type ItemFocusEvent = Parameters<NonNullable<ButtonComponentProps["onFocus"]>>[0]
-type ItemKeyboardEvent = Parameters<NonNullable<ButtonComponentProps["onKeyDown"]>>[0]
+type ItemFocusEvent = Parameters<
+  NonNullable<ButtonComponentProps["onFocus"]>
+>[0]
+type ItemKeyboardEvent = Parameters<
+  NonNullable<ButtonComponentProps["onKeyDown"]>
+>[0]
 
 function focusFirst(
   candidates: React.RefObject<HTMLElement | null>[],
@@ -480,9 +484,13 @@ function ActionBarItem(props: ActionBarItemProps) {
         cancelable: true,
       })
 
-      item.addEventListener(ITEM_SELECT, (selectEvent) => onSelect?.(selectEvent), {
-        once: true,
-      })
+      item.addEventListener(
+        ITEM_SELECT,
+        (selectEvent) => onSelect?.(selectEvent),
+        {
+          once: true,
+        }
+      )
 
       item.dispatchEvent(itemSelectEvent)
 

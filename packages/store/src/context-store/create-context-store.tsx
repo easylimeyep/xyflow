@@ -10,7 +10,9 @@ import { shallow } from "zustand/shallow"
 import { useStoreWithEqualityFn } from "zustand/traditional"
 import type { StoreApi } from "zustand/vanilla"
 
-export type ContextStoreSelector<TState, TSelected> = (state: TState) => TSelected
+export type ContextStoreSelector<TState, TSelected> = (
+  state: TState
+) => TSelected
 export type ContextStoreEqualityFn<TSelected> = (
   left: TSelected,
   right: TSelected
@@ -35,7 +37,9 @@ export interface ContextStore<TState, TInitialProps extends object> {
   useShallowStore: <TSelected>(
     selector: ContextStoreSelector<TState, TSelected>
   ) => TSelected
-  Item: <TSelected>(props: ContextStoreItemProps<TState, TSelected>) => ReactElement
+  Item: <TSelected>(
+    props: ContextStoreItemProps<TState, TSelected>
+  ) => ReactElement
 }
 
 export function createContextStore<TState, TInitialProps extends object>(
@@ -54,10 +58,15 @@ export function createContextStore<TState, TInitialProps extends object>(
     return store
   }
 
-  function Provider({ children, ...initialProps }: PropsWithChildren<TInitialProps>) {
+  function Provider({
+    children,
+    ...initialProps
+  }: PropsWithChildren<TInitialProps>) {
     const [store] = useState(() => factory(initialProps as TInitialProps))
 
-    return <StoreContext.Provider value={store}>{children}</StoreContext.Provider>
+    return (
+      <StoreContext.Provider value={store}>{children}</StoreContext.Provider>
+    )
   }
 
   function useBoundStore<TSelected>(

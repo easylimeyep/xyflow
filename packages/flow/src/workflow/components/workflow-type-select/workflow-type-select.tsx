@@ -5,7 +5,7 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-} from "@workspace/ui/components/select"
+} from "@flow/ui/components/select"
 import { Brackets, Type } from "lucide-react"
 import { tv } from "tailwind-variants"
 

@@ -6,7 +6,7 @@ import {
   type CheckboxProps,
 } from "react-aria-components"
 
-import { cn } from "@workspace/ui/lib/utils"
+import { cn } from "@flow/ui/lib/utils"
 import { CheckIcon } from "lucide-react"
 
 function Checkbox({ className, children, ...props }: CheckboxProps) {
@@ -27,10 +27,7 @@ function Checkbox({ className, children, ...props }: CheckboxProps) {
               data-slot="checkbox-indicator"
               className="grid place-content-center text-current transition-none [&>svg]:size-3.5"
             >
-              {(isSelected || isIndeterminate) && (
-                <CheckIcon
-                />
-              )}
+              {(isSelected || isIndeterminate) && <CheckIcon />}
             </span>
             {children}
           </>

@@ -26,7 +26,12 @@ export function isViewport(value: unknown): value is Viewport {
     return false
   }
 
-  return isNumber(record.x) && isNumber(record.y) && isNumber(record.zoom) && record.zoom > 0
+  return (
+    isNumber(record.x) &&
+    isNumber(record.y) &&
+    isNumber(record.zoom) &&
+    record.zoom > 0
+  )
 }
 
 function toJsonValue(value: unknown): JsonValue {
@@ -61,7 +66,11 @@ export function sanitizeConfigValue(value: JsonValue): JsonValue {
     return Number.isFinite(value) ? value : 0
   }
 
-  if (typeof value === "string" || typeof value === "boolean" || value === null) {
+  if (
+    typeof value === "string" ||
+    typeof value === "boolean" ||
+    value === null
+  ) {
     return value
   }
 
@@ -78,7 +87,11 @@ export function sanitizeConfigValue(value: JsonValue): JsonValue {
 
 export function toJsonConfig(value: unknown): JsonObject {
   const jsonValue = toJsonValue(value)
-  if (typeof jsonValue === "object" && jsonValue !== null && !Array.isArray(jsonValue)) {
+  if (
+    typeof jsonValue === "object" &&
+    jsonValue !== null &&
+    !Array.isArray(jsonValue)
+  ) {
     const result: JsonObject = {}
     Object.entries(jsonValue).forEach(([key, entryValue]) => {
       result[key] = sanitizeConfigValue(entryValue)

@@ -2,7 +2,10 @@ import { applyEdgeChanges, type EdgeChange } from "@xyflow/react"
 
 import { applyConnectNodesCommand } from "../../graph-engine"
 import type { WorkflowEdge } from "../../types/types"
-import { hasEdgeCollectionChanged, shouldCommitEdgeHistory } from "../collection-diff"
+import {
+  hasEdgeCollectionChanged,
+  shouldCommitEdgeHistory,
+} from "../collection-diff"
 import { commitGraphState, replacePresentGraphState } from "../history-helpers"
 import type { WorkflowSliceCreator } from "../types"
 
@@ -61,8 +64,7 @@ function getTouchedNodeIdsForEdgeChanges(
       return
     }
 
-    const edge =
-      currentEdgesById.get(change.id) ?? nextEdgesById.get(change.id)
+    const edge = currentEdgesById.get(change.id) ?? nextEdgesById.get(change.id)
     if (!edge) return
 
     touchedNodeIds.add(edge.source)

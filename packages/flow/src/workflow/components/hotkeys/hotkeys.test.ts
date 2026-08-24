@@ -15,7 +15,10 @@ function createKeyboardEvent(
 ): KeyboardEvent {
   const event = new KeyboardEvent(type, init)
   if (init.defaultPrevented) {
-    const preventedEvent = new KeyboardEvent(type, { ...init, cancelable: true })
+    const preventedEvent = new KeyboardEvent(type, {
+      ...init,
+      cancelable: true,
+    })
     preventedEvent.preventDefault()
     return preventedEvent
   }

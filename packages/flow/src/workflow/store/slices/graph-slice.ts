@@ -1,5 +1,5 @@
 import type { NodeChange } from "@xyflow/react"
-import { pushHistoryState } from "@workspace/store"
+import { pushHistoryState } from "@flow/store"
 
 import {
   applyConnectNodesCommand,
@@ -27,19 +27,33 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
     const pending = get().quickAddPending
     if (!pending) return
 
-    const sourceNode = currentGraph.nodes.find((node) => node.id === pending.sourceNodeId)
+    const sourceNode = currentGraph.nodes.find(
+      (node) => node.id === pending.sourceNodeId
+    )
     if (!sourceNode) {
       set({
         quickAddPending: null,
-        lastError: createWorkflowError("NODE_NOT_FOUND", "Failed to resolve source node for quick add."),
+        lastError: createWorkflowError(
+          "NODE_NOT_FOUND",
+          "Failed to resolve source node for quick add."
+        ),
       })
       return
     }
 
-    if (hasOutgoingConnection(currentGraph.edges, pending.sourceNodeId, pending.sourceHandle)) {
+    if (
+      hasOutgoingConnection(
+        currentGraph.edges,
+        pending.sourceNodeId,
+        pending.sourceHandle
+      )
+    ) {
       set({
         quickAddPending: null,
-        lastError: createWorkflowError("OUTGOING_CONNECTION_EXISTS", "Selected output already has an outgoing connection."),
+        lastError: createWorkflowError(
+          "OUTGOING_CONNECTION_EXISTS",
+          "Selected output already has an outgoing connection."
+        ),
       })
       return
     }
@@ -55,7 +69,11 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
       sourceHandle: pending.sourceHandle,
       targetHandle: null,
     }
-    const nextNode = createNodeWithUniqueLabel(currentGraph.nodes, kind, nextNodePosition)
+    const nextNode = createNodeWithUniqueLabel(
+      currentGraph.nodes,
+      kind,
+      nextNodePosition
+    )
     connection.target = nextNode.id
     const connectResult = applyConnectNodesCommand(
       { ...currentGraph, nodes: [...currentGraph.nodes, nextNode] },
@@ -74,7 +92,9 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
         ...state.history,
         present: {
           ...state.history.present,
-          nodes: projectSelectionToNodes(state.history.present.nodes, [nextNode.id]),
+          nodes: projectSelectionToNodes(state.history.present.nodes, [
+            nextNode.id,
+          ]),
         },
       },
       lastError: null,
@@ -119,7 +139,9 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
         ...state.history,
         present: {
           ...state.history.present,
-          nodes: projectSelectionToNodes(state.history.present.nodes, [insertedNodeId]),
+          nodes: projectSelectionToNodes(state.history.present.nodes, [
+            insertedNodeId,
+          ]),
         },
       },
       lastError: null,
@@ -133,7 +155,14 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
       changes,
       selectedNodeIds: get().selectedNodeIds,
     })
-    const { nextGraph, removedNodeIds, nodeCollectionChanged, edgeCollectionChanged, selectionChanged, nextSelectedNodeIds } = computed
+    const {
+      nextGraph,
+      removedNodeIds,
+      nodeCollectionChanged,
+      edgeCollectionChanged,
+      selectionChanged,
+      nextSelectedNodeIds,
+    } = computed
     const shouldHideGlobalValidation =
       hasStructuralNodeCollectionChange(changes) || edgeCollectionChanged
     const hasDraggingPositionChanges = hasDraggingPositionChange(changes)
@@ -150,13 +179,23 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
     }
 
     if (shouldCommitSemanticHistory) {
-      if (shouldSquashPreviousEdgeRemovalWithNodeRemoval(history, removedNodeIds)) {
+      if (
+        shouldSquashPreviousEdgeRemovalWithNodeRemoval(history, removedNodeIds)
+      ) {
         set((state) => ({
-          history: { ...state.history, present: cloneGraphState(nextGraph), future: [] },
+          history: {
+            ...state.history,
+            present: cloneGraphState(nextGraph),
+            future: [],
+          },
           selectedNodeIds: nextSelectedNodeIds,
           nodeDragOriginGraph: null,
           ...expressionPatchFor(state),
-          ...hideValidationForStructuralNodeChange(state, removedNodeIds, shouldHideGlobalValidation),
+          ...hideValidationForStructuralNodeChange(
+            state,
+            removedNodeIds,
+            shouldHideGlobalValidation
+          ),
         }))
         return
       }
@@ -169,7 +208,11 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
             selectedNodeIds: nextSelectedNodeIds,
             nodeDragOriginGraph: null,
             ...expressionPatchFor(state),
-            ...hideValidationForStructuralNodeChange(state, removedNodeIds, shouldHideGlobalValidation),
+            ...hideValidationForStructuralNodeChange(
+              state,
+              removedNodeIds,
+              shouldHideGlobalValidation
+            ),
           }))
           return
         }
@@ -183,7 +226,11 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
             selectedNodeIds: nextSelectedNodeIds,
             nodeDragOriginGraph: null,
             ...expressionPatchFor(state),
-            ...hideValidationForStructuralNodeChange(state, removedNodeIds, shouldHideGlobalValidation),
+            ...hideValidationForStructuralNodeChange(
+              state,
+              removedNodeIds,
+              shouldHideGlobalValidation
+            ),
           }))
           return
         }
@@ -194,7 +241,11 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
         selectedNodeIds: nextSelectedNodeIds,
         nodeDragOriginGraph: null,
         ...expressionPatchFor(state),
-        ...hideValidationForStructuralNodeChange(state, removedNodeIds, shouldHideGlobalValidation),
+        ...hideValidationForStructuralNodeChange(
+          state,
+          removedNodeIds,
+          shouldHideGlobalValidation
+        ),
       }))
       return
     }
@@ -209,7 +260,11 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
             ? state.nodeDragOriginGraph
             : null,
       ...expressionPatchFor(state),
-      ...hideValidationForStructuralNodeChange(state, removedNodeIds, shouldHideGlobalValidation),
+      ...hideValidationForStructuralNodeChange(
+        state,
+        removedNodeIds,
+        shouldHideGlobalValidation
+      ),
     }))
   },
   setViewport: (viewport) => {
@@ -235,12 +290,16 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
   },
 })
 
-function hasDraggingPositionChange(changes: NodeChange<WorkflowNode>[]): boolean {
+function hasDraggingPositionChange(
+  changes: NodeChange<WorkflowNode>[]
+): boolean {
   return changes.some((change) => change.type === "position" && change.dragging)
 }
 
 function isPositionOnlyChange(changes: NodeChange<WorkflowNode>[]): boolean {
-  return changes.length > 0 && changes.every((change) => change.type === "position")
+  return (
+    changes.length > 0 && changes.every((change) => change.type === "position")
+  )
 }
 
 function hasStructuralNodeCollectionChange(
@@ -251,7 +310,10 @@ function hasStructuralNodeCollectionChange(
   )
 }
 
-function haveNodePositionsChanged(currentNodes: WorkflowNode[], nextNodes: WorkflowNode[]): boolean {
+function haveNodePositionsChanged(
+  currentNodes: WorkflowNode[],
+  nextNodes: WorkflowNode[]
+): boolean {
   if (currentNodes.length !== nextNodes.length) return true
   const currentPositionsById = new Map(
     currentNodes.map((node) => [node.id, node.position] as const)
@@ -259,7 +321,10 @@ function haveNodePositionsChanged(currentNodes: WorkflowNode[], nextNodes: Workf
   for (const node of nextNodes) {
     const currentPosition = currentPositionsById.get(node.id)
     if (!currentPosition) return true
-    if (currentPosition.x !== node.position.x || currentPosition.y !== node.position.y) {
+    if (
+      currentPosition.x !== node.position.x ||
+      currentPosition.y !== node.position.y
+    ) {
       return true
     }
   }

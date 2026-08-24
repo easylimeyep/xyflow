@@ -1,6 +1,6 @@
 "use client"
 
-import { WorkflowEditor, createInitialGraph } from "@workspace/flow"
+import { WorkflowEditor, createInitialGraph } from "@flow/flow"
 
 import { ExamplePreview } from "./example-preview"
 
@@ -15,14 +15,14 @@ const initialGraph = createInitialGraph({
   },
 })
 
-const code = `import { WorkflowEditor, createInitialGraph } from "@workspace/flow"
+const code = `import { WorkflowEditor, createInitialGraph } from "@flow/flow"
 
 const initialGraph = createInitialGraph({
   nodes: [
     { id: "demo-inline-expression", kind: "inlineExpression", config: { template: ["lead"], isRoot: true, repeatable: false } },
     { id: "demo-extractor", kind: "extractor", config: { tokenNumber: 1, extractExpression: "email", unlimited: false } },
     { id: "demo-set-variable", kind: "setVariable", label: "Setter", config: { variableName: "email", valueExpression: "{{ email }}" } },
-    { id: "demo-evaluator", kind: "evaluator", config: { conditions: [{ id: "demo-evaluator-condition", left: { type: "string", value: "{{ email }}" }, operator: "contains", right: { type: "string", value: "@" } }], logicalOperator: "and" } },
+    { id: "demo-evaluator", kind: "evaluator", config: { conditions: [{ id: "demo-evaluator-condition", left: { type: "value", value: "{{ email }}" }, operator: "contains", right: { type: "value", value: "@" } }], logicalOperator: "and" } },
     { id: "demo-result", kind: "result", config: { category: "true" } },
   ],
   edges: [

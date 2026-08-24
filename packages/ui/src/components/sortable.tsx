@@ -39,8 +39,8 @@ import { CSS } from "@dnd-kit/utilities"
 import { Slot as SlotPrimitive } from "radix-ui"
 import * as React from "react"
 import * as ReactDOM from "react-dom"
-import { cn } from "@workspace/ui/lib/utils"
-import { useComposedRefs } from "@workspace/ui/lib/compose-refs"
+import { cn } from "@flow/ui/lib/utils"
+import { useComposedRefs } from "@flow/ui/lib/compose-refs"
 
 const orientationConfig = {
   vertical: {

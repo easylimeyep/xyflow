@@ -34,6 +34,8 @@ export interface NodeDefinition<K extends string = string> {
   normalizeConfigValue?: (key: string, value: unknown) => unknown
 }
 
-export function defineNode<K extends string>(definition: NodeDefinition<K>): NodeDefinition<K> {
+export function defineNode<K extends string>(
+  definition: NodeDefinition<K>
+): NodeDefinition<K> {
   return definition
 }

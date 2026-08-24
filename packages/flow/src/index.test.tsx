@@ -136,14 +136,16 @@ describe("WorkflowEditor package root", () => {
     )
 
     expect(
-      screen.getByTestId("workflow-editor-has-runtime-export-mapper").textContent
+      screen.getByTestId("workflow-editor-has-runtime-export-mapper")
+        .textContent
     ).toBe("true")
     expect(
-      screen.getByTestId("workflow-editor-has-runtime-import-mapper").textContent
+      screen.getByTestId("workflow-editor-has-runtime-import-mapper")
+        .textContent
     ).toBe("true")
     expect(
       screen.getByTestId("workflow-editor-export-domain").textContent
-    ).toContain("\"consumerMapper\": true")
+    ).toContain('"consumerMapper": true')
   })
 
   it("lets consumers request measured initial auto-layout from package root", () => {
@@ -155,7 +157,7 @@ describe("WorkflowEditor package root", () => {
 
     expect(
       screen.getByTestId("workflow-editor-export-domain").textContent
-    ).toContain("\"nodes\"")
+    ).toContain('"nodes"')
   })
 
   it("keeps the initial runtime config when WorkflowEditor rerenders", () => {
@@ -207,7 +209,7 @@ describe("WorkflowEditor package root", () => {
     )
     expect(
       screen.getByTestId("workflow-editor-export-domain").textContent
-    ).toContain("\"runtimeLabel\": \"first-runtime\"")
+    ).toContain('"runtimeLabel": "first-runtime"')
 
     view.rerender(
       <WorkflowEditor runtime={secondRuntime}>
@@ -217,10 +219,10 @@ describe("WorkflowEditor package root", () => {
 
     expect(
       screen.getByTestId("workflow-editor-export-domain").textContent
-    ).toContain("\"runtimeLabel\": \"first-runtime\"")
+    ).toContain('"runtimeLabel": "first-runtime"')
     expect(
       screen.getByTestId("workflow-editor-export-domain").textContent
-    ).not.toContain("\"runtimeLabel\": \"second-runtime\"")
+    ).not.toContain('"runtimeLabel": "second-runtime"')
 
     view.unmount()
     render(
@@ -231,6 +233,6 @@ describe("WorkflowEditor package root", () => {
 
     expect(
       screen.getByTestId("workflow-editor-export-domain").textContent
-    ).toContain("\"runtimeLabel\": \"second-runtime\"")
+    ).toContain('"runtimeLabel": "second-runtime"')
   })
 })

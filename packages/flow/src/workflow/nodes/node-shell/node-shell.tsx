@@ -1,7 +1,7 @@
 "use client"
 
 import { Handle, Position } from "@xyflow/react"
-import { Tooltip, TooltipTrigger } from "@workspace/ui/components/tooltip"
+import { Tooltip, TooltipTrigger } from "@flow/ui/components/tooltip"
 import { CircleAlert } from "lucide-react"
 import type { ReactNode } from "react"
 
@@ -81,7 +81,9 @@ export function NodeShell({
                 </TooltipTrigger>
               ) : null}
               {headerAccessory ? (
-                <div className={styles.headerAccessory()}>{headerAccessory}</div>
+                <div className={styles.headerAccessory()}>
+                  {headerAccessory}
+                </div>
               ) : null}
             </div>
           ) : null}

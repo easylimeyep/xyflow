@@ -21,17 +21,14 @@ import {
   type SeparatorProps,
 } from "react-aria-components"
 
-import { cn } from "@workspace/ui/lib/utils"
+import { cn } from "@flow/ui/lib/utils"
 import {
   Dialog,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@workspace/ui/components/dialog"
-import {
-  InputGroup,
-  InputGroupAddon,
-} from "@workspace/ui/components/input-group"
+} from "@flow/ui/components/dialog"
+import { InputGroup, InputGroupAddon } from "@flow/ui/components/input-group"
 import { SearchIcon, CheckIcon } from "lucide-react"
 
 function Command({

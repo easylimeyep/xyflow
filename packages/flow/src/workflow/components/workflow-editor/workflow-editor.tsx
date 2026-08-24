@@ -12,12 +12,8 @@ import {
 } from "react"
 
 import type { XYPosition } from "@xyflow/react"
-import { Button } from "@workspace/ui/components/button"
-import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
-} from "@workspace/ui/components/alert"
+import { Button } from "@flow/ui/components/button"
+import { Alert, AlertDescription, AlertTitle } from "@flow/ui/components/alert"
 import { PlusIcon } from "lucide-react"
 import {
   selectCanRedo,

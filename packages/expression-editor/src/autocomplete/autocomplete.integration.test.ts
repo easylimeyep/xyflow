@@ -23,9 +23,11 @@ describe("expression completion source integration", () => {
     const result = source(context)
 
     expect(result).not.toBeNull()
-    expect(result?.options.some((option) => option.label.includes('$node("trigger-a")'))).toBe(
-      true
-    )
+    expect(
+      result?.options.some((option) =>
+        option.label.includes('$node("trigger-a")')
+      )
+    ).toBe(true)
   })
 
   it("returns no builtin input completion when catalog is empty", () => {
@@ -37,7 +39,9 @@ describe("expression completion source integration", () => {
     const result = source(context)
 
     if (result !== null) {
-      expect(result.options.some((option) => option.label === "$input.item.json")).toBe(false)
+      expect(
+        result.options.some((option) => option.label === "$input.item.json")
+      ).toBe(false)
     }
   })
 })

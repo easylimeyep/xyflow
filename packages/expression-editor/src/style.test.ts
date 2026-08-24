@@ -10,7 +10,9 @@ describe("expression editor stylesheet", () => {
   )
 
   it("keeps the CodeMirror editor from drawing a second control border", () => {
-    const codeMirrorEditorRule = stylesheet.match(/\.cm-editor\s*\{[^}]*\}/)?.[0]
+    const codeMirrorEditorRule = stylesheet.match(
+      /\.cm-editor\s*\{[^}]*\}/
+    )?.[0]
 
     expect(codeMirrorEditorRule).toBeDefined()
     expect(codeMirrorEditorRule).not.toMatch(/\bborder\s*:/)

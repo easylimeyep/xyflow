@@ -18,7 +18,7 @@ vi.mock("../output-quick-add-affordance/output-quick-add-affordance", () => ({
   OutputQuickAddAffordance: () => null,
 }))
 
-vi.mock("@workspace/ui/components/tooltip", () => ({
+vi.mock("@flow/ui/components/tooltip", () => ({
   TooltipProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
   Tooltip: ({ children }: { children: ReactNode }) => <>{children}</>,
   TooltipTrigger: ({ children }: { children: ReactNode }) => <>{children}</>,

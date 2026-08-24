@@ -1,4 +1,4 @@
-import { parseTemplateSegments } from "@workspace/expression-editor"
+import { parseTemplateSegments } from "@flow/expression-editor"
 
 import { getNodeDefinition, type NodeKind } from "../../node-registry/registry"
 import type { WorkflowNode } from "../../types/types"
@@ -64,7 +64,10 @@ function refactorExpressionFieldsInGraph(
         return
       }
 
-      if (!Array.isArray(value) || !value.every((entry) => typeof entry === "string")) {
+      if (
+        !Array.isArray(value) ||
+        !value.every((entry) => typeof entry === "string")
+      ) {
         return
       }
 
@@ -95,7 +98,11 @@ function getRefactorableConfigKeys(node: WorkflowNode): string[] {
   const kind = node.data.kind as NodeKind
   const definition = getNodeDefinition(kind)
   const fieldKeys = definition.fields
-    .filter((field) => field.ui === "expression" && (field.type === "text" || field.type === "textarea"))
+    .filter(
+      (field) =>
+        field.ui === "expression" &&
+        (field.type === "text" || field.type === "textarea")
+    )
     .map((field) => field.key)
   const templateLikeRenameKey =
     definition.renameConfigKey &&
@@ -104,7 +111,11 @@ function getRefactorableConfigKeys(node: WorkflowNode): string[] {
       ? [definition.renameConfigKey]
       : []
 
-  return [...fieldKeys, ...(definition.extraExpressionConfigKeys ?? []), ...templateLikeRenameKey]
+  return [
+    ...fieldKeys,
+    ...(definition.extraExpressionConfigKeys ?? []),
+    ...templateLikeRenameKey,
+  ]
 }
 
 function escapeRegExp(input: string): string {

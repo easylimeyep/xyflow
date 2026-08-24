@@ -2,7 +2,9 @@ export type HistoryHotkeyAction = "undo" | "redo"
 export type ClipboardHotkeyAction = "copy" | "paste"
 export type NodeEditHotkeyAction = "duplicate" | "delete"
 
-export function getHistoryHotkeyAction(event: KeyboardEvent): HistoryHotkeyAction | null {
+export function getHistoryHotkeyAction(
+  event: KeyboardEvent
+): HistoryHotkeyAction | null {
   if (event.defaultPrevented) {
     return null
   }
@@ -47,7 +49,9 @@ export function createHistoryHotkeyHandler(
   }
 }
 
-export function getClipboardHotkeyAction(event: KeyboardEvent): ClipboardHotkeyAction | null {
+export function getClipboardHotkeyAction(
+  event: KeyboardEvent
+): ClipboardHotkeyAction | null {
   if (event.defaultPrevented) {
     return null
   }
@@ -93,7 +97,9 @@ export function createClipboardHotkeyHandler(
   }
 }
 
-export function getNodeEditHotkeyAction(event: KeyboardEvent): NodeEditHotkeyAction | null {
+export function getNodeEditHotkeyAction(
+  event: KeyboardEvent
+): NodeEditHotkeyAction | null {
   if (event.defaultPrevented) {
     return null
   }

@@ -4,8 +4,8 @@ import type {
   Viewport,
   XYPosition,
 } from "@xyflow/react"
-import type { StoreApi } from "@workspace/store"
-import type { HistoryState } from "@workspace/store"
+import type { StoreApi } from "@flow/store"
+import type { HistoryState } from "@flow/store"
 
 import type { WorkflowError } from "../types/errors"
 import type {

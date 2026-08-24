@@ -8,7 +8,7 @@ This document summarizes what was implemented for the React Flow based n8n-like 
 
 ### 1) Workflow editor architecture
 
-Implemented a decomposed editor in `@workspace/flow`:
+Implemented a decomposed editor in `@flow/flow`:
 
 - `WorkflowEditor` as top-level composition layer
 - `WorkflowCanvas` for React Flow rendering and interactions
@@ -43,7 +43,7 @@ Files:
 
 ### 3) State management with undo/redo history
 
-Implemented history utilities in `@workspace/store` and connected them in `@workspace/flow`:
+Implemented history utilities in `@flow/store` and connected them in `@flow/flow`:
 
 - generic `createHistoryState`, `pushHistoryState`, `undoHistoryState`, `redoHistoryState`
 - workflow store with actions:
@@ -294,13 +294,13 @@ Script:
 
 Executed successfully:
 
-- `pnpm --filter @workspace/store typecheck`
-- `pnpm --filter @workspace/flow typecheck`
-- `pnpm --filter @workspace/flow lint`
-- `pnpm --filter @workspace/store lint`
-- `pnpm --filter @workspace/flow test`
+- `pnpm --filter @flow/store typecheck`
+- `pnpm --filter @flow/flow typecheck`
+- `pnpm --filter @flow/flow lint`
+- `pnpm --filter @flow/store lint`
+- `pnpm --filter @flow/flow test`
 - `pnpm --filter web typecheck`
-- `pnpm --filter @workspace/flow typecheck`
+- `pnpm --filter @flow/flow typecheck`
 
 ### Type strictness constraints
 
@@ -315,7 +315,7 @@ Checked and kept:
 ### Updated
 
 - `packages/flow/package.json`
-  - added `@workspace/ui` dependency
+  - added `@flow/ui` dependency
   - added `lucide-react` dependency
   - added CodeMirror deps:
     - `@codemirror/state`
@@ -472,7 +472,7 @@ Added/expanded integration and architecture-critical tests:
 
 Current validation status (latest run):
 
-- `pnpm --filter @workspace/flow test` -> passed
-- `pnpm --filter @workspace/flow typecheck` -> passed
-- `pnpm --filter @workspace/flow lint` -> passed
+- `pnpm --filter @flow/flow test` -> passed
+- `pnpm --filter @flow/flow typecheck` -> passed
+- `pnpm --filter @flow/flow lint` -> passed
 

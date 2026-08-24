@@ -112,9 +112,10 @@ describe("NodeContextMenu", () => {
     expect(screen.getByText("Delete")).toBeDefined()
     expect(screen.getByText("Del / Backspace")).toBeDefined()
     expect(
-      screen.getByText("Delete").closest("[data-variant]")?.getAttribute(
-        "data-variant"
-      )
+      screen
+        .getByText("Delete")
+        .closest("[data-variant]")
+        ?.getAttribute("data-variant")
     ).toBe("destructive")
   })
 

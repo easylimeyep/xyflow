@@ -1,4 +1,8 @@
-import { type HistoryState, redoHistoryState, undoHistoryState } from "@workspace/store"
+import {
+  type HistoryState,
+  redoHistoryState,
+  undoHistoryState,
+} from "@flow/store"
 
 import type { WorkflowGraphState } from "../../types/types"
 import { buildExpressionSlicePatch } from "../expression-deps"
@@ -7,7 +11,9 @@ import type { WorkflowSliceCreator, WorkflowStoreState } from "../types"
 
 function applyHistoryNavigation(
   state: WorkflowStoreState,
-  historyFn: (h: HistoryState<WorkflowGraphState>) => HistoryState<WorkflowGraphState>
+  historyFn: (
+    h: HistoryState<WorkflowGraphState>
+  ) => HistoryState<WorkflowGraphState>
 ): Partial<WorkflowStoreState> {
   const nextHistory = historyFn(state.history)
   const nextPresentNodes = projectSelectionToNodes(

@@ -3,13 +3,13 @@
 import { useState } from "react"
 import { ExpandIcon } from "lucide-react"
 
-import { WorkflowEditor, createInitialGraph } from "@workspace/flow"
-import { Button } from "@workspace/ui/components/button"
+import { WorkflowEditor, createInitialGraph } from "@flow/flow"
+import { Button } from "@flow/ui/components/button"
 import {
   Dialog,
   DialogDescription,
   DialogTitle,
-} from "@workspace/ui/components/dialog"
+} from "@flow/ui/components/dialog"
 
 import { ExamplePreview } from "./example-preview"
 
@@ -42,9 +42,9 @@ const initialGraph = createInitialGraph({
         conditions: [
           {
             id: "demo-modal-evaluator-condition",
-            left: { type: "string", value: "{{ email }}" },
+            left: { type: "value", value: "{{ email }}" },
             operator: "contains",
-            right: { type: "string", value: "@company.com" },
+            right: { type: "value", value: "@company.com" },
           },
         ],
         logicalOperator: "and",
@@ -101,19 +101,19 @@ const initialGraph = createInitialGraph({
 
 const code = `import { useState } from "react"
 
-import { WorkflowEditor, createInitialGraph } from "@workspace/flow"
-import { Button } from "@workspace/ui/components/button"
+import { WorkflowEditor, createInitialGraph } from "@flow/flow"
+import { Button } from "@flow/ui/components/button"
 import {
   Dialog,
   DialogDescription,
   DialogTitle,
-} from "@workspace/ui/components/dialog"
+} from "@flow/ui/components/dialog"
 
 const initialGraph = createInitialGraph({
   nodes: [
     { id: "demo-modal-inline-expression", kind: "inlineExpression", config: { template: ["lead"], isRoot: true, repeatable: false } },
     { id: "demo-modal-extractor", kind: "extractor", label: "Email extractor", config: { tokenNumber: 1, extractExpression: "email", unlimited: false } },
-    { id: "demo-modal-evaluator", kind: "evaluator", label: "Has company domain", config: { conditions: [{ id: "demo-modal-evaluator-condition", left: { type: "string", value: "{{ email }}" }, operator: "contains", right: { type: "string", value: "@company.com" } }], logicalOperator: "and" } },
+    { id: "demo-modal-evaluator", kind: "evaluator", label: "Has company domain", config: { conditions: [{ id: "demo-modal-evaluator-condition", left: { type: "value", value: "{{ email }}" }, operator: "contains", right: { type: "value", value: "@company.com" } }], logicalOperator: "and" } },
     { id: "demo-modal-result-true", kind: "result", label: "Qualified", config: { category: "true" } },
     { id: "demo-modal-result-false", kind: "result", label: "Needs review", config: { category: "false" } },
   ],

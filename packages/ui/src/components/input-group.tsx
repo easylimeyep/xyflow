@@ -4,10 +4,10 @@ import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { Group, type GroupProps } from "react-aria-components"
 
-import { cn } from "@workspace/ui/lib/utils"
-import { Button } from "@workspace/ui/components/button"
-import { Input } from "@workspace/ui/components/input"
-import { Textarea } from "@workspace/ui/components/textarea"
+import { cn } from "@flow/ui/lib/utils"
+import { Button } from "@flow/ui/components/button"
+import { Input } from "@flow/ui/components/input"
+import { Textarea } from "@flow/ui/components/textarea"
 
 function InputGroup({ className, ...props }: GroupProps) {
   return (

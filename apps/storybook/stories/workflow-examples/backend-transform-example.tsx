@@ -4,8 +4,8 @@ import {
   WorkflowEditor,
   createInitialGraph,
   exportDomainWorkflowForBackend,
-} from "@workspace/flow"
-import { Button } from "@workspace/ui/components/button"
+} from "@flow/flow"
+import { Button } from "@flow/ui/components/button"
 
 import { ExamplePreview } from "./example-preview"
 
@@ -39,9 +39,9 @@ const initialGraph = createInitialGraph({
         conditions: [
           {
             id: "backend-transform-condition",
-            left: { type: "string", value: "{{ lead.email }}" },
+            left: { type: "value", value: "{{ lead.email }}" },
             operator: "contains",
-            right: { type: "string", value: "@company.com" },
+            right: { type: "value", value: "@company.com" },
           },
         ],
         logicalOperator: "and",
@@ -100,13 +100,13 @@ const code = `import {
   WorkflowEditor,
   createInitialGraph,
   exportDomainWorkflowForBackend,
-} from "@workspace/flow"
+} from "@flow/flow"
 
 const initialGraph = createInitialGraph({
   nodes: [
     { id: "backend-transform-root-a", kind: "inlineExpression", label: "Root A", config: { template: ["lead"], isRoot: true, repeatable: false } },
     { id: "backend-transform-root-b", kind: "inlineExpression", label: "Root B", config: { template: ["account"], isRoot: true, repeatable: false } },
-    { id: "backend-transform-evaluator", kind: "evaluator", label: "Eligibility", config: { conditions: [{ id: "backend-transform-condition", left: { type: "string", value: "{{ lead.email }}" }, operator: "contains", right: { type: "string", value: "@company.com" } }], logicalOperator: "and" } },
+    { id: "backend-transform-evaluator", kind: "evaluator", label: "Eligibility", config: { conditions: [{ id: "backend-transform-condition", left: { type: "value", value: "{{ lead.email }}" }, operator: "contains", right: { type: "value", value: "@company.com" } }], logicalOperator: "and" } },
     { id: "backend-transform-success", kind: "result", label: "Qualified", config: { category: "true" } },
     { id: "backend-transform-failure", kind: "result", label: "Rejected", config: { category: "false" } },
   ],

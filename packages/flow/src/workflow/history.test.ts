@@ -4,7 +4,7 @@ import {
   pushHistoryState,
   redoHistoryState,
   undoHistoryState,
-} from "@workspace/store"
+} from "@flow/store"
 
 describe("history state helpers", () => {
   it("pushes next state and clears future", () => {

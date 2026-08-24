@@ -6,8 +6,8 @@ import {
   WorkflowEditor,
   createInitialGraph,
   type WorkflowValidationSnapshot,
-} from "@workspace/flow"
-import { Button } from "@workspace/ui/components/button"
+} from "@flow/flow"
+import { Button } from "@flow/ui/components/button"
 
 import { ExamplePreview } from "./example-preview"
 
@@ -32,9 +32,9 @@ const initialGraph = createInitialGraph({
         conditions: [
           {
             id: "validation-condition",
-            left: { type: "string", value: "{{ leadScore }}" },
+            left: { type: "value", value: "{{ leadScore }}" },
             operator: "is greater than",
-            right: { type: "string", value: "50" },
+            right: { type: "value", value: "50" },
           },
         ],
         logicalOperator: "and",
@@ -168,12 +168,12 @@ const code = `import {
   WorkflowEditor,
   createInitialGraph,
   type WorkflowValidationSnapshot,
-} from "@workspace/flow"
+} from "@flow/flow"
 
 const initialGraph = createInitialGraph({
   nodes: [
     { id: "validation-keyword", kind: "inlineExpression", config: { template: ["lead"], isRoot: true } },
-    { id: "validation-evaluator", kind: "evaluator", config: { conditions: [{ id: "condition", left: { type: "string", value: "{{ leadScore }}" }, operator: "is greater than", right: { type: "string", value: "50" } }], logicalOperator: "and" } },
+    { id: "validation-evaluator", kind: "evaluator", config: { conditions: [{ id: "condition", left: { type: "value", value: "{{ leadScore }}" }, operator: "is greater than", right: { type: "value", value: "50" } }], logicalOperator: "and" } },
     { id: "validation-result", kind: "result", config: { category: "true" } },
   ],
   edges: [{ id: "keyword-to-evaluator", source: "validation-keyword", target: "validation-evaluator" }],
@@ -226,12 +226,12 @@ const globalOnlyCode = `import {
   WorkflowEditor,
   createInitialGraph,
   type WorkflowValidationSnapshot,
-} from "@workspace/flow"
+} from "@flow/flow"
 
 const initialGraph = createInitialGraph({
   nodes: [
     { id: "validation-keyword", kind: "inlineExpression", config: { template: ["lead"], isRoot: true } },
-    { id: "validation-evaluator", kind: "evaluator", config: { conditions: [{ id: "condition", left: { type: "string", value: "{{ leadScore }}" }, operator: "is greater than", right: { type: "string", value: "50" } }], logicalOperator: "and" } },
+    { id: "validation-evaluator", kind: "evaluator", config: { conditions: [{ id: "condition", left: { type: "value", value: "{{ leadScore }}" }, operator: "is greater than", right: { type: "value", value: "50" } }], logicalOperator: "and" } },
     { id: "validation-result", kind: "result", config: { category: "true" } },
   ],
   edges: [{ id: "keyword-to-evaluator", source: "validation-keyword", target: "validation-evaluator" }],

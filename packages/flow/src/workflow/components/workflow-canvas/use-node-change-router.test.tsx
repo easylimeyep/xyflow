@@ -39,7 +39,10 @@ describe("useNodeChangeRouter", () => {
     const onSelectionChange = vi.fn()
     const onRouter = vi.fn()
 
-    const rootKeywordNode = createWorkflowNode("inlineExpression", { x: 0, y: 0 })
+    const rootKeywordNode = createWorkflowNode("inlineExpression", {
+      x: 0,
+      y: 0,
+    })
     rootKeywordNode.data.config.isRoot = true
     const initialNodes = [{ ...rootKeywordNode, selected: false }]
 

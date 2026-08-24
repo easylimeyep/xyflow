@@ -1,10 +1,10 @@
 "use client"
 
-import { WorkflowEditor } from "@workspace/flow"
+import { WorkflowEditor } from "@flow/flow"
 
 import { ExamplePreview } from "./example-preview"
 
-const code = `import { WorkflowEditor } from "@workspace/flow"
+const code = `import { WorkflowEditor } from "@flow/flow"
 
 export function Example() {
   return <WorkflowEditor />

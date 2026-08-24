@@ -2,8 +2,8 @@
 
 import { type Ref, useMemo } from "react"
 
-import { Input } from "@workspace/ui/components/input"
-import { Textarea } from "@workspace/ui/components/textarea"
+import { Input } from "@flow/ui/components/input"
+import { Textarea } from "@flow/ui/components/textarea"
 import { nodeRegistry } from "../../node-registry/registry"
 import { useWorkflowSelection, useWorkflowShallowStore } from "../../store"
 import type { WorkflowStoreState } from "../../store"
@@ -76,7 +76,7 @@ export function WorkflowEditorConfigPanel({
             <span className="text-xs font-medium text-muted-foreground">
               Node id
             </span>
-            <p className="break-all rounded-md border bg-muted/30 px-3 py-2 font-mono text-xs">
+            <p className="rounded-md border bg-muted/30 px-3 py-2 font-mono text-xs break-all">
               {selectedNode.id}
             </p>
           </div>

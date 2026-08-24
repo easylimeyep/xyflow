@@ -4,7 +4,12 @@ import { render } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
 
 import { DefaultNodeRenderer } from "../nodes/shared/default-node-renderer"
-import { allDefinitions, nodeRegistry, WORKFLOW_NODE_KINDS, type NodeKind } from "./registry"
+import {
+  allDefinitions,
+  nodeRegistry,
+  WORKFLOW_NODE_KINDS,
+  type NodeKind,
+} from "./registry"
 
 vi.mock("@xyflow/react", () => ({
   Handle: () => null,
@@ -14,9 +19,12 @@ vi.mock("@xyflow/react", () => ({
   },
 }))
 
-vi.mock("../nodes/output-quick-add-affordance/output-quick-add-affordance", () => ({
-  OutputQuickAddAffordance: () => null,
-}))
+vi.mock(
+  "../nodes/output-quick-add-affordance/output-quick-add-affordance",
+  () => ({
+    OutputQuickAddAffordance: () => null,
+  })
+)
 
 describe("registry smoke tests", () => {
   it("allDefinitions and nodeRegistry have matching entries", () => {
@@ -64,9 +72,7 @@ describe("registry smoke tests", () => {
     }
   )
 
-  it.each(
-    WORKFLOW_NODE_KINDS
-  )(
+  it.each(WORKFLOW_NODE_KINDS)(
     "node definition '%s' renders via DefaultNodeRenderer without client bindings",
     (kind) => {
       const definition = nodeRegistry[kind as NodeKind]

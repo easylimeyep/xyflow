@@ -123,13 +123,21 @@ describe("graph-engine commands", () => {
 
     expect(result.ok).toBe(true)
     if (result.ok) {
-      expect(result.nextGraph.nodes[0]?.data.config.variableName).toBe("newName")
-      expect(result.nextGraph.nodes[1]?.data.config.template).toEqual(["{{ newName }}"])
+      expect(result.nextGraph.nodes[0]?.data.config.variableName).toBe(
+        "newName"
+      )
+      expect(result.nextGraph.nodes[1]?.data.config.template).toEqual([
+        "{{ newName }}",
+      ])
     }
   })
 
   it("refactors plain variable references when rename-aware node labels change", () => {
-    const extractorNode = createWorkflowNode("extractor", { x: 0, y: 0 }, "oldName")
+    const extractorNode = createWorkflowNode(
+      "extractor",
+      { x: 0, y: 0 },
+      "oldName"
+    )
     const inlineNode = createWorkflowNode("inlineExpression", { x: 300, y: 0 })
     inlineNode.data.config.template = ["{{ oldName }}"]
 
@@ -142,7 +150,9 @@ describe("graph-engine commands", () => {
     expect(result.ok).toBe(true)
     if (result.ok) {
       expect(result.nextGraph.nodes[0]?.data.label).toBe("newName")
-      expect(result.nextGraph.nodes[1]?.data.config.template).toEqual(["{{ newName }}"])
+      expect(result.nextGraph.nodes[1]?.data.config.template).toEqual([
+        "{{ newName }}",
+      ])
     }
   })
 
@@ -259,7 +269,9 @@ describe("graph-engine commands", () => {
     expect(first).toEqual(second)
     expect(first.ok).toBe(true)
     if (first.ok) {
-      expect(first.nextGraph.nodes.some((node) => node.id === "inserted-node-fixed")).toBe(true)
+      expect(
+        first.nextGraph.nodes.some((node) => node.id === "inserted-node-fixed")
+      ).toBe(true)
     }
   })
 
@@ -289,7 +301,9 @@ describe("graph-engine commands", () => {
     })
 
     expect(result.ok).toBe(true)
-    expect(result.nextGraph.nodes.some((node) => node.id === target.id)).toBe(false)
+    expect(result.nextGraph.nodes.some((node) => node.id === target.id)).toBe(
+      false
+    )
     expect(result.nextGraph.edges).toHaveLength(0)
     expect(result.nextSelectedNodeIds).toEqual([source.id])
     expect(result.nodeCollectionChanged).toBe(true)

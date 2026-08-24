@@ -20,7 +20,7 @@ vi.mock("@xyflow/react", () => ({
   },
 }))
 
-vi.mock("@workspace/expression-editor", () => ({
+vi.mock("@flow/expression-editor", () => ({
   ExpressionEditor: ({
     value,
     onCommit,

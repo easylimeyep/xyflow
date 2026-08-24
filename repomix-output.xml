@@ -544,14 +544,14 @@ This section contains the contents of the repository's files.
       "Bash(openspec instructions:*)",
       "Bash(pnpm vitest:*)",
       "Bash(pnpm --filter flow vitest run)",
-      "Bash(pnpm --filter @workspace/flow run test)",
-      "Bash(pnpm --filter @workspace/flow run typecheck)",
+      "Bash(pnpm --filter @flow/flow run test)",
+      "Bash(pnpm --filter @flow/flow run typecheck)",
       "Bash(sed -n '31,40p' /Users/sergejolcev/Desktop/learning-projects/xyflow/packages/flow/src/workflow/store/collection-diff.ts)",
       "Bash(sed -n '112,125p' /Users/sergejolcev/Desktop/learning-projects/xyflow/packages/flow/src/workflow/store/collection-diff.ts)",
-      "Bash(pnpm --filter @workspace/flow run test:coverage)",
-      "Bash(pnpm --filter @workspace/store run test:coverage)",
+      "Bash(pnpm --filter @flow/flow run test:coverage)",
+      "Bash(pnpm --filter @flow/store run test:coverage)",
       "Bash(openspec list:*)",
-      "Bash(pnpm --filter @workspace/flow typecheck)"
+      "Bash(pnpm --filter @flow/flow typecheck)"
     ]
   }
 }
@@ -3536,7 +3536,7 @@ npx shadcn@latest docs button dialog select
 3. **Find components** — `npx shadcn@latest search`.
 4. **Get docs and examples** — run `npx shadcn@latest docs <component>` to get URLs, then fetch them. Use `npx shadcn@latest view` to browse registry items you haven't installed. To preview changes to installed components, use `npx shadcn@latest add --diff`.
 5. **Install or update** — `npx shadcn@latest add`. When updating existing components, use `--dry-run` and `--diff` to preview changes first (see [Updating Components](#updating-components) below).
-6. **Fix imports in third-party components** — After adding components from community registries (e.g. `@bundui`, `@magicui`), check the added non-UI files for hardcoded import paths like `@/components/ui/...`. These won't match the project's actual aliases. Use `npx shadcn@latest info` to get the correct `ui` alias (e.g. `@workspace/ui/components`) and rewrite the imports accordingly. The CLI rewrites imports for its own UI files, but third-party registry components may use default paths that don't match the project.
+6. **Fix imports in third-party components** — After adding components from community registries (e.g. `@bundui`, `@magicui`), check the added non-UI files for hardcoded import paths like `@/components/ui/...`. These won't match the project's actual aliases. Use `npx shadcn@latest info` to get the correct `ui` alias (e.g. `@flow/ui/components`) and rewrite the imports accordingly. The CLI rewrites imports for its own UI files, but third-party registry components may use default paths that don't match the project.
 7. **Review added components** — After adding a component or block from any registry, **always read the added files and verify they are correct**. Check for missing sub-components (e.g. `SelectItem` without `SelectGroup`), missing imports, incorrect composition, or violations of the [Critical Rules](#critical-rules). Also replace any icon imports with the project's `iconLibrary` from the project context (e.g. if the registry item uses `lucide-react` but the project uses `hugeicons`, swap the imports and icon names accordingly). Fix all issues before moving on.
 8. **Registry must be explicit** — When the user asks to add a block or component, **do not guess the registry**. If no registry is specified (e.g. user says "add a login block" without specifying `@shadcn`, `@tailark`, etc.), ask which registry to use. Never default to a registry on behalf of the user.
 9. **Switching presets** — Ask the user first: **reinstall**, **merge**, or **skip**?
@@ -6478,7 +6478,7 @@ isProject: false
 
 ## Цели MVP
 
-- Реализовать визуальный editor workflow в `apps/web` с использованием `@workspace/flow`.
+- Реализовать визуальный editor workflow в `apps/web` с использованием `@flow/flow`.
 - Поддержать сценарии:
   - создание графа через drag&drop из палитры;
   - настройка ноды через панель параметров (включая кастомные input-поля);
@@ -6497,7 +6497,7 @@ isProject: false
 
 ## Текущее состояние кода
 
-- В `@workspace/flow` уже есть минимальный React Flow с `nodes/edges` и handlers.
+- В `@flow/flow` уже есть минимальный React Flow с `nodes/edges` и handlers.
 - Точка подключения в web-приложении уже настроена.
 
 Ключевые файлы:
@@ -6538,7 +6538,7 @@ flowchart LR
 
 ### 2) Слой состояния (store)
 
-- Использовать `@workspace/store` (zustand) для:
+- Использовать `@flow/store` (zustand) для:
   - текущего графа (`nodes`, `edges`, `viewport`),
   - выделения (`selectedNodeId`),
   - истории изменений (undo/redo stack),
@@ -6648,7 +6648,7 @@ flowchart LR
 <file path=".cursor/plans/trackpad_pan_zoom_n8n_fa28bdf0.plan.md">
 ---
 name: Trackpad Pan Zoom n8n
-overview: "Привести навигацию canvas в `@workspace/flow` к n8n-like поведению для macOS/Chrome: 2-пальцевый свайп = pan, pinch = zoom, без изменения текущей логики выделения мышью."
+overview: "Привести навигацию canvas в `@flow/flow` к n8n-like поведению для macOS/Chrome: 2-пальцевый свайп = pan, pinch = zoom, без изменения текущей логики выделения мышью."
 todos:
   - id: update-reactflow-gesture-props
     content: Обновить props навигации ReactFlow в workflow-canvas под n8n-like trackpad UX
@@ -6657,7 +6657,7 @@ todos:
     content: Обновить workflow-canvas.test.tsx под новые pan/zoom props
     status: completed
   - id: run-flow-tests
-    content: Прогнать тесты @workspace/flow и проверить отсутствие регрессий
+    content: Прогнать тесты @flow/flow и проверить отсутствие регрессий
     status: completed
 isProject: false
 ---
@@ -6690,7 +6690,7 @@ isProject: false
 
 ## Валидация
 
-- Прогнать тесты пакета `@workspace/flow` и убедиться, что изменения не ломают существующие сценарии взаимодействий canvas.
+- Прогнать тесты пакета `@flow/flow` и убедиться, что изменения не ломают существующие сценарии взаимодействий canvas.
 </file>
 
 <file path=".cursor/skills/openspec-apply-change/SKILL.md">
@@ -7561,7 +7561,7 @@ export { composeRefs, useComposedRefs };
 </file>
 
 <file path="apps/web/eslint.config.js">
-import { nextJsConfig } from "@workspace/eslint-config/next-js"
+import { nextJsConfig } from "@flow/eslint-config/next-js"
 
 /** @type {import("eslint").Linter.Config} */
 export default nextJsConfig
@@ -7570,24 +7570,24 @@ export default nextJsConfig
 <file path="apps/web/next.config.mjs">
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  transpilePackages: ["@workspace/ui"],
+  transpilePackages: ["@flow/ui"],
 }
 
 export default nextConfig
 </file>
 
 <file path="apps/web/postcss.config.mjs">
-export { default } from "@workspace/ui/postcss.config";
+export { default } from "@flow/ui/postcss.config";
 </file>
 
 <file path="apps/web/tsconfig.json">
 {
-  "extends": "@workspace/typescript-config/nextjs.json",
+  "extends": "@flow/typescript-config/nextjs.json",
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
       "@/*": ["./*"],
-      "@workspace/ui/*": ["../../packages/ui/src/*"]
+      "@flow/ui/*": ["../../packages/ui/src/*"]
     },
     "plugins": [
       {
@@ -7956,7 +7956,7 @@ The workflow store has accumulated correctness issues (module-level mutable stat
 
 ## 10. Final Verification
 
-- [x] 10.1 Run `pnpm typecheck` from repo root — no TypeScript errors (pre-existing @workspace/ui error unrelated to this change)
+- [x] 10.1 Run `pnpm typecheck` from repo root — no TypeScript errors (pre-existing @flow/ui error unrelated to this change)
 - [x] 10.2 Run `vitest run packages/flow` with coverage — 146/146 tests pass, ≥ 70% threshold met
 - [x] 10.3 Run `vitest run packages/store` with coverage — 100% coverage, ≥ 90% threshold met
 - [ ] 10.4 Manually verify: undo/redo, node drag, clipboard copy/paste, quick-add, edge-insert all work correctly in the browser
@@ -8939,7 +8939,7 @@ export const nextJsConfig = [
 
 <file path="packages/eslint-config/package.json">
 {
-  "name": "@workspace/eslint-config",
+  "name": "@flow/eslint-config",
   "version": "0.0.0",
   "type": "module",
   "private": true,
@@ -9011,7 +9011,7 @@ export const config = [
 </file>
 
 <file path="packages/eslint-config/README.md">
-# `@workspace/eslint-config`
+# `@flow/eslint-config`
 
 Shared eslint configuration for the workspace.
 </file>
@@ -10898,7 +10898,7 @@ export async function readTextFromClipboard(): Promise<string | null> {
 
 <file path="packages/flow/src/workflow/store/collection-diff.ts">
 import type { EdgeChange, NodeChange } from "@xyflow/react"
-import type { HistoryState } from "@workspace/store"
+import type { HistoryState } from "@flow/store"
 
 import type { WorkflowEdge, WorkflowGraphState, WorkflowNode } from "../types/types"
 
@@ -11113,7 +11113,7 @@ import {
   pushHistoryState,
   redoHistoryState,
   undoHistoryState,
-} from "@workspace/store"
+} from "@flow/store"
 
 describe("history state helpers", () => {
   it("pushes next state and clears future", () => {
@@ -11152,7 +11152,7 @@ describe("history state helpers", () => {
 </file>
 
 <file path="packages/flow/eslint.config.js">
-import { config } from "@workspace/eslint-config/react-internal"
+import { config } from "@flow/eslint-config/react-internal"
 
 /** @type {import("eslint").Linter.Config} */
 export default config
@@ -11658,7 +11658,7 @@ describe("store exports", () => {
 </file>
 
 <file path="packages/store/eslint.config.js">
-import { config } from "@workspace/eslint-config/react-internal"
+import { config } from "@flow/eslint-config/react-internal"
 
 /** @type {import("eslint").Linter.Config} */
 export default config
@@ -11727,7 +11727,7 @@ export default defineConfig({
 
 <file path="packages/typescript-config/package.json">
 {
-  "name": "@workspace/typescript-config",
+  "name": "@flow/typescript-config",
   "version": "0.0.0",
   "private": true,
   "license": "PROPRIETARY",
@@ -11749,7 +11749,7 @@ export default defineConfig({
 </file>
 
 <file path="packages/typescript-config/README.md">
-# `@workspace/typescript-config`
+# `@flow/typescript-config`
 
 Shared typescript configuration for the workspace.
 </file>
@@ -11764,7 +11764,7 @@ Shared typescript configuration for the workspace.
 import * as React from "react"
 import { Accordion as AccordionPrimitive } from "radix-ui"
 
-import { cn } from "@workspace/ui/lib/utils"
+import { cn } from "@flow/ui/lib/utils"
 import { ChevronDownIcon, ChevronUpIcon } from "lucide-react"
 
 function Accordion({
@@ -11854,11 +11854,11 @@ import {
 } from "radix-ui"
 import * as React from "react"
 import * as ReactDOM from "react-dom"
-import { cn } from "@workspace/ui/lib/utils"
-import { useAsRef } from "@workspace/ui/hooks/use-as-ref"
-import { useIsomorphicLayoutEffect } from "@workspace/ui/hooks/use-isomorphic-layout-effect"
-import { Button } from "@workspace/ui/components/button"
-import { useComposedRefs } from "@workspace/ui/lib/compose-refs"
+import { cn } from "@flow/ui/lib/utils"
+import { useAsRef } from "@flow/ui/hooks/use-as-ref"
+import { useIsomorphicLayoutEffect } from "@flow/ui/hooks/use-isomorphic-layout-effect"
+import { Button } from "@flow/ui/components/button"
+import { useComposedRefs } from "@flow/ui/lib/compose-refs"
 
 const ROOT_NAME = "ActionBar"
 const GROUP_NAME = "ActionBarGroup"
@@ -12522,8 +12522,8 @@ export {
 import * as React from "react"
 import { AlertDialog as AlertDialogPrimitive } from "radix-ui"
 
-import { cn } from "@workspace/ui/lib/utils"
-import { Button } from "@workspace/ui/components/button"
+import { cn } from "@flow/ui/lib/utils"
+import { Button } from "@flow/ui/components/button"
 
 function AlertDialog({
   ...props
@@ -12722,7 +12722,7 @@ export {
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 
-import { cn } from "@workspace/ui/lib/utils"
+import { cn } from "@flow/ui/lib/utils"
 
 const alertVariants = cva(
   "group/alert relative grid w-full gap-0.5 rounded-lg border px-2 py-1.5 text-left text-xs/relaxed has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-1.5 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-3.5",
@@ -12817,7 +12817,7 @@ export { AspectRatio }
 import * as React from "react"
 import { Avatar as AvatarPrimitive } from "radix-ui"
 
-import { cn } from "@workspace/ui/lib/utils"
+import { cn } from "@flow/ui/lib/utils"
 
 function Avatar({
   className,
@@ -12931,7 +12931,7 @@ import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { Slot } from "radix-ui"
 
-import { cn } from "@workspace/ui/lib/utils"
+import { cn } from "@flow/ui/lib/utils"
 
 const badgeVariants = cva(
   "group/badge inline-flex h-5 w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-full border border-transparent px-2 py-0.5 text-[0.625rem] font-medium whitespace-nowrap transition-all focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&>svg]:pointer-events-none [&>svg]:size-2.5!",
@@ -12982,7 +12982,7 @@ export { Badge, badgeVariants }
 import * as React from "react"
 import { Slot } from "radix-ui"
 
-import { cn } from "@workspace/ui/lib/utils"
+import { cn } from "@flow/ui/lib/utils"
 import { ChevronRightIcon, MoreHorizontalIcon } from "lucide-react"
 
 function Breadcrumb({ className, ...props }: React.ComponentProps<"nav">) {
@@ -13107,8 +13107,8 @@ export {
 import { cva, type VariantProps } from "class-variance-authority"
 import { Slot } from "radix-ui"
 
-import { cn } from "@workspace/ui/lib/utils"
-import { Separator } from "@workspace/ui/components/separator"
+import { cn } from "@flow/ui/lib/utils"
+import { Separator } from "@flow/ui/components/separator"
 
 const buttonGroupVariants = cva(
   "flex w-fit items-stretch *:focus-visible:relative *:focus-visible:z-10 has-[>[data-slot=button-group]]:gap-2 has-[select[aria-hidden=true]:last-child]:[&>[data-slot=select-trigger]:last-of-type]:rounded-r-md [&>[data-slot=select-trigger]:not([class*='w-'])]:w-fit [&>input]:flex-1",
@@ -13194,7 +13194,7 @@ import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { Slot } from "radix-ui"
 
-import { cn } from "@workspace/ui/lib/utils"
+import { cn } from "@flow/ui/lib/utils"
 
 const buttonVariants = cva(
   "group/button inline-flex shrink-0 items-center justify-center rounded-md border border-transparent bg-clip-padding text-xs/relaxed font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 active:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
@@ -13268,8 +13268,8 @@ import {
   type Locale,
 } from "react-day-picker"
 
-import { cn } from "@workspace/ui/lib/utils"
-import { Button, buttonVariants } from "@workspace/ui/components/button"
+import { cn } from "@flow/ui/lib/utils"
+import { Button, buttonVariants } from "@flow/ui/components/button"
 import { ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon } from "lucide-react"
 
 function Calendar({
@@ -13485,7 +13485,7 @@ export { Calendar, CalendarDayButton }
 <file path="packages/ui/src/components/card.tsx">
 import * as React from "react"
 
-import { cn } from "@workspace/ui/lib/utils"
+import { cn } from "@flow/ui/lib/utils"
 
 function Card({
   className,
@@ -13593,8 +13593,8 @@ import useEmblaCarousel, {
   type UseEmblaCarouselType,
 } from "embla-carousel-react"
 
-import { cn } from "@workspace/ui/lib/utils"
-import { Button } from "@workspace/ui/components/button"
+import { cn } from "@flow/ui/lib/utils"
+import { Button } from "@flow/ui/components/button"
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
 
 type CarouselApi = UseEmblaCarouselType[1]
@@ -13836,7 +13836,7 @@ export {
 import * as React from "react"
 import * as RechartsPrimitive from "recharts"
 
-import { cn } from "@workspace/ui/lib/utils"
+import { cn } from "@flow/ui/lib/utils"
 
 // Format: { THEME_NAME: CSS_SELECTOR }
 const THEMES = { light: "", dark: ".dark" } as const
@@ -14195,7 +14195,7 @@ export {
 import * as React from "react"
 import { Checkbox as CheckboxPrimitive } from "radix-ui"
 
-import { cn } from "@workspace/ui/lib/utils"
+import { cn } from "@flow/ui/lib/utils"
 import { CheckIcon } from "lucide-react"
 
 function Checkbox({
@@ -14267,14 +14267,14 @@ export { Collapsible, CollapsibleTrigger, CollapsibleContent }
 import * as React from "react"
 import { Combobox as ComboboxPrimitive } from "@base-ui/react"
 
-import { cn } from "@workspace/ui/lib/utils"
-import { Button } from "@workspace/ui/components/button"
+import { cn } from "@flow/ui/lib/utils"
+import { Button } from "@flow/ui/components/button"
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
   InputGroupInput,
-} from "@workspace/ui/components/input-group"
+} from "@flow/ui/components/input-group"
 import { ChevronDownIcon, XIcon, CheckIcon } from "lucide-react"
 
 const Combobox = ComboboxPrimitive.Root
@@ -14569,18 +14569,18 @@ export {
 import * as React from "react"
 import { Command as CommandPrimitive } from "cmdk"
 
-import { cn } from "@workspace/ui/lib/utils"
+import { cn } from "@flow/ui/lib/utils"
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@workspace/ui/components/dialog"
+} from "@flow/ui/components/dialog"
 import {
   InputGroup,
   InputGroupAddon,
-} from "@workspace/ui/components/input-group"
+} from "@flow/ui/components/input-group"
 import { SearchIcon, CheckIcon } from "lucide-react"
 
 function Command({
@@ -14767,7 +14767,7 @@ export {
 import * as React from "react"
 import { ContextMenu as ContextMenuPrimitive } from "radix-ui"
 
-import { cn } from "@workspace/ui/lib/utils"
+import { cn } from "@flow/ui/lib/utils"
 import { ChevronRightIcon, CheckIcon } from "lucide-react"
 
 function ContextMenu({
@@ -15033,8 +15033,8 @@ export {
 import * as React from "react"
 import { Dialog as DialogPrimitive } from "radix-ui"
 
-import { cn } from "@workspace/ui/lib/utils"
-import { Button } from "@workspace/ui/components/button"
+import { cn } from "@flow/ui/lib/utils"
+import { Button } from "@flow/ui/components/button"
 import { XIcon } from "lucide-react"
 
 function Dialog({
@@ -15226,7 +15226,7 @@ export { DirectionProvider, useDirection }
 import * as React from "react"
 import { Drawer as DrawerPrimitive } from "vaul"
 
-import { cn } from "@workspace/ui/lib/utils"
+import { cn } from "@flow/ui/lib/utils"
 
 function Drawer({
   ...props
@@ -15363,7 +15363,7 @@ export {
 import * as React from "react"
 import { DropdownMenu as DropdownMenuPrimitive } from "radix-ui"
 
-import { cn } from "@workspace/ui/lib/utils"
+import { cn } from "@flow/ui/lib/utils"
 import { CheckIcon, ChevronRightIcon } from "lucide-react"
 
 function DropdownMenu({
@@ -15632,7 +15632,7 @@ export {
 <file path="packages/ui/src/components/empty.tsx">
 import { cva, type VariantProps } from "class-variance-authority"
 
-import { cn } from "@workspace/ui/lib/utils"
+import { cn } from "@flow/ui/lib/utils"
 
 function Empty({ className, ...props }: React.ComponentProps<"div">) {
   return (
@@ -15742,9 +15742,9 @@ export {
 import { useMemo } from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 
-import { cn } from "@workspace/ui/lib/utils"
-import { Label } from "@workspace/ui/components/label"
-import { Separator } from "@workspace/ui/components/separator"
+import { cn } from "@flow/ui/lib/utils"
+import { Label } from "@flow/ui/components/label"
+import { Separator } from "@flow/ui/components/separator"
 
 function FieldSet({ className, ...props }: React.ComponentProps<"fieldset">) {
   return (
@@ -15983,7 +15983,7 @@ export {
 import * as React from "react"
 import { HoverCard as HoverCardPrimitive } from "radix-ui"
 
-import { cn } from "@workspace/ui/lib/utils"
+import { cn } from "@flow/ui/lib/utils"
 
 function HoverCard({
   ...props
@@ -16030,10 +16030,10 @@ export { HoverCard, HoverCardTrigger, HoverCardContent }
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 
-import { cn } from "@workspace/ui/lib/utils"
-import { Button } from "@workspace/ui/components/button"
-import { Input } from "@workspace/ui/components/input"
-import { Textarea } from "@workspace/ui/components/textarea"
+import { cn } from "@flow/ui/lib/utils"
+import { Button } from "@flow/ui/components/button"
+import { Input } from "@flow/ui/components/input"
+import { Textarea } from "@flow/ui/components/textarea"
 
 function InputGroup({ className, ...props }: React.ComponentProps<"div">) {
   return (
@@ -16188,7 +16188,7 @@ export {
 import * as React from "react"
 import { OTPInput, OTPInputContext } from "input-otp"
 
-import { cn } from "@workspace/ui/lib/utils"
+import { cn } from "@flow/ui/lib/utils"
 import { MinusIcon } from "lucide-react"
 
 function InputOTP({
@@ -16275,7 +16275,7 @@ export { InputOTP, InputOTPGroup, InputOTPSlot, InputOTPSeparator }
 <file path="packages/ui/src/components/input.tsx">
 import * as React from "react"
 
-import { cn } from "@workspace/ui/lib/utils"
+import { cn } from "@flow/ui/lib/utils"
 
 function Input({ className, type, ...props }: React.ComponentProps<"input">) {
   return (
@@ -16299,8 +16299,8 @@ import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { Slot } from "radix-ui"
 
-import { cn } from "@workspace/ui/lib/utils"
-import { Separator } from "@workspace/ui/components/separator"
+import { cn } from "@flow/ui/lib/utils"
+import { Separator } from "@flow/ui/components/separator"
 
 function ItemGroup({ className, ...props }: React.ComponentProps<"div">) {
   return (
@@ -16494,7 +16494,7 @@ export {
 </file>
 
 <file path="packages/ui/src/components/kbd.tsx">
-import { cn } from "@workspace/ui/lib/utils"
+import { cn } from "@flow/ui/lib/utils"
 
 function Kbd({ className, ...props }: React.ComponentProps<"kbd">) {
   return (
@@ -16528,7 +16528,7 @@ export { Kbd, KbdGroup }
 import * as React from "react"
 import { Label as LabelPrimitive } from "radix-ui"
 
-import { cn } from "@workspace/ui/lib/utils"
+import { cn } from "@flow/ui/lib/utils"
 
 function Label({
   className,
@@ -16555,7 +16555,7 @@ export { Label }
 import * as React from "react"
 import { Menubar as MenubarPrimitive } from "radix-ui"
 
-import { cn } from "@workspace/ui/lib/utils"
+import { cn } from "@flow/ui/lib/utils"
 import { CheckIcon, ChevronRightIcon } from "lucide-react"
 
 function Menubar({
@@ -16832,7 +16832,7 @@ export {
 <file path="packages/ui/src/components/native-select.tsx">
 import * as React from "react"
 
-import { cn } from "@workspace/ui/lib/utils"
+import { cn } from "@flow/ui/lib/utils"
 import { ChevronDownIcon } from "lucide-react"
 
 type NativeSelectProps = Omit<React.ComponentProps<"select">, "size"> & {
@@ -16889,7 +16889,7 @@ import * as React from "react"
 import { cva } from "class-variance-authority"
 import { NavigationMenu as NavigationMenuPrimitive } from "radix-ui"
 
-import { cn } from "@workspace/ui/lib/utils"
+import { cn } from "@flow/ui/lib/utils"
 import { ChevronDownIcon } from "lucide-react"
 
 function NavigationMenu({
@@ -17054,8 +17054,8 @@ export {
 <file path="packages/ui/src/components/pagination.tsx">
 import * as React from "react"
 
-import { cn } from "@workspace/ui/lib/utils"
-import { Button } from "@workspace/ui/components/button"
+import { cn } from "@flow/ui/lib/utils"
+import { Button } from "@flow/ui/components/button"
 import { ChevronLeftIcon, ChevronRightIcon, MoreHorizontalIcon } from "lucide-react"
 
 function Pagination({ className, ...props }: React.ComponentProps<"nav">) {
@@ -17189,7 +17189,7 @@ export {
 import * as React from "react"
 import { Popover as PopoverPrimitive } from "radix-ui"
 
-import { cn } from "@workspace/ui/lib/utils"
+import { cn } from "@flow/ui/lib/utils"
 
 function Popover({
   ...props
@@ -17281,7 +17281,7 @@ export {
 import * as React from "react"
 import { Progress as ProgressPrimitive } from "radix-ui"
 
-import { cn } from "@workspace/ui/lib/utils"
+import { cn } from "@flow/ui/lib/utils"
 
 function Progress({
   className,
@@ -17315,7 +17315,7 @@ export { Progress }
 import * as React from "react"
 import { RadioGroup as RadioGroupPrimitive } from "radix-ui"
 
-import { cn } from "@workspace/ui/lib/utils"
+import { cn } from "@flow/ui/lib/utils"
 
 function RadioGroup({
   className,
@@ -17361,7 +17361,7 @@ export { RadioGroup, RadioGroupItem }
 
 import * as ResizablePrimitive from "react-resizable-panels"
 
-import { cn } from "@workspace/ui/lib/utils"
+import { cn } from "@flow/ui/lib/utils"
 
 function ResizablePanelGroup({
   className,
@@ -17415,7 +17415,7 @@ export { ResizableHandle, ResizablePanel, ResizablePanelGroup }
 import * as React from "react"
 import { ScrollArea as ScrollAreaPrimitive } from "radix-ui"
 
-import { cn } from "@workspace/ui/lib/utils"
+import { cn } from "@flow/ui/lib/utils"
 
 function ScrollArea({
   className,
@@ -17473,7 +17473,7 @@ export { ScrollArea, ScrollBar }
 import * as React from "react"
 import { Select as SelectPrimitive } from "radix-ui"
 
-import { cn } from "@workspace/ui/lib/utils"
+import { cn } from "@flow/ui/lib/utils"
 import { ChevronDownIcon, CheckIcon, ChevronUpIcon } from "lucide-react"
 
 function Select({
@@ -17671,7 +17671,7 @@ export {
 import * as React from "react"
 import { Separator as SeparatorPrimitive } from "radix-ui"
 
-import { cn } from "@workspace/ui/lib/utils"
+import { cn } from "@flow/ui/lib/utils"
 
 function Separator({
   className,
@@ -17702,8 +17702,8 @@ export { Separator }
 import * as React from "react"
 import { Dialog as SheetPrimitive } from "radix-ui"
 
-import { cn } from "@workspace/ui/lib/utils"
-import { Button } from "@workspace/ui/components/button"
+import { cn } from "@flow/ui/lib/utils"
+import { Button } from "@flow/ui/components/button"
 import { XIcon } from "lucide-react"
 
 function Sheet({ ...props }: React.ComponentProps<typeof SheetPrimitive.Root>) {
@@ -17853,24 +17853,24 @@ import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { Slot } from "radix-ui"
 
-import { useIsMobile } from "@workspace/ui/hooks/use-mobile"
-import { cn } from "@workspace/ui/lib/utils"
-import { Button } from "@workspace/ui/components/button"
-import { Input } from "@workspace/ui/components/input"
-import { Separator } from "@workspace/ui/components/separator"
+import { useIsMobile } from "@flow/ui/hooks/use-mobile"
+import { cn } from "@flow/ui/lib/utils"
+import { Button } from "@flow/ui/components/button"
+import { Input } from "@flow/ui/components/input"
+import { Separator } from "@flow/ui/components/separator"
 import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
-} from "@workspace/ui/components/sheet"
-import { Skeleton } from "@workspace/ui/components/skeleton"
+} from "@flow/ui/components/sheet"
+import { Skeleton } from "@flow/ui/components/skeleton"
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@workspace/ui/components/tooltip"
+} from "@flow/ui/components/tooltip"
 import { PanelLeftIcon } from "lucide-react"
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
@@ -18558,7 +18558,7 @@ export {
 </file>
 
 <file path="packages/ui/src/components/skeleton.tsx">
-import { cn } from "@workspace/ui/lib/utils"
+import { cn } from "@flow/ui/lib/utils"
 
 function Skeleton({ className, ...props }: React.ComponentProps<"div">) {
   return (
@@ -18579,7 +18579,7 @@ export { Skeleton }
 import * as React from "react"
 import { Slider as SliderPrimitive } from "radix-ui"
 
-import { cn } from "@workspace/ui/lib/utils"
+import { cn } from "@flow/ui/lib/utils"
 
 function Slider({
   className,
@@ -18729,8 +18729,8 @@ import { CSS } from "@dnd-kit/utilities"
 import { Slot as SlotPrimitive } from "radix-ui"
 import * as React from "react"
 import * as ReactDOM from "react-dom"
-import { cn } from "@workspace/ui/lib/utils"
-import { useComposedRefs } from "@workspace/ui/lib/compose-refs"
+import { cn } from "@flow/ui/lib/utils"
+import { useComposedRefs } from "@flow/ui/lib/compose-refs"
 
 const orientationConfig = {
   vertical: {
@@ -19270,7 +19270,7 @@ export {
 </file>
 
 <file path="packages/ui/src/components/spinner.tsx">
-import { cn } from "@workspace/ui/lib/utils"
+import { cn } from "@flow/ui/lib/utils"
 import { Loader2Icon } from "lucide-react"
 
 function Spinner({ className, ...props }: React.ComponentProps<"svg">) {
@@ -19288,7 +19288,7 @@ export { Spinner }
 import * as React from "react"
 import { Switch as SwitchPrimitive } from "radix-ui"
 
-import { cn } from "@workspace/ui/lib/utils"
+import { cn } from "@flow/ui/lib/utils"
 
 function Switch({
   className,
@@ -19323,7 +19323,7 @@ export { Switch }
 
 import * as React from "react"
 
-import { cn } from "@workspace/ui/lib/utils"
+import { cn } from "@flow/ui/lib/utils"
 
 function Table({ className, ...props }: React.ComponentProps<"table">) {
   return (
@@ -19444,7 +19444,7 @@ import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { Tabs as TabsPrimitive } from "radix-ui"
 
-import { cn } from "@workspace/ui/lib/utils"
+import { cn } from "@flow/ui/lib/utils"
 
 function Tabs({
   className,
@@ -19533,7 +19533,7 @@ export { Tabs, TabsList, TabsTrigger, TabsContent, tabsListVariants }
 <file path="packages/ui/src/components/textarea.tsx">
 import * as React from "react"
 
-import { cn } from "@workspace/ui/lib/utils"
+import { cn } from "@flow/ui/lib/utils"
 
 function Textarea({ className, ...props }: React.ComponentProps<"textarea">) {
   return (
@@ -19558,8 +19558,8 @@ import * as React from "react"
 import { type VariantProps } from "class-variance-authority"
 import { ToggleGroup as ToggleGroupPrimitive } from "radix-ui"
 
-import { cn } from "@workspace/ui/lib/utils"
-import { toggleVariants } from "@workspace/ui/components/toggle"
+import { cn } from "@flow/ui/lib/utils"
+import { toggleVariants } from "@flow/ui/components/toggle"
 
 const ToggleGroupContext = React.createContext<
   VariantProps<typeof toggleVariants> & {
@@ -19650,7 +19650,7 @@ import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { Toggle as TogglePrimitive } from "radix-ui"
 
-import { cn } from "@workspace/ui/lib/utils"
+import { cn } from "@flow/ui/lib/utils"
 
 const toggleVariants = cva(
   "group/toggle inline-flex items-center justify-center gap-1 rounded-md text-xs font-medium whitespace-nowrap transition-all outline-none hover:bg-muted hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 aria-pressed:bg-muted data-[state=on]:bg-muted dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-3.5",
@@ -19698,7 +19698,7 @@ export { Toggle, toggleVariants }
 import * as React from "react"
 import { Tooltip as TooltipPrimitive } from "radix-ui"
 
-import { cn } from "@workspace/ui/lib/utils"
+import { cn } from "@flow/ui/lib/utils"
 
 function TooltipProvider({
   delayDuration = 0,
@@ -19759,7 +19759,7 @@ export { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger }
 <file path="packages/ui/src/hooks/use-as-ref.ts">
 import * as React from "react";
 
-import { useIsomorphicLayoutEffect } from "@workspace/ui/hooks/use-isomorphic-layout-effect";
+import { useIsomorphicLayoutEffect } from "@flow/ui/hooks/use-isomorphic-layout-effect";
 
 function useAsRef<T>(props: T) {
   const ref = React.useRef<T>(props);
@@ -19862,7 +19862,7 @@ export function cn(...inputs: ClassValue[]) {
 </file>
 
 <file path="packages/ui/eslint.config.js">
-import { config } from "@workspace/eslint-config/react-internal"
+import { config } from "@flow/eslint-config/react-internal"
 
 /** @type {import("eslint").Linter.Config} */
 export default config
@@ -19879,11 +19879,11 @@ export default config;
 
 <file path="packages/ui/tsconfig.json">
 {
-  "extends": "@workspace/typescript-config/react-library.json",
+  "extends": "@flow/typescript-config/react-library.json",
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@workspace/ui/*": ["./src/*"]
+      "@flow/ui/*": ["./src/*"]
     }
   },
   "include": ["."],
@@ -19893,7 +19893,7 @@ export default config;
 
 <file path="packages/ui/tsconfig.lint.json">
 {
-  "extends": "@workspace/typescript-config/react-library.json",
+  "extends": "@flow/typescript-config/react-library.json",
   "compilerOptions": {
     "outDir": "dist"
   },
@@ -20020,10 +20020,10 @@ cd packages/flow && pnpm vitest run src/path/to/file.test.ts
 
 ## Monorepo Structure
 
-- **`apps/web`** — Next.js 16 app (App Router, Turbopack). Entry point renders the `Flow` component from `@workspace/flow`.
+- **`apps/web`** — Next.js 16 app (App Router, Turbopack). Entry point renders the `Flow` component from `@flow/flow`.
 - **`packages/flow`** — The core workflow editor. Exports `Flow` (wraps `WorkflowEditor` in `WorkflowStoreProvider`).
 - **`packages/store`** — Zustand utilities: history (undo/redo), context-based store creation.
-- **`packages/ui`** — 57 shadcn/ui components exported via `@workspace/ui/components/*` and `@workspace/ui/hooks/*`.
+- **`packages/ui`** — 57 shadcn/ui components exported via `@flow/ui/components/*` and `@flow/ui/hooks/*`.
 - **`packages/eslint-config`** / **`packages/typescript-config`** — Shared tooling configs.
 
 ## Architecture of `packages/flow`
@@ -20092,8 +20092,8 @@ The flow package is the heart of the application. Key areas:
     "typecheck": "turbo typecheck"
   },
   "devDependencies": {
-    "@workspace/eslint-config": "workspace:*",
-    "@workspace/typescript-config": "workspace:*",
+    "@flow/eslint-config": "workspace:*",
+    "@flow/typescript-config": "workspace:*",
     "prettier": "^3.8.1",
     "prettier-plugin-tailwindcss": "^0.7.2",
     "turbo": "^2.8.17",
@@ -20132,13 +20132,13 @@ This will place the ui components in the `packages/ui/src/components` directory.
 To use the components in your app, import them from the `ui` package.
 
 ```tsx
-import { Button } from "@workspace/ui/components/button";
+import { Button } from "@flow/ui/components/button";
 ```
 </file>
 
 <file path="tsconfig.json">
 {
-  "extends": "@workspace/typescript-config/base.json"
+  "extends": "@flow/typescript-config/base.json"
 }
 </file>
 
@@ -20187,8 +20187,8 @@ import { Button } from "@workspace/ui/components/button";
   "menuAccent": "subtle",
   "aliases": {
     "components": "@/components",
-    "utils": "@workspace/ui/lib/utils",
-    "ui": "@workspace/ui/components",
+    "utils": "@flow/ui/lib/utils",
+    "ui": "@flow/ui/components",
     "lib": "@/lib",
     "hooks": "@/hooks"
   },
@@ -20222,9 +20222,9 @@ import "./.next/dev/types/routes.d.ts";
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@workspace/ui": "workspace:*",
-    "@workspace/flow": "workspace:*",
-    "@workspace/store": "workspace:*",
+    "@flow/ui": "workspace:*",
+    "@flow/flow": "workspace:*",
+    "@flow/store": "workspace:*",
     "lucide-react": "^0.577.0",
     "next": "16.1.6",
     "next-themes": "^0.4.6",
@@ -20236,8 +20236,8 @@ import "./.next/dev/types/routes.d.ts";
     "@types/node": "^25.1.0",
     "@types/react": "^19.2.10",
     "@types/react-dom": "^19.2.3",
-    "@workspace/eslint-config": "workspace:^",
-    "@workspace/typescript-config": "workspace:*",
+    "@flow/eslint-config": "workspace:^",
+    "@flow/typescript-config": "workspace:*",
     "eslint": "^9.39.2",
     "typescript": "^5.9.3"
   }
@@ -21544,21 +21544,21 @@ export function getNodeOutputPaths(kind: NodeKind): string[] {
 "use client"
 
 import type { NodeProps } from "@xyflow/react"
-import { Button } from "@workspace/ui/components/button"
+import { Button } from "@flow/ui/components/button"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@workspace/ui/components/select"
+} from "@flow/ui/components/select"
 import {
   Sortable,
   SortableContent,
   SortableItem,
   SortableItemHandle,
   SortableOverlay,
-} from "@workspace/ui/components/sortable"
+} from "@flow/ui/components/sortable"
 import { GripVertical, Trash2 } from "lucide-react"
 import { useCallback, useMemo } from "react"
 
@@ -21861,7 +21861,7 @@ import type { NodeProps } from "@xyflow/react"
 import {
   NativeSelect,
   NativeSelectOption,
-} from "@workspace/ui/components/native-select"
+} from "@flow/ui/components/native-select"
 
 import { resultNodeStyles } from "../../../styles/components/nodes"
 import { NodeShell } from "../node-shell/node-shell"
@@ -22160,7 +22160,7 @@ export function createWorkflowError(
 
 <file path="packages/flow/tsconfig.json">
 {
-  "extends": "@workspace/typescript-config/react-library.json",
+  "extends": "@flow/typescript-config/react-library.json",
   "compilerOptions": {
     "module": "ESNext",
     "moduleResolution": "Bundler"
@@ -22172,7 +22172,7 @@ export function createWorkflowError(
 
 <file path="packages/store/package.json">
 {
-  "name": "@workspace/store",
+  "name": "@flow/store",
   "version": "0.0.0",
   "description": "",
   "type": "module",
@@ -22199,8 +22199,8 @@ export function createWorkflowError(
     "@types/react": "^19.2.10",
     "@types/react-dom": "^19.2.3",
     "@vitest/coverage-v8": "^4.1.0",
-    "@workspace/eslint-config": "workspace:*",
-    "@workspace/typescript-config": "workspace:*",
+    "@flow/eslint-config": "workspace:*",
+    "@flow/typescript-config": "workspace:*",
     "eslint": "^9.39.2",
     "jsdom": "^29.0.1",
     "react": "^19.2.4",
@@ -22216,7 +22216,7 @@ export function createWorkflowError(
 
 <file path="packages/store/tsconfig.json">
 {
-  "extends": "@workspace/typescript-config/react-library.json",
+  "extends": "@flow/typescript-config/react-library.json",
   "compilerOptions": {
     "module": "ESNext",
     "moduleResolution": "Bundler"
@@ -22376,11 +22376,11 @@ export function createWorkflowError(
   "menuColor": "default",
   "menuAccent": "subtle",
   "aliases": {
-    "components": "@workspace/ui/components",
-    "utils": "@workspace/ui/lib/utils",
-    "ui": "@workspace/ui/components",
-    "lib": "@workspace/ui/lib",
-    "hooks": "@workspace/ui/hooks"
+    "components": "@flow/ui/components",
+    "utils": "@flow/ui/lib/utils",
+    "ui": "@flow/ui/components",
+    "lib": "@flow/ui/lib",
+    "hooks": "@flow/ui/hooks"
   },
   "registries": {
     "@diceui": "https://diceui.com/r/{name}.json"
@@ -22399,7 +22399,7 @@ This document summarizes what was implemented for the React Flow based n8n-like 
 
 ### 1) Workflow editor architecture
 
-Implemented a decomposed editor in `@workspace/flow`:
+Implemented a decomposed editor in `@flow/flow`:
 
 - `WorkflowEditor` as top-level composition layer
 - `WorkflowCanvas` for React Flow rendering and interactions
@@ -22434,7 +22434,7 @@ Files:
 
 ### 3) State management with undo/redo history
 
-Implemented history utilities in `@workspace/store` and connected them in `@workspace/flow`:
+Implemented history utilities in `@flow/store` and connected them in `@flow/flow`:
 
 - generic `createHistoryState`, `pushHistoryState`, `undoHistoryState`, `redoHistoryState`
 - workflow store with actions:
@@ -22685,13 +22685,13 @@ Script:
 
 Executed successfully:
 
-- `pnpm --filter @workspace/store typecheck`
-- `pnpm --filter @workspace/flow typecheck`
-- `pnpm --filter @workspace/flow lint`
-- `pnpm --filter @workspace/store lint`
-- `pnpm --filter @workspace/flow test`
+- `pnpm --filter @flow/store typecheck`
+- `pnpm --filter @flow/flow typecheck`
+- `pnpm --filter @flow/flow lint`
+- `pnpm --filter @flow/store lint`
+- `pnpm --filter @flow/flow test`
 - `pnpm --filter web typecheck`
-- `pnpm --filter @workspace/flow typecheck`
+- `pnpm --filter @flow/flow typecheck`
 
 ### Type strictness constraints
 
@@ -22706,7 +22706,7 @@ Checked and kept:
 ### Updated
 
 - `packages/flow/package.json`
-  - added `@workspace/ui` dependency
+  - added `@flow/ui` dependency
   - added `lucide-react` dependency
   - added CodeMirror deps:
     - `@codemirror/state`
@@ -22863,9 +22863,9 @@ Added/expanded integration and architecture-critical tests:
 
 Current validation status (latest run):
 
-- `pnpm --filter @workspace/flow test` -> passed
-- `pnpm --filter @workspace/flow typecheck` -> passed
-- `pnpm --filter @workspace/flow lint` -> passed
+- `pnpm --filter @flow/flow test` -> passed
+- `pnpm --filter @flow/flow typecheck` -> passed
+- `pnpm --filter @flow/flow lint` -> passed
 </file>
 
 <file path="skills-lock.json">
@@ -22899,11 +22899,11 @@ Current validation status (latest run):
 <file path="apps/web/app/layout.tsx">
 import { Geist, Geist_Mono, Inter } from "next/font/google"
 
-import "@workspace/ui/globals.css"
-import "@workspace/flow/style.css"
+import "@flow/ui/globals.css"
+import "@flow/flow/style.css"
 import { ThemeProvider } from "@/components/theme-provider"
-import { cn } from "@workspace/ui/lib/utils"
-import { TooltipProvider } from "@workspace/ui/components/tooltip"
+import { cn } from "@flow/ui/lib/utils"
+import { TooltipProvider } from "@flow/ui/components/tooltip"
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" })
 
@@ -22939,7 +22939,7 @@ export default function RootLayout({
 </file>
 
 <file path="apps/web/app/page.tsx">
-import { Flow } from "@workspace/flow"
+import { Flow } from "@flow/flow"
 
 export default function Page() {
   return (
@@ -22996,8 +22996,8 @@ export const inlineExpressionNodeStyles = tv({
 
 import { type ChangeEvent, useMemo, useState } from "react"
 
-import { Button } from "@workspace/ui/components/button"
-import { Textarea } from "@workspace/ui/components/textarea"
+import { Button } from "@flow/ui/components/button"
+import { Textarea } from "@flow/ui/components/textarea"
 import { editorToolbarStyles } from "../../../styles/components/editor-shell"
 
 interface EditorToolbarProps {
@@ -24512,7 +24512,7 @@ import {
   createHistoryState,
   pushHistoryState,
   type HistoryState,
-} from "@workspace/store"
+} from "@flow/store"
 
 import type { WorkflowGraphState } from "../types/types"
 import { buildExpressionSlicePatch } from "./expression-deps"
@@ -24678,7 +24678,7 @@ export type { StoreApi }
 
 <file path="packages/ui/package.json">
 {
-  "name": "@workspace/ui",
+  "name": "@flow/ui",
   "version": "0.0.0",
   "type": "module",
   "private": true,
@@ -24720,8 +24720,8 @@ export type { StoreApi }
     "@types/node": "^25.1.0",
     "@types/react": "^19.2.10",
     "@types/react-dom": "^19.2.3",
-    "@workspace/eslint-config": "workspace:*",
-    "@workspace/typescript-config": "workspace:*",
+    "@flow/eslint-config": "workspace:*",
+    "@flow/typescript-config": "workspace:*",
     "eslint": "^9.39.2",
     "tailwindcss": "^4.1.18",
     "typescript": "^5.9.3"
@@ -25203,10 +25203,10 @@ export function buildNodeTypes(
 "use client"
 
 import type { NodeProps } from "@xyflow/react"
-import { Checkbox } from "@workspace/ui/components/checkbox"
-import { Field, FieldGroup, FieldLabel } from "@workspace/ui/components/field"
-import { Input } from "@workspace/ui/components/input"
-import { Label } from "@workspace/ui/components/label"
+import { Checkbox } from "@flow/ui/components/checkbox"
+import { Field, FieldGroup, FieldLabel } from "@flow/ui/components/field"
+import { Input } from "@flow/ui/components/input"
+import { Label } from "@flow/ui/components/label"
 import { useCallback, useRef, useState } from "react"
 
 import { setVariableNodeStyles } from "../../../../styles/components/nodes"
@@ -25529,7 +25529,7 @@ export * from "./use-base-node-data"
 </file>
 
 <file path="packages/flow/src/workflow/store/slices/history-slice.ts">
-import { type HistoryState, redoHistoryState, undoHistoryState } from "@workspace/store"
+import { type HistoryState, redoHistoryState, undoHistoryState } from "@flow/store"
 
 import type { WorkflowGraphState } from "../../types/types"
 import { buildExpressionSlicePatch } from "../expression-deps"
@@ -25620,7 +25620,7 @@ export const createSelectionSlice: WorkflowSliceCreator = (set) => ({
 </file>
 
 <file path="packages/flow/src/workflow/store/collection-diff.test.ts">
-import { createHistoryState } from "@workspace/store"
+import { createHistoryState } from "@flow/store"
 import { describe, expect, it } from "vitest"
 
 import { createWorkflowNode } from "../node-registry/node-factory"
@@ -26372,13 +26372,13 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "@workspace/ui/components/command"
-import { FieldError } from "@workspace/ui/components/field"
+} from "@flow/ui/components/command"
+import { FieldError } from "@flow/ui/components/field"
 import {
   Popover,
   PopoverAnchor,
   PopoverContent,
-} from "@workspace/ui/components/popover"
+} from "@flow/ui/components/popover"
 import CodeMirror from "@uiw/react-codemirror"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
@@ -27871,7 +27871,7 @@ export interface DomainWorkflowDTO {
 
 <file path="packages/flow/package.json">
 {
-  "name": "@workspace/flow",
+  "name": "@flow/flow",
   "version": "0.0.0",
   "description": "",
   "type": "module",
@@ -27892,8 +27892,8 @@ export interface DomainWorkflowDTO {
     "@codemirror/state": "^6.6.0",
     "@codemirror/view": "^6.40.0",
     "@uiw/react-codemirror": "^4.25.8",
-    "@workspace/store": "workspace:*",
-    "@workspace/ui": "workspace:*",
+    "@flow/store": "workspace:*",
+    "@flow/ui": "workspace:*",
     "@xyflow/react": "^12.10.1",
     "acorn": "^8.16.0",
     "es-toolkit": "^1.45.1",
@@ -27907,8 +27907,8 @@ export interface DomainWorkflowDTO {
     "@types/react": "^19.2.10",
     "@types/react-dom": "^19.2.3",
     "@vitest/coverage-v8": "^4.1.0",
-    "@workspace/eslint-config": "workspace:*",
-    "@workspace/typescript-config": "workspace:*",
+    "@flow/eslint-config": "workspace:*",
+    "@flow/typescript-config": "workspace:*",
     "eslint": "^9.39.2",
     "jsdom": "^29.0.1",
     "react": "^19.2.4",
@@ -27967,8 +27967,8 @@ export const inlineExpression = defineNode({
 "use client"
 
 import type { NodeProps } from "@xyflow/react"
-import { Checkbox } from "@workspace/ui/components/checkbox"
-import { Label } from "@workspace/ui/components/label"
+import { Checkbox } from "@flow/ui/components/checkbox"
+import { Label } from "@flow/ui/components/label"
 
 import { inlineExpressionNodeStyles } from "../../../../styles/components/nodes"
 import { ExpressionInput } from "../../../components/expression-input"
@@ -28200,7 +28200,7 @@ import {
   useWorkflowShallowStore,
   type WorkflowStoreState,
 } from "../../store"
-import { Button } from "@workspace/ui/components/button"
+import { Button } from "@flow/ui/components/button"
 
 interface OutputQuickAddAffordanceProps {
   nodeId: string
@@ -28353,7 +28353,7 @@ export const selectExpressionVariablesForNode = (
 </file>
 
 <file path="packages/flow/src/workflow/store/store.ts">
-import { createContextStore, createStore, createHistoryState, type StoreApi } from "@workspace/store"
+import { createContextStore, createStore, createHistoryState, type StoreApi } from "@flow/store"
 
 import { initialWorkflowGraph } from "../default-graph/default-graph"
 import type { WorkflowGraphState } from "../types/types"
@@ -28695,7 +28695,7 @@ describe("workflow node registry", () => {
 "use client"
 
 import type { NodeProps } from "@xyflow/react"
-import { Input } from "@workspace/ui/components/input"
+import { Input } from "@flow/ui/components/input"
 import { useCallback, useRef, useState } from "react"
 
 import { setVariableNodeStyles } from "../../../../styles/components/nodes"
@@ -28815,7 +28815,7 @@ export function SetVariableNode({ id, data, selected }: NodeProps) {
 
 <file path="packages/flow/src/workflow/store/slices/graph-slice.ts">
 import { addEdge, applyNodeChanges, type NodeChange } from "@xyflow/react"
-import { pushHistoryState } from "@workspace/store"
+import { pushHistoryState } from "@flow/store"
 
 import { createWorkflowError } from "../../types/errors"
 import type { WorkflowEdge, WorkflowGraphState, WorkflowNode } from "../../types/types"
@@ -29217,8 +29217,8 @@ function haveNodePositionsChanged(currentNodes: WorkflowNode[], nextNodes: Workf
 
 <file path="packages/flow/src/workflow/store/types.ts">
 import type { EdgeChange, NodeChange, Viewport, XYPosition } from "@xyflow/react"
-import type { StoreApi } from "@workspace/store"
-import type { HistoryState } from "@workspace/store"
+import type { StoreApi } from "@flow/store"
+import type { HistoryState } from "@flow/store"
 
 import type { WorkflowError } from "../types/errors"
 import type {
@@ -29346,8 +29346,8 @@ import {
   ActionBar,
   ActionBarSelection,
   ActionBarSeparator,
-} from "@workspace/ui/components/action-bar"
-import { Badge } from "@workspace/ui/components/badge"
+} from "@flow/ui/components/action-bar"
+import { Badge } from "@flow/ui/components/badge"
 import { WORKFLOW_NODE_KIND_MIME } from "../../dnd"
 import {
   nodeRegistry,
@@ -29460,7 +29460,7 @@ export function NodePalette({
 </file>
 
 <file path="packages/flow/src/workflow/store/slices/io-slice.ts">
-import { createHistoryState } from "@workspace/store"
+import { createHistoryState } from "@flow/store"
 import { addEdge, type XYPosition } from "@xyflow/react"
 
 import {
@@ -30850,7 +30850,7 @@ describe("workflow store", () => {
 
 import { useCallback, useEffect, useState } from "react"
 
-import { Button } from "@workspace/ui/components/button"
+import { Button } from "@flow/ui/components/button"
 import { PlusIcon } from "lucide-react"
 import {
   selectCanRedo,

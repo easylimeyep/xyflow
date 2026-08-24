@@ -1,5 +1,5 @@
 {
-  "name": "@workspace/expression-editor",
+  "name": "@flow/expression-editor",
   "version": "0.0.0",
   "description": "",
   "type": "module",
@@ -19,7 +19,7 @@
     "@codemirror/state": "^6.6.0",
     "@codemirror/view": "^6.40.0",
     "@uiw/react-codemirror": "^4.25.8",
-    "@workspace/ui": "workspace:*",
+    "@flow/ui": "workspace:*",
     "acorn": "^8.16.0",
     "tailwind-variants": "^3.2.2"
   },
@@ -30,8 +30,8 @@
     "@types/react": "^19.2.10",
     "@types/react-dom": "^19.2.3",
     "@vitest/coverage-v8": "^4.1.0",
-    "@workspace/eslint-config": "workspace:*",
-    "@workspace/typescript-config": "workspace:*",
+    "@flow/eslint-config": "workspace:*",
+    "@flow/typescript-config": "workspace:*",
     "eslint": "^9.39.2",
     "jsdom": "^29.0.1",
     "react": "^19.2.4",

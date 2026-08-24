@@ -60,7 +60,13 @@ export function decodeNodeConfig(
         error: `Node kind ${kind} does not support config key ${key}.`,
       }
     }
-    if (!isConfigValueAccepted(definition.validateConfigValue, key, rawConfig[key])) {
+    if (
+      !isConfigValueAccepted(
+        definition.validateConfigValue,
+        key,
+        rawConfig[key]
+      )
+    ) {
       return {
         success: false,
         error: `Node kind ${kind} has invalid value for config key ${key}.`,
@@ -124,7 +130,11 @@ function sanitizeJsonObject(value: Record<string, unknown>): JsonObject {
 }
 
 function sanitizeJsonValue(value: unknown): JsonValue {
-  if (typeof value === "string" || typeof value === "boolean" || value === null) {
+  if (
+    typeof value === "string" ||
+    typeof value === "boolean" ||
+    value === null
+  ) {
     return value
   }
 

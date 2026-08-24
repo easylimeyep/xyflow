@@ -6,7 +6,7 @@ import {
   type InitialGraphEdgeInput,
   type InitialGraphInput,
   type InitialGraphNodeInput,
-} from "@workspace/flow"
+} from "@flow/flow"
 
 import { ExamplePreview } from "./example-preview"
 
@@ -128,9 +128,9 @@ const graphInput = {
         conditions: [
           {
             id: "large-elk-final-condition",
-            left: { type: "string", value: "{{ score }}" },
+            left: { type: "value", value: "{{ score }}" },
             operator: "contains",
-            right: { type: "string", value: "qualified" },
+            right: { type: "value", value: "qualified" },
           },
         ],
         logicalOperator: "and",
@@ -190,9 +190,9 @@ const graphInput = {
         conditions: [
           {
             id: "large-elk-true-condition",
-            left: { type: "string", value: "{{ approval }}" },
+            left: { type: "value", value: "{{ approval }}" },
             operator: "contains",
-            right: { type: "string", value: "auto" },
+            right: { type: "value", value: "auto" },
           },
         ],
         logicalOperator: "and",
@@ -262,9 +262,9 @@ const graphInput = {
         conditions: [
           {
             id: "large-elk-false-condition",
-            left: { type: "string", value: "{{ review }}" },
+            left: { type: "value", value: "{{ review }}" },
             operator: "contains",
-            right: { type: "string", value: "escalate" },
+            right: { type: "value", value: "escalate" },
           },
         ],
         logicalOperator: "and",
@@ -417,7 +417,7 @@ const graphInput = {
 
 const initialGraph = createInitialGraph(graphInput)
 
-const code = `import { WorkflowEditor, createInitialGraph } from "@workspace/flow"
+const code = `import { WorkflowEditor, createInitialGraph } from "@flow/flow"
 
 const laneNames = ["email", "phone", "country", "budget", "intent", "company", "role", "source", "timeline", "consent"]
 

@@ -1,7 +1,7 @@
 "use client"
 
-import { WorkflowEditor, createInitialGraph } from "@workspace/flow"
-import type { WorkflowEvaluatorOperatorCatalog } from "@workspace/flow"
+import { WorkflowEditor, createInitialGraph } from "@flow/flow"
+import type { WorkflowEvaluatorOperatorCatalog } from "@flow/flow"
 
 import { ExamplePreview } from "./example-preview"
 
@@ -128,7 +128,7 @@ const initialGraph = createInitialGraph({
   },
 })
 
-const code = `import { WorkflowEditor, createInitialGraph } from "@workspace/flow"
+const code = `import { WorkflowEditor, createInitialGraph } from "@flow/flow"
 
 const initialGraph = createInitialGraph({
   nodes: [
@@ -139,8 +139,8 @@ const initialGraph = createInitialGraph({
       label: "Email rules",
       config: {
         conditions: [
-          { id: "demo-custom-operators-condition-contains", left: { type: "string", value: "{{ lead.email }}" }, operator: "includes", right: { type: "string", value: "@company.com" } },
-          { id: "demo-custom-operators-condition-presence", left: { type: "string", value: "{{ lead.email }}" }, operator: "has-value" },
+          { id: "demo-custom-operators-condition-contains", left: { type: "value", value: "{{ lead.email }}" }, operator: "includes", right: { type: "value", value: "@company.com" } },
+          { id: "demo-custom-operators-condition-presence", left: { type: "value", value: "{{ lead.email }}" }, operator: "has-value" },
         ],
         logicalOperator: "and",
       },

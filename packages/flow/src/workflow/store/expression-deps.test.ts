@@ -21,7 +21,10 @@ function createTestGraph(): WorkflowGraphState {
         target: inline.id,
         sourceHandle: null,
         targetHandle: null,
-        data: { sourceKind: "inlineExpression", targetKind: "inlineExpression" },
+        data: {
+          sourceKind: "inlineExpression",
+          targetKind: "inlineExpression",
+        },
       },
     ],
     viewport: { x: 0, y: 0, zoom: 1 },
@@ -42,7 +45,12 @@ describe("expression deps projection and signature", () => {
       throw new Error("expected at least one edge in projected deps")
     }
 
-    expect(Object.keys(firstNode).sort()).toEqual(["config", "id", "kind", "label"])
+    expect(Object.keys(firstNode).sort()).toEqual([
+      "config",
+      "id",
+      "kind",
+      "label",
+    ])
     expect(Object.keys(firstEdge).sort()).toEqual([
       "id",
       "source",
@@ -65,8 +73,12 @@ describe("expression deps projection and signature", () => {
     }
     firstNode.selected = !firstNode.selected
 
-    const baseSignature = computeStructuralSignature(projectExpressionDeps(baseGraph))
-    const movedSignature = computeStructuralSignature(projectExpressionDeps(movedGraph))
+    const baseSignature = computeStructuralSignature(
+      projectExpressionDeps(baseGraph)
+    )
+    const movedSignature = computeStructuralSignature(
+      projectExpressionDeps(movedGraph)
+    )
     expect(movedSignature).toBe(baseSignature)
   })
 
@@ -82,13 +94,19 @@ describe("expression deps projection and signature", () => {
       label: `${firstNode.data.label} changed`,
     }
 
-    const baseSignature = computeStructuralSignature(projectExpressionDeps(baseGraph))
-    const renamedSignature = computeStructuralSignature(projectExpressionDeps(renamedGraph))
+    const baseSignature = computeStructuralSignature(
+      projectExpressionDeps(baseGraph)
+    )
+    const renamedSignature = computeStructuralSignature(
+      projectExpressionDeps(renamedGraph)
+    )
     expect(renamedSignature).not.toBe(baseSignature)
 
     const rewiredGraph = cloneDeep(baseGraph)
     rewiredGraph.edges = []
-    const rewiredSignature = computeStructuralSignature(projectExpressionDeps(rewiredGraph))
+    const rewiredSignature = computeStructuralSignature(
+      projectExpressionDeps(rewiredGraph)
+    )
     expect(rewiredSignature).not.toBe(baseSignature)
   })
 
@@ -98,8 +116,12 @@ describe("expression deps projection and signature", () => {
     reorderedGraph.nodes = [...reorderedGraph.nodes].reverse()
     reorderedGraph.edges = [...reorderedGraph.edges].reverse()
 
-    const baseSignature = computeStructuralSignature(projectExpressionDeps(baseGraph))
-    const reorderedSignature = computeStructuralSignature(projectExpressionDeps(reorderedGraph))
+    const baseSignature = computeStructuralSignature(
+      projectExpressionDeps(baseGraph)
+    )
+    const reorderedSignature = computeStructuralSignature(
+      projectExpressionDeps(reorderedGraph)
+    )
     expect(reorderedSignature).toBe(baseSignature)
   })
 })

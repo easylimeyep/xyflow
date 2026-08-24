@@ -3,11 +3,11 @@
 import * as React from "react"
 import { Plus, Trash2 } from "lucide-react"
 
-import { Badge } from "@workspace/ui/components/badge"
-import { Button } from "@workspace/ui/components/button"
-import { Input } from "@workspace/ui/components/input"
-import { Popover, PopoverTrigger } from "@workspace/ui/components/popover"
-import { cn } from "@workspace/ui/lib/utils"
+import { Badge } from "@flow/ui/components/badge"
+import { Button } from "@flow/ui/components/button"
+import { Input } from "@flow/ui/components/input"
+import { Popover, PopoverTrigger } from "@flow/ui/components/popover"
+import { cn } from "@flow/ui/lib/utils"
 
 const DEFAULT_PREVIEW_LIMIT = 3
 
@@ -67,35 +67,35 @@ function ArrayInputPopover({
         )}
         aria-label={`Edit ${label} array values`}
       >
-          {visiblePreviewValues.length > 0 ? (
-            <>
-              <span className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
-                {visiblePreviewValues.map((value, index) => (
-                  <Badge
-                    key={`${value}-${index}`}
-                    variant="outline"
-                    className="h-4 max-w-[4.5rem] min-w-0 px-1.5 text-[0.625rem]"
-                    title={value}
-                  >
-                    <span className="min-w-0 truncate">{value}</span>
-                  </Badge>
-                ))}
-              </span>
-              {hiddenPreviewCount > 0 ? (
+        {visiblePreviewValues.length > 0 ? (
+          <>
+            <span className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
+              {visiblePreviewValues.map((value, index) => (
                 <Badge
-                  variant="secondary"
-                  className="h-4 shrink-0 px-1.5 text-[0.625rem]"
+                  key={`${value}-${index}`}
+                  variant="outline"
+                  className="h-4 max-w-[4.5rem] min-w-0 px-1.5 text-[0.625rem]"
+                  title={value}
                 >
-                  +{hiddenPreviewCount}
+                  <span className="min-w-0 truncate">{value}</span>
                 </Badge>
-              ) : null}
-            </>
-          ) : (
-            <span className="min-w-0 truncate text-muted-foreground">
-              {placeholder}
+              ))}
             </span>
-          )}
-        </Button>
+            {hiddenPreviewCount > 0 ? (
+              <Badge
+                variant="secondary"
+                className="h-4 shrink-0 px-1.5 text-[0.625rem]"
+              >
+                +{hiddenPreviewCount}
+              </Badge>
+            ) : null}
+          </>
+        ) : (
+          <span className="min-w-0 truncate text-muted-foreground">
+            {placeholder}
+          </span>
+        )}
+      </Button>
       <Popover placement="bottom start" className="w-56 gap-1 p-2">
         <div className="space-y-1">
           {values.map((entry, index) => (

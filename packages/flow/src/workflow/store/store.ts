@@ -1,4 +1,9 @@
-import { createContextStore, createStore, createHistoryState, type StoreApi } from "@workspace/store"
+import {
+  createContextStore,
+  createStore,
+  createHistoryState,
+  type StoreApi,
+} from "@flow/store"
 
 import { initialWorkflowGraph } from "../default-graph/default-graph"
 import type { WorkflowGraphState } from "../types/types"
@@ -37,21 +42,24 @@ export function createWorkflowStore(
   )
   const runtime = normalizeWorkflowRuntimeConfig(initialProps.runtime)
 
-  return createStore<WorkflowStoreState>()((set, get) => ({
-    runtime,
-    history: createHistoryState(initialGraph),
-    measuredInitialAutoLayoutAttempted: false,
-    ...createExpressionSlice(initialGraph),
-    ...createValidationSlice(set, get),
-    ...createSelectionSlice(set, get),
-    ...createIntentSlice(set, get),
-    ...createNodeCrudSlice(set, get),
-    ...createLayoutSlice(set, get),
-    ...createConnectionSlice(set, get),
-    ...createGraphSlice(set, get),
-    ...createHistorySlice(set, get),
-    ...createIoSlice(set, get),
-  } as WorkflowStoreState))
+  return createStore<WorkflowStoreState>()(
+    (set, get) =>
+      ({
+        runtime,
+        history: createHistoryState(initialGraph),
+        measuredInitialAutoLayoutAttempted: false,
+        ...createExpressionSlice(initialGraph),
+        ...createValidationSlice(set, get),
+        ...createSelectionSlice(set, get),
+        ...createIntentSlice(set, get),
+        ...createNodeCrudSlice(set, get),
+        ...createLayoutSlice(set, get),
+        ...createConnectionSlice(set, get),
+        ...createGraphSlice(set, get),
+        ...createHistorySlice(set, get),
+        ...createIoSlice(set, get),
+      }) as WorkflowStoreState
+  )
 }
 
 const workflowStore = createContextStore<

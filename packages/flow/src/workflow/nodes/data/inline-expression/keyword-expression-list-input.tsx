@@ -1,6 +1,6 @@
 "use client"
 
-import { Button } from "@workspace/ui/components/button"
+import { Button } from "@flow/ui/components/button"
 import { Plus, Trash2Icon } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 
@@ -44,32 +44,29 @@ export function KeywordExpressionListInput({
     liveDraft && areStringArraysEqual(liveDraft.baseValue, value)
       ? liveDraft.rowsByIndex
       : null
-  const rows = useMemo(
-    () => {
-      const liveRowIndexes = liveRowsByIndex
-        ? Object.keys(liveRowsByIndex)
-            .map(Number)
-            .filter((index) => Number.isInteger(index) && index >= 0)
-        : []
-      const rowCount = Math.max(
-        committedRows.length,
-        ...liveRowIndexes.map((index) => index + 1)
-      )
+  const rows = useMemo(() => {
+    const liveRowIndexes = liveRowsByIndex
+      ? Object.keys(liveRowsByIndex)
+          .map(Number)
+          .filter((index) => Number.isInteger(index) && index >= 0)
+      : []
+    const rowCount = Math.max(
+      committedRows.length,
+      ...liveRowIndexes.map((index) => index + 1)
+    )
 
-      return Array.from({ length: rowCount }, (_, index) => {
-        const rowValue = committedRows[index] ?? ""
-        if (
-          !liveRowsByIndex ||
-          !Object.prototype.hasOwnProperty.call(liveRowsByIndex, index)
-        ) {
-          return rowValue
-        }
+    return Array.from({ length: rowCount }, (_, index) => {
+      const rowValue = committedRows[index] ?? ""
+      if (
+        !liveRowsByIndex ||
+        !Object.prototype.hasOwnProperty.call(liveRowsByIndex, index)
+      ) {
+        return rowValue
+      }
 
-        return liveRowsByIndex[index] ?? rowValue
-      })
-    },
-    [committedRows, liveRowsByIndex]
-  )
+      return liveRowsByIndex[index] ?? rowValue
+    })
+  }, [committedRows, liveRowsByIndex])
 
   const rowErrors = useMemo(
     () => rows.map(getKeywordTokenValidationError),

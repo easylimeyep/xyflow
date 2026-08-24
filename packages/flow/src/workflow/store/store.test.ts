@@ -592,7 +592,9 @@ describe("workflow store", () => {
     state.onConnect({ source: inlineNode.id, target: evaluatorNode.id })
     const nextState = store.getState()
 
-    expect(nextState.history.present.edges.length).toBe(beforeCycleEdgeCount + 1)
+    expect(nextState.history.present.edges.length).toBe(
+      beforeCycleEdgeCount + 1
+    )
     expect(nextState.lastError).toBeNull()
   })
 

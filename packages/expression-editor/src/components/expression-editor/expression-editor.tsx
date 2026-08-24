@@ -8,9 +8,9 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "@workspace/ui/components/command"
-import { FieldError } from "@workspace/ui/components/field"
-import { Popover } from "@workspace/ui/components/popover"
+} from "@flow/ui/components/command"
+import { FieldError } from "@flow/ui/components/field"
+import { Popover } from "@flow/ui/components/popover"
 import CodeMirror from "@uiw/react-codemirror"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 

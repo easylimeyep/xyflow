@@ -215,13 +215,17 @@ describe("initial graph builders", () => {
         { id: "keyword", kind: "inlineExpression", config: { isRoot: true } },
         { id: "extractor", kind: "extractor" },
       ],
-      edges: [{ id: "keyword-to-extractor", source: "keyword", target: "extractor" }],
+      edges: [
+        { id: "keyword-to-extractor", source: "keyword", target: "extractor" },
+      ],
     } as const
     const base = createInitialGraph(input)
     const elk = await createInitialGraphElk(input)
 
     // The ELK builder changes positions, but node IDs and edge wiring stay stable.
-    expect(elk.nodes.map((node) => node.id)).toEqual(base.nodes.map((node) => node.id))
+    expect(elk.nodes.map((node) => node.id)).toEqual(
+      base.nodes.map((node) => node.id)
+    )
     expect(elk.edges).toEqual(base.edges)
   })
 })

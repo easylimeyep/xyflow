@@ -28,10 +28,10 @@ cd packages/flow && pnpm vitest run src/path/to/file.test.ts
 
 ## Monorepo Structure
 
-- **`apps/web`** — Next.js 16 app (App Router, Turbopack). Entry point renders the `Flow` component from `@workspace/flow`.
+- **`apps/web`** — Next.js 16 app (App Router, Turbopack). Entry point renders the `Flow` component from `@flow/flow`.
 - **`packages/flow`** — The core workflow editor. Exports `Flow` (wraps `WorkflowEditor` in `WorkflowStoreProvider`).
 - **`packages/store`** — Zustand utilities: history (undo/redo), context-based store creation.
-- **`packages/ui`** — 57 shadcn/ui components exported via `@workspace/ui/components/*` and `@workspace/ui/hooks/*`.
+- **`packages/ui`** — 57 shadcn/ui components exported via `@flow/ui/components/*` and `@flow/ui/hooks/*`.
 - **`packages/eslint-config`** / **`packages/typescript-config`** — Shared tooling configs.
 
 ## Architecture of `packages/flow`

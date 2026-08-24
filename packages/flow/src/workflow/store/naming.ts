@@ -27,15 +27,24 @@ function createUniqueIdentifier(
   return unique
 }
 
-export function createUniqueLabel(baseLabel: string, usedLabels: Set<string>): string {
-  return createUniqueIdentifier(baseLabel, usedLabels, { fallback: "Node", separator: " " })
+export function createUniqueLabel(
+  baseLabel: string,
+  usedLabels: Set<string>
+): string {
+  return createUniqueIdentifier(baseLabel, usedLabels, {
+    fallback: "Node",
+    separator: " ",
+  })
 }
 
 export function createUniqueJsIdentifier(
   baseName: string,
   usedIdentifiers: Set<string>
 ): string {
-  return createUniqueIdentifier(baseName, usedIdentifiers, { fallback: "myVar", separator: "" })
+  return createUniqueIdentifier(baseName, usedIdentifiers, {
+    fallback: "myVar",
+    separator: "",
+  })
 }
 
 export function deduplicateNodeLabels<T extends { data: { label: string } }>(

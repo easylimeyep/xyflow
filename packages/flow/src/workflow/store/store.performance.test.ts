@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest"
 
 import { createWorkflowNode } from "../node-registry/node-factory"
-import type { WorkflowEdge, WorkflowGraphState, WorkflowNode } from "../types/types"
+import type {
+  WorkflowEdge,
+  WorkflowGraphState,
+  WorkflowNode,
+} from "../types/types"
 import { createWorkflowStore } from "./store"
 
 function createRepresentativeGraph(nodeCount = 180): WorkflowGraphState {
@@ -24,7 +28,9 @@ function createRepresentativeGraph(nodeCount = 180): WorkflowGraphState {
 
     const previousNode = nodes[index - 1]
     if (!previousNode) {
-      throw new Error("expected previous node when building representative graph")
+      throw new Error(
+        "expected previous node when building representative graph"
+      )
     }
 
     edges.push({

@@ -22,7 +22,9 @@ function toExpressionDepsNode(
   }
 }
 
-function normalizeConfigForSignature(nodeData: WorkflowNodeData): Record<string, unknown> {
+function normalizeConfigForSignature(
+  nodeData: WorkflowNodeData
+): Record<string, unknown> {
   const config = nodeData.config
   return { ...config }
 }
@@ -39,19 +41,19 @@ function toExpressionDepsEdge(
   }
 }
 
-export function projectExpressionDeps(graph: WorkflowGraphState): ExpressionDepsGraph {
+export function projectExpressionDeps(
+  graph: WorkflowGraphState
+): ExpressionDepsGraph {
   const nodes = graph.nodes
     .map(toExpressionDepsNode)
     .sort((left, right) => left.id.localeCompare(right.id))
-  const edges = graph.edges
-    .map(toExpressionDepsEdge)
-    .sort((left, right) => {
-      const byId = left.id.localeCompare(right.id)
-      if (byId !== 0) return byId
-      const bySource = left.source.localeCompare(right.source)
-      if (bySource !== 0) return bySource
-      return left.target.localeCompare(right.target)
-    })
+  const edges = graph.edges.map(toExpressionDepsEdge).sort((left, right) => {
+    const byId = left.id.localeCompare(right.id)
+    if (byId !== 0) return byId
+    const bySource = left.source.localeCompare(right.source)
+    if (bySource !== 0) return bySource
+    return left.target.localeCompare(right.target)
+  })
 
   return { nodes, edges }
 }
@@ -64,17 +66,23 @@ function stableSerialize(value: unknown): string {
     return `[${value.map(stableSerialize).join(",")}]`
   }
   const record = value as Record<string, unknown>
-  const keys = Object.keys(record).sort((left, right) => left.localeCompare(right))
+  const keys = Object.keys(record).sort((left, right) =>
+    left.localeCompare(right)
+  )
   return `{${keys
     .map((key) => `${JSON.stringify(key)}:${stableSerialize(record[key])}`)
     .join(",")}}`
 }
 
-export function computeStructuralSignature(expressionDeps: ExpressionDepsGraph): string {
+export function computeStructuralSignature(
+  expressionDeps: ExpressionDepsGraph
+): string {
   return stableSerialize(expressionDeps)
 }
 
-export function buildExpressionSliceState(graph: WorkflowGraphState): Pick<
+export function buildExpressionSliceState(
+  graph: WorkflowGraphState
+): Pick<
   WorkflowStoreState,
   | "expressionDeps"
   | "expressionStructuralVersion"
@@ -82,7 +90,8 @@ export function buildExpressionSliceState(graph: WorkflowGraphState): Pick<
   | "expressionCatalogCache"
 > {
   const expressionDeps = projectExpressionDeps(graph)
-  const expressionStructuralSignature = computeStructuralSignature(expressionDeps)
+  const expressionStructuralSignature =
+    computeStructuralSignature(expressionDeps)
   const expressionCatalogCache = buildExpressionCatalogCache(graph)
   return {
     expressionDeps,
@@ -105,7 +114,8 @@ export function buildExpressionSlicePatch(
   >
 > {
   const expressionDeps = projectExpressionDeps(graph)
-  const expressionStructuralSignature = computeStructuralSignature(expressionDeps)
+  const expressionStructuralSignature =
+    computeStructuralSignature(expressionDeps)
   if (state.expressionStructuralSignature === expressionStructuralSignature) {
     return {}
   }

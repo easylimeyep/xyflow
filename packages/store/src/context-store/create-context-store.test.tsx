@@ -234,7 +234,7 @@ describe("createContextStore", () => {
   it("accepts middleware-wrapped state creators", () => {
     let middlewareCalls = 0
 
-    const withSpyMiddleware = <T extends object,>(
+    const withSpyMiddleware = <T extends object>(
       creator: StateCreator<T, [], []>
     ): StateCreator<T, [], []> => {
       return (set, get, api) => {

@@ -13,7 +13,7 @@ import {
   useWorkflowShallowStore,
   type WorkflowStoreState,
 } from "../../store"
-import { Button } from "@workspace/ui/components/button"
+import { Button } from "@flow/ui/components/button"
 
 interface OutputQuickAddAffordanceProps {
   nodeId: string

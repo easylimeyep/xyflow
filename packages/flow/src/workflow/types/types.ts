@@ -2,7 +2,7 @@ import type { Edge, Node, Viewport, XYPosition } from "@xyflow/react"
 import type { NodeKind } from "../node-registry/registry"
 import type { WorkflowVariableType } from "./variable-types"
 
-export type { ExpressionVariableOption } from "@workspace/expression-editor"
+export type { ExpressionVariableOption } from "@flow/expression-editor"
 export type { WorkflowVariableType } from "./variable-types"
 export { WORKFLOW_VARIABLE_TYPES } from "./variable-types"
 

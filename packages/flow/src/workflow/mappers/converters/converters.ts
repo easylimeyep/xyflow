@@ -21,16 +21,21 @@ export function internalToDomain(
     kind: node.data.kind,
     position: node.position,
     label: node.data.label,
-    config: normalizeNodeConfig(node.data.kind as NodeKind, toJsonConfig(node.data.config)),
+    config: normalizeNodeConfig(
+      node.data.kind as NodeKind,
+      toJsonConfig(node.data.config)
+    ),
   }))
 
-  const connections: DomainWorkflowConnectionDTO[] = graph.edges.map((edge) => ({
-    id: edge.id,
-    sourceNodeId: edge.source,
-    targetNodeId: edge.target,
-    sourceHandle: edge.sourceHandle ?? null,
-    targetHandle: edge.targetHandle ?? null,
-  }))
+  const connections: DomainWorkflowConnectionDTO[] = graph.edges.map(
+    (edge) => ({
+      id: edge.id,
+      sourceNodeId: edge.source,
+      targetNodeId: edge.target,
+      sourceHandle: edge.sourceHandle ?? null,
+      targetHandle: edge.targetHandle ?? null,
+    })
+  )
 
   return {
     id: workflowId,
@@ -44,17 +49,23 @@ export function internalToDomain(
 }
 
 export function domainToInternal(dto: DomainWorkflowDTO): WorkflowGraphState {
-  const nodes: WorkflowNode[] = dto.nodes.map((nodeDto: DomainWorkflowNodeDTO) => {
-    const baseNode = createWorkflowNode(nodeDto.kind as NodeKind, nodeDto.position, nodeDto.label)
-    baseNode.id = nodeDto.id
-    baseNode.data = {
-      kind: nodeDto.kind,
-      label: nodeDto.label,
-      config: normalizeNodeConfig(nodeDto.kind as NodeKind, nodeDto.config),
-    }
+  const nodes: WorkflowNode[] = dto.nodes.map(
+    (nodeDto: DomainWorkflowNodeDTO) => {
+      const baseNode = createWorkflowNode(
+        nodeDto.kind as NodeKind,
+        nodeDto.position,
+        nodeDto.label
+      )
+      baseNode.id = nodeDto.id
+      baseNode.data = {
+        kind: nodeDto.kind,
+        label: nodeDto.label,
+        config: normalizeNodeConfig(nodeDto.kind as NodeKind, nodeDto.config),
+      }
 
-    return baseNode
-  })
+      return baseNode
+    }
+  )
 
   const nodeById = new Map(nodes.map((node: WorkflowNode) => [node.id, node]))
   const edges: WorkflowEdge[] = []

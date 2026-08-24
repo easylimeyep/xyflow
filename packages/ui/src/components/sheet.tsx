@@ -12,8 +12,8 @@ import {
   type DialogTriggerProps as SheetTriggerPrimitiveProps,
 } from "react-aria-components"
 
-import { cn } from "@workspace/ui/lib/utils"
-import { Button } from "@workspace/ui/components/button"
+import { cn } from "@flow/ui/lib/utils"
+import { Button } from "@flow/ui/components/button"
 import { XIcon } from "lucide-react"
 
 function SheetTrigger({ ...props }: SheetTriggerPrimitiveProps) {
@@ -95,8 +95,7 @@ function Sheet({
               className="absolute top-4 right-4"
               size="icon-sm"
             >
-              <XIcon
-              />
+              <XIcon />
               <span className="sr-only">Close</span>
             </SheetClose>
           )}

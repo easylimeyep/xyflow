@@ -15,8 +15,8 @@
   "menuAccent": "subtle",
   "aliases": {
     "components": "@/components",
-    "utils": "@workspace/ui/lib/utils",
-    "ui": "@workspace/ui/components",
+    "utils": "@flow/ui/lib/utils",
+    "ui": "@flow/ui/components",
     "lib": "@/lib",
     "hooks": "@/hooks"
   },

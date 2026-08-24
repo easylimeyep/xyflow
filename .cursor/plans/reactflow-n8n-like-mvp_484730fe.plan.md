@@ -36,7 +36,7 @@ isProject: false
 
 ## Цели MVP
 
-- Реализовать визуальный editor workflow в `apps/web` с использованием `@workspace/flow`.
+- Реализовать визуальный editor workflow в `apps/web` с использованием `@flow/flow`.
 - Поддержать сценарии:
   - создание графа через drag&drop из палитры;
   - настройка ноды через панель параметров (включая кастомные input-поля);
@@ -55,7 +55,7 @@ isProject: false
 
 ## Текущее состояние кода
 
-- В `@workspace/flow` уже есть минимальный React Flow с `nodes/edges` и handlers.
+- В `@flow/flow` уже есть минимальный React Flow с `nodes/edges` и handlers.
 - Точка подключения в web-приложении уже настроена.
 
 Ключевые файлы:
@@ -96,7 +96,7 @@ flowchart LR
 
 ### 2) Слой состояния (store)
 
-- Использовать `@workspace/store` (zustand) для:
+- Использовать `@flow/store` (zustand) для:
   - текущего графа (`nodes`, `edges`, `viewport`),
   - выделения (`selectedNodeId`),
   - истории изменений (undo/redo stack),

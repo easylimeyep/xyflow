@@ -16,11 +16,11 @@ export const selectCanUndo = (state: WorkflowStoreState): boolean =>
 export const selectCanRedo = (state: WorkflowStoreState): boolean =>
   state.history.future.length > 0
 
-export const selectLastError = (state: WorkflowStoreState) =>
-  state.lastError
+export const selectLastError = (state: WorkflowStoreState) => state.lastError
 
-export const selectLastErrorMessage = (state: WorkflowStoreState): string | null =>
-  state.lastError?.message ?? null
+export const selectLastErrorMessage = (
+  state: WorkflowStoreState
+): string | null => state.lastError?.message ?? null
 
 export const selectVisibleGlobalValidationMessages = (
   state: WorkflowStoreState
@@ -46,7 +46,8 @@ export const selectSelectedNodeIds = (state: WorkflowStoreState): string[] =>
 
 export const selectSelectedSingleNodeId = (
   state: WorkflowStoreState
-): string | null => (state.selectedNodeIds.length === 1 ? state.selectedNodeIds[0] ?? null : null)
+): string | null =>
+  state.selectedNodeIds.length === 1 ? (state.selectedNodeIds[0] ?? null) : null
 
 export const selectQuickAddPending = (state: WorkflowStoreState) =>
   state.quickAddPending
@@ -62,7 +63,10 @@ export const selectSelectedNode = (
 ): WorkflowNode | null => {
   const selectedNodeId = selectSelectedSingleNodeId(state)
   if (!selectedNodeId) return null
-  return state.history.present.nodes.find((node) => node.id === selectedNodeId) ?? null
+  return (
+    state.history.present.nodes.find((node) => node.id === selectedNodeId) ??
+    null
+  )
 }
 
 export const selectVisibleValidationMessagesForNode = (
@@ -77,7 +81,6 @@ export const selectNodeHasVisibleValidation = (
   state: WorkflowStoreState,
   nodeId: string
 ): boolean => selectVisibleValidationMessagesForNode(state, nodeId).length > 0
-
 
 export const selectExpressionVariablesForNode = (
   state: WorkflowStoreState,

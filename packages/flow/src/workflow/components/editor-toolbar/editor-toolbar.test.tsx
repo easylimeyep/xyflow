@@ -73,9 +73,12 @@ describe("EditorToolbar", () => {
     )
 
     await user.click(screen.getAllByRole("button", { name: "Import JSON" })[0]!)
-    fireEvent.change(screen.getByPlaceholderText("Paste domain workflow JSON"), {
-      target: { value: '{"nodes":[],"edges":[]}' },
-    })
+    fireEvent.change(
+      screen.getByPlaceholderText("Paste domain workflow JSON"),
+      {
+        target: { value: '{"nodes":[],"edges":[]}' },
+      }
+    )
     await user.click(screen.getByRole("button", { name: "Apply Import" }))
     expect(screen.queryByText("Workflow imported.")).not.toBeNull()
 

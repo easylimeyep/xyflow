@@ -14,11 +14,11 @@
   "menuColor": "default",
   "menuAccent": "subtle",
   "aliases": {
-    "components": "@workspace/ui/components",
-    "utils": "@workspace/ui/lib/utils",
-    "ui": "@workspace/ui/components",
-    "lib": "@workspace/ui/lib",
-    "hooks": "@workspace/ui/hooks"
+    "components": "@flow/ui/components",
+    "utils": "@flow/ui/lib/utils",
+    "ui": "@flow/ui/components",
+    "lib": "@flow/ui/lib",
+    "hooks": "@flow/ui/hooks"
   },
   "registries": {
     "@diceui": "https://diceui.com/r/{name}.json"

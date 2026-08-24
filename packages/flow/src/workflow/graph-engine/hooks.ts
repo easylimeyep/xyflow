@@ -36,8 +36,10 @@ function maybeRefactorExpressions(
   context: ConfigHookContext
 ): WorkflowNode[] {
   const definition = getNodeDefinition(context.targetNode.data.kind as NodeKind)
-  const oldName = typeof context.previousValue === "string" ? context.previousValue : null
-  const newName = typeof context.update.value === "string" ? context.update.value : null
+  const oldName =
+    typeof context.previousValue === "string" ? context.previousValue : null
+  const newName =
+    typeof context.update.value === "string" ? context.update.value : null
   const isRenameFieldUpdate =
     definition.renameConfigKey === context.update.key &&
     oldName !== null &&

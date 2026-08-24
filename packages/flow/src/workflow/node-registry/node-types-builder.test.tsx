@@ -16,9 +16,12 @@ vi.mock("@xyflow/react", () => ({
   },
 }))
 
-vi.mock("../nodes/output-quick-add-affordance/output-quick-add-affordance", () => ({
-  OutputQuickAddAffordance: () => null,
-}))
+vi.mock(
+  "../nodes/output-quick-add-affordance/output-quick-add-affordance",
+  () => ({
+    OutputQuickAddAffordance: () => null,
+  })
+)
 
 const testDefinition = {
   kind: "testNode",

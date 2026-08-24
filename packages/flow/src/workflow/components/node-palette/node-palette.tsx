@@ -6,8 +6,8 @@ import {
   ActionBar,
   ActionBarSelection,
   ActionBarSeparator,
-} from "@workspace/ui/components/action-bar"
-import { Badge } from "@workspace/ui/components/badge"
+} from "@flow/ui/components/action-bar"
+import { Badge } from "@flow/ui/components/badge"
 import { WORKFLOW_NODE_KIND_MIME } from "../../dnd"
 import {
   nodeRegistry,

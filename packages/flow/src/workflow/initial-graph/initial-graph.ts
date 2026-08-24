@@ -52,7 +52,9 @@ export interface InitialGraphInput {
   viewport?: InitialGraphViewportInput
 }
 
-export function createInitialGraph(input: InitialGraphInput): WorkflowGraphState {
+export function createInitialGraph(
+  input: InitialGraphInput
+): WorkflowGraphState {
   return normalizeInitialGraphInput(input)
 }
 
@@ -65,7 +67,9 @@ export async function createInitialGraphElk(
   return computeWorkflowAutoLayout(graph)
 }
 
-function normalizeInitialGraphInput(input: InitialGraphInput): WorkflowGraphState {
+function normalizeInitialGraphInput(
+  input: InitialGraphInput
+): WorkflowGraphState {
   const nodes = normalizeNodes(input.nodes)
   const edges = normalizeEdges(nodes, input.edges ?? [])
 
@@ -77,7 +81,9 @@ function normalizeInitialGraphInput(input: InitialGraphInput): WorkflowGraphStat
   }
 }
 
-function normalizeNodes(inputs: readonly InitialGraphNodeInput[]): WorkflowNode[] {
+function normalizeNodes(
+  inputs: readonly InitialGraphNodeInput[]
+): WorkflowNode[] {
   const seenIds = new Set<string>()
 
   return inputs.map((input) => {
@@ -161,10 +167,15 @@ function createInitialGraphEdgeId(
 }
 
 function describeEdge(input: InitialGraphEdgeInput, index: number): string {
-  return input.id ?? `${input.source}:${input.sourceHandle ?? "default"}->${input.target}:${input.targetHandle ?? "default"} (#${index + 1})`
+  return (
+    input.id ??
+    `${input.source}:${input.sourceHandle ?? "default"}->${input.target}:${input.targetHandle ?? "default"} (#${index + 1})`
+  )
 }
 
-function normalizeViewport(input: InitialGraphViewportInput | undefined): Viewport {
+function normalizeViewport(
+  input: InitialGraphViewportInput | undefined
+): Viewport {
   return {
     ...DEFAULT_VIEWPORT,
     ...input,

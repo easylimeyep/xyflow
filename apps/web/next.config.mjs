@@ -1,9 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   transpilePackages: [
-    "@workspace/ui",
-    "@workspace/flow",
-    "@workspace/expression-editor",
+    "@flow/ui",
+    "@flow/flow",
+    "@flow/expression-editor",
   ],
 }
 

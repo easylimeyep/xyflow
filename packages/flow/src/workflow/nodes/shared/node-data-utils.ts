@@ -27,5 +27,8 @@ export function asRecord(value: unknown): Record<string, unknown> {
 }
 
 export function isInsideExpressionPopover(target: EventTarget | null): boolean {
-  return target instanceof HTMLElement && Boolean(target.closest('[data-slot="popover-content"]'))
+  return (
+    target instanceof HTMLElement &&
+    Boolean(target.closest('[data-slot="popover-content"]'))
+  )
 }

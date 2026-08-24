@@ -13,8 +13,8 @@ import {
   WorkflowEditor,
   type WorkflowEditorAnchorElements,
   type WorkflowTourAnchor,
-} from "@workspace/flow"
-import { Button } from "@workspace/ui/components/button"
+} from "@flow/flow"
+import { Button } from "@flow/ui/components/button"
 
 import { ExamplePreview } from "./example-preview"
 
@@ -28,7 +28,7 @@ import {
   WorkflowEditor,
   type WorkflowEditorAnchorElements,
   type WorkflowTourAnchor,
-} from "@workspace/flow"
+} from "@flow/flow"
 
 type RcTourStep = NonNullable<TourProps["steps"]>[number]
 

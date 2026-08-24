@@ -14,7 +14,10 @@ const variables: ExpressionVariableOption[] = [
 
 describe("template expression highlighting", () => {
   it("marks delimiters as muted and known variable body as accent", () => {
-    const ranges = buildTemplateHighlightRanges("before {{ myVar }} after", variables)
+    const ranges = buildTemplateHighlightRanges(
+      "before {{ myVar }} after",
+      variables
+    )
 
     expect(ranges).toEqual([
       { from: 7, to: 9, kind: "delimiter" },

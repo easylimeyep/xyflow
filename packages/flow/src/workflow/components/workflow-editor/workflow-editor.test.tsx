@@ -132,7 +132,10 @@ vi.mock("../workflow-canvas", () => ({
         <button type="button" onClick={onPaneClick}>
           canvas-pane-click
         </button>
-        <button type="button" onClick={() => onSelectNodes([nodes[0]?.id ?? ""])}>
+        <button
+          type="button"
+          onClick={() => onSelectNodes([nodes[0]?.id ?? ""])}
+        >
           canvas-select-first-node
         </button>
         <button
@@ -221,7 +224,9 @@ function LastErrorControls() {
 function SelectedNodePositionProbe() {
   const selectedNode = WorkflowEditor.use.store((state) => {
     const selectedNodeId = state.selectedNodeIds[0]
-    return state.history.present.nodes.find((node) => node.id === selectedNodeId)
+    return state.history.present.nodes.find(
+      (node) => node.id === selectedNodeId
+    )
   })
 
   return (
@@ -350,9 +355,13 @@ describe("WorkflowEditor wiring", () => {
     const user = userEvent.setup()
     render(<WorkflowEditor />)
 
-    const beforeCount = Number(screen.getByTestId("canvas-node-count").textContent)
+    const beforeCount = Number(
+      screen.getByTestId("canvas-node-count").textContent
+    )
     await user.click(screen.getByRole("button", { name: "palette-add-node" }))
-    const afterCount = Number(screen.getByTestId("canvas-node-count").textContent)
+    const afterCount = Number(
+      screen.getByTestId("canvas-node-count").textContent
+    )
 
     expect(afterCount).toBe(beforeCount + 1)
     expect(screen.getByTestId("toolbar-can-undo").textContent).toBe("true")
@@ -362,15 +371,21 @@ describe("WorkflowEditor wiring", () => {
     const user = userEvent.setup()
     render(<WorkflowEditor />)
 
-    const beforeCount = Number(screen.getByTestId("canvas-node-count").textContent)
+    const beforeCount = Number(
+      screen.getByTestId("canvas-node-count").textContent
+    )
     await user.click(screen.getByRole("button", { name: "palette-add-node" }))
-    await user.click(screen.getByRole("button", { name: "canvas-measure-added-node" }))
+    await user.click(
+      screen.getByRole("button", { name: "canvas-measure-added-node" })
+    )
     expect(Number(screen.getByTestId("canvas-node-count").textContent)).toBe(
       beforeCount + 1
     )
 
     await user.click(screen.getByRole("button", { name: "toolbar-undo" }))
-    expect(Number(screen.getByTestId("canvas-node-count").textContent)).toBe(beforeCount)
+    expect(Number(screen.getByTestId("canvas-node-count").textContent)).toBe(
+      beforeCount
+    )
   })
 
   it("updates toolbar canUndo/canRedo across undo-redo history steps", async () => {
@@ -400,9 +415,15 @@ describe("WorkflowEditor wiring", () => {
     const baselinePaletteRenders = paletteRenderSpy.mock.calls.length
     const baselineCanvasRenders = canvasRenderSpy.mock.calls.length
 
-    await user.click(screen.getByRole("button", { name: "canvas-update-viewport" }))
-    await user.click(screen.getByRole("button", { name: "canvas-update-viewport" }))
-    await user.click(screen.getByRole("button", { name: "canvas-update-viewport" }))
+    await user.click(
+      screen.getByRole("button", { name: "canvas-update-viewport" })
+    )
+    await user.click(
+      screen.getByRole("button", { name: "canvas-update-viewport" })
+    )
+    await user.click(
+      screen.getByRole("button", { name: "canvas-update-viewport" })
+    )
 
     expect(canvasRenderSpy.mock.calls.length).toBe(baselineCanvasRenders)
     expect(paletteRenderSpy.mock.calls.length).toBe(baselinePaletteRenders)
@@ -416,7 +437,9 @@ describe("WorkflowEditor wiring", () => {
     const baselineCanvasRenders = canvasRenderSpy.mock.calls.length
 
     for (let index = 0; index < 25; index += 1) {
-      await user.click(screen.getByRole("button", { name: "canvas-update-pointer" }))
+      await user.click(
+        screen.getByRole("button", { name: "canvas-update-pointer" })
+      )
     }
 
     expect(paletteRenderSpy.mock.calls.length).toBe(baselinePaletteRenders)
@@ -437,9 +460,9 @@ describe("WorkflowEditor wiring", () => {
         unlimited: false,
       },
     }
-    const readText = vi.fn().mockResolvedValue(
-      exportSelectionClipboardJson([payloadNode], [])
-    )
+    const readText = vi
+      .fn()
+      .mockResolvedValue(exportSelectionClipboardJson([payloadNode], []))
     Object.defineProperty(window.navigator, "clipboard", {
       configurable: true,
       value: {
@@ -452,7 +475,9 @@ describe("WorkflowEditor wiring", () => {
     const baselinePaletteRenders = paletteRenderSpy.mock.calls.length
     const baselineCanvasRenders = canvasRenderSpy.mock.calls.length
 
-    await user.click(screen.getByRole("button", { name: "canvas-update-pointer" }))
+    await user.click(
+      screen.getByRole("button", { name: "canvas-update-pointer" })
+    )
     expect(paletteRenderSpy.mock.calls.length).toBe(baselinePaletteRenders)
     expect(canvasRenderSpy.mock.calls.length).toBe(baselineCanvasRenders)
 
@@ -468,16 +493,28 @@ describe("WorkflowEditor wiring", () => {
     const user = userEvent.setup()
     renderCustomEditor(<QuickAddControls />)
 
-    expect(screen.getByTestId("palette-quick-add-active").textContent).toBe("false")
-    await user.click(screen.getByRole("button", { name: "test-start-quick-add" }))
-    expect(screen.getByTestId("palette-quick-add-active").textContent).toBe("true")
+    expect(screen.getByTestId("palette-quick-add-active").textContent).toBe(
+      "false"
+    )
+    await user.click(
+      screen.getByRole("button", { name: "test-start-quick-add" })
+    )
+    expect(screen.getByTestId("palette-quick-add-active").textContent).toBe(
+      "true"
+    )
 
-    const beforeCount = Number(screen.getByTestId("canvas-node-count").textContent)
+    const beforeCount = Number(
+      screen.getByTestId("canvas-node-count").textContent
+    )
     await user.click(screen.getByRole("button", { name: "palette-add-node" }))
-    const afterCount = Number(screen.getByTestId("canvas-node-count").textContent)
+    const afterCount = Number(
+      screen.getByTestId("canvas-node-count").textContent
+    )
 
     expect(afterCount).toBe(beforeCount + 1)
-    expect(screen.getByTestId("palette-quick-add-active").textContent).toBe("false")
+    expect(screen.getByTestId("palette-quick-add-active").textContent).toBe(
+      "false"
+    )
   })
 
   it("re-opens hidden palette when quick add starts", async () => {
@@ -488,23 +525,37 @@ describe("WorkflowEditor wiring", () => {
     await user.click(screen.getByRole("button", { name: "Hide node palette" }))
     expect(screen.getByTestId("palette-open").textContent).toBe("false")
 
-    await user.click(screen.getByRole("button", { name: "test-start-quick-add" }))
+    await user.click(
+      screen.getByRole("button", { name: "test-start-quick-add" })
+    )
     expect(screen.getByTestId("palette-open").textContent).toBe("true")
-    expect(screen.getByTestId("palette-quick-add-active").textContent).toBe("true")
+    expect(screen.getByTestId("palette-quick-add-active").textContent).toBe(
+      "true"
+    )
   })
 
   it("cancels quick add through escape without changing canvas graph", async () => {
     const user = userEvent.setup()
     renderCustomEditor(<QuickAddControls />)
 
-    const beforeCount = Number(screen.getByTestId("canvas-node-count").textContent)
-    await user.click(screen.getByRole("button", { name: "test-start-quick-add" }))
-    expect(screen.getByTestId("palette-quick-add-active").textContent).toBe("true")
+    const beforeCount = Number(
+      screen.getByTestId("canvas-node-count").textContent
+    )
+    await user.click(
+      screen.getByRole("button", { name: "test-start-quick-add" })
+    )
+    expect(screen.getByTestId("palette-quick-add-active").textContent).toBe(
+      "true"
+    )
 
     await user.keyboard("{Escape}")
 
-    expect(screen.getByTestId("palette-quick-add-active").textContent).toBe("false")
-    expect(Number(screen.getByTestId("canvas-node-count").textContent)).toBe(beforeCount)
+    expect(screen.getByTestId("palette-quick-add-active").textContent).toBe(
+      "false"
+    )
+    expect(Number(screen.getByTestId("canvas-node-count").textContent)).toBe(
+      beforeCount
+    )
   })
 
   it("updates the config panel when a node is selected", async () => {
@@ -515,7 +566,9 @@ describe("WorkflowEditor wiring", () => {
       screen.getByText("Select a node on the canvas to inspect it here.")
     ).toBeTruthy()
 
-    await user.click(screen.getByRole("button", { name: "canvas-select-first-node" }))
+    await user.click(
+      screen.getByRole("button", { name: "canvas-select-first-node" })
+    )
 
     expect(screen.getByLabelText("Label")).toBeTruthy()
     expect(screen.getByLabelText("Config preview")).toBeTruthy()
@@ -524,9 +577,13 @@ describe("WorkflowEditor wiring", () => {
   it("exposes the curated hooks namespace through WorkflowEditor.use", () => {
     renderCustomEditor(<HookProbe />)
 
-    expect(screen.getByTestId("hook-graph-node-count").textContent).not.toBe("0")
+    expect(screen.getByTestId("hook-graph-node-count").textContent).not.toBe(
+      "0"
+    )
     expect(screen.getByTestId("hook-selection-count").textContent).toBe("0")
-    expect(screen.getByTestId("hook-actions-has-export").textContent).toBe("true")
+    expect(screen.getByTestId("hook-actions-has-export").textContent).toBe(
+      "true"
+    )
   })
 
   it("renders global validation alert from external validation prop", () => {
@@ -562,7 +619,9 @@ describe("WorkflowEditor wiring", () => {
       </WorkflowEditor>
     )
 
-    await user.click(screen.getByRole("button", { name: "test-set-last-error" }))
+    await user.click(
+      screen.getByRole("button", { name: "test-set-last-error" })
+    )
 
     expect(screen.getByTestId("workflow-validation-alert")).toBeTruthy()
     expect(screen.getByText("Server validation failed.")).toBeTruthy()

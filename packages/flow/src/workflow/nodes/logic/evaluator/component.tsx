@@ -1,30 +1,27 @@
 "use client"
 
 import type { NodeProps } from "@xyflow/react"
-import { ArrayInputPopover } from "@workspace/ui/components/array-input-popover"
-import { Badge } from "@workspace/ui/components/badge"
-import { Button } from "@workspace/ui/components/button"
-import { Checkbox } from "@workspace/ui/components/checkbox"
-import { Input } from "@workspace/ui/components/input"
-import { Label } from "@workspace/ui/components/label"
+import { ArrayInputPopover } from "@flow/ui/components/array-input-popover"
+import { Badge } from "@flow/ui/components/badge"
+import { Button } from "@flow/ui/components/button"
+import { Checkbox } from "@flow/ui/components/checkbox"
+import { Input } from "@flow/ui/components/input"
+import { Label } from "@flow/ui/components/label"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@workspace/ui/components/select"
-import {
-  Tooltip,
-  TooltipTrigger,
-} from "@workspace/ui/components/tooltip"
+} from "@flow/ui/components/select"
+import { Tooltip, TooltipTrigger } from "@flow/ui/components/tooltip"
 import {
   Sortable,
   SortableContent,
   SortableItem,
   SortableItemHandle,
   SortableOverlay,
-} from "@workspace/ui/components/sortable"
+} from "@flow/ui/components/sortable"
 import { AlertTriangle, GripVertical, Trash2 } from "lucide-react"
 import { useCallback, useEffect, useMemo, useState } from "react"
 

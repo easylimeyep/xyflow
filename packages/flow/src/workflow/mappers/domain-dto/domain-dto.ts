@@ -9,7 +9,9 @@ import { asRecord, isNumber, isString, isViewport } from "../utils/utils"
 
 function toNodeDTO(
   value: unknown
-): { success: true; value: DomainWorkflowNodeDTO } | { success: false; error: string } {
+):
+  | { success: true; value: DomainWorkflowNodeDTO }
+  | { success: false; error: string } {
   const record = asRecord(value)
   if (!record) {
     return { success: false, error: "Workflow node must be an object." }
@@ -24,7 +26,10 @@ function toNodeDTO(
     !isNumber(position.y) ||
     !isString(record.label)
   ) {
-    return { success: false, error: "Workflow node must include valid id, kind, position, and label." }
+    return {
+      success: false,
+      error: "Workflow node must include valid id, kind, position, and label.",
+    }
   }
 
   const configResult = decodeNodeConfig(record.kind, record.config)
@@ -76,7 +81,9 @@ function toConnectionDTO(value: unknown): DomainWorkflowConnectionDTO | null {
 
 export function toDomainDTO(
   value: unknown
-): { success: true; value: DomainWorkflowDTO } | { success: false; error: string } {
+):
+  | { success: true; value: DomainWorkflowDTO }
+  | { success: false; error: string } {
   const record = asRecord(value)
   if (!record) {
     return { success: false, error: "JSON root must be an object." }
@@ -105,7 +112,10 @@ export function toDomainDTO(
     return { success: false, error: nodeFailure.error }
   }
   if (connections.some((connection) => connection === null)) {
-    return { success: false, error: "Workflow JSON must match domain workflow schema." }
+    return {
+      success: false,
+      error: "Workflow JSON must match domain workflow schema.",
+    }
   }
 
   return {
@@ -116,10 +126,14 @@ export function toDomainDTO(
       version: record.version,
       metadata: record.metadata as DomainWorkflowDTO["metadata"],
       nodes: nodes
-        .filter((node): node is { success: true; value: DomainWorkflowNodeDTO } => node.success)
+        .filter(
+          (node): node is { success: true; value: DomainWorkflowNodeDTO } =>
+            node.success
+        )
         .map((node) => node.value),
       connections: connections.filter(
-        (connection): connection is DomainWorkflowConnectionDTO => connection !== null
+        (connection): connection is DomainWorkflowConnectionDTO =>
+          connection !== null
       ),
       viewport,
     },

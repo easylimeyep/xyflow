@@ -53,7 +53,8 @@ export function resolveNodeLabelUpdate(
     return { nextLabel: null, error: null }
   }
 
-  const normalizedLabel = nextLabel.trim() || targetNode.data.label.trim() || "Node"
+  const normalizedLabel =
+    nextLabel.trim() || targetNode.data.label.trim() || "Node"
   const kind = targetNode.data.kind as NodeKind
 
   if (isVariableLabelKind(kind) && !isValidJsIdentifier(normalizedLabel)) {

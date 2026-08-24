@@ -21,9 +21,7 @@ vi.mock("@xyflow/react", async () => {
       id: string
       path: string
       style?: CSSProperties
-    }) => (
-      <path data-testid={`base-edge-${id}`} d={path} style={style} />
-    ),
+    }) => <path data-testid={`base-edge-${id}`} d={path} style={style} />,
     EdgeLabelRenderer: ({ children }: { children?: ReactNode }) => (
       <>{children}</>
     ),

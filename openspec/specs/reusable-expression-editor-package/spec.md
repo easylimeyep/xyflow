@@ -31,7 +31,7 @@ The reusable expression editor SHALL accept prepared variable options from its c
 
 #### Scenario: Workflow variable discovery remains outside editor package
 
-- **WHEN** `@workspace/flow` determines variables available to a selected node
+- **WHEN** `@flow/flow` determines variables available to a selected node
 - **THEN** it SHALL compute that catalog in flow code and pass the result into the reusable editor
 
 ### Requirement: Expression editor exposes commit-oriented API

@@ -1,10 +1,10 @@
 import { Geist, Geist_Mono, Inter } from "next/font/google"
 
-import "@workspace/ui/globals.css"
-import "@workspace/expression-editor/style.css"
-import "@workspace/flow/style.css"
+import "@flow/ui/globals.css"
+import "@flow/expression-editor/style.css"
+import "@flow/flow/style.css"
 import { ThemeProvider } from "@/components/theme-provider"
-import { cn } from "@workspace/ui/lib/utils"
+import { cn } from "@flow/ui/lib/utils"
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" })
 

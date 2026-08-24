@@ -1,4 +1,4 @@
-import { createHistoryState } from "@workspace/store"
+import { createHistoryState } from "@flow/store"
 import { addEdge, type XYPosition } from "@xyflow/react"
 
 import { refactorPlainVariableReferencesInGraph } from "../graph-refactors"
@@ -10,13 +10,16 @@ import {
   parseDomainGraphJson,
   parseSelectionClipboardJson,
 } from "../../mappers"
-import {
-  createWorkflowNode,
-} from "../../node-registry/node-factory"
+import { createWorkflowNode } from "../../node-registry/node-factory"
 import { normalizeNodeConfig } from "../../node-registry/node-config-normalization"
 import type { NodeKind } from "../../node-registry/registry"
 import { createWorkflowError } from "../../types/errors"
-import type { DomainWorkflowConnectionDTO, DomainWorkflowNodeDTO, WorkflowEdge, WorkflowNode } from "../../types/types"
+import type {
+  DomainWorkflowConnectionDTO,
+  DomainWorkflowNodeDTO,
+  WorkflowEdge,
+  WorkflowNode,
+} from "../../types/types"
 import {
   asDomainConnectionDTO,
   asDomainNodeDTO,
@@ -48,7 +51,8 @@ export const createIoSlice: WorkflowSliceCreator = (set, get) => ({
     const selectedConnections = currentGraph.edges
       .filter(
         (edge) =>
-          selectedNodeIdSet.has(edge.source) && selectedNodeIdSet.has(edge.target)
+          selectedNodeIdSet.has(edge.source) &&
+          selectedNodeIdSet.has(edge.target)
       )
       .map(asDomainConnectionDTO)
     const payload = exportSelectionClipboardJson(
@@ -57,7 +61,12 @@ export const createIoSlice: WorkflowSliceCreator = (set, get) => ({
     )
     const copied = await writeTextToClipboard(payload)
     if (!copied) {
-      set({ lastError: createWorkflowError("CLIPBOARD_WRITE_FAILED", "Failed to copy selected nodes.") })
+      set({
+        lastError: createWorkflowError(
+          "CLIPBOARD_WRITE_FAILED",
+          "Failed to copy selected nodes."
+        ),
+      })
       return false
     }
 
@@ -67,18 +76,30 @@ export const createIoSlice: WorkflowSliceCreator = (set, get) => ({
   pasteFromClipboard: async (pasteAnchor = null) => {
     const clipboardText = await readTextFromClipboard()
     if (!clipboardText) {
-      set({ lastError: createWorkflowError("CLIPBOARD_EMPTY", "Clipboard is empty or unavailable.") })
+      set({
+        lastError: createWorkflowError(
+          "CLIPBOARD_EMPTY",
+          "Clipboard is empty or unavailable."
+        ),
+      })
       return false
     }
     const parsed = parseSelectionClipboardJson(clipboardText)
     if (!parsed.success || !parsed.value) {
-      set({ lastError: createWorkflowError("IMPORT_INVALID_SCHEMA", parsed.error ?? "Clipboard JSON is not a workflow selection payload.") })
+      set({
+        lastError: createWorkflowError(
+          "IMPORT_INVALID_SCHEMA",
+          parsed.error ?? "Clipboard JSON is not a workflow selection payload."
+        ),
+      })
       return false
     }
 
     const currentGraph = get().history.present
     const anchor = pasteAnchor ?? getFallbackPasteAnchor(currentGraph.viewport)
-    const usedLabels = new Set(currentGraph.nodes.map((n) => n.data.label.trim()).filter(Boolean))
+    const usedLabels = new Set(
+      currentGraph.nodes.map((n) => n.data.label.trim()).filter(Boolean)
+    )
 
     const { nodes: nextNodesWithRefactors, nodeIdMap } = buildPastedNodes(
       parsed.value.nodes,
@@ -104,7 +125,10 @@ export const createIoSlice: WorkflowSliceCreator = (set, get) => ({
         ...state.history,
         present: {
           ...state.history.present,
-          nodes: projectSelectionToNodes(state.history.present.nodes, pastedNodeIds),
+          nodes: projectSelectionToNodes(
+            state.history.present.nodes,
+            pastedNodeIds
+          ),
         },
       },
       lastError: null,
@@ -117,7 +141,10 @@ export const createIoSlice: WorkflowSliceCreator = (set, get) => ({
     const parsed = parseDomainGraphJson(rawJson)
     if (!parsed.success || !parsed.value) {
       set({
-        lastError: createWorkflowError("IMPORT_INVALID_SCHEMA", parsed.error ?? "Import failed due to invalid schema."),
+        lastError: createWorkflowError(
+          "IMPORT_INVALID_SCHEMA",
+          parsed.error ?? "Import failed due to invalid schema."
+        ),
       })
       return false
     }
@@ -138,7 +165,9 @@ export const createIoSlice: WorkflowSliceCreator = (set, get) => ({
     const { nodes: nodesWithUniqueLabels, renames: labelRenames } =
       deduplicateNodeLabels(importedGraph.nodes, new Set<string>())
 
-    const kindByOldLabel = new Map(importedGraph.nodes.map((n) => [n.data.label, n.data.kind]))
+    const kindByOldLabel = new Map(
+      importedGraph.nodes.map((n) => [n.data.label, n.data.kind])
+    )
     let normalizedNodes = nodesWithUniqueLabels
     labelRenames.forEach((rename) => {
       const kind = kindByOldLabel.get(rename.oldLabel) ?? ""
@@ -200,7 +229,9 @@ function buildPastedNodes(
     return nextNode
   })
 
-  const kindByOldLabel = new Map(createdNodes.map((n) => [n.data.label, n.data.kind]))
+  const kindByOldLabel = new Map(
+    createdNodes.map((n) => [n.data.label, n.data.kind])
+  )
   const { nodes: nodesWithUniqueLabels, renames: labelRenames } =
     deduplicateNodeLabels(createdNodes, existingLabels)
 
@@ -208,7 +239,11 @@ function buildPastedNodes(
   labelRenames.forEach((rename) => {
     const kind = kindByOldLabel.get(rename.oldLabel) ?? ""
     if (VARIABLE_LABEL_KINDS.has(kind)) {
-      nodes = refactorPlainVariableReferencesInGraph(nodes, rename.oldLabel, rename.newLabel)
+      nodes = refactorPlainVariableReferencesInGraph(
+        nodes,
+        rename.oldLabel,
+        rename.newLabel
+      )
     }
   })
 
@@ -235,7 +270,10 @@ function buildPastedEdges(
         target,
         sourceHandle: connection.sourceHandle ?? null,
         targetHandle: connection.targetHandle ?? null,
-        data: { sourceKind: sourceNode.data.kind, targetKind: targetNode.data.kind },
+        data: {
+          sourceKind: sourceNode.data.kind,
+          targetKind: targetNode.data.kind,
+        },
       },
       nextEdges
     ) as WorkflowEdge[]

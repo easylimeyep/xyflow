@@ -8,7 +8,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@workspace/ui/components/select"
+} from "@flow/ui/components/select"
 
 import { resultNodeStyles } from "../../../../styles/components/nodes"
 import {

@@ -8,7 +8,9 @@ export const createIntentSlice: WorkflowSliceCreator = (set, get) => ({
   setLastError: (message) => set({ lastError: message }),
   startQuickAddFromOutput: (sourceNodeId, sourceHandle = null) => {
     const currentGraph = get().history.present
-    const sourceNode = currentGraph.nodes.find((node) => node.id === sourceNodeId)
+    const sourceNode = currentGraph.nodes.find(
+      (node) => node.id === sourceNodeId
+    )
     if (!sourceNode) return
     const normalizedHandle = sourceHandle ?? null
     if (

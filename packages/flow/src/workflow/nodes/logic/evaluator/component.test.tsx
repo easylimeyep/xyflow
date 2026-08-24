@@ -74,7 +74,7 @@ vi.mock("@xyflow/react", () => ({
   },
 }))
 
-vi.mock("@workspace/ui/components/sortable", () => ({
+vi.mock("@flow/ui/components/sortable", () => ({
   Sortable: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
   SortableContent: ({ children }: { children?: ReactNode }) => (
     <div>{children}</div>

@@ -56,7 +56,9 @@ export function useNodeChangeRouter({
 
         if (!nextSelectedNodeIdsSet) {
           nextSelectedNodeIdsSet = new Set(
-            nodesRef.current.filter((node) => Boolean(node.selected)).map((node) => node.id)
+            nodesRef.current
+              .filter((node) => Boolean(node.selected))
+              .map((node) => node.id)
           )
         }
 

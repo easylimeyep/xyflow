@@ -12,8 +12,8 @@ import {
   type ModalOverlayProps as ModalOverlayPrimitiveProps,
 } from "react-aria-components"
 
-import { cn } from "@workspace/ui/lib/utils"
-import { Button } from "@workspace/ui/components/button"
+import { cn } from "@flow/ui/lib/utils"
+import { Button } from "@flow/ui/components/button"
 import { XIcon } from "lucide-react"
 
 function DialogTrigger({ ...props }: DialogTriggerPrimitiveProps) {
@@ -92,8 +92,7 @@ function Dialog({
               className="absolute top-2 right-2"
               size="icon-sm"
             >
-              <XIcon
-              />
+              <XIcon />
               <span className="sr-only">Close</span>
             </DialogClose>
           )}

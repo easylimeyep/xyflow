@@ -1,10 +1,10 @@
 /*
  * Storybook Tailwind entry.
  *
- * Re-exports the shared design system styles from @workspace/ui and registers
+ * Re-exports the shared design system styles from @flow/ui and registers
  * the Storybook `stories/` directory as an additional Tailwind content source so
  * utility classes used only by the ported examples are generated.
  */
-@import "@workspace/ui/globals.css";
+@import "@flow/ui/globals.css";
 
 @source "../stories";

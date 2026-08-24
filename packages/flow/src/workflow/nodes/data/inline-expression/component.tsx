@@ -1,8 +1,8 @@
 "use client"
 
 import type { NodeProps } from "@xyflow/react"
-import { Checkbox } from "@workspace/ui/components/checkbox"
-import { Label } from "@workspace/ui/components/label"
+import { Checkbox } from "@flow/ui/components/checkbox"
+import { Label } from "@flow/ui/components/label"
 
 import { inlineExpressionNodeStyles } from "../../../../styles/components/nodes"
 import { NodeShell } from "../../node-shell/node-shell"

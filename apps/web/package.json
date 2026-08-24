@@ -16,10 +16,10 @@
   },
   "dependencies": {
     "@rc-component/tour": "^2.4.0",
-    "@workspace/expression-editor": "workspace:*",
-    "@workspace/flow": "workspace:*",
-    "@workspace/store": "workspace:*",
-    "@workspace/ui": "workspace:*",
+    "@flow/expression-editor": "workspace:*",
+    "@flow/flow": "workspace:*",
+    "@flow/store": "workspace:*",
+    "@flow/ui": "workspace:*",
     "lucide-react": "^1.16.0",
     "next": "16.1.6",
     "next-themes": "^0.4.6",
@@ -32,8 +32,8 @@
     "@types/node": "^25.1.0",
     "@types/react": "^19.2.10",
     "@types/react-dom": "^19.2.3",
-    "@workspace/eslint-config": "workspace:^",
-    "@workspace/typescript-config": "workspace:*",
+    "@flow/eslint-config": "workspace:^",
+    "@flow/typescript-config": "workspace:*",
     "eslint": "^9.39.2",
     "typescript": "^5.9.3"
   }

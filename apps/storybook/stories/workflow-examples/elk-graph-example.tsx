@@ -6,7 +6,7 @@ import {
   WorkflowEditor,
   createInitialGraphElk,
   type WorkflowEditorProps,
-} from "@workspace/flow"
+} from "@flow/flow"
 
 import { ExamplePreview } from "./example-preview"
 
@@ -37,9 +37,9 @@ const graphInput = {
         conditions: [
           {
             id: "demo-elk-evaluator-condition",
-            left: { type: "string" as const, value: "{{ email }}" },
+            left: { type: "value" as const, value: "{{ email }}" },
             operator: "contains" as const,
-            right: { type: "string" as const, value: "@" },
+            right: { type: "value" as const, value: "@" },
           },
         ],
         logicalOperator: "and" as const,
@@ -94,13 +94,13 @@ const graphInput = {
   },
 }
 
-const code = `import { WorkflowEditor, createInitialGraphElk } from "@workspace/flow"
+const code = `import { WorkflowEditor, createInitialGraphElk } from "@flow/flow"
 
 const initialGraph = await createInitialGraphElk({
   nodes: [
     { id: "demo-elk-inline-expression", kind: "inlineExpression", config: { template: ["lead"], isRoot: true, repeatable: false } },
     { id: "demo-elk-extractor", kind: "extractor", config: { tokenNumber: 1, extractExpression: "email", unlimited: false } },
-    { id: "demo-elk-evaluator", kind: "evaluator", config: { conditions: [{ id: "demo-elk-evaluator-condition", left: { type: "string", value: "{{ email }}" }, operator: "contains", right: { type: "string", value: "@" } }], logicalOperator: "and" } },
+    { id: "demo-elk-evaluator", kind: "evaluator", config: { conditions: [{ id: "demo-elk-evaluator-condition", left: { type: "value", value: "{{ email }}" }, operator: "contains", right: { type: "value", value: "@" } }], logicalOperator: "and" } },
     { id: "demo-elk-true-result", kind: "result", label: "Valid Email", config: { category: "true" } },
     { id: "demo-elk-false-result", kind: "result", label: "Needs Review", config: { category: "false" } },
   ],

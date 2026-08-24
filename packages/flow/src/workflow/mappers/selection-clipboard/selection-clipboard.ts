@@ -2,7 +2,10 @@ import type { XYPosition } from "@xyflow/react"
 
 import { decodeNodeConfig } from "../../node-registry/node-config-normalization"
 import { isNodeKind } from "../../types/types"
-import type { DomainWorkflowConnectionDTO, DomainWorkflowNodeDTO } from "../../types/types"
+import type {
+  DomainWorkflowConnectionDTO,
+  DomainWorkflowNodeDTO,
+} from "../../types/types"
 import type { ParseResult } from "../parser/parser"
 import { asRecord, isNumber, isString } from "../utils/utils"
 
@@ -16,7 +19,9 @@ export interface WorkflowSelectionClipboardPayload {
 
 function toNodeDTO(
   value: unknown
-): { success: true; value: DomainWorkflowNodeDTO } | { success: false; error: string } {
+):
+  | { success: true; value: DomainWorkflowNodeDTO }
+  | { success: false; error: string } {
   const record = asRecord(value)
   if (!record) {
     return { success: false, error: "Clipboard node must be an object." }
@@ -31,7 +36,10 @@ function toNodeDTO(
     !isNumber(position.y) ||
     !isString(record.label)
   ) {
-    return { success: false, error: "Clipboard node must include valid id, kind, position, and label." }
+    return {
+      success: false,
+      error: "Clipboard node must include valid id, kind, position, and label.",
+    }
   }
 
   const configResult = decodeNodeConfig(record.kind, record.config)
@@ -81,7 +89,9 @@ function toConnectionDTO(value: unknown): DomainWorkflowConnectionDTO | null {
   }
 }
 
-function createRelativeNodes(nodes: DomainWorkflowNodeDTO[]): DomainWorkflowNodeDTO[] {
+function createRelativeNodes(
+  nodes: DomainWorkflowNodeDTO[]
+): DomainWorkflowNodeDTO[] {
   if (nodes.length === 0) {
     return []
   }
@@ -111,7 +121,8 @@ export function exportSelectionClipboardJson(
   const normalizedNodes = createRelativeNodes(selectedNodes)
   const normalizedConnections = selectedConnections.filter(
     (connection) =>
-      selectedNodeIds.has(connection.sourceNodeId) && selectedNodeIds.has(connection.targetNodeId)
+      selectedNodeIds.has(connection.sourceNodeId) &&
+      selectedNodeIds.has(connection.targetNodeId)
   )
   const payload: WorkflowSelectionClipboardPayload = {
     kind: WORKFLOW_SELECTION_CLIPBOARD_KIND,
@@ -163,14 +174,21 @@ export function parseSelectionClipboardJson(
     }
 
     const decodedNodes = nodes
-      .filter((node): node is { success: true; value: DomainWorkflowNodeDTO } => node.success)
+      .filter(
+        (node): node is { success: true; value: DomainWorkflowNodeDTO } =>
+          node.success
+      )
       .map((node) => node.value)
     const nodeIds = new Set(decodedNodes.map((node) => node.id))
     const hasExternalReferences = connections
-      .filter((connection): connection is DomainWorkflowConnectionDTO => connection !== null)
+      .filter(
+        (connection): connection is DomainWorkflowConnectionDTO =>
+          connection !== null
+      )
       .some(
         (connection) =>
-          !nodeIds.has(connection.sourceNodeId) || !nodeIds.has(connection.targetNodeId)
+          !nodeIds.has(connection.sourceNodeId) ||
+          !nodeIds.has(connection.targetNodeId)
       )
     if (hasExternalReferences) {
       return {
@@ -185,7 +203,8 @@ export function parseSelectionClipboardJson(
         kind: WORKFLOW_SELECTION_CLIPBOARD_KIND,
         nodes: decodedNodes,
         connections: connections.filter(
-          (connection): connection is DomainWorkflowConnectionDTO => connection !== null
+          (connection): connection is DomainWorkflowConnectionDTO =>
+            connection !== null
         ),
       },
     }

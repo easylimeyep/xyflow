@@ -115,11 +115,16 @@ export function applyUpdateNodeLabelCommand(
   currentGraph: WorkflowGraphState,
   command: UpdateNodeLabelCommand
 ): GraphEngineResult {
-  const targetNode = currentGraph.nodes.find((node) => node.id === command.nodeId)
+  const targetNode = currentGraph.nodes.find(
+    (node) => node.id === command.nodeId
+  )
   if (!targetNode) {
     return {
       ok: false,
-      error: createWorkflowError("NODE_NOT_FOUND", "Failed to resolve node for label update."),
+      error: createWorkflowError(
+        "NODE_NOT_FOUND",
+        "Failed to resolve node for label update."
+      ),
     }
   }
 
@@ -131,7 +136,10 @@ export function applyUpdateNodeLabelCommand(
   if (labelResult.error) {
     return { ok: false, error: labelResult.error }
   }
-  if (!labelResult.nextLabel || labelResult.nextLabel === targetNode.data.label) {
+  if (
+    !labelResult.nextLabel ||
+    labelResult.nextLabel === targetNode.data.label
+  ) {
     return { ok: true, nextGraph: currentGraph }
   }
 
@@ -147,7 +155,9 @@ export function applyUpdateNodeLabelCommand(
       : node
   )
 
-  const nextNodesWithHooks = isVariableLabelKind(targetNode.data.kind as NodeKind)
+  const nextNodesWithHooks = isVariableLabelKind(
+    targetNode.data.kind as NodeKind
+  )
     ? refactorPlainVariableReferencesInGraph(
         nextNodes,
         targetNode.data.label,
@@ -168,11 +178,16 @@ export function applyUpdateNodeConfigCommand(
   currentGraph: WorkflowGraphState,
   command: UpdateNodeConfigCommand
 ): GraphEngineResult {
-  const targetNode = currentGraph.nodes.find((node) => node.id === command.nodeId)
+  const targetNode = currentGraph.nodes.find(
+    (node) => node.id === command.nodeId
+  )
   if (!targetNode) {
     return {
       ok: false,
-      error: createWorkflowError("NODE_NOT_FOUND", "Failed to resolve node for config update."),
+      error: createWorkflowError(
+        "NODE_NOT_FOUND",
+        "Failed to resolve node for config update."
+      ),
     }
   }
 
@@ -210,9 +225,10 @@ export function applyUpdateNodeConfigCommand(
     }
   }
 
-  const previousValue = targetNode.data.config[
-    command.update.key as keyof typeof targetNode.data.config
-  ]
+  const previousValue =
+    targetNode.data.config[
+      command.update.key as keyof typeof targetNode.data.config
+    ]
   if (Object.is(previousValue, command.update.value)) {
     return { ok: true, nextGraph: currentGraph }
   }
@@ -279,7 +295,11 @@ export function applyConnectNodesCommand(
   }
 
   const nextEdges = addEdge(
-    toEdgeConnectionWithKind(command.connection, kinds.sourceKind, kinds.targetKind),
+    toEdgeConnectionWithKind(
+      command.connection,
+      kinds.sourceKind,
+      kinds.targetKind
+    ),
     currentGraph.edges
   ) as WorkflowEdge[]
 
@@ -327,9 +347,14 @@ export function applyNodeChangesCommand(
 ): ApplyNodeChangesSuccess {
   const rawNextNodes = applyNodeChanges(command.changes, currentGraph.nodes)
   const removedNodeIds = getRemovedNodeIds(command.changes)
-  const nextEdges = filterEdgesForRemovedNodes(currentGraph.edges, removedNodeIds)
+  const nextEdges = filterEdgesForRemovedNodes(
+    currentGraph.edges,
+    removedNodeIds
+  )
   const remainingNodeIds = new Set(rawNextNodes.map((node) => node.id))
-  const nextSelectedNodeIds = command.selectedNodeIds.filter((id) => remainingNodeIds.has(id))
+  const nextSelectedNodeIds = command.selectedNodeIds.filter((id) =>
+    remainingNodeIds.has(id)
+  )
   const nextNodes = projectSelectionToNodes(rawNextNodes, nextSelectedNodeIds)
   const nextGraph = { ...currentGraph, nodes: nextNodes, edges: nextEdges }
 
@@ -337,9 +362,18 @@ export function applyNodeChangesCommand(
     ok: true,
     nextGraph,
     removedNodeIds,
-    nodeCollectionChanged: hasNodeCollectionChanged(currentGraph.nodes, nextNodes),
-    edgeCollectionChanged: hasEdgeCollectionChanged(currentGraph.edges, nextEdges),
+    nodeCollectionChanged: hasNodeCollectionChanged(
+      currentGraph.nodes,
+      nextNodes
+    ),
+    edgeCollectionChanged: hasEdgeCollectionChanged(
+      currentGraph.edges,
+      nextEdges
+    ),
     nextSelectedNodeIds,
-    selectionChanged: !haveSameIdSet(command.selectedNodeIds, nextSelectedNodeIds),
+    selectionChanged: !haveSameIdSet(
+      command.selectedNodeIds,
+      nextSelectedNodeIds
+    ),
   }
 }

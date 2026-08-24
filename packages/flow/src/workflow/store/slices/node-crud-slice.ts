@@ -10,10 +10,7 @@ import { createWorkflowNode } from "../../node-registry/node-factory"
 import { normalizeNodeConfig } from "../../node-registry/node-config-normalization"
 import type { NodeKind } from "../../node-registry/registry"
 import type { WorkflowEdge, WorkflowNode } from "../../types/types"
-import {
-  buildExpressionSlicePatch,
-  deduplicateNodeLabels,
-} from "../helpers"
+import { buildExpressionSlicePatch, deduplicateNodeLabels } from "../helpers"
 import { commitGraphState } from "../history-helpers"
 import { projectSelectionToNodes } from "../selection-sync"
 import type { WorkflowSliceCreator } from "../types"
@@ -124,7 +121,10 @@ export const createNodeCrudSlice: WorkflowSliceCreator = (set, get) => ({
   },
   updateNodeLabel: (nodeId, nextLabel) => {
     const currentGraph = get().history.present
-    const result = applyUpdateNodeLabelCommand(currentGraph, { nodeId, nextLabel })
+    const result = applyUpdateNodeLabelCommand(currentGraph, {
+      nodeId,
+      nextLabel,
+    })
     if (!result.ok) {
       set({ lastError: result.error })
       return
@@ -138,7 +138,10 @@ export const createNodeCrudSlice: WorkflowSliceCreator = (set, get) => ({
   },
   updateNodeConfig: (nodeId, update) => {
     const currentGraph = get().history.present
-    const result = applyUpdateNodeConfigCommand(currentGraph, { nodeId, update })
+    const result = applyUpdateNodeConfigCommand(currentGraph, {
+      nodeId,
+      update,
+    })
     if (!result.ok) {
       set({ lastError: result.error })
       return

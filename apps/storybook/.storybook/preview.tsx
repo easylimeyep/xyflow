@@ -1,8 +1,8 @@
 import type { Preview } from "@storybook/react-vite"
 
 import "./tailwind.css"
-import "@workspace/expression-editor/style.css"
-import "@workspace/flow/style.css"
+import "@flow/expression-editor/style.css"
+import "@flow/flow/style.css"
 import "./preview.css"
 
 const preview: Preview = {

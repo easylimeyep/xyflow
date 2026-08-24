@@ -47,7 +47,8 @@ export function buildTemplateHighlightRanges(
 
     if (segment.closed) {
       const closeStart = segment.end - 2
-      const leadingWhitespace = segment.value.length - segment.value.trimStart().length
+      const leadingWhitespace =
+        segment.value.length - segment.value.trimStart().length
       const body = segment.value.trim()
 
       if (knownVariableValues.has(body)) {

@@ -19,12 +19,18 @@ export function getElkPortId(
   handleId: string | null
 ): string {
   if (kind === "target") {
-    return handleId ? `${nodeId}::${INPUT_PORT_SUFFIX}::${handleId}` : `${nodeId}::${INPUT_PORT_SUFFIX}`
+    return handleId
+      ? `${nodeId}::${INPUT_PORT_SUFFIX}::${handleId}`
+      : `${nodeId}::${INPUT_PORT_SUFFIX}`
   }
-  return handleId ? `${nodeId}::${OUTPUT_PORT_SUFFIX}::${handleId}` : `${nodeId}::${OUTPUT_PORT_SUFFIX}`
+  return handleId
+    ? `${nodeId}::${OUTPUT_PORT_SUFFIX}::${handleId}`
+    : `${nodeId}::${OUTPUT_PORT_SUFFIX}`
 }
 
-function resolveDefaultOutputHandles(node: WorkflowNode): WorkflowLayoutHandle[] {
+function resolveDefaultOutputHandles(
+  node: WorkflowNode
+): WorkflowLayoutHandle[] {
   const kind = node.data.kind as NodeKind
   const definition = getNodeDefinition(kind)
 
@@ -39,7 +45,9 @@ function resolveDefaultOutputHandles(node: WorkflowNode): WorkflowLayoutHandle[]
   return [{ id: null }]
 }
 
-export function resolveWorkflowLayoutPorts(node: WorkflowNode): WorkflowLayoutPorts {
+export function resolveWorkflowLayoutPorts(
+  node: WorkflowNode
+): WorkflowLayoutPorts {
   const kind = node.data.kind as NodeKind
   const hasTargetPort =
     kind === "inlineExpression" ? node.data.config.isRoot !== true : true

@@ -1,10 +1,10 @@
 "use client"
 
 import type { NodeProps } from "@xyflow/react"
-import { Checkbox } from "@workspace/ui/components/checkbox"
-import { Field, FieldGroup, FieldLabel } from "@workspace/ui/components/field"
-import { Input } from "@workspace/ui/components/input"
-import { Label } from "@workspace/ui/components/label"
+import { Checkbox } from "@flow/ui/components/checkbox"
+import { Field, FieldGroup, FieldLabel } from "@flow/ui/components/field"
+import { Input } from "@flow/ui/components/input"
+import { Label } from "@flow/ui/components/label"
 import { useCallback, useRef, useState } from "react"
 
 import { setVariableNodeStyles } from "../../../../styles/components/nodes"

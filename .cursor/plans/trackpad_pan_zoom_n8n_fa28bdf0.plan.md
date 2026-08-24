@@ -1,6 +1,6 @@
 ---
 name: Trackpad Pan Zoom n8n
-overview: "Привести навигацию canvas в `@workspace/flow` к n8n-like поведению для macOS/Chrome: 2-пальцевый свайп = pan, pinch = zoom, без изменения текущей логики выделения мышью."
+overview: "Привести навигацию canvas в `@flow/flow` к n8n-like поведению для macOS/Chrome: 2-пальцевый свайп = pan, pinch = zoom, без изменения текущей логики выделения мышью."
 todos:
   - id: update-reactflow-gesture-props
     content: Обновить props навигации ReactFlow в workflow-canvas под n8n-like trackpad UX
@@ -9,7 +9,7 @@ todos:
     content: Обновить workflow-canvas.test.tsx под новые pan/zoom props
     status: completed
   - id: run-flow-tests
-    content: Прогнать тесты @workspace/flow и проверить отсутствие регрессий
+    content: Прогнать тесты @flow/flow и проверить отсутствие регрессий
     status: completed
 isProject: false
 ---
@@ -42,4 +42,4 @@ isProject: false
 
 ## Валидация
 
-- Прогнать тесты пакета `@workspace/flow` и убедиться, что изменения не ломают существующие сценарии взаимодействий canvas.
+- Прогнать тесты пакета `@flow/flow` и убедиться, что изменения не ломают существующие сценарии взаимодействий canvas.

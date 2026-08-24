@@ -50,8 +50,12 @@ describe("applyNodeConfigUpdate", () => {
     })
 
     expect(result.error).toBeNull()
-    expect(result.nextGraph?.nodes[0]?.data.config.valueExpression).toBe("{{ newValue }}")
-    expect(result.nextGraph?.nodes[1]?.data.config.template).toEqual(["{{ oldName }}"])
+    expect(result.nextGraph?.nodes[0]?.data.config.valueExpression).toBe(
+      "{{ newValue }}"
+    )
+    expect(result.nextGraph?.nodes[1]?.data.config.template).toEqual([
+      "{{ oldName }}",
+    ])
   })
 
   it("updates evaluator caseSensitive config field", () => {
@@ -82,7 +86,9 @@ describe("applyNodeConfigUpdate", () => {
 
     expect(result.error).toBeNull()
     expect(result.nextGraph?.nodes[0]?.data.config.variableName).toBe("newName")
-    expect(result.nextGraph?.nodes[1]?.data.config.template).toEqual(["{{ newName }}"])
+    expect(result.nextGraph?.nodes[1]?.data.config.template).toEqual([
+      "{{ newName }}",
+    ])
   })
 
   it("refactors plain variable references when extractor Label is renamed", () => {
@@ -99,8 +105,12 @@ describe("applyNodeConfigUpdate", () => {
     })
 
     expect(result.error).toBeNull()
-    expect(result.nextGraph?.nodes[0]?.data.config.extractExpression).toBe("newName")
-    expect(result.nextGraph?.nodes[1]?.data.config.template).toEqual(["{{ newName }}"])
+    expect(result.nextGraph?.nodes[0]?.data.config.extractExpression).toBe(
+      "newName"
+    )
+    expect(result.nextGraph?.nodes[1]?.data.config.template).toEqual([
+      "{{ newName }}",
+    ])
   })
 
   it("refactors plain variable references when evaluator Label is renamed", () => {
@@ -118,7 +128,9 @@ describe("applyNodeConfigUpdate", () => {
 
     expect(result.error).toBeNull()
     expect(result.nextGraph?.nodes[0]?.data.config.label).toBe("isQualified")
-    expect(result.nextGraph?.nodes[1]?.data.config.template).toEqual(["{{ isQualified }}"])
+    expect(result.nextGraph?.nodes[1]?.data.config.template).toEqual([
+      "{{ isQualified }}",
+    ])
   })
 
   it("does not blank plain variable references when evaluator Label is cleared", () => {
@@ -156,7 +168,9 @@ describe("applyNodeConfigUpdate", () => {
 
     expect(result.error).toBeNull()
     expect(result.nextGraph?.nodes[0]?.data.config.tokenNumber).toBe(10)
-    expect(result.nextGraph?.nodes[1]?.data.config.template).toEqual(["{{ oldName }}"])
+    expect(result.nextGraph?.nodes[1]?.data.config.template).toEqual([
+      "{{ oldName }}",
+    ])
   })
 
   it("prunes incoming edges when inlineExpression becomes root", () => {
@@ -184,9 +198,10 @@ describe("applyNodeConfigUpdate", () => {
     })
 
     expect(result.error).toBeNull()
-    expect(result.nextGraph?.nodes.find((node) => node.id === targetNode.id)?.data.config.isRoot).toBe(
-      true
-    )
+    expect(
+      result.nextGraph?.nodes.find((node) => node.id === targetNode.id)?.data
+        .config.isRoot
+    ).toBe(true)
     expect(result.nextGraph?.edges).toHaveLength(0)
   })
 })

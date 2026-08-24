@@ -7,7 +7,7 @@ import {
   ContextMenuSeparator,
   ContextMenuShortcut,
   ContextMenuTrigger,
-} from "@workspace/ui/components/context-menu"
+} from "@flow/ui/components/context-menu"
 import { Copy, CopyPlus, Trash2 } from "lucide-react"
 import type { ComponentType } from "react"
 
