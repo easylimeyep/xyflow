@@ -286,3 +286,39 @@ export interface BackendEvaluatorWorkflowNodeDTO {
 export type BackendWorkflowNodeDTO =
   | BackendRegularWorkflowNodeDTO
   | BackendEvaluatorWorkflowNodeDTO
+
+/**
+ * Runtime observation overlay.
+ *
+ * The overlay is a view-time input supplied by the consumer while a workflow
+ * is running. The package never computes these statuses, never fetches them,
+ * and never serializes them into the graph model — it only renders what it is
+ * handed. See the `workflow-runtime-observation` change for the rationale.
+ */
+export type NodeRuntimeStatus =
+  | "done"
+  | "running"
+  | "waiting"
+  | "failed"
+  | "skipped"
+
+export interface NodeRuntimeState {
+  status: NodeRuntimeStatus
+  /** Loop progress for nodes that iterate, rendered as `current / total`. */
+  iteration?: { current: number; total: number }
+  input?: unknown
+  output?: unknown
+  error?: string
+}
+
+export interface WorkflowRuntimeOverlay {
+  /** Per-node runtime state, keyed by node id. May be partial. */
+  nodes: Record<string, NodeRuntimeState>
+  /** Edges currently being traversed (an edge may also be in `traversedEdgeIds`). */
+  activeEdgeIds: string[]
+  /** Edges already traversed at least once. */
+  traversedEdgeIds: string[]
+}
+
+/** Canvas interaction mode. `edit` is the default authoring behaviour. */
+export type WorkflowCanvasMode = "edit" | "observe"

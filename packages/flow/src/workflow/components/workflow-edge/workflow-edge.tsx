@@ -10,6 +10,7 @@ import { Plus, Trash2 } from "lucide-react"
 import { useState } from "react"
 
 import { workflowEdgeStyles } from "../../../styles/components/canvas"
+import { useEdgeRuntimeState, useRuntimeMode } from "../../runtime"
 import type { WorkflowEdge } from "../../types"
 
 interface WorkflowEdgeProps extends EdgeProps<WorkflowEdge> {
@@ -48,6 +49,9 @@ export function WorkflowEdgeComponent({
 }: WorkflowEdgeProps) {
   const [isHovered, setIsHovered] = useState(false)
   const [isToolbarHovered, setIsToolbarHovered] = useState(false)
+  const runtime = useEdgeRuntimeState(id)
+  const interactive = useRuntimeMode() === "edit"
+  const hasTraversal = runtime.traversed || runtime.active
   const [edgePath, labelX, labelY] = getBezierPath({
     sourceX,
     sourceY,
@@ -56,12 +60,26 @@ export function WorkflowEdgeComponent({
     targetY,
     targetPosition,
   })
-  const showToolbar = isHovered || isToolbarHovered || isInsertPending
+  const showToolbar =
+    interactive && (isHovered || isToolbarHovered || isInsertPending)
   const styles = showToolbar ? toolbarVisibleStyles : toolbarHiddenStyles
   const highlightEdge =
     selected || isHovered || isToolbarHovered || isInsertPending
   const baseStroke = highlightEdge ? edgeStrokeHighlighted : edgeStrokeDefault
-  const edgeStyle = style ? { ...style, ...baseStroke } : baseStroke
+  // Traversal stroke is applied through a className so the tv variant can win;
+  // an inline stroke would override it. Runtime edges therefore skip inline
+  // stroke and let `edgePathClassName` drive their colour and width.
+  const edgePathClassName = hasTraversal
+    ? workflowEdgeStyles({
+        traversed: runtime.traversed,
+        active: runtime.active,
+      }).edgePath()
+    : undefined
+  const edgeStyle = hasTraversal
+    ? style
+    : style
+      ? { ...style, ...baseStroke }
+      : baseStroke
 
   return (
     <>
@@ -75,56 +93,63 @@ export function WorkflowEdgeComponent({
           path={edgePath}
           markerEnd={markerEnd}
           style={edgeStyle}
+          className={edgePathClassName}
         />
         <path d={edgePath} fill="none" stroke="transparent" strokeWidth={20} />
       </g>
 
-      <EdgeLabelRenderer>
-        <div
-          className={styles.toolbarContainer()}
-          style={{
-            transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
-            pointerEvents: showToolbar ? "all" : "none",
-          }}
-        >
+      {interactive ? (
+        <EdgeLabelRenderer>
           <div
-            className={styles.toolbar()}
-            onMouseEnter={() => setIsToolbarHovered(true)}
-            onMouseLeave={() => setIsToolbarHovered(false)}
+            className={styles.toolbarContainer()}
+            style={{
+              transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
+              pointerEvents: showToolbar ? "all" : "none",
+            }}
           >
-            <button
-              type="button"
-              className={styles.actionButton({ class: styles.insertButton() })}
-              aria-label={`Insert node on edge ${id}`}
-              data-testid={`edge-insert-${id}`}
-              onClick={(event) => {
-                event.stopPropagation()
-                onStartInsert(id)
-              }}
-              onMouseDown={(event) => {
-                event.stopPropagation()
-              }}
+            <div
+              className={styles.toolbar()}
+              onMouseEnter={() => setIsToolbarHovered(true)}
+              onMouseLeave={() => setIsToolbarHovered(false)}
             >
-              <Plus className={styles.actionIcon()} />
-            </button>
-            <button
-              type="button"
-              className={styles.actionButton({ class: styles.deleteButton() })}
-              aria-label={`Delete edge ${id}`}
-              data-testid={`edge-delete-${id}`}
-              onClick={(event) => {
-                event.stopPropagation()
-                onDeleteEdge(id)
-              }}
-              onMouseDown={(event) => {
-                event.stopPropagation()
-              }}
-            >
-              <Trash2 className={styles.actionIcon()} />
-            </button>
+              <button
+                type="button"
+                className={styles.actionButton({
+                  class: styles.insertButton(),
+                })}
+                aria-label={`Insert node on edge ${id}`}
+                data-testid={`edge-insert-${id}`}
+                onClick={(event) => {
+                  event.stopPropagation()
+                  onStartInsert(id)
+                }}
+                onMouseDown={(event) => {
+                  event.stopPropagation()
+                }}
+              >
+                <Plus className={styles.actionIcon()} />
+              </button>
+              <button
+                type="button"
+                className={styles.actionButton({
+                  class: styles.deleteButton(),
+                })}
+                aria-label={`Delete edge ${id}`}
+                data-testid={`edge-delete-${id}`}
+                onClick={(event) => {
+                  event.stopPropagation()
+                  onDeleteEdge(id)
+                }}
+                onMouseDown={(event) => {
+                  event.stopPropagation()
+                }}
+              >
+                <Trash2 className={styles.actionIcon()} />
+              </button>
+            </div>
           </div>
-        </div>
-      </EdgeLabelRenderer>
+        </EdgeLabelRenderer>
+      ) : null}
     </>
   )
 }

@@ -9,8 +9,12 @@ import {
   nodeHandlesStyles,
   nodeShellStyles,
 } from "../../../styles/components/nodes"
+import { useNodeRuntimeState } from "../../runtime"
 import type { OutputHandle } from "../../node-registry/define-node"
-import type { NormalizedWorkflowNodeValidationMessage } from "../../types"
+import type {
+  NodeRuntimeStatus,
+  NormalizedWorkflowNodeValidationMessage,
+} from "../../types"
 import { OutputQuickAddAffordance } from "../output-quick-add-affordance/output-quick-add-affordance"
 
 const DEFAULT_OUTPUTS: OutputHandle[] = [{}]
@@ -38,8 +42,16 @@ export function NodeShell({
   children,
 }: NodeShellProps) {
   const hasValidation = validationMessages.length > 0
-  const styles = nodeShellStyles({ selected, validation: hasValidation })
+  const runtime = useNodeRuntimeState(nodeId)
+  const status: NodeRuntimeStatus | "none" = runtime?.status ?? "none"
+  const styles = nodeShellStyles({
+    selected,
+    validation: hasValidation,
+    status,
+  })
   const handleStyles = nodeHandlesStyles({ kind: "target" })
+  const iteration = runtime?.iteration
+  const showError = runtime?.status === "failed" && Boolean(runtime.error)
 
   return (
     <div
@@ -47,6 +59,7 @@ export function NodeShell({
       data-testid="workflow-node"
       data-node-id={nodeId}
       data-validation={hasValidation ? "true" : "false"}
+      data-node-status={runtime ? runtime.status : undefined}
     >
       <div className={styles.panel()}>
         {showTarget ? (
@@ -59,8 +72,25 @@ export function NodeShell({
 
         <div className={styles.header()}>
           <div className={styles.title()}>{title}</div>
-          {headerAccessory || hasValidation ? (
+          {runtime || headerAccessory || hasValidation ? (
             <div className={styles.headerActions()}>
+              {runtime ? (
+                <span
+                  className={styles.statusBadge()}
+                  data-testid="node-status-badge"
+                >
+                  <span className={styles.statusDot()} />
+                  {runtime.status}
+                </span>
+              ) : null}
+              {iteration ? (
+                <span
+                  className={styles.iterationBadge()}
+                  data-testid="node-iteration-badge"
+                >
+                  {iteration.current} / {iteration.total}
+                </span>
+              ) : null}
               {hasValidation ? (
                 <TooltipTrigger>
                   <button
@@ -89,6 +119,15 @@ export function NodeShell({
           ) : null}
         </div>
         {children}
+        {showError ? (
+          <div
+            className={styles.errorText()}
+            title={runtime?.error}
+            data-testid="node-error-text"
+          >
+            {runtime?.error}
+          </div>
+        ) : null}
       </div>
 
       {outputs.map((handle, index) => (

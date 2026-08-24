@@ -36,7 +36,13 @@ import {
   type WorkflowStoreInitialProps,
   type WorkflowStoreState,
 } from "../../store"
-import type { NodeKind, WorkflowValidationSnapshot } from "../../types"
+import type {
+  NodeKind,
+  WorkflowCanvasMode,
+  WorkflowRuntimeOverlay,
+  WorkflowValidationSnapshot,
+} from "../../types"
+import { RuntimeObservationProvider } from "../../runtime"
 import { workflowEditorStyles } from "../../../styles/components/editor-shell"
 import { EditorToolbar } from "../editor-toolbar"
 import {
@@ -55,6 +61,7 @@ interface WorkflowEditorLayoutContextValue {
   isPaletteOpen: boolean
   setIsPaletteOpen: (nextOpen: boolean) => void
   quickAddActive: boolean
+  mode: WorkflowCanvasMode
   autoLayoutOnInit?: "after-measure"
   anchorRefs?: WorkflowEditorAnchorRefs
   getLastPointerFlowPosition: () => XYPosition | null
@@ -68,16 +75,31 @@ function useWorkflowEditorLayoutContext() {
   return useContext(WorkflowEditorLayoutContext)
 }
 
-function useUndoRedoHotkeys(onUndo: () => void, onRedo: () => void): void {
+function useUndoRedoHotkeys(
+  onUndo: () => void,
+  onRedo: () => void,
+  enabled: boolean
+): void {
   useEffect(() => {
+    if (!enabled) {
+      return
+    }
+
     const handler = createHistoryHotkeyHandler(onUndo, onRedo)
     window.addEventListener("keydown", handler)
     return () => window.removeEventListener("keydown", handler)
-  }, [onRedo, onUndo])
+  }, [enabled, onRedo, onUndo])
 }
 
-function useCancelInsertHotkey(onCancelInsert: () => void): void {
+function useCancelInsertHotkey(
+  onCancelInsert: () => void,
+  enabled: boolean
+): void {
   useEffect(() => {
+    if (!enabled) {
+      return
+    }
+
     const onKeyDown = (event: KeyboardEvent) => {
       if (!isEscapeHotkey(event)) {
         return
@@ -88,14 +110,19 @@ function useCancelInsertHotkey(onCancelInsert: () => void): void {
     }
     window.addEventListener("keydown", onKeyDown)
     return () => window.removeEventListener("keydown", onKeyDown)
-  }, [onCancelInsert])
+  }, [enabled, onCancelInsert])
 }
 
 function useClipboardHotkeys(
   onCopy: () => Promise<boolean>,
-  onPaste: () => Promise<boolean>
+  onPaste: () => Promise<boolean>,
+  enabled: boolean
 ): void {
   useEffect(() => {
+    if (!enabled) {
+      return
+    }
+
     const handler = createClipboardHotkeyHandler(
       () => {
         void onCopy()
@@ -106,14 +133,19 @@ function useClipboardHotkeys(
     )
     window.addEventListener("keydown", handler)
     return () => window.removeEventListener("keydown", handler)
-  }, [onCopy, onPaste])
+  }, [enabled, onCopy, onPaste])
 }
 
 function useNodeEditHotkeys(
   onDuplicate: () => boolean,
-  onDelete: () => boolean
+  onDelete: () => boolean,
+  enabled: boolean
 ): void {
   useEffect(() => {
+    if (!enabled) {
+      return
+    }
+
     const handler = createNodeEditHotkeyHandler(
       () => {
         onDuplicate()
@@ -124,18 +156,20 @@ function useNodeEditHotkeys(
     )
     window.addEventListener("keydown", handler)
     return () => window.removeEventListener("keydown", handler)
-  }, [onDelete, onDuplicate])
+  }, [enabled, onDelete, onDuplicate])
 }
 
 function WorkflowEditorLayoutProvider({
   anchorRefs,
   autoLayoutOnInit,
+  mode,
   getLastPointerFlowPosition,
   setLastPointerFlowPosition,
   children,
 }: PropsWithChildren<{
   anchorRefs?: WorkflowEditorAnchorRefs
   autoLayoutOnInit?: "after-measure"
+  mode: WorkflowCanvasMode
   getLastPointerFlowPosition: () => XYPosition | null
   setLastPointerFlowPosition: (position: XYPosition) => void
 }>) {
@@ -167,13 +201,20 @@ function WorkflowEditorLayoutProvider({
     [getLastPointerFlowPosition, pasteFromClipboard]
   )
 
-  useUndoRedoHotkeys(undo, redo)
-  useClipboardHotkeys(copySelectionToClipboard, pasteSelectionNearPointer)
-  useNodeEditHotkeys(duplicateNodes, deleteNodes)
+  // Editing hotkeys mutate the graph or history, so they are disabled while
+  // observing a run — the canvas gating alone would not stop a global keydown.
+  const editingEnabled = mode === "edit"
+  useUndoRedoHotkeys(undo, redo, editingEnabled)
+  useClipboardHotkeys(
+    copySelectionToClipboard,
+    pasteSelectionNearPointer,
+    editingEnabled
+  )
+  useNodeEditHotkeys(duplicateNodes, deleteNodes, editingEnabled)
   useCancelInsertHotkey(() => {
     cancelQuickAdd()
     cancelEdgeInsert()
-  })
+  }, editingEnabled)
 
   useEffect(() => {
     if (quickAddActive) {
@@ -187,6 +228,7 @@ function WorkflowEditorLayoutProvider({
         isPaletteOpen,
         setIsPaletteOpen,
         quickAddActive,
+        mode,
         autoLayoutOnInit,
         anchorRefs,
         getLastPointerFlowPosition,
@@ -203,6 +245,17 @@ export interface WorkflowEditorProps extends WorkflowStoreInitialProps {
   validation?: WorkflowValidationSnapshot | null
   anchorRefs?: WorkflowEditorAnchorRefs
   autoLayoutOnInit?: "after-measure"
+  /**
+   * Canvas interaction mode. Defaults to `"edit"`. `"observe"` makes the whole
+   * editor read-only and swaps the config panel for the runtime inspector.
+   */
+  mode?: WorkflowCanvasMode
+  /**
+   * Externally supplied runtime overlay rendered while observing a run. Passed
+   * as a prop (never through the store) so status updates never reach the undo
+   * history. A partial overlay is fine — unlisted nodes render neutrally.
+   */
+  overlay?: WorkflowRuntimeOverlay
   children?: ReactNode
 }
 
@@ -226,6 +279,8 @@ function WorkflowEditorRoot({
   validation,
   anchorRefs,
   autoLayoutOnInit,
+  mode = "edit",
+  overlay,
   children,
 }: WorkflowEditorProps = {}) {
   const styles = workflowEditorStyles()
@@ -245,16 +300,19 @@ function WorkflowEditorRoot({
   return (
     <WorkflowStoreProvider initialGraph={initialGraph} runtime={runtime}>
       <WorkflowValidationSync validation={validation} />
-      <WorkflowEditorLayoutProvider
-        anchorRefs={anchorRefs}
-        autoLayoutOnInit={autoLayoutOnInit}
-        getLastPointerFlowPosition={getLastPointerFlowPosition}
-        setLastPointerFlowPosition={setLastPointerFlowPosition}
-      >
-        <div ref={rootRef} className={styles.root()}>
-          {children == null ? <DefaultWorkflowEditorComposition /> : children}
-        </div>
-      </WorkflowEditorLayoutProvider>
+      <RuntimeObservationProvider mode={mode} overlay={overlay}>
+        <WorkflowEditorLayoutProvider
+          anchorRefs={anchorRefs}
+          autoLayoutOnInit={autoLayoutOnInit}
+          mode={mode}
+          getLastPointerFlowPosition={getLastPointerFlowPosition}
+          setLastPointerFlowPosition={setLastPointerFlowPosition}
+        >
+          <div ref={rootRef} className={styles.root()}>
+            {children == null ? <DefaultWorkflowEditorComposition /> : children}
+          </div>
+        </WorkflowEditorLayoutProvider>
+      </RuntimeObservationProvider>
     </WorkflowStoreProvider>
   )
 }
@@ -357,6 +415,7 @@ export interface WorkflowEditorPaletteProps {
 export function WorkflowEditorPalette({ open }: WorkflowEditorPaletteProps) {
   const layout = useWorkflowEditorLayoutContext()
   const nodeCount = useWorkflowStore(selectNodeCount)
+  const isObserving = layout?.mode === "observe"
   const quickAddPending = useWorkflowStore(selectQuickAddPending)
   const edgeInsertPending = useWorkflowStore(selectEdgeInsertPending)
   const { addNode, confirmQuickAddNode, confirmEdgeInsertNode } =
@@ -365,6 +424,12 @@ export function WorkflowEditorPalette({ open }: WorkflowEditorPaletteProps) {
       confirmQuickAddNode: state.confirmQuickAddNode,
       confirmEdgeInsertNode: state.confirmEdgeInsertNode,
     }))
+
+  // The palette only exists to add nodes, which is a mutation — withhold it
+  // entirely while observing a run.
+  if (isObserving) {
+    return null
+  }
 
   const addNodeAtDefaultPosition = (kind: NodeKind) => {
     if (quickAddPending) {
@@ -454,30 +519,34 @@ export function WorkflowEditorCanvas() {
     [setLastPointerFlowPosition]
   )
 
+  const isObserving = layout?.mode === "observe"
+
   return (
     <div ref={canvasRef} className={styles.canvasWrap()}>
-      <div className={styles.canvasOverlay()}>
-        <div className={styles.canvasToolbar()}>
-          <Button
-            ref={paletteToggleRef}
-            type="button"
-            size="icon"
-            variant="outline"
-            aria-label={
-              isPaletteOpen ? "Hide node palette" : "Show node palette"
-            }
-            onClick={() => layout?.setIsPaletteOpen(!isPaletteOpen)}
-          >
-            <PlusIcon
-              className={
-                isPaletteOpen
-                  ? "rotate-45 transition-transform"
-                  : "transition-transform"
+      {isObserving ? null : (
+        <div className={styles.canvasOverlay()}>
+          <div className={styles.canvasToolbar()}>
+            <Button
+              ref={paletteToggleRef}
+              type="button"
+              size="icon"
+              variant="outline"
+              aria-label={
+                isPaletteOpen ? "Hide node palette" : "Show node palette"
               }
-            />
-          </Button>
+              onClick={() => layout?.setIsPaletteOpen(!isPaletteOpen)}
+            >
+              <PlusIcon
+                className={
+                  isPaletteOpen
+                    ? "rotate-45 transition-transform"
+                    : "transition-transform"
+                }
+              />
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
       <WorkflowCanvas
         nodes={nodes}
         edges={edges}
@@ -497,6 +566,7 @@ export function WorkflowEditorCanvas() {
         autoLayoutOnInit={layout?.autoLayoutOnInit}
         onMeasuredInitialAutoLayout={measuredInitialAutoLayout}
         anchorRefs={layout?.anchorRefs}
+        mode={layout?.mode ?? "edit"}
       />
     </div>
   )
@@ -509,7 +579,12 @@ export function WorkflowEditorConfigPanel() {
     "configPanel"
   )
 
-  return <WorkflowEditorConfigPanelBase anchorRef={configPanelRef} />
+  return (
+    <WorkflowEditorConfigPanelBase
+      anchorRef={configPanelRef}
+      mode={layout?.mode ?? "edit"}
+    />
+  )
 }
 
 export const WorkflowEditor = Object.assign(WorkflowEditorRoot, {

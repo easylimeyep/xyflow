@@ -6,6 +6,8 @@ import type { CSSProperties, ReactNode } from "react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { WorkflowEdgeComponent } from "./workflow-edge"
+import { RuntimeObservationProvider } from "../../runtime"
+import type { WorkflowRuntimeOverlay } from "../../types"
 
 vi.mock("@xyflow/react", async () => {
   const actual =
@@ -17,11 +19,20 @@ vi.mock("@xyflow/react", async () => {
       id,
       path,
       style,
+      className,
     }: {
       id: string
       path: string
       style?: CSSProperties
-    }) => <path data-testid={`base-edge-${id}`} d={path} style={style} />,
+      className?: string
+    }) => (
+      <path
+        data-testid={`base-edge-${id}`}
+        d={path}
+        style={style}
+        className={className}
+      />
+    ),
     EdgeLabelRenderer: ({ children }: { children?: ReactNode }) => (
       <>{children}</>
     ),
@@ -179,5 +190,87 @@ describe("WorkflowEdgeComponent", () => {
     )
 
     expectBaseEdgeStyle("var(--primary)", "2.5")
+  })
+})
+
+function renderWithRuntimeEdge(overlay: WorkflowRuntimeOverlay) {
+  return render(
+    <RuntimeObservationProvider mode="observe" overlay={overlay}>
+      <svg>
+        <WorkflowEdgeComponent {...edgeProps} />
+      </svg>
+    </RuntimeObservationProvider>
+  )
+}
+
+function edgeClassName() {
+  return screen.getByTestId("base-edge-edge-1").getAttribute("class") ?? ""
+}
+
+describe("WorkflowEdgeComponent traversal styling", () => {
+  afterEach(() => {
+    cleanup()
+  })
+
+  it("leaves an untouched edge without a traversal class", () => {
+    renderWithRuntimeEdge({
+      nodes: {},
+      activeEdgeIds: [],
+      traversedEdgeIds: [],
+    })
+
+    expect(edgeClassName()).toBe("")
+  })
+
+  it("styles a traversed edge with the primary stroke", () => {
+    renderWithRuntimeEdge({
+      nodes: {},
+      activeEdgeIds: [],
+      traversedEdgeIds: ["edge-1"],
+    })
+
+    const className = edgeClassName()
+    expect(className).toContain("[stroke:var(--primary)]")
+    expect(className).toContain("[stroke-width:2]")
+  })
+
+  it("styles an active edge with a thicker primary stroke", () => {
+    renderWithRuntimeEdge({
+      nodes: {},
+      activeEdgeIds: ["edge-1"],
+      traversedEdgeIds: [],
+    })
+
+    const className = edgeClassName()
+    expect(className).toContain("[stroke:var(--primary)]")
+    expect(className).toContain("[stroke-width:3]")
+  })
+
+  it("marks an edge that is both traversed and active with the active width", () => {
+    renderWithRuntimeEdge({
+      nodes: {},
+      activeEdgeIds: ["edge-1"],
+      traversedEdgeIds: ["edge-1"],
+    })
+
+    const className = edgeClassName()
+    expect(className).toContain("[stroke:var(--primary)]")
+    expect(className).toContain("[stroke-width:3]")
+    expect(className).not.toContain("[stroke-width:2]")
+  })
+
+  it("hides the insert/delete toolbar while observing", () => {
+    renderWithRuntimeEdge({
+      nodes: {},
+      activeEdgeIds: ["edge-1"],
+      traversedEdgeIds: [],
+    })
+
+    expect(
+      screen.queryByRole("button", { name: "Insert node on edge edge-1" })
+    ).toBeNull()
+    expect(
+      screen.queryByRole("button", { name: "Delete edge edge-1" })
+    ).toBeNull()
   })
 })

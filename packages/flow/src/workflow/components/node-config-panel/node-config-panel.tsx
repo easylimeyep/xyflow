@@ -7,18 +7,23 @@ import { Textarea } from "@flow/ui/components/textarea"
 import { nodeRegistry } from "../../node-registry/registry"
 import { useWorkflowSelection, useWorkflowShallowStore } from "../../store"
 import type { WorkflowStoreState } from "../../store"
+import type { WorkflowCanvasMode } from "../../types"
+import { NodeInspector } from "./node-inspector"
 
 interface WorkflowEditorConfigPanelProps {
   anchorRef?: Ref<HTMLElement>
+  mode?: WorkflowCanvasMode
 }
 
 export function WorkflowEditorConfigPanel({
   anchorRef,
+  mode = "edit",
 }: WorkflowEditorConfigPanelProps) {
   const { selectedNodeIds, selectedNode } = useWorkflowSelection()
   const updateNodeLabel = useWorkflowShallowStore(
     (state: WorkflowStoreState) => state.updateNodeLabel
   )
+  const isObserving = mode === "observe"
 
   const selectedDefinition = selectedNode
     ? nodeRegistry[selectedNode.data.kind as keyof typeof nodeRegistry]
@@ -39,13 +44,30 @@ export function WorkflowEditorConfigPanel({
       className="flex w-80 shrink-0 flex-col gap-3 border-l bg-background p-3"
     >
       <div className="space-y-1">
-        <h2 className="text-sm font-semibold">Config Panel</h2>
+        <h2 className="text-sm font-semibold">
+          {isObserving ? "Inspector" : "Config Panel"}
+        </h2>
         <p className="text-xs text-muted-foreground">
-          Inspect the current selection and adjust the selected node label.
+          {isObserving
+            ? "Inspect the selected node's runtime input and output."
+            : "Inspect the current selection and adjust the selected node label."}
         </p>
       </div>
 
-      {selectedNode ? (
+      {isObserving ? (
+        selectedNode ? (
+          <NodeInspector
+            nodeId={selectedNode.id}
+            nodeTitle={selectedDefinition?.title ?? selectedNode.data.kind}
+          />
+        ) : (
+          <div className="rounded-md border border-dashed bg-muted/20 p-4 text-sm text-muted-foreground">
+            {selectedNodeIds.length > 1
+              ? "Multiple nodes are selected. Pick a single node to inspect its run state."
+              : "Select a node on the canvas to inspect its run state."}
+          </div>
+        )
+      ) : selectedNode ? (
         <div className="space-y-3">
           <div className="space-y-1">
             <span className="text-xs font-medium text-muted-foreground">

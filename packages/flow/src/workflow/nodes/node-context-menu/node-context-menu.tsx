@@ -12,6 +12,7 @@ import { Copy, CopyPlus, Trash2 } from "lucide-react"
 import type { ComponentType } from "react"
 
 import { useWorkflowShallowStore, type WorkflowStoreState } from "../../store"
+import { useRuntimeMode } from "../../runtime"
 
 interface NodeContextMenuProps extends NodeProps {
   children: ComponentType<NodeProps>
@@ -21,6 +22,7 @@ export function NodeContextMenu({
   children: NodeComponent,
   ...props
 }: NodeContextMenuProps) {
+  const mode = useRuntimeMode()
   const {
     setSelectedNode,
     copySelectionToClipboard,
@@ -32,6 +34,12 @@ export function NodeContextMenu({
     duplicateNodes: state.duplicateNodes,
     deleteNodes: state.deleteNodes,
   }))
+
+  // In observe mode every menu entry mutates the graph, so the whole menu is
+  // withheld — the node still renders and stays selectable for the inspector.
+  if (mode === "observe") {
+    return <NodeComponent {...props} />
+  }
 
   const ensureNodeContextTarget = () => {
     if (props.selected) {

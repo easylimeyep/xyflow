@@ -37,7 +37,11 @@ import {
   type NodeKind,
 } from "../../node-registry/registry"
 import { workflowCanvasStyles } from "../../../styles/components/canvas"
-import type { WorkflowEdge, WorkflowNode } from "../../types"
+import type {
+  WorkflowCanvasMode,
+  WorkflowEdge,
+  WorkflowNode,
+} from "../../types"
 
 const workflowNodeTypes = buildNodeTypes(allDefinitions)
 import { validateConnection } from "../../validation"
@@ -71,6 +75,12 @@ interface WorkflowCanvasProps {
   autoLayoutOnInit?: "after-measure"
   onMeasuredInitialAutoLayout?: () => Promise<boolean>
   anchorRefs?: WorkflowEditorAnchorRefs
+  /**
+   * `observe` makes the canvas read-only: node dragging, connecting, edge
+   * selection, and delete are disabled while pan, zoom, and node selection
+   * stay on. Defaults to `edit`, so existing behaviour is unchanged.
+   */
+  mode?: WorkflowCanvasMode
 }
 
 function WorkflowCanvasInner({
@@ -92,7 +102,9 @@ function WorkflowCanvasInner({
   autoLayoutOnInit,
   onMeasuredInitialAutoLayout,
   anchorRefs,
+  mode = "edit",
 }: WorkflowCanvasProps) {
+  const isObserving = mode === "observe"
   const reactFlow = useReactFlow<WorkflowNode, WorkflowEdge>()
   const viewportState = useViewport()
   const nodesInitialized = useNodesInitialized()
@@ -182,8 +194,15 @@ function WorkflowCanvasInner({
   }, [edgeInsertPendingId, onDeleteEdge, onStartInsertFromEdge])
   const edgesWithType = useMemo(
     () =>
-      edges.map((edge) => (edge.type ? edge : { ...edge, type: "workflow" })),
-    [edges]
+      edges.map((edge) => {
+        const typed = edge.type ? edge : { ...edge, type: "workflow" }
+        if (!isObserving) {
+          return typed
+        }
+
+        return { ...typed, selectable: false, deletable: false }
+      }),
+    [edges, isObserving]
   )
   const edgeTypes = useMemo(
     () => ({
@@ -321,11 +340,13 @@ function WorkflowCanvasInner({
           defaultViewport={viewport}
           minZoom={WORKFLOW_MIN_ZOOM}
           maxZoom={WORKFLOW_MAX_ZOOM}
-          deleteKeyCode={["Backspace", "Delete"]}
+          nodesDraggable={!isObserving}
+          nodesConnectable={!isObserving}
+          deleteKeyCode={isObserving ? null : ["Backspace", "Delete"]}
           onMoveEnd={(_, nextViewport) => onViewportChange(nextViewport)}
           onNodesChange={onReactFlowNodesChange}
           onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
+          onConnect={isObserving ? undefined : onConnect}
           selectionMode={SelectionMode.Partial}
           panOnDrag
           panOnScroll
@@ -335,8 +356,8 @@ function WorkflowCanvasInner({
             validateConnection(connection, nodes, edges).valid
           }
           onPaneClick={onPaneClick}
-          onDragOver={onDragOver}
-          onDrop={onDrop}
+          onDragOver={isObserving ? undefined : onDragOver}
+          onDrop={isObserving ? undefined : onDrop}
           onMouseMove={onMouseMove}
           connectionLineStyle={{ strokeWidth: 2, stroke: "var(--border)" }}
         >

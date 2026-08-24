@@ -13,6 +13,7 @@ import {
   useWorkflowShallowStore,
   type WorkflowStoreState,
 } from "../../store"
+import { useRuntimeMode } from "../../runtime"
 import { Button } from "@flow/ui/components/button"
 
 interface OutputQuickAddAffordanceProps {
@@ -31,6 +32,7 @@ export function OutputQuickAddAffordance({
   labelClassName,
 }: OutputQuickAddAffordanceProps) {
   const normalizedHandle = sourceHandle ?? null
+  const mode = useRuntimeMode()
   const { startQuickAddFromOutput, hasOutgoing, isPending } =
     useWorkflowShallowStore((state: WorkflowStoreState) => ({
       startQuickAddFromOutput: state.startQuickAddFromOutput,
@@ -69,7 +71,7 @@ export function OutputQuickAddAffordance({
         position={Position.Right}
         className={handleStyles.handleBase()}
       />
-      {!hasOutgoing ? (
+      {!hasOutgoing && mode === "edit" ? (
         <div className={styles.quickAddRoot()}>
           <div className={styles.quickAddLine()} />
           <Button

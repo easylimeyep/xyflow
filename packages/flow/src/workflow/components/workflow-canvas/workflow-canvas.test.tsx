@@ -151,6 +151,7 @@ vi.mock("@xyflow/react", () => {
       onDrop,
       onPaneClick,
       onNodesChange,
+      onConnect,
       onMoveEnd,
       onMouseMove,
       isValidConnection,
@@ -164,11 +165,14 @@ vi.mock("@xyflow/react", () => {
       panOnScroll,
       zoomOnPinch,
       zoomOnScroll,
+      nodesDraggable,
+      nodesConnectable,
+      deleteKeyCode,
       minZoom,
       maxZoom,
     }: {
       children: ReactNode
-      onDrop: (event: React.DragEvent<HTMLDivElement>) => void
+      onDrop?: (event: React.DragEvent<HTMLDivElement>) => void
       onPaneClick: () => void
       onNodesChange: (
         changes: Array<{
@@ -177,6 +181,7 @@ vi.mock("@xyflow/react", () => {
           selected: boolean
         }>
       ) => void
+      onConnect?: (connection: { source: string; target: string }) => void
       onMoveEnd: (
         event: unknown,
         viewport: { x: number; y: number; zoom: number }
@@ -196,6 +201,8 @@ vi.mock("@xyflow/react", () => {
         sourceHandle?: string | null
         targetHandle?: string | null
         data?: unknown
+        selectable?: boolean
+        deletable?: boolean
       }>
       edgeTypes?: Record<string, (props: Record<string, unknown>) => ReactNode>
       selectionOnDrag?: boolean
@@ -204,12 +211,27 @@ vi.mock("@xyflow/react", () => {
       panOnScroll?: boolean
       zoomOnPinch?: boolean
       zoomOnScroll?: boolean
+      nodesDraggable?: boolean
+      nodesConnectable?: boolean
+      deleteKeyCode?: string[] | null
       minZoom?: number
       maxZoom?: number
     }) => {
       reactFlowRenderSpy({ edgeTypes })
       return (
         <div data-testid="rf-root" onDrop={onDrop}>
+          <span data-testid="rf-nodes-draggable">{String(nodesDraggable)}</span>
+          <span data-testid="rf-nodes-connectable">
+            {String(nodesConnectable)}
+          </span>
+          <span data-testid="rf-delete-key">{String(deleteKeyCode)}</span>
+          <span data-testid="rf-has-onconnect">
+            {String(Boolean(onConnect))}
+          </span>
+          <span data-testid="rf-has-ondrop">{String(Boolean(onDrop))}</span>
+          <span data-testid="rf-edges-selectable">
+            {String((edges ?? []).every((edge) => edge.selectable !== false))}
+          </span>
           <span data-testid="rf-has-default-viewport">
             {String(Boolean(defaultViewport))}
           </span>
@@ -849,5 +871,82 @@ describe("WorkflowCanvas", () => {
 
     expect(onPointerFlowPosition).toHaveBeenCalledTimes(1)
     expect(onPointerFlowPosition).toHaveBeenCalledWith({ x: 200, y: 100 })
+  })
+
+  it("keeps mutation affordances enabled in edit mode", () => {
+    render(
+      <WorkflowCanvas
+        nodes={fixtureGraphWithEdge.nodes}
+        edges={fixtureGraphWithEdge.edges}
+        viewport={fixtureGraphWithEdge.viewport}
+        onNodesChange={vi.fn()}
+        onEdgesChange={vi.fn()}
+        onConnect={vi.fn()}
+        onViewportChange={vi.fn()}
+        onSelectNodes={vi.fn()}
+        onPaneClick={vi.fn()}
+        onAddNodeAt={vi.fn()}
+        onStartInsertFromEdge={vi.fn()}
+        onDeleteEdge={vi.fn()}
+        onPointerFlowPosition={vi.fn()}
+        edgeInsertPendingId={null}
+        onAutoLayout={vi.fn(async () => true)}
+      />
+    )
+
+    expect(screen.getByTestId("rf-nodes-draggable").textContent).toBe("true")
+    expect(screen.getByTestId("rf-nodes-connectable").textContent).toBe("true")
+    expect(screen.getByTestId("rf-delete-key").textContent).toBe(
+      "Backspace,Delete"
+    )
+    expect(screen.getByTestId("rf-has-onconnect").textContent).toBe("true")
+    expect(screen.getByTestId("rf-has-ondrop").textContent).toBe("true")
+    expect(screen.getByTestId("rf-edges-selectable").textContent).toBe("true")
+  })
+
+  it("gates drag, connect, delete, and drop in observe mode while keeping selection", () => {
+    const onAddNodeAt = vi.fn()
+    const onSelectNodes = vi.fn()
+
+    render(
+      <WorkflowCanvas
+        nodes={fixtureGraphWithEdge.nodes}
+        edges={fixtureGraphWithEdge.edges}
+        viewport={fixtureGraphWithEdge.viewport}
+        onNodesChange={vi.fn()}
+        onEdgesChange={vi.fn()}
+        onConnect={vi.fn()}
+        onViewportChange={vi.fn()}
+        onSelectNodes={onSelectNodes}
+        onPaneClick={vi.fn()}
+        onAddNodeAt={onAddNodeAt}
+        onStartInsertFromEdge={vi.fn()}
+        onDeleteEdge={vi.fn()}
+        onPointerFlowPosition={vi.fn()}
+        edgeInsertPendingId={null}
+        onAutoLayout={vi.fn(async () => true)}
+        mode="observe"
+      />
+    )
+
+    // Mutation affordances are disabled.
+    expect(screen.getByTestId("rf-nodes-draggable").textContent).toBe("false")
+    expect(screen.getByTestId("rf-nodes-connectable").textContent).toBe("false")
+    expect(screen.getByTestId("rf-delete-key").textContent).toBe("null")
+    expect(screen.getByTestId("rf-has-onconnect").textContent).toBe("false")
+    expect(screen.getByTestId("rf-has-ondrop").textContent).toBe("false")
+    expect(screen.getByTestId("rf-edges-selectable").textContent).toBe("false")
+
+    // A drop cannot add a node because the handler is withheld.
+    const dataTransfer = {
+      getData: (key: string) =>
+        key === WORKFLOW_NODE_KIND_MIME ? "extractor" : "",
+    } as DataTransfer
+    fireEvent.drop(screen.getByTestId("rf-root"), { dataTransfer })
+    expect(onAddNodeAt).not.toHaveBeenCalled()
+
+    // Node selection stays available so the inspector can open.
+    fireEvent.click(screen.getByTestId("rf-select"))
+    expect(onSelectNodes).toHaveBeenCalledWith(["selected-node"])
   })
 })
