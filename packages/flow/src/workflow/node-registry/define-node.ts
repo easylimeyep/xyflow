@@ -39,3 +39,25 @@ export function defineNode<K extends string>(
 ): NodeDefinition<K> {
   return definition
 }
+
+/**
+ * The config keys a kind supports.
+ *
+ * `fields` is what a definition declares as editable; `buildDefaultConfig` is
+ * what a freshly dropped node starts with. They coincide only when every field
+ * has a sensible seed — a definition deriving its fields from a schema must
+ * leave a constrained optional key unseeded rather than invent a value for it.
+ * So the surface is the union, in declaration order: fields first, then any key
+ * the default config adds on its own.
+ */
+export function getNodeConfigKeys(
+  definition: NodeDefinition
+): readonly string[] {
+  const declared = [
+    ...definition.fields.map((field) => field.key),
+    ...(definition.inlineFields ?? []).map((field) => field.key),
+    ...Object.keys(definition.buildDefaultConfig()),
+  ]
+
+  return [...new Set(declared)]
+}

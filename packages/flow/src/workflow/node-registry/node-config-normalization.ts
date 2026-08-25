@@ -1,4 +1,5 @@
 import type { JsonObject, JsonValue } from "../types/types"
+import { getNodeConfigKeys } from "./define-node"
 import { getNodeDefinition, type NodeKind } from "./registry"
 
 export function normalizeNodeConfig(
@@ -13,7 +14,10 @@ export function normalizeNodeConfig(
   const result: JsonObject = sanitizeJsonObject(baseConfig)
   const rawConfig = partialConfig as Record<string, unknown>
 
-  Object.keys(baseConfig).forEach((key) => {
+  // Every key the definition DECLARES, not only the seeded ones: a field the
+  // default config leaves out is still part of the kind's config surface, and
+  // dropping its stored value here would lose it on every load.
+  getNodeConfigKeys(definition).forEach((key) => {
     const rawValue = rawConfig[key]
     if (rawValue === undefined) {
       return
@@ -49,9 +53,8 @@ export function decodeNodeConfig(
     }
   }
 
-  const baseConfig = definition.buildDefaultConfig()
   const rawConfig = value as Record<string, unknown>
-  const allowedKeys = new Set(Object.keys(baseConfig))
+  const allowedKeys = new Set(getNodeConfigKeys(definition))
 
   for (const key of Object.keys(rawConfig)) {
     if (!allowedKeys.has(key)) {

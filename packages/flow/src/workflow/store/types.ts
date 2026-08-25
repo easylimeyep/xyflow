@@ -11,6 +11,7 @@ import type { WorkflowError } from "../types/errors"
 import type {
   DomainWorkflowDTO,
   ExpressionVariableOption,
+  JsonValue,
   NodeConfigByKind,
   NodeKind,
   WorkflowEvaluatorOperatorCatalog,
@@ -31,7 +32,7 @@ export interface PendingEdgeInsert {
   edgeId: string
 }
 
-export type NodeConfigUpdate = {
+type BuiltinNodeConfigUpdate = {
   [K in keyof NodeConfigByKind]: {
     [P in keyof NodeConfigByKind[K] & string]: {
       kind: K
@@ -40,6 +41,27 @@ export type NodeConfigUpdate = {
     }
   }[keyof NodeConfigByKind[K] & string]
 }[keyof NodeConfigByKind]
+
+/**
+ * A config update for a kind registered by a consumer.
+ *
+ * The package cannot know that kind's config shape — it is declared by the
+ * definition's `fields` and checked by its `validateConfigValue` — so the
+ * payload is typed structurally. A built-in kind cannot be excluded from
+ * `string` at the type level, so this arm also admits a built-in payload that
+ * does not match its exact per-key type; `applyUpdateNodeConfigCommand`
+ * rejects it at runtime through the definition's own value check, as it does
+ * for every other invalid value.
+ */
+interface RegisteredNodeConfigUpdate {
+  kind: string
+  key: string
+  value: JsonValue
+}
+
+export type NodeConfigUpdate =
+  | BuiltinNodeConfigUpdate
+  | RegisteredNodeConfigUpdate
 
 export interface ExpressionDepsNode {
   id: string

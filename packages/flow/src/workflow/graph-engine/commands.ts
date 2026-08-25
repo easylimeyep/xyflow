@@ -2,6 +2,7 @@ import { addEdge, applyNodeChanges } from "@xyflow/react"
 import type { NodeChange, XYPosition } from "@xyflow/react"
 
 import type { NodeKind } from "../node-registry/registry"
+import { getNodeConfigKeys } from "../node-registry/define-node"
 import { getNodeDefinition } from "../node-registry/registry"
 import { createWorkflowError, type WorkflowError } from "../types/errors"
 import type {
@@ -211,8 +212,7 @@ export function applyUpdateNodeConfigCommand(
       ),
     }
   }
-  const defaultConfig = definition.buildDefaultConfig()
-  if (!(command.update.key in defaultConfig)) {
+  if (!getNodeConfigKeys(definition).includes(command.update.key)) {
     return {
       ok: false,
       error: createWorkflowError(
