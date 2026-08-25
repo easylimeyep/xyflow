@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { WORKFLOW_NODE_KINDS } from "../node-registry"
+import { workflowNodeKinds } from "../node-registry"
 import { WORKFLOW_EDITOR_TOUR } from "./workflow-editor-tour"
 import type { WorkflowEditorAnchor, WorkflowTourStep } from "./types"
 
@@ -21,7 +21,7 @@ const editorAnchors = new Set<WorkflowEditorAnchor>([
 describe("WORKFLOW_EDITOR_TOUR", () => {
   it("exports typed workflow tour steps with valid anchors", () => {
     const steps: readonly WorkflowTourStep[] = WORKFLOW_EDITOR_TOUR
-    const nodeKinds = new Set(WORKFLOW_NODE_KINDS)
+    const nodeKinds = new Set(workflowNodeKinds())
 
     expect(steps.length).toBeGreaterThan(0)
 

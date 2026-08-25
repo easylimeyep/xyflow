@@ -97,6 +97,11 @@ function refactorExpressionFieldsInGraph(
 function getRefactorableConfigKeys(node: WorkflowNode): string[] {
   const kind = node.data.kind as NodeKind
   const definition = getNodeDefinition(kind)
+  // A node whose kind is not registered has no declared fields, so nothing in
+  // its config can be an expression to refactor.
+  if (!definition) {
+    return []
+  }
   const fieldKeys = definition.fields
     .filter(
       (field) =>

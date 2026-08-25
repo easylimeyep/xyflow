@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from "vitest"
 
 import {
   DEFAULT_EVALUATOR_OPERATOR_ID,
-  WORKFLOW_NODE_KINDS,
+  workflowNodeKinds,
   WorkflowEditor,
   isNodeKind,
 } from "./index"
@@ -103,7 +103,7 @@ describe("WorkflowEditor package root", () => {
     const exportMapper: WorkflowExportDomainMapper = (payload) => payload
     const importMapper: WorkflowImportDomainMapper = (payload) => payload
 
-    expect(WORKFLOW_NODE_KINDS).toContain(nodeKind)
+    expect(workflowNodeKinds()).toContain(nodeKind)
     expect(isNodeKind(nodeKind)).toBe(true)
     expect(DEFAULT_EVALUATOR_OPERATOR_ID).toBe("is equal to")
     expect(exportMapper(workflowDto)).toBe(workflowDto)

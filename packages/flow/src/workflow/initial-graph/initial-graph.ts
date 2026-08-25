@@ -7,6 +7,7 @@ import {
   getNodeDefinition,
   normalizeNodeConfig,
 } from "../node-registry"
+import type { BuiltinNodeKind } from "../node-registry"
 import type {
   NodeConfigByKind,
   NodeKind,
@@ -23,16 +24,28 @@ const INITIAL_GRAPH_DEFAULT_DOCUMENT = {
   metadata: {},
 } as const satisfies WorkflowGraphState["document"]
 
-type InputNodeByKind = {
-  [K in NodeKind]: {
+/**
+ * A built-in kind types its `config` against that kind's config shape; a kind
+ * registered by a consumer is not in `NodeConfigByKind`, so its config is
+ * checked at runtime by `normalizeNodeConfig` instead.
+ */
+type BuiltinNodeInput = {
+  [K in BuiltinNodeKind]: {
     id: string
     kind: K
     label?: string
     config?: Partial<NodeConfigByKind[K]>
   }
+}[BuiltinNodeKind]
+
+interface RegisteredNodeInput {
+  id: string
+  kind: NodeKind
+  label?: string
+  config?: Record<string, unknown>
 }
 
-export type InitialGraphNodeInput = InputNodeByKind[NodeKind]
+export type InitialGraphNodeInput = BuiltinNodeInput | RegisteredNodeInput
 
 export interface InitialGraphEdgeInput {
   id?: string
@@ -94,6 +107,9 @@ function normalizeNodes(
     seenIds.add(input.id)
 
     const definition = getNodeDefinition(input.kind)
+    if (!definition) {
+      throw new Error(`Unknown node kind: ${input.kind}`)
+    }
     const label = input.label ?? definition.title
     const node = createWorkflowNode(input.kind, { x: 0, y: 0 }, label)
 

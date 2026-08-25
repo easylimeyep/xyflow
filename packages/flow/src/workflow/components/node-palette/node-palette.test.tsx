@@ -3,7 +3,7 @@
 import { cleanup, render, screen } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import { WORKFLOW_NODE_KINDS } from "../../node-registry"
+import { workflowNodeKinds } from "../../node-registry"
 import type { WorkflowEditorAnchorRefs } from "../../tour"
 import { NodePalette } from "./node-palette"
 
@@ -20,7 +20,7 @@ describe("NodePalette tour anchors", () => {
     expect(anchorRefs.current.palette).toBe(
       screen.getByRole("complementary", { name: "Node palette" })
     )
-    for (const kind of WORKFLOW_NODE_KINDS) {
+    for (const kind of workflowNodeKinds()) {
       expect(anchorRefs.current.paletteItems?.[kind]).toBeInstanceOf(
         HTMLElement
       )
@@ -36,7 +36,7 @@ describe("NodePalette tour anchors", () => {
     view.unmount()
 
     expect(anchorRefs.current.palette).toBeUndefined()
-    for (const kind of WORKFLOW_NODE_KINDS) {
+    for (const kind of workflowNodeKinds()) {
       expect(anchorRefs.current.paletteItems?.[kind]).toBeUndefined()
     }
   })

@@ -5,11 +5,11 @@ import {
   decodeNodeConfig,
   normalizeNodeConfig,
 } from "./node-config-normalization"
-import { nodeRegistry } from "./registry"
+import { getNodeDefinition, workflowNodeKinds } from "./registry"
 
 describe("workflow node registry", () => {
   it("includes set variable definition", () => {
-    const definition = nodeRegistry.setVariable
+    const definition = getNodeDefinition("setVariable")!
 
     expect(definition.kind).toBe("setVariable")
     expect(definition.title).toBe("Setter")
@@ -38,7 +38,7 @@ describe("workflow node registry", () => {
   })
 
   it("includes inline expression definition", () => {
-    const definition = nodeRegistry.inlineExpression
+    const definition = getNodeDefinition("inlineExpression")!
 
     expect(definition.kind).toBe("inlineExpression")
     expect(definition.title).toBe("Keyword")
@@ -188,11 +188,11 @@ describe("workflow node registry", () => {
   })
 
   it("does not expose trigger node in registry", () => {
-    expect(Object.keys(nodeRegistry)).not.toContain("trigger")
+    expect(workflowNodeKinds()).not.toContain("trigger")
   })
 
   it("includes extractor definition with rename config key", () => {
-    const definition = nodeRegistry.extractor
+    const definition = getNodeDefinition("extractor")!
 
     expect(definition.kind).toBe("extractor")
     expect(definition.renameConfigKey).toBe("extractExpression")
@@ -211,7 +211,7 @@ describe("workflow node registry", () => {
   })
 
   it("includes result node definition", () => {
-    const definition = nodeRegistry.result
+    const definition = getNodeDefinition("result")!
 
     expect(definition.kind).toBe("result")
     expect(definition.category).toBe("logic")

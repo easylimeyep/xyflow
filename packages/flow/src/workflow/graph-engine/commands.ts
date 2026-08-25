@@ -202,6 +202,15 @@ export function applyUpdateNodeConfigCommand(
   }
 
   const definition = getNodeDefinition(targetNode.data.kind as NodeKind)
+  if (!definition) {
+    return {
+      ok: false,
+      error: createWorkflowError(
+        "INVALID_NODE_CONFIG_KIND",
+        `Node kind ${targetNode.data.kind} is not registered.`
+      ),
+    }
+  }
   const defaultConfig = definition.buildDefaultConfig()
   if (!(command.update.key in defaultConfig)) {
     return {

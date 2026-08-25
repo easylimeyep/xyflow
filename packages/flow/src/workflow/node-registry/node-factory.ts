@@ -1,7 +1,7 @@
 import type { XYPosition } from "@xyflow/react"
 
 import type { JsonObject, WorkflowNode, WorkflowNodeData } from "../types/types"
-import { nodeRegistry, type NodeKind } from "./registry"
+import { getNodeDefinition, type NodeKind } from "./registry"
 
 export const DEFAULT_NODE_WIDTH = 260
 export const DEFAULT_NODE_HEIGHT = 80
@@ -11,7 +11,7 @@ export function createNodeId(kind: string): string {
 }
 
 function toNodeData(kind: NodeKind, label?: string): WorkflowNodeData {
-  const definition = nodeRegistry[kind]
+  const definition = getNodeDefinition(kind)
   if (!definition) {
     throw new Error(`Unknown node kind: ${kind}`)
   }

@@ -38,7 +38,8 @@ function resolveDefaultOutputHandles(
     return []
   }
 
-  if (definition.outputs) {
+  // An unregistered kind lays out with a single default output handle.
+  if (definition?.outputs) {
     return definition.outputs.map((handle) => ({ id: handle.id ?? null }))
   }
 

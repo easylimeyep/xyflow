@@ -9,11 +9,8 @@ import {
 } from "@flow/ui/components/action-bar"
 import { Badge } from "@flow/ui/components/badge"
 import { WORKFLOW_NODE_KIND_MIME } from "../../dnd"
-import {
-  nodeRegistry,
-  WORKFLOW_NODE_KINDS,
-  type NodeKind,
-} from "../../node-registry/registry"
+import type { NodeKind } from "../../node-registry/registry"
+import { useNodeDefinitions } from "../../node-registry/use-node-definitions"
 import { nodePaletteStyles } from "../../../styles/components/panels"
 import type { WorkflowEditorAnchorRefs } from "../../tour"
 import {
@@ -28,14 +25,15 @@ interface NodePaletteProps {
   anchorRefs?: WorkflowEditorAnchorRefs
 }
 
-const entries = WORKFLOW_NODE_KINDS.map((kind) => nodeRegistry[kind])
-
 export function NodePalette({
   onAddNode,
   quickAddActive = false,
   isOpen = true,
   anchorRefs,
 }: NodePaletteProps) {
+  // Read at render, not at module load: a consumer registers its kinds during
+  // app start-up, which may happen after this module is evaluated.
+  const entries = useNodeDefinitions()
   const containerRef = useRef<HTMLElement | null>(null)
   const wasOpenRef = useRef(isOpen)
   const styles = nodePaletteStyles({ quickAddActive })

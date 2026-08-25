@@ -31,11 +31,11 @@ import { LayoutTemplate, Maximize2, ZoomIn, ZoomOut } from "lucide-react"
 
 import { WORKFLOW_NODE_KIND_MIME } from "../../dnd"
 import { buildNodeTypes } from "../../node-registry/node-types-builder"
+import { isNodeKind, type NodeKind } from "../../node-registry/registry"
 import {
-  allDefinitions,
-  isNodeKind,
-  type NodeKind,
-} from "../../node-registry/registry"
+  useNodeDefinitions,
+  useNodeViews,
+} from "../../node-registry/use-node-definitions"
 import { workflowCanvasStyles } from "../../../styles/components/canvas"
 import type {
   WorkflowCanvasMode,
@@ -43,7 +43,6 @@ import type {
   WorkflowNode,
 } from "../../types"
 
-const workflowNodeTypes = buildNodeTypes(allDefinitions)
 import { validateConnection } from "../../validation"
 import { WorkflowEdgeComponent } from "../workflow-edge"
 import { useNodeChangeRouter } from "./use-node-change-router"
@@ -192,6 +191,15 @@ function WorkflowCanvasInner({
     edgeInteractionRef.current.onDeleteEdge = onDeleteEdge
     edgeInteractionRef.current.edgeInsertPendingId = edgeInsertPendingId
   }, [edgeInsertPendingId, onDeleteEdge, onStartInsertFromEdge])
+  // Node types are rebuilt when the vocabulary changes: a consumer may register
+  // its kinds after this canvas mounted, and a stale map would render every one
+  // of them as an unknown node type.
+  const definitions = useNodeDefinitions()
+  const views = useNodeViews()
+  const workflowNodeTypes = useMemo(
+    () => buildNodeTypes(definitions, views),
+    [definitions, views]
+  )
   const edgesWithType = useMemo(
     () =>
       edges.map((edge) => {

@@ -2,27 +2,27 @@
 
 import { describe, expect, it } from "vitest"
 
-import { WORKFLOW_NODE_KINDS, type NodeKind } from "./registry"
-import { nodeComponents } from "./view-registry"
+import { workflowNodeKinds, type NodeKind } from "./registry"
+import { listNodeViews } from "./view-registry"
 
 describe("workflow node view registry", () => {
   it("binds custom components only for valid node kinds", () => {
-    const validKinds = new Set<string>(WORKFLOW_NODE_KINDS)
+    const validKinds = new Set<string>(workflowNodeKinds())
 
-    for (const kind of Object.keys(nodeComponents)) {
+    for (const kind of Object.keys(listNodeViews())) {
       expect(validKinds.has(kind)).toBe(true)
     }
   })
 
   it("covers all currently custom-rendered workflow nodes", () => {
-    expect(Object.keys(nodeComponents).sort()).toEqual(
-      [...WORKFLOW_NODE_KINDS].sort()
+    expect(Object.keys(listNodeViews()).sort()).toEqual(
+      [...workflowNodeKinds()].sort()
     )
   })
 
   it("exposes React component functions for each binding", () => {
-    for (const kind of WORKFLOW_NODE_KINDS) {
-      expect(typeof nodeComponents[kind as NodeKind]).toBe("function")
+    for (const kind of workflowNodeKinds()) {
+      expect(typeof listNodeViews()[kind as NodeKind]).toBe("function")
     }
   })
 })

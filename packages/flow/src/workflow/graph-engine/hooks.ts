@@ -35,13 +35,14 @@ function maybeRefactorExpressions(
   nodes: WorkflowNode[],
   context: ConfigHookContext
 ): WorkflowNode[] {
+  // An unregistered kind declares no rename key, so no rename can be detected.
   const definition = getNodeDefinition(context.targetNode.data.kind as NodeKind)
   const oldName =
     typeof context.previousValue === "string" ? context.previousValue : null
   const newName =
     typeof context.update.value === "string" ? context.update.value : null
   const isRenameFieldUpdate =
-    definition.renameConfigKey === context.update.key &&
+    definition?.renameConfigKey === context.update.key &&
     oldName !== null &&
     newName !== null &&
     isValidJsIdentifier(oldName.trim()) &&

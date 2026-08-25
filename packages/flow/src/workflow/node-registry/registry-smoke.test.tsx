@@ -5,9 +5,9 @@ import { describe, expect, it, vi } from "vitest"
 
 import { DefaultNodeRenderer } from "../nodes/shared/default-node-renderer"
 import {
-  allDefinitions,
-  nodeRegistry,
-  WORKFLOW_NODE_KINDS,
+  listNodeDefinitions,
+  getNodeDefinition,
+  workflowNodeKinds,
   type NodeKind,
 } from "./registry"
 
@@ -27,24 +27,28 @@ vi.mock(
 )
 
 describe("registry smoke tests", () => {
-  it("allDefinitions and nodeRegistry have matching entries", () => {
-    const definitionKinds = allDefinitions.map((d) => d.kind).sort()
-    const registryKinds = Object.keys(nodeRegistry).sort()
+  it("the definition list and the kind index have matching entries", () => {
+    const definitionKinds = listNodeDefinitions()
+      .map((definition) => definition.kind)
+      .sort()
+    const registryKinds = [...workflowNodeKinds()].sort()
 
     expect(definitionKinds).toEqual(registryKinds)
   })
 
-  it("WORKFLOW_NODE_KINDS matches registry keys", () => {
-    const registryKinds = Object.keys(nodeRegistry).sort()
-    const sortedKinds = [...WORKFLOW_NODE_KINDS].sort()
+  it("workflowNodeKinds() matches the registered definitions", () => {
+    const registryKinds = [...workflowNodeKinds()].sort()
+    const sortedKinds = listNodeDefinitions()
+      .map((definition) => definition.kind)
+      .sort()
 
     expect(sortedKinds).toEqual(registryKinds)
   })
 
-  it.each(WORKFLOW_NODE_KINDS)(
+  it.each(workflowNodeKinds())(
     "node kind '%s' has valid definition fields",
     (kind) => {
-      const definition = nodeRegistry[kind as NodeKind]
+      const definition = getNodeDefinition(kind as NodeKind)!
 
       expect(definition).toBeDefined()
       expect(definition.kind).toBe(kind)
@@ -60,10 +64,10 @@ describe("registry smoke tests", () => {
     }
   )
 
-  it.each(WORKFLOW_NODE_KINDS)(
+  it.each(workflowNodeKinds())(
     "node kind '%s' builds valid default config",
     (kind) => {
-      const definition = nodeRegistry[kind as NodeKind]
+      const definition = getNodeDefinition(kind as NodeKind)!
       const config = definition.buildDefaultConfig()
 
       expect(config).toBeDefined()
@@ -72,10 +76,10 @@ describe("registry smoke tests", () => {
     }
   )
 
-  it.each(WORKFLOW_NODE_KINDS)(
+  it.each(workflowNodeKinds())(
     "node definition '%s' renders via DefaultNodeRenderer without client bindings",
     (kind) => {
-      const definition = nodeRegistry[kind as NodeKind]
+      const definition = getNodeDefinition(kind as NodeKind)!
 
       const { container } = render(
         <DefaultNodeRenderer
@@ -104,15 +108,15 @@ describe("registry smoke tests", () => {
   )
 
   it("pure node definitions do not carry client component bindings", () => {
-    for (const definition of allDefinitions) {
+    for (const definition of listNodeDefinitions()) {
       expect("component" in definition).toBe(false)
     }
   })
 
   it("all allowedTargets reference valid node kinds", () => {
-    const validKinds = new Set(WORKFLOW_NODE_KINDS)
+    const validKinds = new Set(workflowNodeKinds())
 
-    for (const definition of allDefinitions) {
+    for (const definition of listNodeDefinitions()) {
       for (const target of definition.allowedTargets) {
         expect(validKinds.has(target as NodeKind)).toBe(true)
       }

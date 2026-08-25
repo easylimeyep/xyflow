@@ -4,7 +4,7 @@ import { type Ref, useMemo } from "react"
 
 import { Input } from "@flow/ui/components/input"
 import { Textarea } from "@flow/ui/components/textarea"
-import { nodeRegistry } from "../../node-registry/registry"
+import { useNodeDefinitions } from "../../node-registry/use-node-definitions"
 import { useWorkflowSelection, useWorkflowShallowStore } from "../../store"
 import type { WorkflowStoreState } from "../../store"
 import type { WorkflowCanvasMode } from "../../types"
@@ -25,9 +25,19 @@ export function WorkflowEditorConfigPanel({
   )
   const isObserving = mode === "observe"
 
-  const selectedDefinition = selectedNode
-    ? nodeRegistry[selectedNode.data.kind as keyof typeof nodeRegistry]
-    : null
+  // Resolved out of the subscribed list rather than a direct registry read, so
+  // the panel is correct when a consumer registers kinds after the editor
+  // mounted.
+  const definitions = useNodeDefinitions()
+  const selectedDefinition = useMemo(
+    () =>
+      selectedNode
+        ? (definitions.find(
+            (definition) => definition.kind === selectedNode.data.kind
+          ) ?? null)
+        : null,
+    [selectedNode, definitions]
+  )
 
   const configPreview = useMemo(() => {
     if (!selectedNode) {
