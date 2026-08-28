@@ -8,12 +8,23 @@ import { result } from "../nodes/logic/result"
 /**
  * The node vocabulary of an editor instance.
  *
- * The five definitions below ship with the package. A consuming product adds
- * its own with {@link registerNodeDefinitions}: the palette, the config panel,
- * the node factory, config normalization and the canvas all read the live list,
- * so a registered kind behaves exactly like a built-in one — including the
- * generic renderer, which draws any definition from its `fields` without a
- * bespoke component.
+ * The vocabulary starts EMPTY. Every kind an editor offers — in the palette,
+ * the config panel, the node factory, config normalization and on the canvas —
+ * gets there through {@link registerNodeDefinitions}, and a product registers
+ * exactly the kinds its backend can execute. Nothing is opt-out.
+ *
+ * The five definitions below still ship with the package, and a consumer that
+ * wants them asks for them by name:
+ *
+ * ```ts
+ * registerNodeDefinitions(builtinDefinitions)          // all five
+ * registerNodeDefinitions([evaluator, result])         // or a subset
+ * ```
+ *
+ * They used to be registered here, which made them the default vocabulary of
+ * every editor instance: a product with its own kinds got the package's five in
+ * its palette too, offering an author nodes its engine would refuse to run. The
+ * definitions are unchanged — only their registration moved to the consumer.
  *
  * Registration is a module-level store rather than a React context because the
  * non-React layers — mappers, validation, layout, the store slices — resolve
@@ -45,8 +56,10 @@ export type BuiltinNodeKind = ExtractKind<BuiltinDefinitions[number]>
  */
 export type NodeKind = string
 
-let definitions: readonly NodeDefinition[] = builtinDefinitions
-let registry: ReadonlyMap<string, NodeDefinition> = indexBy(builtinDefinitions)
+const EMPTY_DEFINITIONS: readonly NodeDefinition[] = []
+
+let definitions: readonly NodeDefinition[] = EMPTY_DEFINITIONS
+let registry: ReadonlyMap<string, NodeDefinition> = indexBy(EMPTY_DEFINITIONS)
 
 const listeners = new Set<() => void>()
 
@@ -89,11 +102,14 @@ export function registerNodeDefinitions(
 }
 
 /**
- * Drop every consumer registration and return to the built-in five. Exists for
- * tests, which would otherwise leak a vocabulary from one suite into the next.
+ * Empty the vocabulary, back to the state a freshly imported package is in.
+ *
+ * Exists for tests, which would otherwise leak a vocabulary from one suite into
+ * the next. It does NOT restore the built-ins — nothing is registered by
+ * default, so a suite that needs them re-registers `builtinDefinitions` itself.
  */
 export function resetNodeDefinitions(): void {
-  publish(builtinDefinitions)
+  publish(EMPTY_DEFINITIONS)
 }
 
 /** The live vocabulary, in palette order. */

@@ -9,6 +9,14 @@ import {
 import { createWorkflowStore } from "./store"
 import type { DomainWorkflowNodeDTO, WorkflowNode } from "../types/types"
 
+import { createKeywordSampleGraph } from "../default-graph"
+/**
+ * The editor's own default document is empty now — the node vocabulary belongs
+ * to the consumer, so the package has no kind it may seed one with. These
+ * suites are about behaviour over a populated graph, so they pass the sample
+ * document the default used to be.
+ */
+
 function findRootKeywordNode(nodes: WorkflowNode[]): WorkflowNode | undefined {
   return nodes.find(
     (node) =>
@@ -45,7 +53,9 @@ describe("workflow store clipboard actions", () => {
   })
 
   it("copies selected nodes into workflow selection payload", async () => {
-    const store = createWorkflowStore()
+    const store = createWorkflowStore({
+      initialGraph: createKeywordSampleGraph(),
+    })
     const state = store.getState()
     state.addNode("inlineExpression", { x: 360, y: 80 })
     const triggerNode = findRootKeywordNode(
@@ -78,7 +88,9 @@ describe("workflow store clipboard actions", () => {
   })
 
   it("pastes nodes at explicit anchor and ensures unique label/variable names", async () => {
-    const store = createWorkflowStore()
+    const store = createWorkflowStore({
+      initialGraph: createKeywordSampleGraph(),
+    })
     const state = store.getState()
     state.addNode("setVariable", { x: 600, y: 160 })
 
@@ -159,7 +171,9 @@ describe("workflow store clipboard actions", () => {
   })
 
   it("pastes nodes at viewport fallback when no anchor is provided", async () => {
-    const store = createWorkflowStore()
+    const store = createWorkflowStore({
+      initialGraph: createKeywordSampleGraph(),
+    })
     const payload = exportSelectionClipboardJson(
       [
         {
@@ -190,7 +204,9 @@ describe("workflow store clipboard actions", () => {
   })
 
   it("returns false for invalid clipboard payload", async () => {
-    const store = createWorkflowStore()
+    const store = createWorkflowStore({
+      initialGraph: createKeywordSampleGraph(),
+    })
     clipboardReadTextMock.mockResolvedValue('{"foo":"bar"}')
 
     const pasted = await store.getState().pasteFromClipboard()
@@ -201,7 +217,9 @@ describe("workflow store clipboard actions", () => {
   })
 
   it("rejects clipboard payloads with invalid config values deterministically", async () => {
-    const store = createWorkflowStore()
+    const store = createWorkflowStore({
+      initialGraph: createKeywordSampleGraph(),
+    })
     clipboardReadTextMock.mockResolvedValue(
       JSON.stringify({
         kind: "workflow-selection-v1",
@@ -227,7 +245,9 @@ describe("workflow store clipboard actions", () => {
   })
 
   it("returns false when clipboard write fails", async () => {
-    const store = createWorkflowStore()
+    const store = createWorkflowStore({
+      initialGraph: createKeywordSampleGraph(),
+    })
     const triggerNode = findRootKeywordNode(
       store.getState().history.present.nodes
     )
@@ -245,7 +265,9 @@ describe("workflow store clipboard actions", () => {
   })
 
   it("handles concurrent paste calls without throwing and keeps graph consistent", async () => {
-    const store = createWorkflowStore()
+    const store = createWorkflowStore({
+      initialGraph: createKeywordSampleGraph(),
+    })
     const payloadNodes: DomainWorkflowNodeDTO[] = [
       {
         id: "parallel-copy-set-variable",
@@ -295,7 +317,9 @@ describe("workflow store clipboard actions", () => {
   })
 
   it("rewrites pasted node references when labels are auto-incremented", async () => {
-    const store = createWorkflowStore()
+    const store = createWorkflowStore({
+      initialGraph: createKeywordSampleGraph(),
+    })
     const state = store.getState()
     state.addNode("setVariable", { x: 600, y: 160 })
 
@@ -348,7 +372,9 @@ describe("workflow store clipboard actions", () => {
   })
 
   it("preserves setVariable and evaluator semantic config across clipboard roundtrip", async () => {
-    const store = createWorkflowStore()
+    const store = createWorkflowStore({
+      initialGraph: createKeywordSampleGraph(),
+    })
     const payload = exportSelectionClipboardJson(
       [
         {
@@ -453,7 +479,9 @@ describe("workflow store clipboard actions", () => {
   })
 
   it("does not commit graph for unchanged config updates", () => {
-    const store = createWorkflowStore()
+    const store = createWorkflowStore({
+      initialGraph: createKeywordSampleGraph(),
+    })
     const initialState = store.getState()
     const node = findRootKeywordNode(initialState.history.present.nodes)
     if (!node) {

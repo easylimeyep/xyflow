@@ -2,7 +2,7 @@
 
 import { cleanup, render, screen } from "@testing-library/react"
 import { CircleIcon } from "lucide-react"
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { NodePalette } from "../components/node-palette/node-palette"
 import { defineNode } from "./define-node"
@@ -10,6 +10,7 @@ import { normalizeNodeConfig } from "./node-config-normalization"
 import { createWorkflowNode } from "./node-factory"
 import { getAllowedTargets, getNodeOutputPaths } from "./node-graph-rules"
 import {
+  builtinDefinitions,
   getNodeDefinition,
   isNodeKind,
   listNodeDefinitions,
@@ -36,7 +37,54 @@ const aiTurn = defineNode({
   allowedTargets: ["ai.turn", "result"],
 })
 
+describe("the empty baseline", () => {
+  afterEach(() => {
+    resetNodeDefinitions()
+  })
+
+  it("registers nothing until a consumer asks for it", () => {
+    // Arrange & Act — the setup file registers the built-ins for every other
+    // suite in this package; this one starts from the state a freshly imported
+    // package is actually in.
+    resetNodeDefinitions()
+
+    // Assert
+    expect(workflowNodeKinds()).toEqual([])
+    expect(getNodeDefinition("inlineExpression")).toBeUndefined()
+  })
+
+  it("offers the built-ins as an explicit opt-in", () => {
+    // Arrange
+    resetNodeDefinitions()
+
+    // Act
+    registerNodeDefinitions(builtinDefinitions)
+
+    // Assert
+    expect(workflowNodeKinds()).toEqual(
+      builtinDefinitions.map((definition) => definition.kind)
+    )
+  })
+
+  it("takes a subset, leaving the rest out of the vocabulary", () => {
+    // Arrange
+    resetNodeDefinitions()
+    const [evaluator] = builtinDefinitions
+
+    // Act
+    registerNodeDefinitions(evaluator ? [evaluator] : [])
+
+    // Assert
+    expect(workflowNodeKinds()).toEqual(["evaluator"])
+    expect(getNodeDefinition("extractor")).toBeUndefined()
+  })
+})
+
 describe("consumer node registration", () => {
+  beforeEach(() => {
+    registerNodeDefinitions(builtinDefinitions)
+  })
+
   afterEach(() => {
     cleanup()
     resetNodeDefinitions()
@@ -135,21 +183,26 @@ describe("consumer node registration", () => {
     expect(screen.getByText("AI turn")).toBeInstanceOf(HTMLElement)
   })
 
-  it("restores the built-in vocabulary on reset", () => {
+  it("empties the vocabulary on reset", () => {
     // Arrange
-    const builtinKinds = workflowNodeKinds()
     registerNodeDefinitions([aiTurn])
 
     // Act
     resetNodeDefinitions()
 
-    // Assert
-    expect(workflowNodeKinds()).toEqual(builtinKinds)
+    // Assert — reset goes back to the package baseline, which is nothing at
+    // all. The built-ins are a consumer registration like any other now.
+    expect(workflowNodeKinds()).toEqual([])
     expect(getNodeDefinition("ai.turn")).toBeUndefined()
+    expect(getNodeDefinition("evaluator")).toBeUndefined()
   })
 })
 
 describe("consumer view registration", () => {
+  beforeEach(() => {
+    registerNodeDefinitions(builtinDefinitions)
+  })
+
   afterEach(() => {
     cleanup()
     resetNodeDefinitions()

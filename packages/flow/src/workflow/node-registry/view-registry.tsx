@@ -12,7 +12,14 @@ import { notifyNodeRegistryChanged } from "./registry"
 
 export type NodeViewMap = Readonly<Record<string, ComponentType<NodeProps>>>
 
-/** Bespoke renderers shipped with the package, keyed by node kind. */
+/**
+ * Bespoke renderers shipped with the package, keyed by node kind.
+ *
+ * These stay the default view map even though the definitions no longer
+ * register themselves: a view is only ever looked up for a kind that IS
+ * registered, so an unused entry costs nothing, and a consumer that opts into
+ * `builtinDefinitions` gets their proper renderers without a second call.
+ */
 const builtinNodeViews: NodeViewMap = {
   evaluator: EvaluatorNode,
   inlineExpression: InlineExpressionNode,

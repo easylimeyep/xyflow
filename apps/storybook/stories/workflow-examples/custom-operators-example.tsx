@@ -5,6 +5,8 @@ import type { WorkflowEvaluatorOperatorCatalog } from "@flow/flow"
 
 import { ExamplePreview } from "./example-preview"
 
+import "./register-builtins"
+
 const operators = {
   value: [
     {

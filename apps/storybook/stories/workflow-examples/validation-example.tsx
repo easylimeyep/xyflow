@@ -228,6 +228,8 @@ const globalOnlyCode = `import {
   type WorkflowValidationSnapshot,
 } from "@flow/flow"
 
+import "./register-builtins"
+
 const initialGraph = createInitialGraph({
   nodes: [
     { id: "validation-keyword", kind: "inlineExpression", config: { template: ["lead"], isRoot: true } },

@@ -5,6 +5,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { createWorkflowStore } from "./store"
 import type { WorkflowNode } from "../types/types"
 
+import { createKeywordSampleGraph } from "../default-graph"
+/**
+ * The editor's own default document is empty now — the node vocabulary belongs
+ * to the consumer, so the package has no kind it may seed one with. These
+ * suites are about behaviour over a populated graph, so they pass the sample
+ * document the default used to be.
+ */
+
 function findRootKeywordNode(nodes: WorkflowNode[]): WorkflowNode | undefined {
   return nodes.find(
     (node) =>
@@ -28,7 +36,9 @@ describe("workflow store node actions", () => {
   })
 
   it("duplicates selected nodes with internal edges, unique labels, selection, and one undo step", () => {
-    const store = createWorkflowStore()
+    const store = createWorkflowStore({
+      initialGraph: createKeywordSampleGraph(),
+    })
     const state = store.getState()
     const rootNode = findRootKeywordNode(state.history.present.nodes)
     if (!rootNode) {
@@ -109,7 +119,9 @@ describe("workflow store node actions", () => {
   })
 
   it("deletes selected nodes and connected edges in one undo step", () => {
-    const store = createWorkflowStore()
+    const store = createWorkflowStore({
+      initialGraph: createKeywordSampleGraph(),
+    })
     const state = store.getState()
     const rootNode = findRootKeywordNode(state.history.present.nodes)
     if (!rootNode) {

@@ -10,6 +10,14 @@ import {
 import { createWorkflowStore } from "../../store"
 import type { WorkflowNode } from "../../types"
 
+import { createKeywordSampleGraph } from "../../default-graph"
+/**
+ * The editor's own default document is empty now — the node vocabulary belongs
+ * to the consumer, so the package has no kind it may seed one with. These
+ * suites are about behaviour over a populated graph, so they pass the sample
+ * document the default used to be.
+ */
+
 describe("createHistoryHotkeyHandler integration", () => {
   beforeEach(() => {
     document.body.innerHTML = ""
@@ -75,7 +83,9 @@ describe("createHistoryHotkeyHandler integration", () => {
   })
 
   it("restores deleted node and edge through undo hotkey", () => {
-    const workflowStore = createWorkflowStore()
+    const workflowStore = createWorkflowStore({
+      initialGraph: createKeywordSampleGraph(),
+    })
     const state = workflowStore.getState()
     const sourceNode = state.history.present.nodes.find(
       (node: WorkflowNode) =>
@@ -154,7 +164,9 @@ describe("createHistoryHotkeyHandler integration", () => {
   })
 
   it("restores deleted node and edge through undo hotkey when edge removal happens first", () => {
-    const workflowStore = createWorkflowStore()
+    const workflowStore = createWorkflowStore({
+      initialGraph: createKeywordSampleGraph(),
+    })
     const state = workflowStore.getState()
     const sourceNode = state.history.present.nodes.find(
       (node: WorkflowNode) =>

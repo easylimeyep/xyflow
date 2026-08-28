@@ -2,9 +2,16 @@
 
 import {
   WorkflowEditor,
+  builtinDefinitions,
   createInitialGraph,
+  registerNodeDefinitions,
   type WorkflowRuntimeOverlay,
 } from "@flow/flow"
+
+// `createInitialGraph` resolves every kind against the registry, and the
+// registry starts empty — so registration has to precede the call below, not
+// merely the mount.
+registerNodeDefinitions(builtinDefinitions)
 
 const initialGraph = createInitialGraph({
   nodes: [

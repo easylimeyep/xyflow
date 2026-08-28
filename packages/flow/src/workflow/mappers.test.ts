@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { initialWorkflowGraph } from "./default-graph"
+import { createKeywordSampleGraph } from "./default-graph"
 import { createWorkflowNode } from "./node-registry"
 import {
   domainToInternal,
@@ -11,6 +11,15 @@ import {
   parseSelectionClipboardJson,
 } from "./mappers"
 import type { DomainWorkflowDTO } from "./types"
+
+/**
+ * The package's own one-node document, built once for this file.
+ *
+ * It used to be the `initialWorkflowGraph` constant, back when the editor
+ * opened on a keyword node. That default is empty now — the vocabulary belongs
+ * to the consumer — so a suite that needs a populated graph builds one.
+ */
+const initialWorkflowGraph = createKeywordSampleGraph()
 
 describe("workflow mappers", () => {
   it("maps internal graph to domain dto", () => {

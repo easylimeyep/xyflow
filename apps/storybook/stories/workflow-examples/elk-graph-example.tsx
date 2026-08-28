@@ -10,6 +10,8 @@ import {
 
 import { ExamplePreview } from "./example-preview"
 
+import "./register-builtins"
+
 const graphInput = {
   nodes: [
     {

@@ -10,6 +10,14 @@ import { exportSelectionClipboardJson } from "../../mappers"
 import type { WorkflowEditorAnchorRefs } from "../../tour"
 import type { DomainWorkflowNodeDTO } from "../../types"
 
+import { createKeywordSampleGraph } from "../../default-graph"
+/**
+ * The editor's own default document is empty now — the node vocabulary belongs
+ * to the consumer, so the package has no kind it may seed one with. These
+ * suites are about behaviour over a populated graph, so they pass the sample
+ * document the default used to be.
+ */
+
 const paletteRenderSpy = vi.fn()
 const canvasRenderSpy = vi.fn()
 
@@ -240,7 +248,7 @@ function SelectedNodePositionProbe() {
 
 function renderCustomEditor(extraChildren?: ReactNode) {
   return render(
-    <WorkflowEditor>
+    <WorkflowEditor initialGraph={createKeywordSampleGraph()}>
       {extraChildren}
       <WorkflowEditor.Toolbar />
       <WorkflowEditor.Body>
@@ -254,7 +262,10 @@ function renderCustomEditor(extraChildren?: ReactNode) {
 
 function renderCustomEditorWithAnchors(anchorRefs: WorkflowEditorAnchorRefs) {
   return render(
-    <WorkflowEditor anchorRefs={anchorRefs}>
+    <WorkflowEditor
+      anchorRefs={anchorRefs}
+      initialGraph={createKeywordSampleGraph()}
+    >
       <WorkflowEditor.Toolbar />
       <WorkflowEditor.Body>
         <WorkflowEditor.Palette />
@@ -560,7 +571,7 @@ describe("WorkflowEditor wiring", () => {
 
   it("updates the config panel when a node is selected", async () => {
     const user = userEvent.setup()
-    render(<WorkflowEditor />)
+    render(<WorkflowEditor initialGraph={createKeywordSampleGraph()} />)
 
     expect(
       screen.getByText("Select a node on the canvas to inspect it here.")

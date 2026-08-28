@@ -12,10 +12,19 @@ import type { MouseEvent, ReactNode } from "react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { WORKFLOW_NODE_KIND_MIME } from "../../dnd"
-import { initialWorkflowGraph } from "../../default-graph"
+import { createKeywordSampleGraph } from "../../default-graph"
 import { createWorkflowNode } from "../../node-registry"
 import { WorkflowCanvas } from "./workflow-canvas"
 import type { WorkflowEditorAnchorRefs } from "../../tour"
+
+/**
+ * The package's own one-node document, built once for this file.
+ *
+ * It used to be the `initialWorkflowGraph` constant, back when the editor
+ * opened on a keyword node. That default is empty now — the vocabulary belongs
+ * to the consumer — so a suite that needs a populated graph builds one.
+ */
+const initialWorkflowGraph = createKeywordSampleGraph()
 
 const fixtureSource = createWorkflowNode("inlineExpression", { x: 0, y: 80 })
 fixtureSource.data.config.isRoot = true

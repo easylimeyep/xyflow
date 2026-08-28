@@ -109,6 +109,8 @@ import {
   DialogTitle,
 } from "@flow/ui/components/dialog"
 
+import "./register-builtins"
+
 const initialGraph = createInitialGraph({
   nodes: [
     { id: "demo-modal-inline-expression", kind: "inlineExpression", config: { template: ["lead"], isRoot: true, repeatable: false } },

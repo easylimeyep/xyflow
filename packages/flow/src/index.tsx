@@ -19,7 +19,10 @@ export type {
   WorkflowTourAnchor,
   WorkflowTourStep,
 } from "./workflow/tour"
-export { initialWorkflowGraph } from "./workflow/default-graph"
+export {
+  createKeywordSampleGraph,
+  initialWorkflowGraph,
+} from "./workflow/default-graph"
 export {
   createInitialGraph,
   createInitialGraphElk,

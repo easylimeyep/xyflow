@@ -1,5 +1,8 @@
 import type { Preview } from "@storybook/react-vite"
 
+// Registers the package's own node kinds for every story. See the module.
+import "../stories/workflow-examples/register-builtins"
+
 import "./tailwind.css"
 import "@flow/expression-editor/style.css"
 import "@flow/flow/style.css"

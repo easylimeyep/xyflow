@@ -4,6 +4,8 @@ import { WorkflowEditor, createInitialGraph } from "@flow/flow"
 
 import { ExamplePreview } from "./example-preview"
 
+import "./register-builtins"
+
 const initialGraph = createInitialGraph({
   nodes: [],
   edges: [],

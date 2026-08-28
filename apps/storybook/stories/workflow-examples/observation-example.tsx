@@ -115,6 +115,8 @@ const code = `import {
   type WorkflowRuntimeOverlay,
 } from "@flow/flow"
 
+import "./register-builtins"
+
 // Runtime status is computed by YOUR engine and handed in as a prop.
 const overlay: WorkflowRuntimeOverlay = {
   nodes: {

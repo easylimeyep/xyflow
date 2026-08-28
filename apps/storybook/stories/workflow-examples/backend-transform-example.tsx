@@ -102,6 +102,8 @@ const code = `import {
   exportDomainWorkflowForBackend,
 } from "@flow/flow"
 
+import "./register-builtins"
+
 const initialGraph = createInitialGraph({
   nodes: [
     { id: "backend-transform-root-a", kind: "inlineExpression", label: "Root A", config: { template: ["lead"], isRoot: true, repeatable: false } },
