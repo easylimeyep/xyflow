@@ -1,7 +1,7 @@
 # ADR-0005: The node registry ships empty
 
 **Date**: 2026-08-28
-**Status**: accepted
+**Status**: accepted; mechanism superseded by ADR-0006 (the empty baseline stands)
 **Deciders**: flow package maintainers
 
 ## Context
