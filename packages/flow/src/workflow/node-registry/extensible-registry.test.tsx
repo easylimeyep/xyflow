@@ -5,6 +5,7 @@ import { CircleIcon } from "lucide-react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { NodePalette } from "../components/node-palette/node-palette"
+import { WorkflowStoreProvider } from "../store"
 import { builtinDefinitions } from "./builtin-definitions"
 import { defineNode } from "./define-node"
 import { normalizeNodeConfig } from "./node-config-normalization"
@@ -180,11 +181,16 @@ describe("consumer node registration", () => {
   })
 
   it("shows the registered kind in the palette", () => {
-    // Arrange
+    // Arrange — the palette reads its own editor's store, not the module
+    // singleton, so its provider carries the same vocabulary under test.
     registerNodeDefinitions([aiTurn])
 
     // Act
-    render(<NodePalette onAddNode={vi.fn()} />)
+    render(
+      <WorkflowStoreProvider definitions={[...builtinDefinitions, aiTurn]}>
+        <NodePalette onAddNode={vi.fn()} />
+      </WorkflowStoreProvider>
+    )
 
     // Assert
     expect(screen.getByText("AI turn")).toBeInstanceOf(HTMLElement)

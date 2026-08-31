@@ -25,9 +25,6 @@ export function WorkflowEditorConfigPanel({
   )
   const isObserving = mode === "observe"
 
-  // Resolved out of the subscribed list rather than a direct registry read, so
-  // the panel is correct when a consumer registers kinds after the editor
-  // mounted.
   const definitions = useNodeDefinitions()
   const selectedDefinition = useMemo(
     () =>

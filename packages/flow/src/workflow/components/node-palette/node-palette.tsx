@@ -31,8 +31,6 @@ export function NodePalette({
   isOpen = true,
   anchorRefs,
 }: NodePaletteProps) {
-  // Read at render, not at module load: a consumer registers its kinds during
-  // app start-up, which may happen after this module is evaluated.
   const entries = useNodeDefinitions()
   const containerRef = useRef<HTMLElement | null>(null)
   const wasOpenRef = useRef(isOpen)

@@ -1,23 +1,21 @@
 "use client"
 
-import { useSyncExternalStore } from "react"
-
 import type { NodeDefinition } from "./define-node"
-import { listNodeDefinitions, subscribeNodeDefinitions } from "./registry"
+import type { NodeRegistry } from "./registry"
+import { selectNodeRegistry } from "../store/selectors"
+import { useWorkflowStore } from "../store/store"
 
 /**
- * The live node vocabulary, re-rendering the caller when a consumer registers
- * more kinds.
+ * The vocabulary of the editor this component is inside.
  *
- * The snapshot is the definition array itself, whose identity changes only on a
- * registration, so a component reading this does not re-render on unrelated
- * state. Server rendering gets the same list — registration happens at module
- * scope, so it is already in place by the time anything renders.
+ * Read from the store rather than a module singleton, so two editors on one
+ * page disagree about what exists without fighting, and there is no window in
+ * which a canvas has mounted against a vocabulary nobody has filled yet.
  */
+export function useNodeRegistry(): NodeRegistry {
+  return useWorkflowStore(selectNodeRegistry)
+}
+
 export function useNodeDefinitions(): readonly NodeDefinition[] {
-  return useSyncExternalStore(
-    subscribeNodeDefinitions,
-    listNodeDefinitions,
-    listNodeDefinitions
-  )
+  return useWorkflowStore((state) => state.registry.list())
 }

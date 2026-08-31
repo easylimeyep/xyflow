@@ -18,8 +18,22 @@ import { WorkflowCanvas } from "./workflow-canvas"
 import type { WorkflowEditorAnchorRefs } from "../../tour"
 import { builtinBaseDefinitions } from "../../node-registry/builtin-base-definitions"
 import { createNodeRegistry } from "../../node-registry/registry"
+import { WorkflowStoreProvider } from "../../store"
 
 const registry = createNodeRegistry(builtinBaseDefinitions)
+
+/**
+ * The canvas now reads its vocabulary from the store rather than building its
+ * own registry, so every render needs a provider carrying the same
+ * definitions the fixtures below are built from.
+ */
+function CanvasStoreWrapper({ children }: { children: ReactNode }) {
+  return (
+    <WorkflowStoreProvider definitions={builtinBaseDefinitions}>
+      {children}
+    </WorkflowStoreProvider>
+  )
+}
 
 /**
  * The package's own one-node document, built once for this file.
@@ -364,7 +378,8 @@ describe("WorkflowCanvas", () => {
         onPointerFlowPosition={onPointerFlowPosition}
         edgeInsertPendingId={null}
         onAutoLayout={vi.fn(async () => true)}
-      />
+      />,
+      { wrapper: CanvasStoreWrapper }
     )
 
     const dataTransfer = {
@@ -428,7 +443,8 @@ describe("WorkflowCanvas", () => {
         onPointerFlowPosition={vi.fn()}
         edgeInsertPendingId={null}
         onAutoLayout={vi.fn(async () => true)}
-      />
+      />,
+      { wrapper: CanvasStoreWrapper }
     )
 
     expect(screen.getByTestId("rf-minimap-pannable").textContent).toBe("true")
@@ -496,7 +512,8 @@ describe("WorkflowCanvas", () => {
         onPointerFlowPosition={vi.fn()}
         edgeInsertPendingId={null}
         onAutoLayout={onAutoLayout}
-      />
+      />,
+      { wrapper: CanvasStoreWrapper }
     )
 
     fireEvent.click(
@@ -531,7 +548,8 @@ describe("WorkflowCanvas", () => {
         onPointerFlowPosition={vi.fn()}
         edgeInsertPendingId={null}
         onAutoLayout={vi.fn(async () => true)}
-      />
+      />,
+      { wrapper: CanvasStoreWrapper }
     )
 
     fireEvent.click(screen.getByRole("button", { name: "Zoom in" }))
@@ -568,7 +586,8 @@ describe("WorkflowCanvas", () => {
         edgeInsertPendingId={null}
         onAutoLayout={vi.fn(async () => true)}
         anchorRefs={anchorRefs}
-      />
+      />,
+      { wrapper: CanvasStoreWrapper }
     )
 
     expect(anchorRefs.current.controls).toBeInstanceOf(HTMLDivElement)
@@ -620,7 +639,8 @@ describe("WorkflowCanvas", () => {
         edgeInsertPendingId={null}
         autoLayoutOnInit="after-measure"
         onMeasuredInitialAutoLayout={onMeasuredInitialAutoLayout}
-      />
+      />,
+      { wrapper: CanvasStoreWrapper }
     )
 
     expect(screen.getByRole("status").textContent).toContain(
@@ -690,7 +710,8 @@ describe("WorkflowCanvas", () => {
         edgeInsertPendingId={null}
         autoLayoutOnInit="after-measure"
         onMeasuredInitialAutoLayout={onMeasuredInitialAutoLayout}
-      />
+      />,
+      { wrapper: CanvasStoreWrapper }
     )
 
     await waitFor(() => {
@@ -721,7 +742,8 @@ describe("WorkflowCanvas", () => {
         edgeInsertPendingId={null}
         autoLayoutOnInit="after-measure"
         onMeasuredInitialAutoLayout={onMeasuredInitialAutoLayout}
-      />
+      />,
+      { wrapper: CanvasStoreWrapper }
     )
 
     expect(screen.queryByRole("status")).toBeNull()
@@ -746,7 +768,8 @@ describe("WorkflowCanvas", () => {
         onPointerFlowPosition={vi.fn()}
         edgeInsertPendingId={null}
         onAutoLayout={vi.fn(async () => true)}
-      />
+      />,
+      { wrapper: CanvasStoreWrapper }
     )
 
     expect(screen.getByTestId("rf-valid").textContent).toBe("false")
@@ -777,7 +800,8 @@ describe("WorkflowCanvas", () => {
         onPointerFlowPosition={vi.fn()}
         edgeInsertPendingId={null}
         onAutoLayout={vi.fn(async () => true)}
-      />
+      />,
+      { wrapper: CanvasStoreWrapper }
     )
 
     fireEvent.click(screen.getByTestId(`mock-edge-insert-${edgeId}`))
@@ -814,7 +838,8 @@ describe("WorkflowCanvas", () => {
         onPointerFlowPosition={vi.fn()}
         edgeInsertPendingId={null}
         onAutoLayout={vi.fn(async () => true)}
-      />
+      />,
+      { wrapper: CanvasStoreWrapper }
     )
 
     const firstEdgeTypes = reactFlowRenderSpy.mock.calls.at(-1)?.[0]?.edgeTypes
@@ -878,7 +903,8 @@ describe("WorkflowCanvas", () => {
         onPointerFlowPosition={onPointerFlowPosition}
         edgeInsertPendingId={null}
         onAutoLayout={vi.fn(async () => true)}
-      />
+      />,
+      { wrapper: CanvasStoreWrapper }
     )
 
     fireEvent.click(screen.getByTestId("rf-mousemove"))
@@ -910,7 +936,8 @@ describe("WorkflowCanvas", () => {
         onPointerFlowPosition={vi.fn()}
         edgeInsertPendingId={null}
         onAutoLayout={vi.fn(async () => true)}
-      />
+      />,
+      { wrapper: CanvasStoreWrapper }
     )
 
     expect(screen.getByTestId("rf-nodes-draggable").textContent).toBe("true")
@@ -945,7 +972,8 @@ describe("WorkflowCanvas", () => {
         edgeInsertPendingId={null}
         onAutoLayout={vi.fn(async () => true)}
         mode="observe"
-      />
+      />,
+      { wrapper: CanvasStoreWrapper }
     )
 
     // Mutation affordances are disabled.

@@ -31,8 +31,11 @@ import { LayoutTemplate, Maximize2, ZoomIn, ZoomOut } from "lucide-react"
 
 import { WORKFLOW_NODE_KIND_MIME } from "../../dnd"
 import { buildNodeTypes } from "../../node-registry/node-types-builder"
-import { createNodeRegistry, type NodeKind } from "../../node-registry/registry"
-import { useNodeDefinitions } from "../../node-registry/use-node-definitions"
+import type { NodeKind } from "../../node-registry/registry"
+import {
+  useNodeDefinitions,
+  useNodeRegistry,
+} from "../../node-registry/use-node-definitions"
 import { workflowCanvasStyles } from "../../../styles/components/canvas"
 import type {
   WorkflowCanvasMode,
@@ -101,11 +104,8 @@ function WorkflowCanvasInner({
   mode = "edit",
 }: WorkflowCanvasProps) {
   const isObserving = mode === "observe"
-  // Node types are rebuilt when the vocabulary changes: a consumer may register
-  // its kinds after this canvas mounted, and a stale map would render every one
-  // of them as an unknown node type.
   const definitions = useNodeDefinitions()
-  const registry = useMemo(() => createNodeRegistry(definitions), [definitions])
+  const registry = useNodeRegistry()
   const reactFlow = useReactFlow<WorkflowNode, WorkflowEdge>()
   const viewportState = useViewport()
   const nodesInitialized = useNodesInitialized()
