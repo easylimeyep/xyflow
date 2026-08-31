@@ -1,11 +1,12 @@
 // @vitest-environment jsdom
 
-import { cleanup, render, screen } from "@testing-library/react"
+import { cleanup, render, screen, within } from "@testing-library/react"
 import { CircleIcon } from "lucide-react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { NodePalette } from "../components/node-palette/node-palette"
 import { WorkflowStoreProvider } from "../store"
+import { builtinBaseDefinitions } from "./builtin-base-definitions"
 import { builtinDefinitions } from "./builtin-definitions"
 import { defineNode } from "./define-node"
 import { normalizeNodeConfig } from "./node-config-normalization"
@@ -24,6 +25,19 @@ const aiTurn = defineNode({
   buildDefaultConfig: () => ({ prompt: "" }),
   outputPaths: ["content"],
   allowedTargets: ["ai.turn", "result"],
+})
+
+/** A second, distinct consumer-defined kind — for the other editor only. */
+const aiSummary = defineNode({
+  kind: "ai.summary",
+  title: "AI summary",
+  description: "Let the agent summarize the conversation so far.",
+  icon: CircleIcon,
+  category: "logic",
+  fields: [{ key: "prompt", label: "Prompt", type: "textarea" }],
+  buildDefaultConfig: () => ({ prompt: "" }),
+  outputPaths: ["content"],
+  allowedTargets: ["ai.summary", "result"],
 })
 
 const builtinKinds = builtinDefinitions.map((definition) => definition.kind)
@@ -171,15 +185,48 @@ describe("consumer node registration", () => {
     expect(screen.getByText("AI turn")).toBeInstanceOf(HTMLElement)
   })
 
-  it("leaves a second editor's vocabulary alone", () => {
+  it("keeps two editors mounted side by side from sharing a vocabulary", () => {
     // Two editors on one page disagree about what exists without fighting:
-    // there is no shared mutable vocabulary left for one to overwrite.
-    const withConsumerKind = createNodeRegistry([...builtinDefinitions, aiTurn])
-    const builtinsOnly = createNodeRegistry(builtinDefinitions)
+    // there is no shared mutable vocabulary left for one to overwrite. This
+    // is only proven by mounting both stores at once — sequential mounts (see
+    // `index.test.tsx`) would still pass against a module-level cache read at
+    // render time, since nothing else is live to leak into.
+    render(
+      <div>
+        <div data-testid="editor-a">
+          <WorkflowStoreProvider
+            definitions={[...builtinBaseDefinitions, aiTurn]}
+          >
+            <NodePalette onAddNode={vi.fn()} />
+          </WorkflowStoreProvider>
+        </div>
+        <div data-testid="editor-b">
+          <WorkflowStoreProvider
+            definitions={[...builtinBaseDefinitions, aiSummary]}
+          >
+            <NodePalette onAddNode={vi.fn()} />
+          </WorkflowStoreProvider>
+        </div>
+      </div>
+    )
 
-    expect(withConsumerKind.has("ai.turn")).toBe(true)
-    expect(builtinsOnly.has("ai.turn")).toBe(false)
-    expect(builtinsOnly.kinds()).toEqual(builtinKinds)
+    const paletteA = within(screen.getByTestId("editor-a"))
+    const paletteB = within(screen.getByTestId("editor-b"))
+
+    // Each editor shows the built-ins it was actually handed (positive
+    // control: the palettes are rendering something, not empty).
+    for (const definition of builtinBaseDefinitions) {
+      expect(paletteA.getByText(definition.title)).toBeInstanceOf(HTMLElement)
+      expect(paletteB.getByText(definition.title)).toBeInstanceOf(HTMLElement)
+    }
+
+    // Each editor shows its own consumer kind...
+    expect(paletteA.getByText(aiTurn.title)).toBeInstanceOf(HTMLElement)
+    expect(paletteB.getByText(aiSummary.title)).toBeInstanceOf(HTMLElement)
+
+    // ...and not the other editor's.
+    expect(paletteA.queryByText(aiSummary.title)).toBeNull()
+    expect(paletteB.queryByText(aiTurn.title)).toBeNull()
   })
 })
 

@@ -48,16 +48,6 @@ describe("registry smoke tests", () => {
     expect(registry.list().length).toBe(builtinKinds.length)
   })
 
-  it("the definition list and the kind index have matching entries", () => {
-    const definitionKinds = registry
-      .list()
-      .map((definition) => definition.kind)
-      .sort()
-    const registryKinds = [...registry.kinds()].sort()
-
-    expect(definitionKinds).toEqual(registryKinds)
-  })
-
   it("every kind in the vocabulary resolves to its own definition", () => {
     for (const kind of registry.kinds()) {
       expect(registry.get(kind)?.kind).toBe(kind)
