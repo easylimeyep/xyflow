@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest"
+import { beforeAll, describe, expect, it } from "vitest"
 
 import { createKeywordSampleGraph } from "./default-graph"
 import { createWorkflowNode } from "./node-registry"
@@ -11,6 +11,7 @@ import {
   parseSelectionClipboardJson,
 } from "./mappers"
 import type { DomainWorkflowDTO } from "./types"
+import type { WorkflowGraphState } from "./types/types"
 
 /**
  * The package's own one-node document, built once for this file.
@@ -18,8 +19,17 @@ import type { DomainWorkflowDTO } from "./types"
  * It used to be the `initialWorkflowGraph` constant, back when the editor
  * opened on a keyword node. That default is empty now — the vocabulary belongs
  * to the consumer — so a suite that needs a populated graph builds one.
+ *
+ * Built in `beforeAll` rather than at module scope: `createKeywordSampleGraph`
+ * needs its kinds registered, and registration itself now happens in
+ * `beforeAll` (see `vitest.setup.ts`) — after this module's own top-level code
+ * would otherwise have already run.
  */
-const initialWorkflowGraph = createKeywordSampleGraph()
+let initialWorkflowGraph: WorkflowGraphState
+
+beforeAll(() => {
+  initialWorkflowGraph = createKeywordSampleGraph()
+})
 
 describe("workflow mappers", () => {
   it("maps internal graph to domain dto", () => {

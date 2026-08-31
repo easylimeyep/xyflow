@@ -18,11 +18,6 @@ import {
   resetNodeDefinitions,
   workflowNodeKinds,
 } from "./registry"
-import {
-  listNodeViews,
-  registerNodeViews,
-  resetNodeViews,
-} from "./view-registry"
 
 /** A consumer-defined kind, in the dotted style a product vocabulary uses. */
 const aiTurn = defineNode({
@@ -88,7 +83,6 @@ describe("consumer node registration", () => {
   afterEach(() => {
     cleanup()
     resetNodeDefinitions()
-    resetNodeViews()
   })
 
   it("adds the kind to the vocabulary", () => {
@@ -206,27 +200,27 @@ describe("consumer view registration", () => {
   afterEach(() => {
     cleanup()
     resetNodeDefinitions()
-    resetNodeViews()
   })
 
-  it("registers a bespoke renderer for a kind", () => {
+  it("registers a bespoke renderer for a kind via its definition", () => {
     // Arrange
     function AiTurnNode() {
       return <div />
     }
+    const aiTurnWithView = defineNode({ ...aiTurn, view: AiTurnNode })
 
     // Act
-    registerNodeViews({ "ai.turn": AiTurnNode })
+    registerNodeDefinitions([aiTurnWithView])
 
     // Assert
-    expect(listNodeViews()["ai.turn"]).toBe(AiTurnNode)
+    expect(getNodeDefinition("ai.turn")?.view).toBe(AiTurnNode)
   })
 
   it("leaves a kind without a view to the generic renderer", () => {
     // Arrange & Act
     registerNodeDefinitions([aiTurn])
 
-    // Assert: no entry means `buildNodeTypes` falls back to DefaultNodeRenderer.
-    expect(listNodeViews()["ai.turn"]).toBeUndefined()
+    // Assert: no `view` means `buildNodeTypes` falls back to DefaultNodeRenderer.
+    expect(getNodeDefinition("ai.turn")?.view).toBeUndefined()
   })
 })

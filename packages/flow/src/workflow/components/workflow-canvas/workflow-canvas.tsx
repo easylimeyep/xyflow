@@ -32,10 +32,7 @@ import { LayoutTemplate, Maximize2, ZoomIn, ZoomOut } from "lucide-react"
 import { WORKFLOW_NODE_KIND_MIME } from "../../dnd"
 import { buildNodeTypes } from "../../node-registry/node-types-builder"
 import { isNodeKind, type NodeKind } from "../../node-registry/registry"
-import {
-  useNodeDefinitions,
-  useNodeViews,
-} from "../../node-registry/use-node-definitions"
+import { useNodeDefinitions } from "../../node-registry/use-node-definitions"
 import { workflowCanvasStyles } from "../../../styles/components/canvas"
 import type {
   WorkflowCanvasMode,
@@ -195,10 +192,9 @@ function WorkflowCanvasInner({
   // its kinds after this canvas mounted, and a stale map would render every one
   // of them as an unknown node type.
   const definitions = useNodeDefinitions()
-  const views = useNodeViews()
   const workflowNodeTypes = useMemo(
-    () => buildNodeTypes(definitions, views),
-    [definitions, views]
+    () => buildNodeTypes(definitions),
+    [definitions]
   )
   const edgesWithType = useMemo(
     () =>

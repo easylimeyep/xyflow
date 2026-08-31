@@ -1,4 +1,6 @@
+import type { NodeProps } from "@xyflow/react"
 import type { LucideIcon } from "lucide-react"
+import type { ComponentType } from "react"
 
 import type { JsonObject, NodeFieldSchema } from "../types/types"
 
@@ -30,6 +32,18 @@ export interface NodeDefinition<K extends string = string> {
   inlineFields?: NodeFieldSchema[]
   extraExpressionConfigKeys?: string[]
   renameConfigKey?: string
+  /**
+   * A bespoke renderer for this kind.
+   *
+   * Optional: a definition without one renders through `DefaultNodeRenderer`,
+   * which draws any node from its `fields`. Declaring a view is how a kind opts
+   * out of that generic treatment.
+   *
+   * Wire this in the node's `index.ts`, never in `definition.ts` — a component
+   * imports its own definition for `fields` (see
+   * `nodes/logic/evaluator/component.tsx`), so the reverse import would cycle.
+   */
+  view?: ComponentType<NodeProps>
   validateConfigValue?: (key: string, value: unknown) => boolean
   normalizeConfigValue?: (key: string, value: unknown) => unknown
 }

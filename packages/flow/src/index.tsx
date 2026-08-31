@@ -40,20 +40,14 @@ export {
 } from "./workflow/types"
 export {
   builtinDefinitions,
-  builtinNodeViews,
   defineNode,
   getNodeDefinition,
   listNodeDefinitions,
-  listNodeViews,
   registerNodeDefinitions,
-  registerNodeViews,
   resetNodeDefinitions,
-  resetNodeViews,
   useNodeDefinitions,
-  useNodeViews,
   type NodeCategory,
   type NodeDefinition,
-  type NodeViewMap,
   type OutputHandle,
 } from "./workflow/node-registry"
 export {

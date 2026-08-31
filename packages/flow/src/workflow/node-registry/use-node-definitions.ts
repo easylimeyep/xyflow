@@ -4,7 +4,6 @@ import { useSyncExternalStore } from "react"
 
 import type { NodeDefinition } from "./define-node"
 import { listNodeDefinitions, subscribeNodeDefinitions } from "./registry"
-import { listNodeViews, type NodeViewMap } from "./view-registry"
 
 /**
  * The live node vocabulary, re-rendering the caller when a consumer registers
@@ -20,17 +19,5 @@ export function useNodeDefinitions(): readonly NodeDefinition[] {
     subscribeNodeDefinitions,
     listNodeDefinitions,
     listNodeDefinitions
-  )
-}
-
-/**
- * The live map of bespoke node renderers. Registering a view replaces the map
- * with a new object, so its identity is a sound memo dependency.
- */
-export function useNodeViews(): NodeViewMap {
-  return useSyncExternalStore(
-    subscribeNodeDefinitions,
-    listNodeViews,
-    listNodeViews
   )
 }

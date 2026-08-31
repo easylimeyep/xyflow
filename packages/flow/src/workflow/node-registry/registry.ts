@@ -143,13 +143,4 @@ export function subscribeNodeDefinitions(listener: () => void): () => void {
   }
 }
 
-/**
- * Wake subscribers without changing the definition list. Client registries that
- * live outside this module — the view registry — call this so a view
- * registration reaches the canvas too.
- */
-export function notifyNodeRegistryChanged(): void {
-  listeners.forEach((listener) => listener())
-}
-
 export { builtinDefinitions }
