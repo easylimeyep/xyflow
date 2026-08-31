@@ -6,9 +6,14 @@ import type {
   WorkflowNode,
   WorkflowVariableType,
 } from "../types/types"
+import type { NodeRegistry } from "../node-registry/registry"
 import type { WorkflowStoreState } from "./types"
 import { isValidationMessageVisible } from "./validation"
 import { collectWorkflowVariableTypes } from "../expression/variables/variables"
+
+export function selectNodeRegistry(state: WorkflowStoreState): NodeRegistry {
+  return state.registry
+}
 
 export const selectCanUndo = (state: WorkflowStoreState): boolean =>
   state.history.past.length > 0

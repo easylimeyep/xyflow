@@ -2,16 +2,24 @@ import { describe, expect, it } from "vitest"
 
 import { createWorkflowNode } from "../../node-registry/node-factory"
 import { refactorPlainVariableReferencesInGraph } from "./refactor"
+import { builtinBaseDefinitions } from "../../node-registry/builtin-base-definitions"
+import { createNodeRegistry } from "../../node-registry/registry"
+
+const registry = createNodeRegistry(builtinBaseDefinitions)
 
 describe("plain variable refactor", () => {
   it("replaces plain identifier in expression segments across graph nodes", () => {
-    const extractor = createWorkflowNode("extractor", { x: 0, y: 0 })
+    const extractor = createWorkflowNode(registry, "extractor", { x: 0, y: 0 })
     extractor.data.config.extractExpression = "{{ price }}"
 
-    const inline = createWorkflowNode("inlineExpression", { x: 100, y: 0 })
+    const inline = createWorkflowNode(registry, "inlineExpression", {
+      x: 100,
+      y: 0,
+    })
     inline.data.config.template = ["some text {{ price }} and more"]
 
     const nextNodes = refactorPlainVariableReferencesInGraph(
+      registry,
       [extractor, inline],
       "price",
       "cost"
@@ -27,10 +35,14 @@ describe("plain variable refactor", () => {
   })
 
   it("does not replace partial identifier matches", () => {
-    const inline = createWorkflowNode("inlineExpression", { x: 0, y: 0 })
+    const inline = createWorkflowNode(registry, "inlineExpression", {
+      x: 0,
+      y: 0,
+    })
     inline.data.config.template = ["{{ priceList }}"]
 
     const nextNodes = refactorPlainVariableReferencesInGraph(
+      registry,
       [inline],
       "price",
       "cost"
@@ -41,10 +53,14 @@ describe("plain variable refactor", () => {
   })
 
   it("does not replace identifier inside literal segments", () => {
-    const inline = createWorkflowNode("inlineExpression", { x: 0, y: 0 })
+    const inline = createWorkflowNode(registry, "inlineExpression", {
+      x: 0,
+      y: 0,
+    })
     inline.data.config.template = ["the price is {{ price }}"]
 
     const nextNodes = refactorPlainVariableReferencesInGraph(
+      registry,
       [inline],
       "price",
       "cost"
@@ -57,10 +73,14 @@ describe("plain variable refactor", () => {
   })
 
   it("replaces multiple occurrences in different expression segments", () => {
-    const inline = createWorkflowNode("inlineExpression", { x: 0, y: 0 })
+    const inline = createWorkflowNode(registry, "inlineExpression", {
+      x: 0,
+      y: 0,
+    })
     inline.data.config.template = ["{{ price }} and {{ price }}"]
 
     const nextNodes = refactorPlainVariableReferencesInGraph(
+      registry,
       [inline],
       "price",
       "cost"
@@ -73,7 +93,10 @@ describe("plain variable refactor", () => {
   })
 
   it("rewrites each string entry in array-backed keyword templates", () => {
-    const inline = createWorkflowNode("inlineExpression", { x: 0, y: 0 })
+    const inline = createWorkflowNode(registry, "inlineExpression", {
+      x: 0,
+      y: 0,
+    })
     inline.data.config.template = [
       "{{ price }}",
       "{{ untouched }}",
@@ -81,6 +104,7 @@ describe("plain variable refactor", () => {
     ]
 
     const nextNodes = refactorPlainVariableReferencesInGraph(
+      registry,
       [inline],
       "price",
       "cost"
@@ -95,10 +119,14 @@ describe("plain variable refactor", () => {
   })
 
   it("returns nodes unchanged when old and new names are equal", () => {
-    const inline = createWorkflowNode("inlineExpression", { x: 0, y: 0 })
+    const inline = createWorkflowNode(registry, "inlineExpression", {
+      x: 0,
+      y: 0,
+    })
     inline.data.config.template = ["{{ price }}"]
 
     const nextNodes = refactorPlainVariableReferencesInGraph(
+      registry,
       [inline],
       "price",
       "price"

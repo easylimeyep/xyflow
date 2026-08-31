@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 
+import { builtinBaseDefinitions } from "./builtin-base-definitions"
 import { createWorkflowNode } from "./node-factory"
 import {
   decodeNodeConfig,
@@ -9,6 +10,8 @@ import { getNodeDefinition, workflowNodeKinds } from "./registry"
 import { evaluator } from "../nodes/logic/evaluator/definition"
 import { result } from "../nodes/logic/result/definition"
 import { createNodeRegistry, EMPTY_NODE_REGISTRY } from "./registry"
+
+const registry = createNodeRegistry(builtinBaseDefinitions)
 
 describe("workflow node registry", () => {
   it("includes set variable definition", () => {
@@ -30,7 +33,7 @@ describe("workflow node registry", () => {
   })
 
   it("creates set variable node with default config", () => {
-    const node = createWorkflowNode("setVariable", { x: 0, y: 0 })
+    const node = createWorkflowNode(registry, "setVariable", { x: 0, y: 0 })
 
     expect(node.type).toBe("setVariable")
     expect(node.data.label).toBe("Setter")
@@ -62,7 +65,10 @@ describe("workflow node registry", () => {
   })
 
   it("creates inline expression node with default config", () => {
-    const node = createWorkflowNode("inlineExpression", { x: 0, y: 0 })
+    const node = createWorkflowNode(registry, "inlineExpression", {
+      x: 0,
+      y: 0,
+    })
 
     expect(node.type).toBe("inlineExpression")
     expect(node.data.config.template).toEqual([])
@@ -73,7 +79,7 @@ describe("workflow node registry", () => {
 
   it("normalizes missing caseSensitive values to false", () => {
     expect(
-      normalizeNodeConfig("inlineExpression", {
+      normalizeNodeConfig(registry, "inlineExpression", {
         template: ["lead"],
         isRoot: true,
         repeatable: false,
@@ -81,7 +87,7 @@ describe("workflow node registry", () => {
     ).toBe(false)
 
     expect(
-      normalizeNodeConfig("evaluator", {
+      normalizeNodeConfig(registry, "evaluator", {
         conditions: [],
         logicalOperator: "and",
       }).caseSensitive
@@ -90,7 +96,7 @@ describe("workflow node registry", () => {
 
   it("normalizes missing variable metadata defaults", () => {
     expect(
-      normalizeNodeConfig("extractor", {
+      normalizeNodeConfig(registry, "extractor", {
         tokenNumber: 1,
         extractExpression: "email",
         unlimited: false,
@@ -98,20 +104,20 @@ describe("workflow node registry", () => {
     ).toBe("value")
 
     expect(
-      normalizeNodeConfig("setVariable", {
+      normalizeNodeConfig(registry, "setVariable", {
         variableName: "email",
         valueExpression: "{{ email }}",
       }).clear
     ).toBe(false)
     expect(
-      normalizeNodeConfig("setVariable", {
+      normalizeNodeConfig(registry, "setVariable", {
         variableName: "email",
         valueExpression: "{{ email }}",
       }).variableType
     ).toBe("value")
 
     expect(
-      normalizeNodeConfig("evaluator", {
+      normalizeNodeConfig(registry, "evaluator", {
         conditions: [],
         logicalOperator: "and",
         caseSensitive: false,
@@ -120,7 +126,7 @@ describe("workflow node registry", () => {
   })
 
   it("keeps evaluator result label separate from variable type metadata", () => {
-    const evaluatorConfig = normalizeNodeConfig("evaluator", {
+    const evaluatorConfig = normalizeNodeConfig(registry, "evaluator", {
       label: "",
       conditions: [],
       logicalOperator: "and",
@@ -132,7 +138,7 @@ describe("workflow node registry", () => {
     expect(evaluatorConfig).not.toHaveProperty("variableType")
 
     expect(
-      normalizeNodeConfig("setVariable", {
+      normalizeNodeConfig(registry, "setVariable", {
         variableName: "email",
         variableType: "array",
         valueExpression: "{{ email }}",
@@ -143,7 +149,7 @@ describe("workflow node registry", () => {
       variableType: "array",
     })
     expect(
-      normalizeNodeConfig("extractor", {
+      normalizeNodeConfig(registry, "extractor", {
         tokenNumber: 1,
         extractExpression: "email",
         variableType: "array",
@@ -157,7 +163,7 @@ describe("workflow node registry", () => {
 
   it("rejects string workflow type literals", () => {
     expect(
-      decodeNodeConfig("extractor", {
+      decodeNodeConfig(registry, "extractor", {
         tokenNumber: 1,
         extractExpression: "email",
         variableType: "string",
@@ -166,7 +172,7 @@ describe("workflow node registry", () => {
     ).toBe(false)
 
     expect(
-      decodeNodeConfig("setVariable", {
+      decodeNodeConfig(registry, "setVariable", {
         variableName: "email",
         variableType: "string",
         valueExpression: "{{ email }}",
@@ -175,7 +181,7 @@ describe("workflow node registry", () => {
     ).toBe(false)
 
     expect(
-      decodeNodeConfig("evaluator", {
+      decodeNodeConfig(registry, "evaluator", {
         conditions: [
           {
             id: "condition-1",
@@ -230,10 +236,26 @@ describe("workflow node registry", () => {
   })
 
   it("creates result node with default config", () => {
-    const node = createWorkflowNode("result", { x: 0, y: 0 })
+    const node = createWorkflowNode(registry, "result", { x: 0, y: 0 })
 
     expect(node.type).toBe("result")
     expect(node.data.config.category).toBe("true")
+  })
+})
+
+describe("createWorkflowNode over a given registry", () => {
+  it("builds from the registry it is given, not a global", () => {
+    const localRegistry = createNodeRegistry([evaluator])
+    const node = createWorkflowNode(localRegistry, "evaluator", { x: 0, y: 0 })
+
+    expect(node.data.kind).toBe("evaluator")
+    expect(node.data.label).toBe(evaluator.title)
+  })
+
+  it("throws for a kind absent from the given registry", () => {
+    expect(() =>
+      createWorkflowNode(createNodeRegistry([]), "evaluator", { x: 0, y: 0 })
+    ).toThrow("Unknown node kind: evaluator")
   })
 })
 

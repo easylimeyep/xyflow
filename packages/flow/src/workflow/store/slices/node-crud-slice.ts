@@ -8,7 +8,7 @@ import {
 import { refactorPlainVariableReferencesInGraph } from "../graph-refactors"
 import { createWorkflowNode } from "../../node-registry/node-factory"
 import { normalizeNodeConfig } from "../../node-registry/node-config-normalization"
-import type { NodeKind } from "../../node-registry/registry"
+import type { NodeKind, NodeRegistry } from "../../node-registry/registry"
 import type { WorkflowEdge, WorkflowNode } from "../../types/types"
 import { buildExpressionSlicePatch, deduplicateNodeLabels } from "../helpers"
 import { commitGraphState } from "../history-helpers"
@@ -21,7 +21,10 @@ const VARIABLE_LABEL_KINDS = new Set(["extractor", "setVariable"])
 export const createNodeCrudSlice: WorkflowSliceCreator = (set, get) => ({
   addNode: (kind, position) => {
     const currentGraph = get().history.present
-    const result = applyAddNodeCommand(currentGraph, { kind, position })
+    const result = applyAddNodeCommand(get().registry, currentGraph, {
+      kind,
+      position,
+    })
     if (!result.ok) {
       set({ lastError: result.error })
       return
@@ -49,6 +52,7 @@ export const createNodeCrudSlice: WorkflowSliceCreator = (set, get) => ({
       currentGraph.nodes.map((node) => node.data.label.trim()).filter(Boolean)
     )
     const { nodes: duplicatedNodes, nodeIdMap } = buildDuplicatedNodes(
+      state.registry,
       selectedNodes,
       existingLabels
     )
@@ -121,7 +125,7 @@ export const createNodeCrudSlice: WorkflowSliceCreator = (set, get) => ({
   },
   updateNodeLabel: (nodeId, nextLabel) => {
     const currentGraph = get().history.present
-    const result = applyUpdateNodeLabelCommand(currentGraph, {
+    const result = applyUpdateNodeLabelCommand(get().registry, currentGraph, {
       nodeId,
       nextLabel,
     })
@@ -138,7 +142,7 @@ export const createNodeCrudSlice: WorkflowSliceCreator = (set, get) => ({
   },
   updateNodeConfig: (nodeId, update) => {
     const currentGraph = get().history.present
-    const result = applyUpdateNodeConfigCommand(currentGraph, {
+    const result = applyUpdateNodeConfigCommand(get().registry, currentGraph, {
       nodeId,
       update,
     })
@@ -175,6 +179,7 @@ function normalizeTargetNodeIds(
 }
 
 function buildDuplicatedNodes(
+  registry: NodeRegistry,
   nodes: WorkflowNode[],
   existingLabels: Set<string>
 ): { nodes: WorkflowNode[]; nodeIdMap: Map<string, string> } {
@@ -182,6 +187,7 @@ function buildDuplicatedNodes(
   const createdNodes = nodes.map((node) => {
     const kind = node.data.kind as NodeKind
     const nextNode = createWorkflowNode(
+      registry,
       kind,
       {
         x: node.position.x + DUPLICATE_NODE_OFFSET,
@@ -193,7 +199,7 @@ function buildDuplicatedNodes(
     nextNode.data = {
       kind,
       label: node.data.label,
-      config: normalizeNodeConfig(kind, node.data.config),
+      config: normalizeNodeConfig(registry, kind, node.data.config),
     }
     nodeIdMap.set(node.id, nextNode.id)
     return nextNode
@@ -215,6 +221,7 @@ function buildDuplicatedNodes(
     }
 
     duplicatedNodes = refactorPlainVariableReferencesInGraph(
+      registry,
       duplicatedNodes,
       rename.oldLabel,
       rename.newLabel

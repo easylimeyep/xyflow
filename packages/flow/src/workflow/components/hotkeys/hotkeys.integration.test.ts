@@ -11,6 +11,7 @@ import { createWorkflowStore } from "../../store"
 import type { WorkflowNode } from "../../types"
 
 import { createKeywordSampleGraph } from "../../default-graph"
+import { builtinBaseDefinitions } from "../../node-registry/builtin-base-definitions"
 /**
  * The editor's own default document is empty now — the node vocabulary belongs
  * to the consumer, so the package has no kind it may seed one with. These
@@ -84,7 +85,8 @@ describe("createHistoryHotkeyHandler integration", () => {
 
   it("restores deleted node and edge through undo hotkey", () => {
     const workflowStore = createWorkflowStore({
-      initialGraph: createKeywordSampleGraph(),
+      definitions: builtinBaseDefinitions,
+      initialGraph: createKeywordSampleGraph(builtinBaseDefinitions),
     })
     const state = workflowStore.getState()
     const sourceNode = state.history.present.nodes.find(
@@ -165,7 +167,8 @@ describe("createHistoryHotkeyHandler integration", () => {
 
   it("restores deleted node and edge through undo hotkey when edge removal happens first", () => {
     const workflowStore = createWorkflowStore({
-      initialGraph: createKeywordSampleGraph(),
+      definitions: builtinBaseDefinitions,
+      initialGraph: createKeywordSampleGraph(builtinBaseDefinitions),
     })
     const state = workflowStore.getState()
     const sourceNode = state.history.present.nodes.find(

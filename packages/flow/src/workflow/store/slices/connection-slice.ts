@@ -32,7 +32,9 @@ export const createConnectionSlice: WorkflowSliceCreator = (set, get) => ({
   },
   onConnect: (connection) => {
     const currentGraph = get().history.present
-    const result = applyConnectNodesCommand(currentGraph, { connection })
+    const result = applyConnectNodesCommand(get().registry, currentGraph, {
+      connection,
+    })
     if (!result.ok) {
       set({ lastError: result.error })
       return

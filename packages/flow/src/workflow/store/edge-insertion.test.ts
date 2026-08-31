@@ -3,10 +3,14 @@ import { describe, expect, it } from "vitest"
 import { createWorkflowNode } from "../node-registry/node-factory"
 import type { WorkflowGraphState } from "../types/types"
 import { computeEdgeInsertion } from "./edge-insertion"
+import { builtinBaseDefinitions } from "../node-registry/builtin-base-definitions"
+import { createNodeRegistry } from "../node-registry/registry"
+
+const registry = createNodeRegistry(builtinBaseDefinitions)
 
 function createGraph(
-  source = createWorkflowNode("inlineExpression", { x: 0, y: 0 }),
-  target = createWorkflowNode("inlineExpression", { x: 320, y: 0 })
+  source = createWorkflowNode(registry, "inlineExpression", { x: 0, y: 0 }),
+  target = createWorkflowNode(registry, "inlineExpression", { x: 320, y: 0 })
 ): WorkflowGraphState {
   source.data.config.isRoot = true
   return {
@@ -37,7 +41,12 @@ function createGraph(
 describe("computeEdgeInsertion", () => {
   it("returns failure when target edge is missing", () => {
     const graph = createGraph()
-    const result = computeEdgeInsertion(graph, "missing-edge", "extractor")
+    const result = computeEdgeInsertion(
+      registry,
+      graph,
+      "missing-edge",
+      "extractor"
+    )
 
     expect(result.ok).toBe(false)
     if (!result.ok) {
@@ -47,7 +56,12 @@ describe("computeEdgeInsertion", () => {
 
   it("splits edge into two valid edges when both legs are valid", () => {
     const graph = createGraph()
-    const result = computeEdgeInsertion(graph, "edge-main", "extractor")
+    const result = computeEdgeInsertion(
+      registry,
+      graph,
+      "edge-main",
+      "extractor"
+    )
 
     expect(result.ok).toBe(true)
     if (result.ok) {
@@ -62,10 +76,15 @@ describe("computeEdgeInsertion", () => {
   })
 
   it("falls back to inserted->target edge when source leg is invalid", () => {
-    const source = createWorkflowNode("result", { x: 0, y: 0 })
-    const target = createWorkflowNode("setVariable", { x: 320, y: 0 })
+    const source = createWorkflowNode(registry, "result", { x: 0, y: 0 })
+    const target = createWorkflowNode(registry, "setVariable", { x: 320, y: 0 })
     const graph = createGraph(source, target)
-    const result = computeEdgeInsertion(graph, "edge-main", "evaluator")
+    const result = computeEdgeInsertion(
+      registry,
+      graph,
+      "edge-main",
+      "evaluator"
+    )
 
     expect(result.ok).toBe(true)
     if (result.ok) {
@@ -77,11 +96,19 @@ describe("computeEdgeInsertion", () => {
   })
 
   it("continues inserted evaluator edges through the true branch", () => {
-    const source = createWorkflowNode("inlineExpression", { x: 0, y: 0 })
-    const target = createWorkflowNode("result", { x: 320, y: 0 })
+    const source = createWorkflowNode(registry, "inlineExpression", {
+      x: 0,
+      y: 0,
+    })
+    const target = createWorkflowNode(registry, "result", { x: 320, y: 0 })
     const graph = createGraph(source, target)
 
-    const result = computeEdgeInsertion(graph, "edge-main", "evaluator")
+    const result = computeEdgeInsertion(
+      registry,
+      graph,
+      "edge-main",
+      "evaluator"
+    )
 
     expect(result.ok).toBe(true)
     if (result.ok) {
@@ -108,8 +135,8 @@ describe("computeEdgeInsertion", () => {
   })
 
   it("preserves upstream source handle when inserting evaluator on a handled edge", () => {
-    const source = createWorkflowNode("evaluator", { x: 0, y: 0 })
-    const target = createWorkflowNode("result", { x: 320, y: 0 })
+    const source = createWorkflowNode(registry, "evaluator", { x: 0, y: 0 })
+    const target = createWorkflowNode(registry, "result", { x: 320, y: 0 })
     const graph = {
       ...createGraph(source, target),
       edges: [
@@ -127,7 +154,12 @@ describe("computeEdgeInsertion", () => {
       ],
     }
 
-    const result = computeEdgeInsertion(graph, "edge-main", "evaluator")
+    const result = computeEdgeInsertion(
+      registry,
+      graph,
+      "edge-main",
+      "evaluator"
+    )
 
     expect(result.ok).toBe(true)
     if (result.ok) {

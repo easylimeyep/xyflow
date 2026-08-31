@@ -1,7 +1,7 @@
 import { addEdge } from "@xyflow/react"
 
 import { createWorkflowNode } from "../node-registry/node-factory"
-import type { NodeKind } from "../node-registry/registry"
+import type { NodeKind, NodeRegistry } from "../node-registry/registry"
 import type {
   WorkflowEdge,
   WorkflowGraphState,
@@ -38,6 +38,7 @@ export interface EdgeInsertionFailure {
 export type EdgeInsertionResult = EdgeInsertionSuccess | EdgeInsertionFailure
 
 export function computeEdgeInsertion(
+  registry: NodeRegistry,
   currentGraph: WorkflowGraphState,
   edgeId: string,
   kind: NodeKind,
@@ -46,7 +47,7 @@ export function computeEdgeInsertion(
     kind: NodeKind,
     position: { x: number; y: number }
   ) => WorkflowNode = (_currentNodes, nextKind, position) =>
-    createWorkflowNode(nextKind, position)
+    createWorkflowNode(registry, nextKind, position)
 ): EdgeInsertionResult {
   const edgeToSplit = currentGraph.edges.find((edge) => edge.id === edgeId)
   if (!edgeToSplit) {
@@ -97,6 +98,7 @@ export function computeEdgeInsertion(
   }
 
   const twoEdgeResult = tryTwoEdgeSplit(
+    registry,
     sourceToInserted,
     insertedToTarget,
     nextNodes,
@@ -112,6 +114,7 @@ export function computeEdgeInsertion(
   }
 
   return tryFallbackSingleEdge(
+    registry,
     sourceToInserted,
     insertedToTarget,
     nextNodes,
@@ -170,17 +173,20 @@ function computeShiftedLayout(
 }
 
 function tryTwoEdgeSplit(
+  registry: NodeRegistry,
   sourceToInserted: ConnectionLike,
   insertedToTarget: ConnectionLike,
   nextNodes: WorkflowNode[],
   nextEdgesBase: WorkflowEdge[]
 ): WorkflowEdge[] | null {
   const sourceValidation = validateConnection(
+    registry,
     sourceToInserted,
     nextNodes,
     nextEdgesBase
   )
   const targetValidation = validateConnection(
+    registry,
     insertedToTarget,
     nextNodes,
     nextEdgesBase
@@ -210,6 +216,7 @@ function tryTwoEdgeSplit(
 }
 
 function tryFallbackSingleEdge(
+  registry: NodeRegistry,
   sourceToInserted: ConnectionLike,
   insertedToTarget: ConnectionLike,
   nextNodes: WorkflowNode[],
@@ -218,16 +225,19 @@ function tryFallbackSingleEdge(
   insertedNodeId: string
 ): EdgeInsertionResult {
   const sourceValidation = validateConnection(
+    registry,
     sourceToInserted,
     nextNodes,
     nextEdgesBase
   )
   const targetValidation = validateConnection(
+    registry,
     insertedToTarget,
     nextNodes,
     nextEdgesBase
   )
   const fallbackValidation = validateConnection(
+    registry,
     insertedToTarget,
     nextNodes,
     nextEdgesBase

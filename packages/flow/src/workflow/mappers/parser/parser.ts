@@ -1,5 +1,6 @@
 import { domainToInternal } from "../converters/converters"
 import { toDomainDTO } from "../domain-dto/domain-dto"
+import type { NodeRegistry } from "../../node-registry/registry"
 import { asRecord } from "../utils/utils"
 import type { DomainWorkflowDTO, WorkflowGraphState } from "../../types/types"
 
@@ -10,6 +11,7 @@ export interface ParseResult<T> {
 }
 
 export function parseDomainGraphJson(
+  registry: NodeRegistry,
   rawJson: string
 ): ParseResult<DomainWorkflowDTO> {
   try {
@@ -21,7 +23,7 @@ export function parseDomainGraphJson(
       }
     }
 
-    const domainDTO = toDomainDTO(parsed)
+    const domainDTO = toDomainDTO(registry, parsed)
     if (!domainDTO.success) {
       return {
         success: false,
@@ -43,9 +45,10 @@ export function parseDomainGraphJson(
 }
 
 export function parseInternalGraphJson(
+  registry: NodeRegistry,
   rawJson: string
 ): ParseResult<WorkflowGraphState> {
-  const domainDTO = parseDomainGraphJson(rawJson)
+  const domainDTO = parseDomainGraphJson(registry, rawJson)
   if (!domainDTO.success || !domainDTO.value) {
     return {
       success: false,
@@ -55,11 +58,14 @@ export function parseInternalGraphJson(
 
   return {
     success: true,
-    value: domainToInternal(domainDTO.value),
+    value: domainToInternal(registry, domainDTO.value),
   }
 }
 
-export function isValidDomainDto(value: unknown): value is DomainWorkflowDTO {
-  const result = toDomainDTO(value)
+export function isValidDomainDto(
+  registry: NodeRegistry,
+  value: unknown
+): value is DomainWorkflowDTO {
+  const result = toDomainDTO(registry, value)
   return result.success
 }

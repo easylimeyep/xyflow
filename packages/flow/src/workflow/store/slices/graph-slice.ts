@@ -70,12 +70,14 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
       targetHandle: null,
     }
     const nextNode = createNodeWithUniqueLabel(
+      get().registry,
       currentGraph.nodes,
       kind,
       nextNodePosition
     )
     connection.target = nextNode.id
     const connectResult = applyConnectNodesCommand(
+      get().registry,
       { ...currentGraph, nodes: [...currentGraph.nodes, nextNode] },
       { connection }
     )
@@ -110,7 +112,7 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
     const pending = get().edgeInsertPending
     if (!pending) return
 
-    const result = applyInsertNodeOnEdgeCommand(currentGraph, {
+    const result = applyInsertNodeOnEdgeCommand(get().registry, currentGraph, {
       edgeId: pending.edgeId,
       kind,
     })

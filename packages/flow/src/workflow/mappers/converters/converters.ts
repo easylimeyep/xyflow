@@ -1,6 +1,6 @@
 import { normalizeNodeConfig } from "../../node-registry/node-config-normalization"
 import { createWorkflowNode } from "../../node-registry/node-factory"
-import type { NodeKind } from "../../node-registry/registry"
+import type { NodeKind, NodeRegistry } from "../../node-registry/registry"
 import type {
   DomainWorkflowConnectionDTO,
   DomainWorkflowDTO,
@@ -12,6 +12,7 @@ import type {
 import { normalizeDomainMetadata, toJsonConfig } from "../utils/utils"
 
 export function internalToDomain(
+  registry: NodeRegistry,
   graph: WorkflowGraphState,
   workflowId = graph.document.id,
   workflowName = graph.document.name
@@ -22,6 +23,7 @@ export function internalToDomain(
     position: node.position,
     label: node.data.label,
     config: normalizeNodeConfig(
+      registry,
       node.data.kind as NodeKind,
       toJsonConfig(node.data.config)
     ),
@@ -48,10 +50,14 @@ export function internalToDomain(
   }
 }
 
-export function domainToInternal(dto: DomainWorkflowDTO): WorkflowGraphState {
+export function domainToInternal(
+  registry: NodeRegistry,
+  dto: DomainWorkflowDTO
+): WorkflowGraphState {
   const nodes: WorkflowNode[] = dto.nodes.map(
     (nodeDto: DomainWorkflowNodeDTO) => {
       const baseNode = createWorkflowNode(
+        registry,
         nodeDto.kind as NodeKind,
         nodeDto.position,
         nodeDto.label
@@ -60,7 +66,11 @@ export function domainToInternal(dto: DomainWorkflowDTO): WorkflowGraphState {
       baseNode.data = {
         kind: nodeDto.kind,
         label: nodeDto.label,
-        config: normalizeNodeConfig(nodeDto.kind as NodeKind, nodeDto.config),
+        config: normalizeNodeConfig(
+          registry,
+          nodeDto.kind as NodeKind,
+          nodeDto.config
+        ),
       }
 
       return baseNode
@@ -102,10 +112,16 @@ export function domainToInternal(dto: DomainWorkflowDTO): WorkflowGraphState {
   }
 }
 
-export function exportDomainDto(graph: WorkflowGraphState): DomainWorkflowDTO {
-  return internalToDomain(graph)
+export function exportDomainDto(
+  registry: NodeRegistry,
+  graph: WorkflowGraphState
+): DomainWorkflowDTO {
+  return internalToDomain(registry, graph)
 }
 
-export function exportDomainJson(graph: WorkflowGraphState): string {
-  return JSON.stringify(exportDomainDto(graph), null, 2)
+export function exportDomainJson(
+  registry: NodeRegistry,
+  graph: WorkflowGraphState
+): string {
+  return JSON.stringify(exportDomainDto(registry, graph), null, 2)
 }

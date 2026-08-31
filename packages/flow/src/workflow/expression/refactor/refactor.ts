@@ -1,9 +1,10 @@
 import { parseTemplateSegments } from "@flow/expression-editor"
 
-import { getNodeDefinition, type NodeKind } from "../../node-registry/registry"
+import type { NodeKind, NodeRegistry } from "../../node-registry/registry"
 import type { WorkflowNode } from "../../types/types"
 
 export function refactorPlainVariableReferencesInGraph(
+  registry: NodeRegistry,
   nodes: WorkflowNode[],
   oldName: string,
   newName: string
@@ -13,7 +14,7 @@ export function refactorPlainVariableReferencesInGraph(
   if (!trimmedOldName || trimmedOldName === trimmedNewName) {
     return nodes
   }
-  return refactorExpressionFieldsInGraph(nodes, (template) =>
+  return refactorExpressionFieldsInGraph(registry, nodes, (template) =>
     refactorPlainVariableInTemplate(template, trimmedOldName, trimmedNewName)
   )
 }
@@ -40,11 +41,12 @@ function refactorPlainVariableInTemplate(
 }
 
 function refactorExpressionFieldsInGraph(
+  registry: NodeRegistry,
   nodes: WorkflowNode[],
   refactorExpression: (expression: string) => string
 ): WorkflowNode[] {
   return nodes.map((node) => {
-    const expressionKeys = getRefactorableConfigKeys(node)
+    const expressionKeys = getRefactorableConfigKeys(registry, node)
     if (expressionKeys.length === 0) {
       return node
     }
@@ -94,9 +96,12 @@ function refactorExpressionFieldsInGraph(
   })
 }
 
-function getRefactorableConfigKeys(node: WorkflowNode): string[] {
+function getRefactorableConfigKeys(
+  registry: NodeRegistry,
+  node: WorkflowNode
+): string[] {
   const kind = node.data.kind as NodeKind
-  const definition = getNodeDefinition(kind)
+  const definition = registry.get(kind)
   // A node whose kind is not registered has no declared fields, so nothing in
   // its config can be an expression to refactor.
   if (!definition) {

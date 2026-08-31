@@ -3,11 +3,15 @@ import type { Viewport } from "@xyflow/react"
 import { DEFAULT_VIEWPORT } from "../default-graph"
 import { computeWorkflowAutoLayout } from "../layout"
 import {
+  createNodeRegistry,
   createWorkflowNode,
-  getNodeDefinition,
   normalizeNodeConfig,
 } from "../node-registry"
-import type { BuiltinNodeKind } from "../node-registry"
+import type {
+  BuiltinNodeKind,
+  NodeDefinition,
+  NodeRegistry,
+} from "../node-registry"
 import type {
   NodeConfigByKind,
   NodeKind,
@@ -66,25 +70,29 @@ export interface InitialGraphInput {
 }
 
 export function createInitialGraph(
+  definitions: readonly NodeDefinition[],
   input: InitialGraphInput
 ): WorkflowGraphState {
-  return normalizeInitialGraphInput(input)
+  return normalizeInitialGraphInput(createNodeRegistry(definitions), input)
 }
 
 export async function createInitialGraphElk(
+  definitions: readonly NodeDefinition[],
   input: InitialGraphInput
 ): Promise<WorkflowGraphState> {
-  const graph = normalizeInitialGraphInput(input)
+  const registry = createNodeRegistry(definitions)
+  const graph = normalizeInitialGraphInput(registry, input)
 
   // Initial graph positioning always uses the shared ELK workflow layout path.
-  return computeWorkflowAutoLayout(graph)
+  return computeWorkflowAutoLayout(registry, graph)
 }
 
 function normalizeInitialGraphInput(
+  registry: NodeRegistry,
   input: InitialGraphInput
 ): WorkflowGraphState {
-  const nodes = normalizeNodes(input.nodes)
-  const edges = normalizeEdges(nodes, input.edges ?? [])
+  const nodes = normalizeNodes(registry, input.nodes)
+  const edges = normalizeEdges(registry, nodes, input.edges ?? [])
 
   return {
     nodes,
@@ -95,6 +103,7 @@ function normalizeInitialGraphInput(
 }
 
 function normalizeNodes(
+  registry: NodeRegistry,
   inputs: readonly InitialGraphNodeInput[]
 ): WorkflowNode[] {
   const seenIds = new Set<string>()
@@ -106,12 +115,12 @@ function normalizeNodes(
 
     seenIds.add(input.id)
 
-    const definition = getNodeDefinition(input.kind)
+    const definition = registry.get(input.kind)
     if (!definition) {
       throw new Error(`Unknown node kind: ${input.kind}`)
     }
     const label = input.label ?? definition.title
-    const node = createWorkflowNode(input.kind, { x: 0, y: 0 }, label)
+    const node = createWorkflowNode(registry, input.kind, { x: 0, y: 0 }, label)
 
     return {
       ...node,
@@ -120,6 +129,7 @@ function normalizeNodes(
         kind: input.kind,
         label,
         config: normalizeNodeConfig(
+          registry,
           input.kind,
           (input.config ?? {}) as Record<string, unknown>
         ),
@@ -129,6 +139,7 @@ function normalizeNodes(
 }
 
 function normalizeEdges(
+  registry: NodeRegistry,
   nodes: WorkflowNode[],
   inputs: readonly InitialGraphEdgeInput[]
 ): WorkflowEdge[] {
@@ -142,7 +153,7 @@ function normalizeEdges(
       targetHandle: input.targetHandle ?? null,
     }
 
-    const result = validateConnection(connection, nodes, nextEdges)
+    const result = validateConnection(registry, connection, nodes, nextEdges)
     if (!result.valid) {
       throw new Error(
         `Invalid initial graph edge ${describeEdge(input, index)}: ${result.reason}`

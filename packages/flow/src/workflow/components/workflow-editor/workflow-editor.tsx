@@ -276,6 +276,7 @@ function DefaultWorkflowEditorComposition() {
 function WorkflowEditorRoot({
   initialGraph,
   runtime,
+  definitions,
   validation,
   anchorRefs,
   autoLayoutOnInit,
@@ -298,7 +299,11 @@ function WorkflowEditorRoot({
   }, [])
 
   return (
-    <WorkflowStoreProvider initialGraph={initialGraph} runtime={runtime}>
+    <WorkflowStoreProvider
+      initialGraph={initialGraph}
+      runtime={runtime}
+      definitions={definitions}
+    >
       <WorkflowValidationSync validation={validation} />
       <RuntimeObservationProvider mode={mode} overlay={overlay}>
         <WorkflowEditorLayoutProvider

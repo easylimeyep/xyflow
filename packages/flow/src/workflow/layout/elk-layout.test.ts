@@ -8,13 +8,24 @@ import {
   buildElkGraph,
   computeWorkflowAutoLayout,
 } from "./elk-layout"
+import { builtinBaseDefinitions } from "../node-registry/builtin-base-definitions"
+import { createNodeRegistry } from "../node-registry/registry"
+
+const registry = createNodeRegistry(builtinBaseDefinitions)
 
 describe("workflow ELK layout adapter", () => {
   it("builds an ELK graph with evaluator ports and handle-aware edges", () => {
-    const evaluatorNode = createWorkflowNode("evaluator", { x: 0, y: 80 })
-    const trueNode = createWorkflowNode("extractor", { x: 320, y: 0 })
-    const falseNode = createWorkflowNode("setVariable", { x: 320, y: 160 })
+    const evaluatorNode = createWorkflowNode(registry, "evaluator", {
+      x: 0,
+      y: 80,
+    })
+    const trueNode = createWorkflowNode(registry, "extractor", { x: 320, y: 0 })
+    const falseNode = createWorkflowNode(registry, "setVariable", {
+      x: 320,
+      y: 160,
+    })
     const graph = buildElkGraph(
+      registry,
       [evaluatorNode, trueNode, falseNode],
       [
         {
@@ -59,10 +70,10 @@ describe("workflow ELK layout adapter", () => {
   })
 
   it("uses runtime dimensions when available", () => {
-    const node = createWorkflowNode("extractor", { x: 0, y: 0 })
+    const node = createWorkflowNode(registry, "extractor", { x: 0, y: 0 })
     node.measured = { width: 420, height: 210 }
 
-    const graph = buildElkGraph([node], [])
+    const graph = buildElkGraph(registry, [node], [])
 
     expect(graph.children[0]).toMatchObject({
       id: node.id,
@@ -72,9 +83,9 @@ describe("workflow ELK layout adapter", () => {
   })
 
   it("uses estimated extractor height before runtime dimensions are measured", () => {
-    const node = createWorkflowNode("extractor", { x: 0, y: 0 })
+    const node = createWorkflowNode(registry, "extractor", { x: 0, y: 0 })
 
-    const graph = buildElkGraph([node], [])
+    const graph = buildElkGraph(registry, [node], [])
 
     expect(graph.children[0]).toMatchObject({
       id: node.id,
@@ -84,11 +95,11 @@ describe("workflow ELK layout adapter", () => {
   })
 
   it("uses evaluator condition count to estimate unmeasured evaluator height", () => {
-    const singleConditionEvaluator = createWorkflowNode("evaluator", {
+    const singleConditionEvaluator = createWorkflowNode(registry, "evaluator", {
       x: 0,
       y: 0,
     })
-    const multiConditionEvaluator = createWorkflowNode("evaluator", {
+    const multiConditionEvaluator = createWorkflowNode(registry, "evaluator", {
       x: 0,
       y: 0,
     })
@@ -114,6 +125,7 @@ describe("workflow ELK layout adapter", () => {
     ]
 
     const graph = buildElkGraph(
+      registry,
       [singleConditionEvaluator, multiConditionEvaluator],
       []
     )
@@ -132,12 +144,16 @@ describe("workflow ELK layout adapter", () => {
 
   it("applies returned ELK coordinates to workflow nodes", async () => {
     const root = createWorkflowNode(
+      registry,
       "inlineExpression",
       { x: 0, y: 80 },
       "Keyword"
     )
     root.data.config.isRoot = true
-    const extractor = createWorkflowNode("extractor", { x: 320, y: 80 })
+    const extractor = createWorkflowNode(registry, "extractor", {
+      x: 320,
+      y: 80,
+    })
     const graph: WorkflowGraphState = {
       nodes: [root, extractor],
       edges: [
@@ -159,7 +175,7 @@ describe("workflow ELK layout adapter", () => {
       },
     }
 
-    const nextGraph = await computeWorkflowAutoLayout(graph, {
+    const nextGraph = await computeWorkflowAutoLayout(registry, graph, {
       layout: async () => ({
         children: [
           { id: root.id, width: 260, height: 80, x: 40, y: 20 },
@@ -176,8 +192,8 @@ describe("workflow ELK layout adapter", () => {
   })
 
   it("requests wider ELK spacing for dense workflow layouts", () => {
-    const node = createWorkflowNode("extractor", { x: 0, y: 0 })
-    const graph = buildElkGraph([node], [])
+    const node = createWorkflowNode(registry, "extractor", { x: 0, y: 0 })
+    const graph = buildElkGraph(registry, [node], [])
 
     expect(graph.layoutOptions).toMatchObject({
       "elk.algorithm": "layered",
@@ -192,21 +208,25 @@ describe("workflow ELK layout adapter", () => {
 
   it("moves evaluator shortcut result targets away from sibling path nodes", () => {
     const evaluator = createWorkflowNode(
+      registry,
       "evaluator",
       { x: 0, y: 100 },
       "Auto approve?"
     )
     const score = createWorkflowNode(
+      registry,
       "extractor",
       { x: 360, y: 80 },
       "Extract approval score"
     )
     const summary = createWorkflowNode(
+      registry,
       "setVariable",
       { x: 720, y: 80 },
       "Set true summary"
     )
     const result = createWorkflowNode(
+      registry,
       "result",
       { x: 1080, y: 80 },
       "result true"
@@ -271,7 +291,10 @@ describe("workflow ELK layout adapter", () => {
   })
 
   it("reuses the original node array when ELK positions do not change", () => {
-    const extractor = createWorkflowNode("extractor", { x: 120, y: 40 })
+    const extractor = createWorkflowNode(registry, "extractor", {
+      x: 120,
+      y: 40,
+    })
     const nodes = [extractor]
     const nextNodes = applyElkLayout(nodes, {
       children: [

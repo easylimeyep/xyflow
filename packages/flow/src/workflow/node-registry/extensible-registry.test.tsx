@@ -11,6 +11,7 @@ import { normalizeNodeConfig } from "./node-config-normalization"
 import { createWorkflowNode } from "./node-factory"
 import { getAllowedTargets, getNodeOutputPaths } from "./node-graph-rules"
 import {
+  createNodeRegistry,
   getNodeDefinition,
   isNodeKind,
   listNodeDefinitions,
@@ -127,7 +128,10 @@ describe("consumer node registration", () => {
     registerNodeDefinitions([aiTurn])
 
     // Act
-    const node = createWorkflowNode("ai.turn", { x: 0, y: 0 })
+    const node = createWorkflowNode(createNodeRegistry([aiTurn]), "ai.turn", {
+      x: 0,
+      y: 0,
+    })
 
     // Assert
     expect(node.type).toBe("ai.turn")
@@ -140,10 +144,14 @@ describe("consumer node registration", () => {
     registerNodeDefinitions([aiTurn])
 
     // Act
-    const config = normalizeNodeConfig("ai.turn", {
-      prompt: "Summarize",
-      unknown: "dropped",
-    })
+    const config = normalizeNodeConfig(
+      createNodeRegistry([aiTurn]),
+      "ai.turn",
+      {
+        prompt: "Summarize",
+        unknown: "dropped",
+      }
+    )
 
     // Assert
     expect(config).toEqual({ prompt: "Summarize" })
@@ -154,15 +162,20 @@ describe("consumer node registration", () => {
     registerNodeDefinitions([aiTurn])
 
     // Act & Assert
-    expect(getAllowedTargets("ai.turn")).toEqual(["ai.turn", "result"])
-    expect(getNodeOutputPaths("ai.turn")).toEqual(["content"])
+    const registry = createNodeRegistry([aiTurn])
+    expect(getAllowedTargets(registry, "ai.turn")).toEqual([
+      "ai.turn",
+      "result",
+    ])
+    expect(getNodeOutputPaths(registry, "ai.turn")).toEqual(["content"])
   })
 
   it("treats an unregistered kind as connecting to nothing", () => {
     // A stored graph may carry a kind the consumer has not registered — that
     // must not throw while the canvas renders it.
-    expect(getAllowedTargets("never.registered")).toEqual([])
-    expect(getNodeOutputPaths("never.registered")).toEqual([])
+    const registry = createNodeRegistry([aiTurn])
+    expect(getAllowedTargets(registry, "never.registered")).toEqual([])
+    expect(getNodeOutputPaths(registry, "never.registered")).toEqual([])
     expect(isNodeKind("never.registered")).toBe(false)
   })
 

@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { WorkflowStoreProvider, useWorkflowStore } from "../../store"
 import type { WorkflowGraphState } from "../../types"
 import { NodeContextMenu } from "./node-context-menu"
+import { builtinBaseDefinitions } from "../../node-registry/builtin-base-definitions"
 
 const clipboardWriteTextMock = vi.fn()
 
@@ -98,7 +99,10 @@ describe("NodeContextMenu", () => {
 
   it("renders copy, duplicate, and destructive delete commands with shortcut hints", async () => {
     render(
-      <WorkflowStoreProvider initialGraph={createInitialGraph()}>
+      <WorkflowStoreProvider
+        initialGraph={createInitialGraph()}
+        definitions={builtinBaseDefinitions}
+      >
         <NodeContextMenu {...createNodeProps()}>{TestNode}</NodeContextMenu>
       </WorkflowStoreProvider>
     )
@@ -121,7 +125,10 @@ describe("NodeContextMenu", () => {
 
   it("selects an unselected right-clicked node before applying menu actions", async () => {
     render(
-      <WorkflowStoreProvider initialGraph={createInitialGraph()}>
+      <WorkflowStoreProvider
+        initialGraph={createInitialGraph()}
+        definitions={builtinBaseDefinitions}
+      >
         <SelectionProbe />
         <NodeContextMenu {...createNodeProps()}>{TestNode}</NodeContextMenu>
       </WorkflowStoreProvider>

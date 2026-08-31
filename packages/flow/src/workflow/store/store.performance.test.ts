@@ -7,13 +7,17 @@ import type {
   WorkflowNode,
 } from "../types/types"
 import { createWorkflowStore } from "./store"
+import { builtinBaseDefinitions } from "../node-registry/builtin-base-definitions"
+import { createNodeRegistry } from "../node-registry/registry"
+
+const registry = createNodeRegistry(builtinBaseDefinitions)
 
 function createRepresentativeGraph(nodeCount = 180): WorkflowGraphState {
   const nodes: WorkflowNode[] = []
   const edges: WorkflowEdge[] = []
 
   for (let index = 0; index < nodeCount; index += 1) {
-    const node = createWorkflowNode("inlineExpression", {
+    const node = createWorkflowNode(registry, "inlineExpression", {
       x: (index % 12) * 220,
       y: Math.floor(index / 12) * 140,
     })
@@ -62,6 +66,7 @@ function createRepresentativeGraph(nodeCount = 180): WorkflowGraphState {
 describe("workflow interaction performance budgets", () => {
   it("keeps transient drag updates within a frame-safe latency budget on representative graphs", () => {
     const store = createWorkflowStore({
+      definitions: builtinBaseDefinitions,
       initialGraph: createRepresentativeGraph(),
     })
     const targetNode = store.getState().history.present.nodes[90]
@@ -114,6 +119,7 @@ describe("workflow interaction performance budgets", () => {
 
   it("keeps viewport bursts lightweight enough for smooth pan/zoom interaction", () => {
     const store = createWorkflowStore({
+      definitions: builtinBaseDefinitions,
       initialGraph: createRepresentativeGraph(),
     })
     const initialNodesRef = store.getState().history.present.nodes

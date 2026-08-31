@@ -1,7 +1,7 @@
 import type { XYPosition } from "@xyflow/react"
 
 import type { JsonObject, WorkflowNode, WorkflowNodeData } from "../types/types"
-import { getNodeDefinition, type NodeKind } from "./registry"
+import type { NodeKind, NodeRegistry } from "./registry"
 
 export const DEFAULT_NODE_WIDTH = 260
 export const DEFAULT_NODE_HEIGHT = 80
@@ -10,8 +10,12 @@ export function createNodeId(kind: string): string {
   return `${kind}-${crypto.randomUUID()}`
 }
 
-function toNodeData(kind: NodeKind, label?: string): WorkflowNodeData {
-  const definition = getNodeDefinition(kind)
+function toNodeData(
+  registry: NodeRegistry,
+  kind: NodeKind,
+  label?: string
+): WorkflowNodeData {
+  const definition = registry.get(kind)
   if (!definition) {
     throw new Error(`Unknown node kind: ${kind}`)
   }
@@ -24,6 +28,7 @@ function toNodeData(kind: NodeKind, label?: string): WorkflowNodeData {
 }
 
 export function createWorkflowNode(
+  registry: NodeRegistry,
   kind: NodeKind,
   position: XYPosition,
   label?: string
@@ -33,6 +38,6 @@ export function createWorkflowNode(
     type: kind,
     position,
     width: DEFAULT_NODE_WIDTH,
-    data: toNodeData(kind, label),
+    data: toNodeData(registry, kind, label),
   }
 }

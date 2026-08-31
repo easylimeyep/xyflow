@@ -11,9 +11,13 @@ import {
   applyUpdateNodeConfigCommand,
   applyUpdateNodeLabelCommand,
 } from "./commands"
+import { builtinBaseDefinitions } from "../node-registry/builtin-base-definitions"
+import { createNodeRegistry } from "../node-registry/registry"
+
+const registry = createNodeRegistry(builtinBaseDefinitions)
 
 function createGraph(
-  nodes = [createWorkflowNode("inlineExpression", { x: 0, y: 0 })]
+  nodes = [createWorkflowNode(registry, "inlineExpression", { x: 0, y: 0 })]
 ): WorkflowGraphState {
   return {
     nodes,
@@ -37,8 +41,8 @@ describe("graph-engine commands", () => {
       nodeId: "set-variable-fixed",
     }
 
-    const first = applyAddNodeCommand(graph, command)
-    const second = applyAddNodeCommand(graph, command)
+    const first = applyAddNodeCommand(registry, graph, command)
+    const second = applyAddNodeCommand(registry, graph, command)
 
     expect(first).toEqual(second)
     expect(first.ok).toBe(true)
@@ -48,10 +52,13 @@ describe("graph-engine commands", () => {
   })
 
   it("rejects invalid kind/key config updates without mutating graph state", () => {
-    const inlineNode = createWorkflowNode("inlineExpression", { x: 0, y: 0 })
+    const inlineNode = createWorkflowNode(registry, "inlineExpression", {
+      x: 0,
+      y: 0,
+    })
     const graph = createGraph([inlineNode])
 
-    const result = applyUpdateNodeConfigCommand(graph, {
+    const result = applyUpdateNodeConfigCommand(registry, graph, {
       nodeId: inlineNode.id,
       update: {
         kind: "extractor",
@@ -68,10 +75,13 @@ describe("graph-engine commands", () => {
   })
 
   it("rejects unsupported config keys for a node kind", () => {
-    const inlineNode = createWorkflowNode("inlineExpression", { x: 0, y: 0 })
+    const inlineNode = createWorkflowNode(registry, "inlineExpression", {
+      x: 0,
+      y: 0,
+    })
     const graph = createGraph([inlineNode])
 
-    const result = applyUpdateNodeConfigCommand(graph, {
+    const result = applyUpdateNodeConfigCommand(registry, graph, {
       nodeId: inlineNode.id,
       update: {
         kind: "inlineExpression",
@@ -87,10 +97,10 @@ describe("graph-engine commands", () => {
   })
 
   it("rejects invalid config values for a supported key", () => {
-    const resultNode = createWorkflowNode("result", { x: 0, y: 0 })
+    const resultNode = createWorkflowNode(registry, "result", { x: 0, y: 0 })
     const graph = createGraph([resultNode])
 
-    const result = applyUpdateNodeConfigCommand(graph, {
+    const result = applyUpdateNodeConfigCommand(registry, graph, {
       nodeId: resultNode.id,
       update: {
         kind: "result",
@@ -106,13 +116,19 @@ describe("graph-engine commands", () => {
   })
 
   it("refactors plain variable references for rename-aware config updates", () => {
-    const setVariableNode = createWorkflowNode("setVariable", { x: 0, y: 0 })
-    const inlineNode = createWorkflowNode("inlineExpression", { x: 300, y: 0 })
+    const setVariableNode = createWorkflowNode(registry, "setVariable", {
+      x: 0,
+      y: 0,
+    })
+    const inlineNode = createWorkflowNode(registry, "inlineExpression", {
+      x: 300,
+      y: 0,
+    })
     setVariableNode.data.config.variableName = "oldName"
     inlineNode.data.config.template = ["{{ oldName }}"]
 
     const graph = createGraph([setVariableNode, inlineNode])
-    const result = applyUpdateNodeConfigCommand(graph, {
+    const result = applyUpdateNodeConfigCommand(registry, graph, {
       nodeId: setVariableNode.id,
       update: {
         kind: "setVariable",
@@ -134,15 +150,19 @@ describe("graph-engine commands", () => {
 
   it("refactors plain variable references when rename-aware node labels change", () => {
     const extractorNode = createWorkflowNode(
+      registry,
       "extractor",
       { x: 0, y: 0 },
       "oldName"
     )
-    const inlineNode = createWorkflowNode("inlineExpression", { x: 300, y: 0 })
+    const inlineNode = createWorkflowNode(registry, "inlineExpression", {
+      x: 300,
+      y: 0,
+    })
     inlineNode.data.config.template = ["{{ oldName }}"]
 
     const graph = createGraph([extractorNode, inlineNode])
-    const result = applyUpdateNodeLabelCommand(graph, {
+    const result = applyUpdateNodeLabelCommand(registry, graph, {
       nodeId: extractorNode.id,
       nextLabel: "newName",
     })
@@ -157,12 +177,15 @@ describe("graph-engine commands", () => {
   })
 
   it("connects nodes through the pure engine command", () => {
-    const source = createWorkflowNode("inlineExpression", { x: 0, y: 0 })
+    const source = createWorkflowNode(registry, "inlineExpression", {
+      x: 0,
+      y: 0,
+    })
     source.data.config.isRoot = true
-    const target = createWorkflowNode("extractor", { x: 320, y: 0 })
+    const target = createWorkflowNode(registry, "extractor", { x: 320, y: 0 })
     const graph = createGraph([source, target])
 
-    const result = applyConnectNodesCommand(graph, {
+    const result = applyConnectNodesCommand(registry, graph, {
       connection: {
         source: source.id,
         target: target.id,
@@ -180,8 +203,11 @@ describe("graph-engine commands", () => {
   })
 
   it("accepts a connect command that closes a cycle", () => {
-    const evaluator = createWorkflowNode("evaluator", { x: 0, y: 0 })
-    const inline = createWorkflowNode("inlineExpression", { x: 320, y: 0 })
+    const evaluator = createWorkflowNode(registry, "evaluator", { x: 0, y: 0 })
+    const inline = createWorkflowNode(registry, "inlineExpression", {
+      x: 320,
+      y: 0,
+    })
     const graph = {
       ...createGraph([evaluator, inline]),
       edges: [
@@ -199,7 +225,7 @@ describe("graph-engine commands", () => {
       ],
     }
 
-    const result = applyConnectNodesCommand(graph, {
+    const result = applyConnectNodesCommand(registry, graph, {
       connection: {
         source: inline.id,
         target: evaluator.id,
@@ -218,12 +244,15 @@ describe("graph-engine commands", () => {
   })
 
   it("still rejects invalid non-topology connections", () => {
-    const root = createWorkflowNode("inlineExpression", { x: 0, y: 0 })
+    const root = createWorkflowNode(registry, "inlineExpression", {
+      x: 0,
+      y: 0,
+    })
     root.data.config.isRoot = true
-    const source = createWorkflowNode("extractor", { x: 320, y: 0 })
+    const source = createWorkflowNode(registry, "extractor", { x: 320, y: 0 })
     const graph = createGraph([root, source])
 
-    const result = applyConnectNodesCommand(graph, {
+    const result = applyConnectNodesCommand(registry, graph, {
       connection: {
         source: source.id,
         target: root.id,
@@ -238,8 +267,14 @@ describe("graph-engine commands", () => {
   })
 
   it("splits edges deterministically when insertion command provides a node id", () => {
-    const source = createWorkflowNode("inlineExpression", { x: 0, y: 0 })
-    const target = createWorkflowNode("inlineExpression", { x: 320, y: 0 })
+    const source = createWorkflowNode(registry, "inlineExpression", {
+      x: 0,
+      y: 0,
+    })
+    const target = createWorkflowNode(registry, "inlineExpression", {
+      x: 320,
+      y: 0,
+    })
     source.data.config.isRoot = true
     const graph = {
       ...createGraph([source, target]),
@@ -263,8 +298,8 @@ describe("graph-engine commands", () => {
       kind: "extractor" as const,
       nodeId: "inserted-node-fixed",
     }
-    const first = applyInsertNodeOnEdgeCommand(graph, command)
-    const second = applyInsertNodeOnEdgeCommand(graph, command)
+    const first = applyInsertNodeOnEdgeCommand(registry, graph, command)
+    const second = applyInsertNodeOnEdgeCommand(registry, graph, command)
 
     expect(first).toEqual(second)
     expect(first.ok).toBe(true)
@@ -276,8 +311,11 @@ describe("graph-engine commands", () => {
   })
 
   it("applies structural node changes through a pure engine command", () => {
-    const source = createWorkflowNode("inlineExpression", { x: 0, y: 0 })
-    const target = createWorkflowNode("extractor", { x: 320, y: 0 })
+    const source = createWorkflowNode(registry, "inlineExpression", {
+      x: 0,
+      y: 0,
+    })
+    const target = createWorkflowNode(registry, "extractor", { x: 320, y: 0 })
     const graph = {
       ...createGraph([source, target]),
       edges: [

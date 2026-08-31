@@ -1,7 +1,7 @@
 import type { XYPosition } from "@xyflow/react"
 
 import { decodeNodeConfig } from "../../node-registry/node-config-normalization"
-import { isNodeKind } from "../../types/types"
+import type { NodeRegistry } from "../../node-registry/registry"
 import type {
   DomainWorkflowConnectionDTO,
   DomainWorkflowNodeDTO,
@@ -18,6 +18,7 @@ export interface WorkflowSelectionClipboardPayload {
 }
 
 function toNodeDTO(
+  registry: NodeRegistry,
   value: unknown
 ):
   | { success: true; value: DomainWorkflowNodeDTO }
@@ -30,7 +31,8 @@ function toNodeDTO(
   const position = asRecord(record.position)
   if (
     !isString(record.id) ||
-    !isNodeKind(record.kind) ||
+    !isString(record.kind) ||
+    !registry.has(record.kind) ||
     !position ||
     !isNumber(position.x) ||
     !isNumber(position.y) ||
@@ -42,7 +44,7 @@ function toNodeDTO(
     }
   }
 
-  const configResult = decodeNodeConfig(record.kind, record.config)
+  const configResult = decodeNodeConfig(registry, record.kind, record.config)
   if (!configResult.success) {
     return { success: false, error: configResult.error }
   }
@@ -134,6 +136,7 @@ export function exportSelectionClipboardJson(
 }
 
 export function parseSelectionClipboardJson(
+  registry: NodeRegistry,
   rawJson: string
 ): ParseResult<WorkflowSelectionClipboardPayload> {
   try {
@@ -157,7 +160,7 @@ export function parseSelectionClipboardJson(
       }
     }
 
-    const nodes = record.nodes.map(toNodeDTO)
+    const nodes = record.nodes.map((node) => toNodeDTO(registry, node))
     const connections = record.connections.map(toConnectionDTO)
     const nodeFailure = nodes.find((node) => !node.success)
     if (nodeFailure && !nodeFailure.success) {

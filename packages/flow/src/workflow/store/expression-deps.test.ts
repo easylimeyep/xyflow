@@ -7,11 +7,21 @@ import {
   computeStructuralSignature,
   projectExpressionDeps,
 } from "./expression-deps"
+import { builtinBaseDefinitions } from "../node-registry/builtin-base-definitions"
+import { createNodeRegistry } from "../node-registry/registry"
+
+const registry = createNodeRegistry(builtinBaseDefinitions)
 
 function createTestGraph(): WorkflowGraphState {
-  const trigger = createWorkflowNode("inlineExpression", { x: 0, y: 80 })
+  const trigger = createWorkflowNode(registry, "inlineExpression", {
+    x: 0,
+    y: 80,
+  })
   trigger.data.config.isRoot = true
-  const inline = createWorkflowNode("inlineExpression", { x: 360, y: 80 })
+  const inline = createWorkflowNode(registry, "inlineExpression", {
+    x: 360,
+    y: 80,
+  })
   return {
     nodes: [trigger, inline],
     edges: [

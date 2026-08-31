@@ -6,6 +6,7 @@ import {
 } from "@flow/store"
 
 import { initialWorkflowGraph } from "../default-graph/default-graph"
+import { createNodeRegistry } from "../node-registry/registry"
 import type { WorkflowGraphState } from "../types/types"
 import { cloneGraphState } from "./helpers"
 import { normalizeWorkflowRuntimeConfig } from "./runtime"
@@ -41,11 +42,13 @@ export function createWorkflowStore(
     initialProps.initialGraph ?? initialWorkflowGraph
   )
   const runtime = normalizeWorkflowRuntimeConfig(initialProps.runtime)
+  const registry = createNodeRegistry(initialProps.definitions ?? [])
 
   return createStore<WorkflowStoreState>()(
     (set, get) =>
       ({
         runtime,
+        registry,
         history: createHistoryState(initialGraph),
         measuredInitialAutoLayoutAttempted: false,
         ...createExpressionSlice(initialGraph),

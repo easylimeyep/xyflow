@@ -8,6 +8,10 @@ import { createWorkflowNode } from "../../node-registry/node-factory"
 import { WorkflowStoreProvider } from "../../store"
 import type { WorkflowGraphState } from "../../types"
 import { OutputQuickAddAffordance } from "./output-quick-add-affordance"
+import { builtinBaseDefinitions } from "../../node-registry/builtin-base-definitions"
+import { createNodeRegistry } from "../../node-registry/registry"
+
+const registry = createNodeRegistry(builtinBaseDefinitions)
 
 vi.mock("@xyflow/react", () => {
   return {
@@ -30,8 +34,8 @@ function createEvaluatorGraph(): {
   graph: WorkflowGraphState
   evaluatorId: string
 } {
-  const evaluator = createWorkflowNode("evaluator", { x: 0, y: 0 })
-  const result = createWorkflowNode("result", { x: 320, y: 0 })
+  const evaluator = createWorkflowNode(registry, "evaluator", { x: 0, y: 0 })
+  const result = createWorkflowNode(registry, "result", { x: 320, y: 0 })
 
   return {
     evaluatorId: evaluator.id,
@@ -66,7 +70,10 @@ function renderWithStore(
   initialGraph: WorkflowGraphState
 ) {
   return render(
-    <WorkflowStoreProvider initialGraph={initialGraph}>
+    <WorkflowStoreProvider
+      initialGraph={initialGraph}
+      definitions={builtinBaseDefinitions}
+    >
       {children}
     </WorkflowStoreProvider>
   )

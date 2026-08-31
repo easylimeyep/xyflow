@@ -1,5 +1,4 @@
-import { getNodeDefinition } from "../node-registry/registry"
-import type { NodeKind } from "../node-registry/registry"
+import type { NodeKind, NodeRegistry } from "../node-registry/registry"
 import type { WorkflowEdge, WorkflowNode } from "../types/types"
 import { refactorPlainVariableReferencesInGraph } from "../expression/refactor/refactor"
 import { isValidJsIdentifier } from "../expression/variable-name/variable-name"
@@ -18,6 +17,7 @@ interface ConfigHookResult {
 }
 
 export function runNodeConfigHooks(
+  registry: NodeRegistry,
   nodes: WorkflowNode[],
   edges: WorkflowEdge[],
   context: ConfigHookContext
@@ -25,18 +25,19 @@ export function runNodeConfigHooks(
   let nextNodes = nodes
   let nextEdges = edges
 
-  nextNodes = maybeRefactorExpressions(nextNodes, context)
+  nextNodes = maybeRefactorExpressions(registry, nextNodes, context)
   nextEdges = maybePruneIncomingEdges(nextEdges, context)
 
   return { nextNodes, nextEdges }
 }
 
 function maybeRefactorExpressions(
+  registry: NodeRegistry,
   nodes: WorkflowNode[],
   context: ConfigHookContext
 ): WorkflowNode[] {
   // An unregistered kind declares no rename key, so no rename can be detected.
-  const definition = getNodeDefinition(context.targetNode.data.kind as NodeKind)
+  const definition = registry.get(context.targetNode.data.kind as NodeKind)
   const oldName =
     typeof context.previousValue === "string" ? context.previousValue : null
   const newName =
@@ -49,7 +50,7 @@ function maybeRefactorExpressions(
     isValidJsIdentifier(newName.trim())
 
   return isRenameFieldUpdate
-    ? refactorPlainVariableReferencesInGraph(nodes, oldName, newName)
+    ? refactorPlainVariableReferencesInGraph(registry, nodes, oldName, newName)
     : nodes
 }
 

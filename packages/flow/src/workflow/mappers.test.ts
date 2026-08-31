@@ -11,6 +11,10 @@ import {
   parseSelectionClipboardJson,
 } from "./mappers"
 import type { DomainWorkflowDTO } from "./types"
+import { builtinBaseDefinitions } from "./node-registry/builtin-base-definitions"
+import { createNodeRegistry } from "./node-registry/registry"
+
+const registry = createNodeRegistry(builtinBaseDefinitions)
 
 /**
  * The package's own one-node document, built once for this file.
@@ -19,11 +23,16 @@ import type { DomainWorkflowDTO } from "./types"
  * opened on a keyword node. That default is empty now — the vocabulary belongs
  * to the consumer — so a suite that needs a populated graph builds one.
  */
-const initialWorkflowGraph = createKeywordSampleGraph()
+const initialWorkflowGraph = createKeywordSampleGraph(builtinBaseDefinitions)
 
 describe("workflow mappers", () => {
   it("maps internal graph to domain dto", () => {
-    const domain = internalToDomain(initialWorkflowGraph, "wf-1", "Workflow")
+    const domain = internalToDomain(
+      registry,
+      initialWorkflowGraph,
+      "wf-1",
+      "Workflow"
+    )
 
     expect(domain.id).toBe("wf-1")
     expect(domain.name).toBe("Workflow")
@@ -34,8 +43,8 @@ describe("workflow mappers", () => {
   })
 
   it("maps domain dto back to internal graph", () => {
-    const domain = internalToDomain(initialWorkflowGraph)
-    const restored = domainToInternal(domain)
+    const domain = internalToDomain(registry, initialWorkflowGraph)
+    const restored = domainToInternal(registry, domain)
 
     expect(restored.nodes).toHaveLength(initialWorkflowGraph.nodes.length)
     expect(restored.edges).toHaveLength(initialWorkflowGraph.edges.length)
@@ -46,22 +55,22 @@ describe("workflow mappers", () => {
 
   it("rejects internal graph json (domain-only import contract)", () => {
     const rawJson = JSON.stringify(initialWorkflowGraph)
-    const parsed = parseInternalGraphJson(rawJson)
+    const parsed = parseInternalGraphJson(registry, rawJson)
 
     expect(parsed.success).toBe(false)
     expect(parsed.error).toContain("domain workflow schema")
   })
 
   it("parses domain dto json", () => {
-    const domain = internalToDomain(initialWorkflowGraph)
-    const parsed = parseInternalGraphJson(JSON.stringify(domain))
+    const domain = internalToDomain(registry, initialWorkflowGraph)
+    const parsed = parseInternalGraphJson(registry, JSON.stringify(domain))
 
     expect(parsed.success).toBe(true)
     expect(parsed.value?.edges.length).toBe(initialWorkflowGraph.edges.length)
   })
 
   it("rejects invalid payload", () => {
-    const parsed = parseInternalGraphJson('{"unexpected":true}')
+    const parsed = parseInternalGraphJson(registry, '{"unexpected":true}')
     expect(parsed.success).toBe(false)
     expect(parsed.error).toContain("domain workflow schema")
   })
@@ -85,7 +94,10 @@ describe("workflow mappers", () => {
       connections: [],
     }
 
-    const parsed = parseInternalGraphJson(JSON.stringify(legacyPayload))
+    const parsed = parseInternalGraphJson(
+      registry,
+      JSON.stringify(legacyPayload)
+    )
     expect(parsed.success).toBe(false)
     expect(parsed.error).toContain("valid id, kind, position, and label")
   })
@@ -119,15 +131,24 @@ describe("workflow mappers", () => {
       connections: [],
     }
 
-    const parsed = parseInternalGraphJson(JSON.stringify(legacyPayload))
+    const parsed = parseInternalGraphJson(
+      registry,
+      JSON.stringify(legacyPayload)
+    )
     expect(parsed.success).toBe(false)
     expect(parsed.error).toContain("valid id, kind, position, and label")
   })
 
   it("exports domain json", () => {
-    const triggerNode = createWorkflowNode("inlineExpression", { x: 0, y: 80 })
+    const triggerNode = createWorkflowNode(registry, "inlineExpression", {
+      x: 0,
+      y: 80,
+    })
     triggerNode.data.config.isRoot = true
-    const inlineNode = createWorkflowNode("inlineExpression", { x: 360, y: 80 })
+    const inlineNode = createWorkflowNode(registry, "inlineExpression", {
+      x: 360,
+      y: 80,
+    })
     const graphWithEdge = {
       ...initialWorkflowGraph,
       nodes: [triggerNode, inlineNode],
@@ -145,7 +166,7 @@ describe("workflow mappers", () => {
         },
       ],
     }
-    const payload = exportDomainJson(graphWithEdge)
+    const payload = exportDomainJson(registry, graphWithEdge)
     const parsed = JSON.parse(payload) as DomainWorkflowDTO
 
     expect(parsed.nodes.length).toBeGreaterThan(0)
@@ -154,9 +175,15 @@ describe("workflow mappers", () => {
   })
 
   it("treats routed edge data as transient presentation state during domain export", () => {
-    const triggerNode = createWorkflowNode("inlineExpression", { x: 0, y: 80 })
+    const triggerNode = createWorkflowNode(registry, "inlineExpression", {
+      x: 0,
+      y: 80,
+    })
     triggerNode.data.config.isRoot = true
-    const inlineNode = createWorkflowNode("inlineExpression", { x: 360, y: 80 })
+    const inlineNode = createWorkflowNode(registry, "inlineExpression", {
+      x: 360,
+      y: 80,
+    })
     const graphWithRoutedEdge = {
       ...initialWorkflowGraph,
       nodes: [triggerNode, inlineNode],
@@ -182,8 +209,8 @@ describe("workflow mappers", () => {
       ],
     }
 
-    const domain = internalToDomain(graphWithRoutedEdge)
-    const restored = domainToInternal(domain)
+    const domain = internalToDomain(registry, graphWithRoutedEdge)
+    const restored = domainToInternal(registry, domain)
 
     const sourceEdge = graphWithRoutedEdge.edges[0]
     if (!sourceEdge) {
@@ -201,12 +228,15 @@ describe("workflow mappers", () => {
   })
 
   it("normalizes select fields to defaults when import values are invalid", () => {
-    const extractorNode = createWorkflowNode("extractor", { x: 360, y: 80 })
+    const extractorNode = createWorkflowNode(registry, "extractor", {
+      x: 360,
+      y: 80,
+    })
     const graph = {
       ...initialWorkflowGraph,
       nodes: [...initialWorkflowGraph.nodes, extractorNode],
     }
-    const domain = internalToDomain(graph)
+    const domain = internalToDomain(registry, graph)
     const domainExtractor = domain.nodes.find(
       (node) => node.kind === "extractor"
     )
@@ -216,30 +246,36 @@ describe("workflow mappers", () => {
 
     // tokenNumber is a number field; setting to a non-number should not crash
     domainExtractor.config.tokenNumber = "not-a-number"
-    const restored = parseInternalGraphJson(JSON.stringify(domain))
+    const restored = parseInternalGraphJson(registry, JSON.stringify(domain))
 
     expect(restored.success).toBe(false)
     expect(restored.error).toContain("invalid value")
   })
 
   it("preserves metadata from imported domain dto", () => {
-    const domain = internalToDomain(initialWorkflowGraph)
+    const domain = internalToDomain(registry, initialWorkflowGraph)
     domain.metadata = {
       source: "api",
       tenantId: "tenant-1",
     }
     const raw = JSON.stringify(domain)
 
-    const parsed = parseInternalGraphJson(raw)
+    const parsed = parseInternalGraphJson(registry, raw)
     expect(parsed.success).toBe(true)
 
-    const roundtrip = internalToDomain(parsed.value!, "wf-2", "Roundtrip")
+    const roundtrip = internalToDomain(
+      registry,
+      parsed.value!,
+      "wf-2",
+      "Roundtrip"
+    )
     expect(roundtrip.metadata.source).toBe("api")
     expect(roundtrip.metadata.tenantId).toBe("tenant-1")
   })
 
   it("roundtrips inline expression node config", () => {
     const inlineNode = createWorkflowNode(
+      registry,
       "inlineExpression",
       { x: 500, y: 180 },
       "Inline Expr"
@@ -251,8 +287,8 @@ describe("workflow mappers", () => {
       nodes: [...initialWorkflowGraph.nodes, inlineNode],
     }
 
-    const exported = internalToDomain(graph)
-    const restored = domainToInternal(exported)
+    const exported = internalToDomain(registry, graph)
+    const restored = domainToInternal(registry, exported)
     const restoredInlineNode = restored.nodes.find(
       (node) => node.id === inlineNode.id
     )
@@ -265,7 +301,7 @@ describe("workflow mappers", () => {
   })
 
   it("normalizes legacy scalar inline expression templates during import", () => {
-    const domain = internalToDomain(initialWorkflowGraph)
+    const domain = internalToDomain(registry, initialWorkflowGraph)
     const inlineNode = domain.nodes.find(
       (node) => node.kind === "inlineExpression"
     )
@@ -274,7 +310,7 @@ describe("workflow mappers", () => {
     }
 
     inlineNode.config.template = "{{ $input.item.json.hostname }}"
-    const restored = domainToInternal(domain)
+    const restored = domainToInternal(registry, domain)
     const restoredInlineNode = restored.nodes.find(
       (node) => node.id === inlineNode.id
     )
@@ -286,6 +322,7 @@ describe("workflow mappers", () => {
 
   it("preserves variable metadata and evaluator config semantics across domain roundtrip", () => {
     const extractorNode = createWorkflowNode(
+      registry,
       "extractor",
       { x: 120, y: 120 },
       "Extractor"
@@ -296,6 +333,7 @@ describe("workflow mappers", () => {
     extractorNode.data.config.unlimited = true
 
     const setVariableNode = createWorkflowNode(
+      registry,
       "setVariable",
       { x: 300, y: 120 },
       "Setter"
@@ -306,6 +344,7 @@ describe("workflow mappers", () => {
     setVariableNode.data.config.clear = true
 
     const evaluatorNode = createWorkflowNode(
+      registry,
       "evaluator",
       { x: 620, y: 120 },
       "Evaluator"
@@ -332,8 +371,8 @@ describe("workflow mappers", () => {
       ],
     }
 
-    const raw = exportDomainJson(graph)
-    const parsed = parseInternalGraphJson(raw)
+    const raw = exportDomainJson(registry, graph)
+    const parsed = parseInternalGraphJson(registry, raw)
 
     expect(parsed.success).toBe(true)
     const restoredExtractor = parsed.value?.nodes.find(
@@ -354,7 +393,7 @@ describe("workflow mappers", () => {
   })
 
   it("normalizes legacy payloads with missing variable metadata defaults", () => {
-    const domain = internalToDomain(initialWorkflowGraph)
+    const domain = internalToDomain(registry, initialWorkflowGraph)
     domain.nodes.push(
       {
         id: "legacy-extractor",
@@ -390,7 +429,7 @@ describe("workflow mappers", () => {
       }
     )
 
-    const parsed = parseInternalGraphJson(JSON.stringify(domain))
+    const parsed = parseInternalGraphJson(registry, JSON.stringify(domain))
 
     expect(parsed.success).toBe(true)
     expect(
@@ -412,12 +451,15 @@ describe("workflow mappers", () => {
   })
 
   it("exports and parses selection clipboard json with relative positions", () => {
-    const inlineNode = createWorkflowNode("inlineExpression", { x: 360, y: 80 })
+    const inlineNode = createWorkflowNode(registry, "inlineExpression", {
+      x: 360,
+      y: 80,
+    })
     const graphWithTwo = {
       ...initialWorkflowGraph,
       nodes: [...initialWorkflowGraph.nodes, inlineNode],
     }
-    const nodes = internalToDomain(graphWithTwo).nodes.slice(0, 2)
+    const nodes = internalToDomain(registry, graphWithTwo).nodes.slice(0, 2)
     const baseNodes = nodes.map((node, index) => ({
       ...node,
       position: {
@@ -426,7 +468,7 @@ describe("workflow mappers", () => {
       },
     }))
     const raw = exportSelectionClipboardJson(baseNodes, [])
-    const parsed = parseSelectionClipboardJson(raw)
+    const parsed = parseSelectionClipboardJson(registry, raw)
 
     expect(parsed.success).toBe(true)
     expect(parsed.value?.nodes[0]?.position).toEqual({ x: 0, y: 0 })
@@ -434,7 +476,7 @@ describe("workflow mappers", () => {
   })
 
   it("rejects selection clipboard json with external connections", () => {
-    const node = internalToDomain(initialWorkflowGraph).nodes[0]
+    const node = internalToDomain(registry, initialWorkflowGraph).nodes[0]
     if (!node) {
       throw new Error("fixture node not found")
     }
@@ -452,14 +494,14 @@ describe("workflow mappers", () => {
         },
       ],
     })
-    const parsed = parseSelectionClipboardJson(payload)
+    const parsed = parseSelectionClipboardJson(registry, payload)
 
     expect(parsed.success).toBe(false)
     expect(parsed.error).toContain("outside copied selection")
   })
 
   it("rejects clipboard payload with schema-invalid config", () => {
-    const node = internalToDomain(initialWorkflowGraph).nodes[0]
+    const node = internalToDomain(registry, initialWorkflowGraph).nodes[0]
     if (!node) {
       throw new Error("fixture node not found")
     }
@@ -476,14 +518,14 @@ describe("workflow mappers", () => {
       connections: [],
     })
 
-    const parsed = parseSelectionClipboardJson(payload)
+    const parsed = parseSelectionClipboardJson(registry, payload)
 
     expect(parsed.success).toBe(false)
     expect(parsed.error).toContain("invalid value")
   })
 
   it("rejects clipboard payload containing branch node kind", () => {
-    const node = internalToDomain(initialWorkflowGraph).nodes[0]
+    const node = internalToDomain(registry, initialWorkflowGraph).nodes[0]
     if (!node) {
       throw new Error("fixture node not found")
     }
@@ -500,7 +542,7 @@ describe("workflow mappers", () => {
       connections: [],
     })
 
-    const parsed = parseSelectionClipboardJson(payload)
+    const parsed = parseSelectionClipboardJson(registry, payload)
 
     expect(parsed.success).toBe(false)
     expect(parsed.error).toContain("valid id, kind, position, and label")

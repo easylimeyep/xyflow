@@ -6,6 +6,7 @@ import { createWorkflowStore } from "./store"
 import type { WorkflowNode } from "../types/types"
 
 import { createKeywordSampleGraph } from "../default-graph"
+import { builtinBaseDefinitions } from "../node-registry/builtin-base-definitions"
 /**
  * The editor's own default document is empty now — the node vocabulary belongs
  * to the consumer, so the package has no kind it may seed one with. These
@@ -37,7 +38,8 @@ describe("workflow store node actions", () => {
 
   it("duplicates selected nodes with internal edges, unique labels, selection, and one undo step", () => {
     const store = createWorkflowStore({
-      initialGraph: createKeywordSampleGraph(),
+      definitions: builtinBaseDefinitions,
+      initialGraph: createKeywordSampleGraph(builtinBaseDefinitions),
     })
     const state = store.getState()
     const rootNode = findRootKeywordNode(state.history.present.nodes)
@@ -120,7 +122,8 @@ describe("workflow store node actions", () => {
 
   it("deletes selected nodes and connected edges in one undo step", () => {
     const store = createWorkflowStore({
-      initialGraph: createKeywordSampleGraph(),
+      definitions: builtinBaseDefinitions,
+      initialGraph: createKeywordSampleGraph(builtinBaseDefinitions),
     })
     const state = store.getState()
     const rootNode = findRootKeywordNode(state.history.present.nodes)

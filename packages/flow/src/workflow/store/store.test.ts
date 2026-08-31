@@ -24,6 +24,12 @@ import { createWorkflowStore } from "./store"
 import type { DomainWorkflowDTO, WorkflowNode } from "../types/types"
 
 import { createKeywordSampleGraph } from "../default-graph"
+import { builtinBaseDefinitions } from "../node-registry/builtin-base-definitions"
+import { evaluator } from "../nodes/logic/evaluator/definition"
+import { result } from "../nodes/logic/result/definition"
+import { createNodeRegistry } from "../node-registry/registry"
+
+const registry = createNodeRegistry(builtinBaseDefinitions)
 /**
  * The editor's own default document is empty now — the node vocabulary belongs
  * to the consumer, so the package has no kind it may seed one with. These
@@ -52,10 +58,38 @@ function findNonRootKeywordNode(
   )
 }
 
+describe("the vocabulary a store is created with", () => {
+  it("builds its registry from the definitions it was created with", () => {
+    const vocabularyStore = createWorkflowStore({
+      definitions: [evaluator, result],
+    })
+
+    expect(vocabularyStore.getState().registry.kinds()).toEqual([
+      "evaluator",
+      "result",
+    ])
+  })
+
+  it("starts with an empty registry when the host passes no definitions", () => {
+    expect(createWorkflowStore().getState().registry.list()).toEqual([])
+  })
+
+  it("two stores hold independent vocabularies", () => {
+    const a = createWorkflowStore({ definitions: [evaluator] })
+    const b = createWorkflowStore({ definitions: [result] })
+
+    expect(a.getState().registry.kinds()).toEqual(["evaluator"])
+    expect(b.getState().registry.kinds()).toEqual(["result"])
+  })
+})
+
 describe("workflow store", () => {
   beforeEach(() => {
     computeWorkflowAutoLayoutMock.mockReset()
-    store = createWorkflowStore({ initialGraph: createKeywordSampleGraph() })
+    store = createWorkflowStore({
+      definitions: builtinBaseDefinitions,
+      initialGraph: createKeywordSampleGraph(builtinBaseDefinitions),
+    })
   })
 
   it("initializes graph with root keyword and no trigger nodes", () => {
@@ -244,6 +278,7 @@ describe("workflow store", () => {
 
   it("applies runtime importDomain mapper before graph conversion", () => {
     const runtimeStore = createWorkflowStore({
+      definitions: builtinBaseDefinitions,
       runtime: {
         importDomain: {
           mapper: (payload) => ({
@@ -286,13 +321,14 @@ describe("workflow store", () => {
   })
 
   it("keeps default exportDomain output when runtime mapper is not provided", () => {
-    const expected = exportDomainDto(store.getState().history.present)
+    const expected = exportDomainDto(registry, store.getState().history.present)
 
     expect(store.getState().exportDomain()).toEqual(expected)
   })
 
   it("applies runtime exportDomain mapper after base payload generation", () => {
     const runtimeStore = createWorkflowStore({
+      definitions: builtinBaseDefinitions,
       runtime: {
         exportDomain: {
           mapper: (payload) => ({
@@ -306,7 +342,10 @@ describe("workflow store", () => {
       },
     })
 
-    const basePayload = exportDomainDto(runtimeStore.getState().history.present)
+    const basePayload = exportDomainDto(
+      registry,
+      runtimeStore.getState().history.present
+    )
 
     expect(runtimeStore.getState().exportDomain()).toEqual({
       ...basePayload,
@@ -331,6 +370,7 @@ describe("workflow store", () => {
 
   it("preserves enabled evaluator multi-condition editing runtime flag", () => {
     const runtimeStore = createWorkflowStore({
+      definitions: builtinBaseDefinitions,
       runtime: {
         enableEvaluatorMultipleConditions: true,
       },
@@ -343,6 +383,7 @@ describe("workflow store", () => {
 
   it("normalizes custom runtime evaluator operators before storing them", () => {
     const runtimeStore = createWorkflowStore({
+      definitions: builtinBaseDefinitions,
       runtime: {
         evaluator: {
           operators: {
@@ -383,6 +424,7 @@ describe("workflow store", () => {
 
   it("rejects string runtime evaluator operator metadata", () => {
     const runtimeStore = createWorkflowStore({
+      definitions: builtinBaseDefinitions,
       runtime: {
         evaluator: {
           operators: {
@@ -404,6 +446,7 @@ describe("workflow store", () => {
 
   it("falls back to the default evaluator operator catalog when runtime evaluator operators are invalid", () => {
     const runtimeStore = createWorkflowStore({
+      definitions: builtinBaseDefinitions,
       runtime: {
         evaluator: {
           operators: {
@@ -435,6 +478,7 @@ describe("workflow store", () => {
 
   it("falls back to the default evaluator operator catalog for unsupported flat operator arrays", () => {
     const runtimeStore = createWorkflowStore({
+      definitions: builtinBaseDefinitions,
       runtime: {
         evaluator: {
           operators: [
@@ -460,6 +504,7 @@ describe("workflow store", () => {
 
   it("rejects invalid runtime importDomain mapper output", () => {
     const runtimeStore = createWorkflowStore({
+      definitions: builtinBaseDefinitions,
       runtime: {
         importDomain: {
           mapper: (payload): DomainWorkflowDTO => ({
@@ -1115,10 +1160,12 @@ describe("workflow store", () => {
 
   it("keeps cache scoped per store instance", () => {
     const firstStore = createWorkflowStore({
-      initialGraph: createKeywordSampleGraph(),
+      definitions: builtinBaseDefinitions,
+      initialGraph: createKeywordSampleGraph(builtinBaseDefinitions),
     })
     const secondStore = createWorkflowStore({
-      initialGraph: createKeywordSampleGraph(),
+      definitions: builtinBaseDefinitions,
+      initialGraph: createKeywordSampleGraph(builtinBaseDefinitions),
     })
 
     firstStore.getState().addNode("setVariable", { x: 320, y: 80 })
@@ -1788,7 +1835,7 @@ describe("workflow store", () => {
     ).toBe(false)
 
     const backend = exportDomainWorkflowForBackend(
-      exportDomainDto(nextState.history.present)
+      exportDomainDto(registry, nextState.history.present)
     )
     const insertedBackendNode = backend.nodes.find(
       (node) => node.label === insertedNode.data.label

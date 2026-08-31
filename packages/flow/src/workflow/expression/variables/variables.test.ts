@@ -6,10 +6,15 @@ import {
   collectWorkflowVariableTypes,
   collectWorkflowVariables,
 } from "./variables"
+import { builtinBaseDefinitions } from "../../node-registry/builtin-base-definitions"
+import { createNodeRegistry } from "../../node-registry/registry"
+
+const registry = createNodeRegistry(builtinBaseDefinitions)
 
 describe("collectWorkflowVariables", () => {
   it("returns empty list when no selectedNodeId", () => {
     const inline = createWorkflowNode(
+      registry,
       "inlineExpression",
       { x: 0, y: 0 },
       "InlineA"
@@ -20,12 +25,14 @@ describe("collectWorkflowVariables", () => {
 
   it("exposes upstream extractor extractExpression as plain variable", () => {
     const extractor = createWorkflowNode(
+      registry,
       "extractor",
       { x: 0, y: 0 },
       "Extractor Title"
     )
     extractor.data.config.extractExpression = "price"
     const inline = createWorkflowNode(
+      registry,
       "inlineExpression",
       { x: 200, y: 0 },
       "InlineA"
@@ -55,12 +62,14 @@ describe("collectWorkflowVariables", () => {
 
   it("falls back to extractor label when extractExpression is invalid", () => {
     const extractor = createWorkflowNode(
+      registry,
       "extractor",
       { x: 0, y: 0 },
       "fallbackLabel"
     )
     extractor.data.config.extractExpression = "{{ invalid }}"
     const inline = createWorkflowNode(
+      registry,
       "inlineExpression",
       { x: 200, y: 0 },
       "InlineA"
@@ -88,9 +97,15 @@ describe("collectWorkflowVariables", () => {
   })
 
   it("exposes upstream setVariable variableName as plain variable", () => {
-    const setVar = createWorkflowNode("setVariable", { x: 0, y: 0 }, "Setter")
+    const setVar = createWorkflowNode(
+      registry,
+      "setVariable",
+      { x: 0, y: 0 },
+      "Setter"
+    )
     setVar.data.config.variableName = "total"
     const inline = createWorkflowNode(
+      registry,
       "inlineExpression",
       { x: 200, y: 0 },
       "InlineA"
@@ -115,12 +130,14 @@ describe("collectWorkflowVariables", () => {
 
   it("does not expose setVariable when variableName is missing", () => {
     const setVar = createWorkflowNode(
+      registry,
       "setVariable",
       { x: 0, y: 0 },
       "fallbackLabel"
     )
     setVar.data.config.variableName = ""
     const inline = createWorkflowNode(
+      registry,
       "inlineExpression",
       { x: 200, y: 0 },
       "InlineA"
@@ -144,11 +161,13 @@ describe("collectWorkflowVariables", () => {
 
   it("does not expose other node kinds as variables", () => {
     const inline = createWorkflowNode(
+      registry,
       "inlineExpression",
       { x: 0, y: 0 },
       "InlineA"
     )
     const inline2 = createWorkflowNode(
+      registry,
       "inlineExpression",
       { x: 200, y: 0 },
       "InlineB"
@@ -175,12 +194,14 @@ describe("collectWorkflowVariables", () => {
 
   it("exposes upstream evaluator label as plain variable", () => {
     const evaluator = createWorkflowNode(
+      registry,
       "evaluator",
       { x: 0, y: 0 },
       "Evaluator"
     )
     evaluator.data.config.label = "conditionMatched"
     const inline = createWorkflowNode(
+      registry,
       "inlineExpression",
       { x: 200, y: 0 },
       "InlineA"
@@ -209,12 +230,14 @@ describe("collectWorkflowVariables", () => {
 
   it("does not expose empty upstream evaluator label", () => {
     const evaluator = createWorkflowNode(
+      registry,
       "evaluator",
       { x: 0, y: 0 },
       "Evaluator"
     )
     evaluator.data.config.label = ""
     const inline = createWorkflowNode(
+      registry,
       "inlineExpression",
       { x: 200, y: 0 },
       "InlineA"
@@ -243,12 +266,14 @@ describe("collectWorkflowVariables", () => {
 
   it("does not expose non-upstream evaluator labels", () => {
     const evaluator = createWorkflowNode(
+      registry,
       "evaluator",
       { x: 0, y: 0 },
       "Evaluator"
     )
     evaluator.data.config.label = "conditionMatched"
     const inline = createWorkflowNode(
+      registry,
       "inlineExpression",
       { x: 200, y: 0 },
       "InlineA"
@@ -260,13 +285,20 @@ describe("collectWorkflowVariables", () => {
   })
 
   it("only includes upstream nodes, not isolated ones", () => {
-    const extractor = createWorkflowNode("extractor", { x: 0, y: 0 }, "price")
+    const extractor = createWorkflowNode(
+      registry,
+      "extractor",
+      { x: 0, y: 0 },
+      "price"
+    )
     const isolated = createWorkflowNode(
+      registry,
       "extractor",
       { x: 0, y: 300 },
       "isolated"
     )
     const inline = createWorkflowNode(
+      registry,
       "inlineExpression",
       { x: 200, y: 0 },
       "InlineA"
@@ -294,8 +326,14 @@ describe("collectWorkflowVariables", () => {
   })
 
   it("does not include $input or $node style variables", () => {
-    const extractor = createWorkflowNode("extractor", { x: 0, y: 0 }, "price")
+    const extractor = createWorkflowNode(
+      registry,
+      "extractor",
+      { x: 0, y: 0 },
+      "price"
+    )
     const inline = createWorkflowNode(
+      registry,
       "inlineExpression",
       { x: 200, y: 0 },
       "InlineA"
@@ -327,6 +365,7 @@ describe("collectWorkflowVariables", () => {
 describe("collectWorkflowVariableTypes", () => {
   it("returns upstream producer variable types by variable name", () => {
     const extractor = createWorkflowNode(
+      registry,
       "extractor",
       { x: 0, y: 0 },
       "Extractor"
@@ -334,11 +373,17 @@ describe("collectWorkflowVariableTypes", () => {
     extractor.data.config.extractExpression = "items"
     extractor.data.config.variableType = "array"
 
-    const setter = createWorkflowNode("setVariable", { x: 0, y: 120 }, "Setter")
+    const setter = createWorkflowNode(
+      registry,
+      "setVariable",
+      { x: 0, y: 120 },
+      "Setter"
+    )
     setter.data.config.variableName = "status"
     setter.data.config.variableType = "value"
 
     const inline = createWorkflowNode(
+      registry,
       "inlineExpression",
       { x: 200, y: 0 },
       "InlineA"
@@ -377,6 +422,7 @@ describe("collectWorkflowVariableTypes", () => {
 
   it("returns empty object when selected node id is missing", () => {
     const inline = createWorkflowNode(
+      registry,
       "inlineExpression",
       { x: 0, y: 0 },
       "InlineA"

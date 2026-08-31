@@ -1,12 +1,13 @@
 import type { JsonObject, JsonValue } from "../types/types"
 import { getNodeConfigKeys } from "./define-node"
-import { getNodeDefinition, type NodeKind } from "./registry"
+import type { NodeKind, NodeRegistry } from "./registry"
 
 export function normalizeNodeConfig(
+  registry: NodeRegistry,
   kind: NodeKind,
   partialConfig: Record<string, unknown>
 ): JsonObject {
-  const definition = getNodeDefinition(kind)
+  const definition = registry.get(kind)
   if (!definition) {
     throw new Error(`Unknown node kind: ${kind}`)
   }
@@ -35,6 +36,7 @@ export function normalizeNodeConfig(
 }
 
 export function decodeNodeConfig(
+  registry: NodeRegistry,
   kind: NodeKind,
   value: unknown
 ): { success: true; config: JsonObject } | { success: false; error: string } {
@@ -45,7 +47,7 @@ export function decodeNodeConfig(
     }
   }
 
-  const definition = getNodeDefinition(kind)
+  const definition = registry.get(kind)
   if (!definition) {
     return {
       success: false,
@@ -79,7 +81,7 @@ export function decodeNodeConfig(
 
   return {
     success: true,
-    config: normalizeNodeConfig(kind, rawConfig),
+    config: normalizeNodeConfig(registry, kind, rawConfig),
   }
 }
 

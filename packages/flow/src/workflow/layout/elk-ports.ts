@@ -1,4 +1,4 @@
-import { getNodeDefinition, type NodeKind } from "../node-registry/registry"
+import type { NodeKind, NodeRegistry } from "../node-registry/registry"
 import type { WorkflowNode } from "../types/types"
 
 export interface WorkflowLayoutHandle {
@@ -29,10 +29,11 @@ export function getElkPortId(
 }
 
 function resolveDefaultOutputHandles(
+  registry: NodeRegistry,
   node: WorkflowNode
 ): WorkflowLayoutHandle[] {
   const kind = node.data.kind as NodeKind
-  const definition = getNodeDefinition(kind)
+  const definition = registry.get(kind)
 
   if (kind === "result") {
     return []
@@ -47,6 +48,7 @@ function resolveDefaultOutputHandles(
 }
 
 export function resolveWorkflowLayoutPorts(
+  registry: NodeRegistry,
   node: WorkflowNode
 ): WorkflowLayoutPorts {
   const kind = node.data.kind as NodeKind
@@ -55,6 +57,6 @@ export function resolveWorkflowLayoutPorts(
 
   return {
     hasTargetPort,
-    outputHandles: resolveDefaultOutputHandles(node),
+    outputHandles: resolveDefaultOutputHandles(registry, node),
   }
 }

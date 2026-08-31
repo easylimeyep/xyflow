@@ -4,6 +4,7 @@ import {
   DEFAULT_NODE_HEIGHT,
   DEFAULT_NODE_WIDTH,
 } from "../node-registry/node-factory"
+import type { NodeRegistry } from "../node-registry/registry"
 import type {
   WorkflowEdge,
   WorkflowGraphState,
@@ -129,13 +130,14 @@ function toElkPorts(node: WorkflowNode, ports: WorkflowLayoutPorts): ElkPort[] {
 }
 
 export function buildElkGraph(
+  registry: NodeRegistry,
   nodes: WorkflowNode[],
   edges: WorkflowEdge[]
 ): ElkGraph {
   const nodePorts = new Map<string, WorkflowLayoutPorts>()
 
   const children = nodes.map((node) => {
-    const ports = resolveWorkflowLayoutPorts(node)
+    const ports = resolveWorkflowLayoutPorts(registry, node)
     nodePorts.set(node.id, ports)
 
     return {
@@ -432,10 +434,11 @@ export function applyEvaluatorShortcutClearance(
 }
 
 export async function computeWorkflowAutoLayout(
+  registry: NodeRegistry,
   graph: WorkflowGraphState,
   engine?: ElkLayoutEngine
 ): Promise<WorkflowGraphState> {
-  const elkGraph = buildElkGraph(graph.nodes, graph.edges)
+  const elkGraph = buildElkGraph(registry, graph.nodes, graph.edges)
   const layoutEngine = engine ?? defaultElkLayoutEngine
   const layoutedGraph = await layoutEngine.layout(elkGraph)
 

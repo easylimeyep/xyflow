@@ -1,5 +1,5 @@
 import { normalizeNodeConfig } from "../node-registry/node-config-normalization"
-import type { NodeKind } from "../node-registry/registry"
+import type { NodeKind, NodeRegistry } from "../node-registry/registry"
 import type {
   DomainWorkflowConnectionDTO,
   DomainWorkflowNodeDTO,
@@ -8,13 +8,20 @@ import type {
 } from "../types/types"
 import type { ConnectionLike } from "../validation/validation"
 
-export function asDomainNodeDTO(node: WorkflowNode): DomainWorkflowNodeDTO {
+export function asDomainNodeDTO(
+  registry: NodeRegistry,
+  node: WorkflowNode
+): DomainWorkflowNodeDTO {
   return {
     id: node.id,
     kind: node.data.kind,
     position: { ...node.position },
     label: node.data.label,
-    config: normalizeNodeConfig(node.data.kind as NodeKind, node.data.config),
+    config: normalizeNodeConfig(
+      registry,
+      node.data.kind as NodeKind,
+      node.data.config
+    ),
   }
 }
 

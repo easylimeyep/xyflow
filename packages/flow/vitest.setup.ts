@@ -1,16 +1,13 @@
+import { builtinBaseDefinitions } from "./src/workflow/node-registry/builtin-base-definitions"
 import { registerNodeDefinitions } from "./src/workflow/node-registry/registry"
-import { extractor } from "./src/workflow/nodes/data/extractor/definition"
-import { inlineExpression } from "./src/workflow/nodes/data/inline-expression/definition"
-import { setVariable } from "./src/workflow/nodes/data/set-variable/definition"
-import { evaluator } from "./src/workflow/nodes/logic/evaluator/definition"
-import { result } from "./src/workflow/nodes/logic/result/definition"
 
 // The node registry ships empty — a product registers the kinds it can run.
 // This package's own suites are that product: they exercise the five built-in
 // kinds, so register them once per test file, before any suite imports a
 // module that builds a node at module scope.
 //
-// Registered from each kind's `./definition` (the base object, no renderer)
+// Registered from `builtinBaseDefinitions`, which imports each kind's
+// `./definition` (the base object, no renderer)
 // rather than from `registry.ts`'s own `builtinDefinitions` (the same five,
 // with `NodeDefinition.view` attached via each node's `index.ts`):
 // `builtinDefinitions` statically imports all five components, and no suite
@@ -21,13 +18,7 @@ import { result } from "./src/workflow/nodes/logic/result/definition"
 // own module here, before a test file's own `vi.mock` calls exist, would
 // mean `vi.mock` misses that first, real load — see the comment on
 // `builtinDefinitions` in `./src/workflow/node-registry/builtin-definitions.ts`.
-registerNodeDefinitions([
-  evaluator,
-  setVariable,
-  inlineExpression,
-  extractor,
-  result,
-])
+registerNodeDefinitions(builtinBaseDefinitions)
 
 // jsdom polyfills required by react-aria-components overlays/collections.
 

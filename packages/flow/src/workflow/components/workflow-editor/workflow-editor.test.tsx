@@ -11,6 +11,7 @@ import type { WorkflowEditorAnchorRefs } from "../../tour"
 import type { DomainWorkflowNodeDTO } from "../../types"
 
 import { createKeywordSampleGraph } from "../../default-graph"
+import { builtinBaseDefinitions } from "../../node-registry/builtin-base-definitions"
 /**
  * The editor's own default document is empty now — the node vocabulary belongs
  * to the consumer, so the package has no kind it may seed one with. These
@@ -248,7 +249,10 @@ function SelectedNodePositionProbe() {
 
 function renderCustomEditor(extraChildren?: ReactNode) {
   return render(
-    <WorkflowEditor initialGraph={createKeywordSampleGraph()}>
+    <WorkflowEditor
+      initialGraph={createKeywordSampleGraph(builtinBaseDefinitions)}
+      definitions={builtinBaseDefinitions}
+    >
       {extraChildren}
       <WorkflowEditor.Toolbar />
       <WorkflowEditor.Body>
@@ -264,7 +268,8 @@ function renderCustomEditorWithAnchors(anchorRefs: WorkflowEditorAnchorRefs) {
   return render(
     <WorkflowEditor
       anchorRefs={anchorRefs}
-      initialGraph={createKeywordSampleGraph()}
+      initialGraph={createKeywordSampleGraph(builtinBaseDefinitions)}
+      definitions={builtinBaseDefinitions}
     >
       <WorkflowEditor.Toolbar />
       <WorkflowEditor.Body>
@@ -285,7 +290,7 @@ describe("WorkflowEditor wiring", () => {
   })
 
   it("renders the default composition without custom children", () => {
-    render(<WorkflowEditor />)
+    render(<WorkflowEditor definitions={builtinBaseDefinitions} />)
 
     expect(screen.getByTestId("toolbar-can-undo")).toBeTruthy()
     expect(screen.getByTestId("palette-open").textContent).toBe("true")
@@ -297,7 +302,12 @@ describe("WorkflowEditor wiring", () => {
   })
 
   it("passes measured initial auto-layout option to the default canvas", () => {
-    render(<WorkflowEditor autoLayoutOnInit="after-measure" />)
+    render(
+      <WorkflowEditor
+        autoLayoutOnInit="after-measure"
+        definitions={builtinBaseDefinitions}
+      />
+    )
 
     expect(screen.getByTestId("canvas-auto-layout-on-init").textContent).toBe(
       "after-measure"
@@ -317,7 +327,10 @@ describe("WorkflowEditor wiring", () => {
 
   it("preserves measured initial auto-layout with custom composition", () => {
     render(
-      <WorkflowEditor autoLayoutOnInit="after-measure">
+      <WorkflowEditor
+        autoLayoutOnInit="after-measure"
+        definitions={builtinBaseDefinitions}
+      >
         <WorkflowEditor.Body>
           <WorkflowEditor.Canvas />
         </WorkflowEditor.Body>
@@ -331,7 +344,12 @@ describe("WorkflowEditor wiring", () => {
 
   it("registers and cleans up editor anchors in one mutable registry", () => {
     const anchorRefs: WorkflowEditorAnchorRefs = { current: {} }
-    const view = render(<WorkflowEditor anchorRefs={anchorRefs} />)
+    const view = render(
+      <WorkflowEditor
+        anchorRefs={anchorRefs}
+        definitions={builtinBaseDefinitions}
+      />
+    )
 
     expect(anchorRefs.current.root).toBeInstanceOf(HTMLDivElement)
     expect(anchorRefs.current.toolbar).toBeInstanceOf(HTMLDivElement)
@@ -364,7 +382,7 @@ describe("WorkflowEditor wiring", () => {
 
   it("adds node from palette and reflects updated canvas node count", async () => {
     const user = userEvent.setup()
-    render(<WorkflowEditor />)
+    render(<WorkflowEditor definitions={builtinBaseDefinitions} />)
 
     const beforeCount = Number(
       screen.getByTestId("canvas-node-count").textContent
@@ -380,7 +398,7 @@ describe("WorkflowEditor wiring", () => {
 
   it("removes palette-added node with one undo after measurement update", async () => {
     const user = userEvent.setup()
-    render(<WorkflowEditor />)
+    render(<WorkflowEditor definitions={builtinBaseDefinitions} />)
 
     const beforeCount = Number(
       screen.getByTestId("canvas-node-count").textContent
@@ -401,7 +419,7 @@ describe("WorkflowEditor wiring", () => {
 
   it("updates toolbar canUndo/canRedo across undo-redo history steps", async () => {
     const user = userEvent.setup()
-    render(<WorkflowEditor />)
+    render(<WorkflowEditor definitions={builtinBaseDefinitions} />)
 
     expect(screen.getByTestId("toolbar-can-undo").textContent).toBe("false")
     expect(screen.getByTestId("toolbar-can-redo").textContent).toBe("false")
@@ -421,7 +439,7 @@ describe("WorkflowEditor wiring", () => {
 
   it("does not rerender palette on viewport-only updates", async () => {
     const user = userEvent.setup()
-    render(<WorkflowEditor />)
+    render(<WorkflowEditor definitions={builtinBaseDefinitions} />)
 
     const baselinePaletteRenders = paletteRenderSpy.mock.calls.length
     const baselineCanvasRenders = canvasRenderSpy.mock.calls.length
@@ -442,7 +460,7 @@ describe("WorkflowEditor wiring", () => {
 
   it("keeps non-canvas render budget stable on pointer updates", async () => {
     const user = userEvent.setup()
-    render(<WorkflowEditor />)
+    render(<WorkflowEditor definitions={builtinBaseDefinitions} />)
 
     const baselinePaletteRenders = paletteRenderSpy.mock.calls.length
     const baselineCanvasRenders = canvasRenderSpy.mock.calls.length
@@ -571,7 +589,12 @@ describe("WorkflowEditor wiring", () => {
 
   it("updates the config panel when a node is selected", async () => {
     const user = userEvent.setup()
-    render(<WorkflowEditor initialGraph={createKeywordSampleGraph()} />)
+    render(
+      <WorkflowEditor
+        initialGraph={createKeywordSampleGraph(builtinBaseDefinitions)}
+        definitions={builtinBaseDefinitions}
+      />
+    )
 
     expect(
       screen.getByText("Select a node on the canvas to inspect it here.")

@@ -9,7 +9,10 @@ export const createLayoutSlice: WorkflowSliceCreator = (set, get) => ({
     const currentGraph = get().history.present
 
     try {
-      const nextGraph = await computeWorkflowAutoLayout(currentGraph)
+      const nextGraph = await computeWorkflowAutoLayout(
+        get().registry,
+        currentGraph
+      )
 
       if (nextGraph.nodes === currentGraph.nodes) {
         set({ lastError: null })
@@ -39,7 +42,10 @@ export const createLayoutSlice: WorkflowSliceCreator = (set, get) => ({
     set({ measuredInitialAutoLayoutAttempted: true })
 
     try {
-      const nextGraph = await computeWorkflowAutoLayout(currentGraph)
+      const nextGraph = await computeWorkflowAutoLayout(
+        get().registry,
+        currentGraph
+      )
 
       set((state) => ({
         history: {

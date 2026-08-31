@@ -12,7 +12,7 @@ import {
 } from "../../mappers"
 import { createWorkflowNode } from "../../node-registry/node-factory"
 import { normalizeNodeConfig } from "../../node-registry/node-config-normalization"
-import type { NodeKind } from "../../node-registry/registry"
+import type { NodeKind, NodeRegistry } from "../../node-registry/registry"
 import { createWorkflowError } from "../../types/errors"
 import type {
   DomainWorkflowConnectionDTO,
@@ -56,7 +56,7 @@ export const createIoSlice: WorkflowSliceCreator = (set, get) => ({
       )
       .map(asDomainConnectionDTO)
     const payload = exportSelectionClipboardJson(
-      selectedNodes.map(asDomainNodeDTO),
+      selectedNodes.map((node) => asDomainNodeDTO(state.registry, node)),
       selectedConnections
     )
     const copied = await writeTextToClipboard(payload)
@@ -84,7 +84,7 @@ export const createIoSlice: WorkflowSliceCreator = (set, get) => ({
       })
       return false
     }
-    const parsed = parseSelectionClipboardJson(clipboardText)
+    const parsed = parseSelectionClipboardJson(get().registry, clipboardText)
     if (!parsed.success || !parsed.value) {
       set({
         lastError: createWorkflowError(
@@ -102,6 +102,7 @@ export const createIoSlice: WorkflowSliceCreator = (set, get) => ({
     )
 
     const { nodes: nextNodesWithRefactors, nodeIdMap } = buildPastedNodes(
+      get().registry,
       parsed.value.nodes,
       anchor,
       usedLabels
@@ -138,7 +139,7 @@ export const createIoSlice: WorkflowSliceCreator = (set, get) => ({
   },
   importFromJson: (rawJson) => {
     const state = get()
-    const parsed = parseDomainGraphJson(rawJson)
+    const parsed = parseDomainGraphJson(state.registry, rawJson)
     if (!parsed.success || !parsed.value) {
       set({
         lastError: createWorkflowError(
@@ -151,7 +152,7 @@ export const createIoSlice: WorkflowSliceCreator = (set, get) => ({
 
     const mappedPayload =
       state.runtime.importDomain?.mapper?.(parsed.value) ?? parsed.value
-    if (!isValidDomainDto(mappedPayload)) {
+    if (!isValidDomainDto(state.registry, mappedPayload)) {
       set({
         lastError: createWorkflowError(
           "IMPORT_INVALID_SCHEMA",
@@ -161,7 +162,9 @@ export const createIoSlice: WorkflowSliceCreator = (set, get) => ({
       return false
     }
 
-    const importedGraph = cloneGraphState(domainToInternal(mappedPayload))
+    const importedGraph = cloneGraphState(
+      domainToInternal(state.registry, mappedPayload)
+    )
     const { nodes: nodesWithUniqueLabels, renames: labelRenames } =
       deduplicateNodeLabels(importedGraph.nodes, new Set<string>())
 
@@ -173,6 +176,7 @@ export const createIoSlice: WorkflowSliceCreator = (set, get) => ({
       const kind = kindByOldLabel.get(rename.oldLabel) ?? ""
       if (VARIABLE_LABEL_KINDS.has(kind)) {
         normalizedNodes = refactorPlainVariableReferencesInGraph(
+          state.registry,
           normalizedNodes,
           rename.oldLabel,
           rename.newLabel
@@ -201,7 +205,7 @@ export const createIoSlice: WorkflowSliceCreator = (set, get) => ({
   },
   exportDomain: () => {
     const state = get()
-    const payload = exportDomainDto(state.history.present)
+    const payload = exportDomainDto(state.registry, state.history.present)
     const nextPayload = state.runtime.exportDomain?.mapper?.(payload) ?? payload
 
     return nextPayload
@@ -209,6 +213,7 @@ export const createIoSlice: WorkflowSliceCreator = (set, get) => ({
 })
 
 function buildPastedNodes(
+  registry: NodeRegistry,
   parsedNodes: DomainWorkflowNodeDTO[],
   anchor: XYPosition,
   existingLabels: Set<string>
@@ -216,6 +221,7 @@ function buildPastedNodes(
   const nodeIdMap = new Map<string, string>()
   const createdNodes: WorkflowNode[] = parsedNodes.map((nodeDto) => {
     const nextNode = createWorkflowNode(
+      registry,
       nodeDto.kind as NodeKind,
       { x: anchor.x + nodeDto.position.x, y: anchor.y + nodeDto.position.y },
       nodeDto.label
@@ -223,7 +229,11 @@ function buildPastedNodes(
     nextNode.data = {
       kind: nodeDto.kind,
       label: nodeDto.label,
-      config: normalizeNodeConfig(nodeDto.kind as NodeKind, nodeDto.config),
+      config: normalizeNodeConfig(
+        registry,
+        nodeDto.kind as NodeKind,
+        nodeDto.config
+      ),
     }
     nodeIdMap.set(nodeDto.id, nextNode.id)
     return nextNode
@@ -240,6 +250,7 @@ function buildPastedNodes(
     const kind = kindByOldLabel.get(rename.oldLabel) ?? ""
     if (VARIABLE_LABEL_KINDS.has(kind)) {
       nodes = refactorPlainVariableReferencesInGraph(
+        registry,
         nodes,
         rename.oldLabel,
         rename.newLabel

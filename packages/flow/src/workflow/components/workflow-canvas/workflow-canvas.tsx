@@ -31,7 +31,7 @@ import { LayoutTemplate, Maximize2, ZoomIn, ZoomOut } from "lucide-react"
 
 import { WORKFLOW_NODE_KIND_MIME } from "../../dnd"
 import { buildNodeTypes } from "../../node-registry/node-types-builder"
-import { isNodeKind, type NodeKind } from "../../node-registry/registry"
+import { createNodeRegistry, type NodeKind } from "../../node-registry/registry"
 import { useNodeDefinitions } from "../../node-registry/use-node-definitions"
 import { workflowCanvasStyles } from "../../../styles/components/canvas"
 import type {
@@ -101,6 +101,11 @@ function WorkflowCanvasInner({
   mode = "edit",
 }: WorkflowCanvasProps) {
   const isObserving = mode === "observe"
+  // Node types are rebuilt when the vocabulary changes: a consumer may register
+  // its kinds after this canvas mounted, and a stale map would render every one
+  // of them as an unknown node type.
+  const definitions = useNodeDefinitions()
+  const registry = useMemo(() => createNodeRegistry(definitions), [definitions])
   const reactFlow = useReactFlow<WorkflowNode, WorkflowEdge>()
   const viewportState = useViewport()
   const nodesInitialized = useNodesInitialized()
@@ -131,7 +136,7 @@ function WorkflowCanvasInner({
     (event: React.DragEvent) => {
       event.preventDefault()
       const rawKind = event.dataTransfer.getData(WORKFLOW_NODE_KIND_MIME)
-      if (!isNodeKind(rawKind)) {
+      if (!registry.has(rawKind)) {
         return
       }
 
@@ -141,7 +146,7 @@ function WorkflowCanvasInner({
       })
       onAddNodeAt(rawKind, position)
     },
-    [onAddNodeAt, reactFlow]
+    [onAddNodeAt, reactFlow, registry]
   )
   const onPointerFlowPositionEvent = useEventCallback(onPointerFlowPosition)
   const pendingPointerRef = useRef<XYPosition | null>(null)
@@ -188,10 +193,6 @@ function WorkflowCanvasInner({
     edgeInteractionRef.current.onDeleteEdge = onDeleteEdge
     edgeInteractionRef.current.edgeInsertPendingId = edgeInsertPendingId
   }, [edgeInsertPendingId, onDeleteEdge, onStartInsertFromEdge])
-  // Node types are rebuilt when the vocabulary changes: a consumer may register
-  // its kinds after this canvas mounted, and a stale map would render every one
-  // of them as an unknown node type.
-  const definitions = useNodeDefinitions()
   const workflowNodeTypes = useMemo(
     () => buildNodeTypes(definitions),
     [definitions]
@@ -357,7 +358,7 @@ function WorkflowCanvasInner({
           zoomOnPinch
           zoomOnScroll={false}
           isValidConnection={(connection) =>
-            validateConnection(connection, nodes, edges).valid
+            validateConnection(registry, connection, nodes, edges).valid
           }
           onPaneClick={onPaneClick}
           onDragOver={isObserving ? undefined : onDragOver}

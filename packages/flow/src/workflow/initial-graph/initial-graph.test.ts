@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest"
 
 import { createInitialGraph, createInitialGraphElk } from "./initial-graph"
+import { builtinBaseDefinitions } from "../node-registry/builtin-base-definitions"
 
 describe("initial graph builders", () => {
   it("normalizes node defaults, edge metadata, document, and viewport", () => {
-    const graph = createInitialGraph({
+    const graph = createInitialGraph(builtinBaseDefinitions, {
       nodes: [
         {
           id: "keyword",
@@ -78,7 +79,7 @@ describe("initial graph builders", () => {
 
   it("fails clearly when an edge references a missing node", () => {
     expect(() =>
-      createInitialGraph({
+      createInitialGraph(builtinBaseDefinitions, {
         nodes: [{ id: "keyword", kind: "inlineExpression" }],
         edges: [{ source: "keyword", target: "missing-node" }],
       })
@@ -88,7 +89,7 @@ describe("initial graph builders", () => {
   })
 
   it("supports cyclic inputs while preserving cyclic edge connectivity", () => {
-    const graph = createInitialGraph({
+    const graph = createInitialGraph(builtinBaseDefinitions, {
       nodes: [
         { id: "evaluator", kind: "evaluator" },
         { id: "inline", kind: "inlineExpression" },
@@ -121,7 +122,7 @@ describe("initial graph builders", () => {
   })
 
   it("uses ELK auto-layout while preserving node and edge identity", async () => {
-    const graph = await createInitialGraphElk({
+    const graph = await createInitialGraphElk(builtinBaseDefinitions, {
       nodes: [
         { id: "keyword", kind: "inlineExpression", config: { isRoot: true } },
         { id: "extractor", kind: "extractor" },
@@ -138,7 +139,7 @@ describe("initial graph builders", () => {
   })
 
   it("keeps ELK-backed initial graph edges connected to nodes and handles", async () => {
-    const graph = await createInitialGraphElk({
+    const graph = await createInitialGraphElk(builtinBaseDefinitions, {
       nodes: [
         { id: "keyword", kind: "inlineExpression", config: { isRoot: true } },
         {
@@ -219,8 +220,8 @@ describe("initial graph builders", () => {
         { id: "keyword-to-extractor", source: "keyword", target: "extractor" },
       ],
     } as const
-    const base = createInitialGraph(input)
-    const elk = await createInitialGraphElk(input)
+    const base = createInitialGraph(builtinBaseDefinitions, input)
+    const elk = await createInitialGraphElk(builtinBaseDefinitions, input)
 
     // The ELK builder changes positions, but node IDs and edge wiring stay stable.
     expect(elk.nodes.map((node) => node.id)).toEqual(

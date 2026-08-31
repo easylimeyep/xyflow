@@ -1,4 +1,4 @@
-import { getNodeDefinition, type NodeKind } from "./registry"
+import type { NodeKind, NodeRegistry } from "./registry"
 
 /**
  * Connection rules for a kind. An unregistered kind connects to nothing rather
@@ -6,10 +6,16 @@ import { getNodeDefinition, type NodeKind } from "./registry"
  * consumer has not registered (an older document, a feature flag), and the
  * canvas must still render it.
  */
-export function getAllowedTargets(kind: NodeKind): string[] {
-  return getNodeDefinition(kind)?.allowedTargets ?? []
+export function getAllowedTargets(
+  registry: NodeRegistry,
+  kind: NodeKind
+): string[] {
+  return registry.get(kind)?.allowedTargets ?? []
 }
 
-export function getNodeOutputPaths(kind: NodeKind): string[] {
-  return getNodeDefinition(kind)?.outputPaths ?? []
+export function getNodeOutputPaths(
+  registry: NodeRegistry,
+  kind: NodeKind
+): string[] {
+  return registry.get(kind)?.outputPaths ?? []
 }

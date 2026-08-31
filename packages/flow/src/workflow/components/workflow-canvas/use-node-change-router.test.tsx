@@ -8,6 +8,10 @@ import { describe, expect, it, vi } from "vitest"
 import { createWorkflowNode } from "../../node-registry/node-factory"
 import type { WorkflowNode } from "../../types"
 import { useNodeChangeRouter } from "./use-node-change-router"
+import { builtinBaseDefinitions } from "../../node-registry/builtin-base-definitions"
+import { createNodeRegistry } from "../../node-registry/registry"
+
+const registry = createNodeRegistry(builtinBaseDefinitions)
 
 function Harness({
   nodes,
@@ -39,7 +43,7 @@ describe("useNodeChangeRouter", () => {
     const onSelectionChange = vi.fn()
     const onRouter = vi.fn()
 
-    const rootKeywordNode = createWorkflowNode("inlineExpression", {
+    const rootKeywordNode = createWorkflowNode(registry, "inlineExpression", {
       x: 0,
       y: 0,
     })
@@ -73,9 +77,15 @@ describe("useNodeChangeRouter", () => {
     const onSelectionChange = vi.fn()
     const onRouter = vi.fn()
 
-    const nodeA = createWorkflowNode("inlineExpression", { x: 0, y: 0 })
+    const nodeA = createWorkflowNode(registry, "inlineExpression", {
+      x: 0,
+      y: 0,
+    })
     nodeA.data.config.isRoot = true
-    const nodeB = createWorkflowNode("inlineExpression", { x: 200, y: 0 })
+    const nodeB = createWorkflowNode(registry, "inlineExpression", {
+      x: 200,
+      y: 0,
+    })
 
     const { rerender } = render(
       <Harness
@@ -122,9 +132,12 @@ describe("useNodeChangeRouter", () => {
     const onSelectionChange = vi.fn()
     const onRouter = vi.fn()
 
-    const nodeA = createWorkflowNode("inlineExpression", { x: 0, y: 0 })
+    const nodeA = createWorkflowNode(registry, "inlineExpression", {
+      x: 0,
+      y: 0,
+    })
     nodeA.data.config.isRoot = true
-    const nodeB = createWorkflowNode("extractor", { x: 200, y: 0 })
+    const nodeB = createWorkflowNode(registry, "extractor", { x: 200, y: 0 })
 
     render(
       <Harness

@@ -16,6 +16,10 @@ import { createKeywordSampleGraph } from "../../default-graph"
 import { createWorkflowNode } from "../../node-registry/node-factory"
 import { WorkflowCanvas } from "./workflow-canvas"
 import type { WorkflowEditorAnchorRefs } from "../../tour"
+import { builtinBaseDefinitions } from "../../node-registry/builtin-base-definitions"
+import { createNodeRegistry } from "../../node-registry/registry"
+
+const registry = createNodeRegistry(builtinBaseDefinitions)
 
 /**
  * The package's own one-node document, built once for this file.
@@ -24,11 +28,17 @@ import type { WorkflowEditorAnchorRefs } from "../../tour"
  * opened on a keyword node. That default is empty now — the vocabulary belongs
  * to the consumer — so a suite that needs a populated graph builds one.
  */
-const initialWorkflowGraph = createKeywordSampleGraph()
+const initialWorkflowGraph = createKeywordSampleGraph(builtinBaseDefinitions)
 
-const fixtureSource = createWorkflowNode("inlineExpression", { x: 0, y: 80 })
+const fixtureSource = createWorkflowNode(registry, "inlineExpression", {
+  x: 0,
+  y: 80,
+})
 fixtureSource.data.config.isRoot = true
-const fixtureTarget = createWorkflowNode("inlineExpression", { x: 360, y: 80 })
+const fixtureTarget = createWorkflowNode(registry, "inlineExpression", {
+  x: 360,
+  y: 80,
+})
 const fixtureEdge = {
   id: `${fixtureSource.id}-${fixtureTarget.id}`,
   source: fixtureSource.id,

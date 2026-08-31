@@ -1,9 +1,8 @@
 import { addEdge, applyNodeChanges } from "@xyflow/react"
 import type { NodeChange, XYPosition } from "@xyflow/react"
 
-import type { NodeKind } from "../node-registry/registry"
+import type { NodeKind, NodeRegistry } from "../node-registry/registry"
 import { getNodeConfigKeys } from "../node-registry/define-node"
-import { getNodeDefinition } from "../node-registry/registry"
 import { createWorkflowError, type WorkflowError } from "../types/errors"
 import type {
   JsonObject,
@@ -88,6 +87,7 @@ export interface ApplyNodeChangesSuccess extends GraphEngineSuccess {
 }
 
 export function applyAddNodeCommand(
+  registry: NodeRegistry,
   currentGraph: WorkflowGraphState,
   command: AddNodeCommand,
   createNode: (
@@ -95,7 +95,8 @@ export function applyAddNodeCommand(
     kind: NodeKind,
     position: XYPosition,
     nodeId?: string
-  ) => WorkflowNode = createNodeWithUniqueLabel
+  ) => WorkflowNode = (currentNodes, kind, position, nodeId) =>
+    createNodeWithUniqueLabel(registry, currentNodes, kind, position, nodeId)
 ): GraphEngineResult {
   const nextNode = createNode(
     currentGraph.nodes,
@@ -113,6 +114,7 @@ export function applyAddNodeCommand(
 }
 
 export function applyUpdateNodeLabelCommand(
+  registry: NodeRegistry,
   currentGraph: WorkflowGraphState,
   command: UpdateNodeLabelCommand
 ): GraphEngineResult {
@@ -160,6 +162,7 @@ export function applyUpdateNodeLabelCommand(
     targetNode.data.kind as NodeKind
   )
     ? refactorPlainVariableReferencesInGraph(
+        registry,
         nextNodes,
         targetNode.data.label,
         labelResult.nextLabel
@@ -176,6 +179,7 @@ export function applyUpdateNodeLabelCommand(
 }
 
 export function applyUpdateNodeConfigCommand(
+  registry: NodeRegistry,
   currentGraph: WorkflowGraphState,
   command: UpdateNodeConfigCommand
 ): GraphEngineResult {
@@ -202,7 +206,7 @@ export function applyUpdateNodeConfigCommand(
     }
   }
 
-  const definition = getNodeDefinition(targetNode.data.kind as NodeKind)
+  const definition = registry.get(targetNode.data.kind as NodeKind)
   if (!definition) {
     return {
       ok: false,
@@ -257,11 +261,16 @@ export function applyUpdateNodeConfigCommand(
       : node
   )
 
-  const hookResult = runNodeConfigHooks(nextNodes, currentGraph.edges, {
-    targetNode,
-    update: command.update,
-    previousValue,
-  })
+  const hookResult = runNodeConfigHooks(
+    registry,
+    nextNodes,
+    currentGraph.edges,
+    {
+      targetNode,
+      update: command.update,
+      previousValue,
+    }
+  )
 
   return {
     ok: true,
@@ -274,10 +283,12 @@ export function applyUpdateNodeConfigCommand(
 }
 
 export function applyConnectNodesCommand(
+  registry: NodeRegistry,
   currentGraph: WorkflowGraphState,
   command: ConnectNodesCommand
 ): GraphEngineResult {
   const validation = validateConnection(
+    registry,
     command.connection,
     currentGraph.nodes,
     currentGraph.edges
@@ -322,15 +333,23 @@ export function applyConnectNodesCommand(
 }
 
 export function applyInsertNodeOnEdgeCommand(
+  registry: NodeRegistry,
   currentGraph: WorkflowGraphState,
   command: InsertNodeOnEdgeCommand
 ): GraphEngineResult {
   const result = computeEdgeInsertion(
+    registry,
     currentGraph,
     command.edgeId,
     command.kind,
     (currentNodes, kind, position) =>
-      createNodeWithUniqueLabel(currentNodes, kind, position, command.nodeId)
+      createNodeWithUniqueLabel(
+        registry,
+        currentNodes,
+        kind,
+        position,
+        command.nodeId
+      )
   )
 
   if (!result.ok) {

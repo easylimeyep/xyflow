@@ -7,6 +7,8 @@ import type {
 import type { StoreApi } from "@flow/store"
 import type { HistoryState } from "@flow/store"
 
+import type { NodeDefinition } from "../node-registry/define-node"
+import type { NodeRegistry } from "../node-registry/registry"
 import type { WorkflowError } from "../types/errors"
 import type {
   DomainWorkflowDTO,
@@ -113,6 +115,8 @@ export interface WorkflowRuntimeConfig {
 export interface WorkflowStoreQueries {
   history: HistoryState<WorkflowGraphState>
   runtime: WorkflowRuntimeConfig
+  /** The node vocabulary this editor instance was created with. */
+  registry: NodeRegistry
   measuredInitialAutoLayoutAttempted: boolean
   expressionDeps: ExpressionDepsGraph
   expressionStructuralVersion: number
@@ -183,6 +187,14 @@ export interface WorkflowStoreState
 export interface WorkflowStoreInitialProps {
   initialGraph?: WorkflowGraphState
   runtime?: WorkflowRuntimeConfig
+  /**
+   * The node vocabulary this editor instance offers.
+   *
+   * Empty by default (ADR-0005): every kind an editor knows arrives here, from
+   * the host. Two editors on one page may legitimately hold different
+   * vocabularies, which is why this is an instance prop and not a module store.
+   */
+  definitions?: readonly NodeDefinition[]
 }
 
 export type WorkflowStoreSetState = StoreApi<WorkflowStoreState>["setState"]

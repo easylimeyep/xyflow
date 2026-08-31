@@ -3,9 +3,13 @@ import { describe, expect, it } from "vitest"
 import { createWorkflowNode } from "../node-registry/node-factory"
 import type { WorkflowGraphState } from "../types/types"
 import { applyNodeConfigUpdate } from "./node-config-updates"
+import { builtinBaseDefinitions } from "../node-registry/builtin-base-definitions"
+import { createNodeRegistry } from "../node-registry/registry"
+
+const registry = createNodeRegistry(builtinBaseDefinitions)
 
 function createGraph(
-  nodes = [createWorkflowNode("inlineExpression", { x: 0, y: 0 })]
+  nodes = [createWorkflowNode(registry, "inlineExpression", { x: 0, y: 0 })]
 ): WorkflowGraphState {
   return {
     nodes,
@@ -22,10 +26,13 @@ function createGraph(
 
 describe("applyNodeConfigUpdate", () => {
   it("returns error for mismatched node kind payload", () => {
-    const inlineNode = createWorkflowNode("inlineExpression", { x: 0, y: 0 })
+    const inlineNode = createWorkflowNode(registry, "inlineExpression", {
+      x: 0,
+      y: 0,
+    })
     const graph = createGraph([inlineNode])
 
-    const result = applyNodeConfigUpdate(graph, inlineNode.id, {
+    const result = applyNodeConfigUpdate(registry, graph, inlineNode.id, {
       kind: "extractor",
       key: "tokenNumber",
       value: 10,
@@ -36,14 +43,20 @@ describe("applyNodeConfigUpdate", () => {
   })
 
   it("updates set-variable expression config field", () => {
-    const setVariableNode = createWorkflowNode("setVariable", { x: 0, y: 0 })
-    const inlineNode = createWorkflowNode("inlineExpression", { x: 300, y: 0 })
+    const setVariableNode = createWorkflowNode(registry, "setVariable", {
+      x: 0,
+      y: 0,
+    })
+    const inlineNode = createWorkflowNode(registry, "inlineExpression", {
+      x: 300,
+      y: 0,
+    })
     setVariableNode.data.config.variableName = "oldName"
     setVariableNode.data.config.valueExpression = "{{ oldValue }}"
     inlineNode.data.config.template = ["{{ oldName }}"]
 
     const graph = createGraph([setVariableNode, inlineNode])
-    const result = applyNodeConfigUpdate(graph, setVariableNode.id, {
+    const result = applyNodeConfigUpdate(registry, graph, setVariableNode.id, {
       kind: "setVariable",
       key: "valueExpression",
       value: "{{ newValue }}",
@@ -59,9 +72,12 @@ describe("applyNodeConfigUpdate", () => {
   })
 
   it("updates evaluator caseSensitive config field", () => {
-    const evaluatorNode = createWorkflowNode("evaluator", { x: 0, y: 0 })
+    const evaluatorNode = createWorkflowNode(registry, "evaluator", {
+      x: 0,
+      y: 0,
+    })
     const graph = createGraph([evaluatorNode])
-    const result = applyNodeConfigUpdate(graph, evaluatorNode.id, {
+    const result = applyNodeConfigUpdate(registry, graph, evaluatorNode.id, {
       kind: "evaluator",
       key: "caseSensitive",
       value: true,
@@ -72,13 +88,19 @@ describe("applyNodeConfigUpdate", () => {
   })
 
   it("refactors plain variable references for rename-aware config key updates", () => {
-    const setVariableNode = createWorkflowNode("setVariable", { x: 0, y: 0 })
-    const inlineNode = createWorkflowNode("inlineExpression", { x: 300, y: 0 })
+    const setVariableNode = createWorkflowNode(registry, "setVariable", {
+      x: 0,
+      y: 0,
+    })
+    const inlineNode = createWorkflowNode(registry, "inlineExpression", {
+      x: 300,
+      y: 0,
+    })
     setVariableNode.data.config.variableName = "oldName"
     inlineNode.data.config.template = ["{{ oldName }}"]
 
     const graph = createGraph([setVariableNode, inlineNode])
-    const result = applyNodeConfigUpdate(graph, setVariableNode.id, {
+    const result = applyNodeConfigUpdate(registry, graph, setVariableNode.id, {
       kind: "setVariable",
       key: "variableName",
       value: "newName",
@@ -92,13 +114,19 @@ describe("applyNodeConfigUpdate", () => {
   })
 
   it("refactors plain variable references when extractor Label is renamed", () => {
-    const extractorNode = createWorkflowNode("extractor", { x: 0, y: 0 })
-    const inlineNode = createWorkflowNode("inlineExpression", { x: 300, y: 0 })
+    const extractorNode = createWorkflowNode(registry, "extractor", {
+      x: 0,
+      y: 0,
+    })
+    const inlineNode = createWorkflowNode(registry, "inlineExpression", {
+      x: 300,
+      y: 0,
+    })
     extractorNode.data.config.extractExpression = "oldName"
     inlineNode.data.config.template = ["{{ oldName }}"]
 
     const graph = createGraph([extractorNode, inlineNode])
-    const result = applyNodeConfigUpdate(graph, extractorNode.id, {
+    const result = applyNodeConfigUpdate(registry, graph, extractorNode.id, {
       kind: "extractor",
       key: "extractExpression",
       value: "newName",
@@ -114,13 +142,19 @@ describe("applyNodeConfigUpdate", () => {
   })
 
   it("refactors plain variable references when evaluator Label is renamed", () => {
-    const evaluatorNode = createWorkflowNode("evaluator", { x: 0, y: 0 })
-    const inlineNode = createWorkflowNode("inlineExpression", { x: 300, y: 0 })
+    const evaluatorNode = createWorkflowNode(registry, "evaluator", {
+      x: 0,
+      y: 0,
+    })
+    const inlineNode = createWorkflowNode(registry, "inlineExpression", {
+      x: 300,
+      y: 0,
+    })
     evaluatorNode.data.config.label = "conditionMatched"
     inlineNode.data.config.template = ["{{ conditionMatched }}"]
 
     const graph = createGraph([evaluatorNode, inlineNode])
-    const result = applyNodeConfigUpdate(graph, evaluatorNode.id, {
+    const result = applyNodeConfigUpdate(registry, graph, evaluatorNode.id, {
       kind: "evaluator",
       key: "label",
       value: "isQualified",
@@ -134,13 +168,19 @@ describe("applyNodeConfigUpdate", () => {
   })
 
   it("does not blank plain variable references when evaluator Label is cleared", () => {
-    const evaluatorNode = createWorkflowNode("evaluator", { x: 0, y: 0 })
-    const inlineNode = createWorkflowNode("inlineExpression", { x: 300, y: 0 })
+    const evaluatorNode = createWorkflowNode(registry, "evaluator", {
+      x: 0,
+      y: 0,
+    })
+    const inlineNode = createWorkflowNode(registry, "inlineExpression", {
+      x: 300,
+      y: 0,
+    })
     evaluatorNode.data.config.label = "conditionMatched"
     inlineNode.data.config.template = ["{{ conditionMatched }}"]
 
     const graph = createGraph([evaluatorNode, inlineNode])
-    const result = applyNodeConfigUpdate(graph, evaluatorNode.id, {
+    const result = applyNodeConfigUpdate(registry, graph, evaluatorNode.id, {
       kind: "evaluator",
       key: "label",
       value: "",
@@ -154,13 +194,19 @@ describe("applyNodeConfigUpdate", () => {
   })
 
   it("does not refactor references on extractor non-rename config updates", () => {
-    const extractorNode = createWorkflowNode("extractor", { x: 0, y: 0 })
-    const inlineNode = createWorkflowNode("inlineExpression", { x: 300, y: 0 })
+    const extractorNode = createWorkflowNode(registry, "extractor", {
+      x: 0,
+      y: 0,
+    })
+    const inlineNode = createWorkflowNode(registry, "inlineExpression", {
+      x: 300,
+      y: 0,
+    })
     extractorNode.data.config.extractExpression = "oldName"
     inlineNode.data.config.template = ["{{ oldName }}"]
 
     const graph = createGraph([extractorNode, inlineNode])
-    const result = applyNodeConfigUpdate(graph, extractorNode.id, {
+    const result = applyNodeConfigUpdate(registry, graph, extractorNode.id, {
       kind: "extractor",
       key: "tokenNumber",
       value: 10,
@@ -174,8 +220,14 @@ describe("applyNodeConfigUpdate", () => {
   })
 
   it("prunes incoming edges when inlineExpression becomes root", () => {
-    const sourceNode = createWorkflowNode("setVariable", { x: 0, y: 0 })
-    const targetNode = createWorkflowNode("inlineExpression", { x: 200, y: 0 })
+    const sourceNode = createWorkflowNode(registry, "setVariable", {
+      x: 0,
+      y: 0,
+    })
+    const targetNode = createWorkflowNode(registry, "inlineExpression", {
+      x: 200,
+      y: 0,
+    })
     const graph = createGraph([sourceNode, targetNode])
     graph.edges = [
       {
@@ -191,7 +243,7 @@ describe("applyNodeConfigUpdate", () => {
       },
     ]
 
-    const result = applyNodeConfigUpdate(graph, targetNode.id, {
+    const result = applyNodeConfigUpdate(registry, graph, targetNode.id, {
       kind: "inlineExpression",
       key: "isRoot",
       value: true,

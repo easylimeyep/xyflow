@@ -1,7 +1,7 @@
 import type { Connection } from "@xyflow/react"
 
 import { getAllowedTargets } from "../node-registry/node-graph-rules"
-import type { NodeKind } from "../node-registry/registry"
+import type { NodeKind, NodeRegistry } from "../node-registry/registry"
 import type { WorkflowEdge, WorkflowNode } from "../types/types"
 
 const EVALUATOR_TRUE_HANDLE = "evaluator-true"
@@ -18,6 +18,7 @@ export type ConnectionLike = Pick<Connection, "source" | "target"> & {
 }
 
 export function validateConnection(
+  registry: NodeRegistry,
   connection: ConnectionLike,
   nodes: WorkflowNode[],
   edges: WorkflowEdge[]
@@ -41,7 +42,7 @@ export function validateConnection(
 
   const sourceKind = sourceNode.data.kind as NodeKind
   const targetKind = targetNode.data.kind
-  const allowedTargets = getAllowedTargets(sourceKind)
+  const allowedTargets = getAllowedTargets(registry, sourceKind)
 
   if (
     sourceKind === "evaluator" &&

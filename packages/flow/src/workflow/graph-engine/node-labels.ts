@@ -1,7 +1,7 @@
 import type { XYPosition } from "@xyflow/react"
 
 import { createWorkflowNode } from "../node-registry/node-factory"
-import type { NodeKind } from "../node-registry/registry"
+import type { NodeKind, NodeRegistry } from "../node-registry/registry"
 import { isValidJsIdentifier } from "../expression/variable-name/variable-name"
 import { createWorkflowError, type WorkflowError } from "../types/errors"
 import type { WorkflowNode } from "../types/types"
@@ -14,12 +14,13 @@ export function isVariableLabelKind(kind: NodeKind): boolean {
 }
 
 export function createNodeWithUniqueLabel(
+  registry: NodeRegistry,
   currentNodes: WorkflowNode[],
   kind: NodeKind,
   position: XYPosition,
   nodeId?: string
 ): WorkflowNode {
-  const nextNode = createWorkflowNode(kind, position)
+  const nextNode = createWorkflowNode(registry, kind, position)
   const usedLabels = new Set(
     currentNodes
       .map((node) => node.data.label.trim())
