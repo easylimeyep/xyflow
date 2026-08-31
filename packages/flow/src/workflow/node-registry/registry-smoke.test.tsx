@@ -4,29 +4,24 @@ import { render } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
 
 import { DefaultNodeRenderer } from "../nodes/shared/default-node-renderer"
+import { builtinBaseDefinitions } from "./builtin-base-definitions"
 import { builtinDefinitions } from "./builtin-definitions"
-import {
-  listNodeDefinitions,
-  getNodeDefinition,
-  workflowNodeKinds,
-  type NodeKind,
-} from "./registry"
+import { createNodeRegistry, type NodeKind } from "./registry"
 
 /**
  * The kinds this suite exercises, fixed at collection time.
  *
  * `it.each` evaluates its argument when the test FILE is COLLECTED, before any
- * `it`/`beforeAll` body runs. Driving it off `workflowNodeKinds()` — the live
- * registry — makes every case in this suite depend on `vitest.setup.ts`
- * registering the built-ins synchronously, at that file's own module-load
- * time, before this one collects. That's true today, but it's an ordering
- * invariant a case list should not be silently built on: get it wrong (a
- * setup file that defers registration into a hook, say) and `it.each` emits
- * ZERO cases rather than failing — the suite reports success having run
- * nothing. `builtinDefinitions` is a plain constant, unaffected by when
- * registration happens, so this list can't go stale that way.
+ * `it`/`beforeAll` body runs, so the list has to come from something that is
+ * fully built at module-load time. `builtinDefinitions` is a plain constant, so
+ * it always is. A list derived from anything more dynamic can go stale without
+ * failing: get it wrong and `it.each` emits ZERO cases rather than an error —
+ * the suite reports success having run nothing. The non-empty guard below
+ * catches that.
  */
 const builtinKinds = builtinDefinitions.map((definition) => definition.kind)
+
+const registry = createNodeRegistry(builtinDefinitions)
 
 vi.mock("@xyflow/react", () => ({
   Handle: () => null,
@@ -44,37 +39,46 @@ vi.mock(
 )
 
 describe("registry smoke tests", () => {
-  it("registers a non-empty vocabulary", () => {
+  it("builds a non-empty vocabulary from the built-ins", () => {
     // A guard against the failure mode `builtinKinds` (above) exists to avoid:
-    // if registration ever silently stopped happening before this file
-    // collects, `workflowNodeKinds()` would be `[]` and every `it.each`
-    // below would emit zero cases — a suite reporting success having run
-    // nothing. This assertion fails loudly instead.
-    expect(workflowNodeKinds().length).toBeGreaterThan(0)
+    // if that list ever came back empty, every `it.each` below would emit zero
+    // cases — a suite reporting success having run nothing. This assertion
+    // fails loudly instead.
+    expect(builtinKinds.length).toBeGreaterThan(0)
+    expect(registry.list().length).toBe(builtinKinds.length)
   })
 
   it("the definition list and the kind index have matching entries", () => {
-    const definitionKinds = listNodeDefinitions()
+    const definitionKinds = registry
+      .list()
       .map((definition) => definition.kind)
       .sort()
-    const registryKinds = [...workflowNodeKinds()].sort()
+    const registryKinds = [...registry.kinds()].sort()
 
     expect(definitionKinds).toEqual(registryKinds)
   })
 
-  it("workflowNodeKinds() matches the registered definitions", () => {
-    const registryKinds = [...workflowNodeKinds()].sort()
-    const sortedKinds = listNodeDefinitions()
-      .map((definition) => definition.kind)
-      .sort()
+  it("every kind in the vocabulary resolves to its own definition", () => {
+    for (const kind of registry.kinds()) {
+      expect(registry.get(kind)?.kind).toBe(kind)
+    }
+  })
 
-    expect(sortedKinds).toEqual(registryKinds)
+  it("the base definitions cover exactly the same kinds as the built-ins", () => {
+    // `builtin-definitions.ts` (with renderers) and `builtin-base-definitions.ts`
+    // (without) are two hand-maintained lists of the same five kinds. Nothing
+    // else keeps them in step: add a sixth built-in to one and every suite that
+    // builds its vocabulary from the other silently runs against a narrower
+    // package than the one that ships.
+    expect(builtinBaseDefinitions.map((definition) => definition.kind)).toEqual(
+      builtinKinds
+    )
   })
 
   it.each(builtinKinds)(
     "node kind '%s' has valid definition fields",
     (kind) => {
-      const definition = getNodeDefinition(kind as NodeKind)!
+      const definition = registry.get(kind as NodeKind)!
 
       expect(definition).toBeDefined()
       expect(definition.kind).toBe(kind)
@@ -93,7 +97,7 @@ describe("registry smoke tests", () => {
   it.each(builtinKinds)(
     "node kind '%s' builds valid default config",
     (kind) => {
-      const definition = getNodeDefinition(kind as NodeKind)!
+      const definition = registry.get(kind as NodeKind)!
       const config = definition.buildDefaultConfig()
 
       expect(config).toBeDefined()
@@ -105,7 +109,7 @@ describe("registry smoke tests", () => {
   it.each(builtinKinds)(
     "node definition '%s' renders via DefaultNodeRenderer without client bindings",
     (kind) => {
-      const definition = getNodeDefinition(kind as NodeKind)!
+      const definition = registry.get(kind as NodeKind)!
 
       const { container } = render(
         <DefaultNodeRenderer
@@ -134,17 +138,15 @@ describe("registry smoke tests", () => {
   )
 
   it("pure node definitions do not carry client component bindings", () => {
-    for (const definition of listNodeDefinitions()) {
+    for (const definition of registry.list()) {
       expect("component" in definition).toBe(false)
     }
   })
 
   it("all allowedTargets reference valid node kinds", () => {
-    const validKinds = new Set(workflowNodeKinds())
-
-    for (const definition of listNodeDefinitions()) {
+    for (const definition of registry.list()) {
       for (const target of definition.allowedTargets) {
-        expect(validKinds.has(target as NodeKind)).toBe(true)
+        expect(registry.has(target as NodeKind)).toBe(true)
       }
     }
   })

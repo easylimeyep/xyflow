@@ -12,22 +12,22 @@ import { result } from "../nodes/logic/result"
  *
  * A consumer asks for them by name:
  *
- * ```ts
- * registerNodeDefinitions(builtinDefinitions)          // all five
- * registerNodeDefinitions([evaluator, result])         // or a subset
+ * ```tsx
+ * <WorkflowEditor definitions={builtinDefinitions} />       // all five
+ * <WorkflowEditor definitions={[evaluator, result]} />      // or a subset
  * ```
  *
  * Kept in a module separate from `registry.ts`: the registry engine
- * (`registerNodeDefinitions`, `getNodeDefinition`, ...) is imported by
- * everything that resolves a node kind — mappers, validation, layout, the
- * store slices, and this package's own `vitest.setup.ts` — and none of that
- * needs a live component tree. If this constant lived in `registry.ts`
- * itself, importing the engine would also import all five components (and
- * their real dependencies) as a side effect, which breaks a test file that
- * mocks one of those dependencies for its own unit test: `vi.mock` only
- * intercepts a module's FIRST load, and `vitest.setup.ts` would have already
- * forced that load, unmocked, before the test file's own `vi.mock` calls
- * exist.
+ * (`createNodeRegistry`, `NodeRegistry`, ...) is imported by everything that
+ * resolves a node kind — mappers, validation, layout, the store slices — and
+ * none of that needs a live component tree. If this constant lived in
+ * `registry.ts` itself, importing the engine would also import all five
+ * components (and their real dependencies) as a side effect, which breaks a
+ * test file that mocks one of those dependencies for its own unit test:
+ * `vi.mock` only intercepts a module's FIRST load, and an earlier import of
+ * the engine would have already forced that load, unmocked, before the test
+ * file's own `vi.mock` calls exist. `builtinBaseDefinitions` is the
+ * renderer-free list for exactly those callers.
  */
 export const builtinDefinitions = [
   evaluator,

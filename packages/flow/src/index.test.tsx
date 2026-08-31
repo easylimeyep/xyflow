@@ -4,10 +4,11 @@ import { cleanup, render, screen } from "@testing-library/react"
 import { afterEach, describe, expect, it } from "vitest"
 
 import {
+  builtinDefinitions,
+  createNodeRegistry,
   DEFAULT_EVALUATOR_OPERATOR_ID,
-  workflowNodeKinds,
   WorkflowEditor,
-  isNodeKind,
+  WorkflowEditorPalette,
 } from "./index"
 import type {
   DomainWorkflowConnectionDTO,
@@ -103,12 +104,38 @@ describe("WorkflowEditor package root", () => {
     const exportMapper: WorkflowExportDomainMapper = (payload) => payload
     const importMapper: WorkflowImportDomainMapper = (payload) => payload
 
-    expect(workflowNodeKinds()).toContain(nodeKind)
-    expect(isNodeKind(nodeKind)).toBe(true)
+    expect(createNodeRegistry(builtinDefinitions).has(nodeKind)).toBe(true)
     expect(DEFAULT_EVALUATOR_OPERATOR_ID).toBe("is equal to")
     expect(exportMapper(workflowDto)).toBe(workflowDto)
     expect(importMapper(workflowDto)).toBe(workflowDto)
     expect(graphState.nodes[0]?.data.kind).toBe(nodeKind)
+  })
+
+  // Only the palette is mounted, not the whole default composition: the canvas
+  // needs a ResizeObserver jsdom does not provide, and the vocabulary an editor
+  // was handed is exactly what the palette renders.
+  it("mounts with the vocabulary it is given and nothing else", () => {
+    const [evaluator] = builtinDefinitions
+
+    render(
+      <WorkflowEditor definitions={builtinDefinitions}>
+        <WorkflowEditorPalette />
+      </WorkflowEditor>
+    )
+
+    expect(screen.getByText(evaluator!.title)).toBeInstanceOf(HTMLElement)
+  })
+
+  it("mounts with an empty palette when given no definitions", () => {
+    const [evaluator] = builtinDefinitions
+
+    render(
+      <WorkflowEditor>
+        <WorkflowEditorPalette />
+      </WorkflowEditor>
+    )
+
+    expect(screen.queryByText(evaluator!.title)).toBeNull()
   })
 
   it("lets consumers pass runtime import and export mappers", () => {

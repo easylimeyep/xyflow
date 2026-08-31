@@ -7,7 +7,6 @@ export type { WorkflowVariableType } from "./variable-types"
 export { WORKFLOW_VARIABLE_TYPES } from "./variable-types"
 
 export type { NodeKind } from "../node-registry/registry"
-export { isNodeKind, workflowNodeKinds } from "../node-registry/registry"
 export type { BuiltinNodeKind } from "../node-registry/builtin-definitions"
 
 export type JsonPrimitive = string | number | boolean | null

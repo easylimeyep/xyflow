@@ -35,19 +35,17 @@ export {
 export {
   DEFAULT_EVALUATOR_OPERATOR_ID,
   DEFAULT_EVALUATOR_OPERATOR_OPTIONS,
-  isNodeKind,
-  workflowNodeKinds,
 } from "./workflow/types"
 export {
   builtinDefinitions,
+  createNodeRegistry,
   defineNode,
-  getNodeDefinition,
-  listNodeDefinitions,
-  registerNodeDefinitions,
-  resetNodeDefinitions,
+  EMPTY_NODE_REGISTRY,
   useNodeDefinitions,
+  useNodeRegistry,
   type NodeCategory,
   type NodeDefinition,
+  type NodeRegistry,
   type OutputHandle,
 } from "./workflow/node-registry"
 export {

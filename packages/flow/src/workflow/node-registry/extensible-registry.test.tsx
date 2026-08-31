@@ -2,7 +2,7 @@
 
 import { cleanup, render, screen } from "@testing-library/react"
 import { CircleIcon } from "lucide-react"
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { NodePalette } from "../components/node-palette/node-palette"
 import { WorkflowStoreProvider } from "../store"
@@ -11,15 +11,7 @@ import { defineNode } from "./define-node"
 import { normalizeNodeConfig } from "./node-config-normalization"
 import { createWorkflowNode } from "./node-factory"
 import { getAllowedTargets, getNodeOutputPaths } from "./node-graph-rules"
-import {
-  createNodeRegistry,
-  getNodeDefinition,
-  isNodeKind,
-  listNodeDefinitions,
-  registerNodeDefinitions,
-  resetNodeDefinitions,
-  workflowNodeKinds,
-} from "./registry"
+import { createNodeRegistry } from "./registry"
 
 /** A consumer-defined kind, in the dotted style a product vocabulary uses. */
 const aiTurn = defineNode({
@@ -34,101 +26,91 @@ const aiTurn = defineNode({
   allowedTargets: ["ai.turn", "result"],
 })
 
+const builtinKinds = builtinDefinitions.map((definition) => definition.kind)
+
 describe("the empty baseline", () => {
   afterEach(() => {
-    resetNodeDefinitions()
+    cleanup()
   })
 
-  it("registers nothing until a consumer asks for it", () => {
-    // Arrange & Act — the setup file registers the built-ins for every other
-    // suite in this package; this one starts from the state a freshly imported
-    // package is actually in.
-    resetNodeDefinitions()
+  it("gives an editor no kinds at all until it is handed some", () => {
+    // Arrange & Act — a store built without `definitions` is the state a
+    // freshly imported package puts an editor in. Nothing seeds a default
+    // vocabulary on its behalf (ADR-0005).
+    render(
+      <WorkflowStoreProvider>
+        <NodePalette onAddNode={vi.fn()} />
+      </WorkflowStoreProvider>
+    )
 
     // Assert
-    expect(workflowNodeKinds()).toEqual([])
-    expect(getNodeDefinition("inlineExpression")).toBeUndefined()
+    for (const definition of builtinDefinitions) {
+      expect(screen.queryByText(definition.title)).toBeNull()
+    }
   })
 
   it("offers the built-ins as an explicit opt-in", () => {
-    // Arrange
-    resetNodeDefinitions()
-
-    // Act
-    registerNodeDefinitions(builtinDefinitions)
+    // Arrange & Act
+    const registry = createNodeRegistry(builtinDefinitions)
 
     // Assert
-    expect(workflowNodeKinds()).toEqual(
-      builtinDefinitions.map((definition) => definition.kind)
-    )
+    expect(registry.kinds()).toEqual(builtinKinds)
   })
 
   it("takes a subset, leaving the rest out of the vocabulary", () => {
     // Arrange
-    resetNodeDefinitions()
     const [evaluator] = builtinDefinitions
 
     // Act
-    registerNodeDefinitions(evaluator ? [evaluator] : [])
+    const registry = createNodeRegistry(evaluator ? [evaluator] : [])
 
     // Assert
-    expect(workflowNodeKinds()).toEqual(["evaluator"])
-    expect(getNodeDefinition("extractor")).toBeUndefined()
+    expect(registry.kinds()).toEqual(["evaluator"])
+    expect(registry.get("extractor")).toBeUndefined()
   })
 })
 
 describe("consumer node registration", () => {
-  beforeEach(() => {
-    registerNodeDefinitions(builtinDefinitions)
-  })
-
   afterEach(() => {
     cleanup()
-    resetNodeDefinitions()
   })
 
   it("adds the kind to the vocabulary", () => {
     // Arrange & Act
-    registerNodeDefinitions([aiTurn])
+    const registry = createNodeRegistry([...builtinDefinitions, aiTurn])
 
     // Assert
-    expect(workflowNodeKinds()).toContain("ai.turn")
-    expect(isNodeKind("ai.turn")).toBe(true)
-    expect(getNodeDefinition("ai.turn")).toBe(aiTurn)
+    expect(registry.kinds()).toContain("ai.turn")
+    expect(registry.has("ai.turn")).toBe(true)
+    expect(registry.get("ai.turn")).toBe(aiTurn)
   })
 
   it("keeps the built-ins and appends consumer kinds after them", () => {
-    // Arrange
-    const before = workflowNodeKinds()
-
-    // Act
-    registerNodeDefinitions([aiTurn])
+    // Arrange & Act
+    const registry = createNodeRegistry([...builtinDefinitions, aiTurn])
 
     // Assert
-    expect(workflowNodeKinds()).toEqual([...before, "ai.turn"])
+    expect(registry.kinds()).toEqual([...builtinKinds, "ai.turn"])
   })
 
-  it("replaces a kind registered twice instead of duplicating it", () => {
-    // Arrange
+  it("replaces a kind declared twice instead of duplicating it", () => {
+    // Arrange — the shape a host composing a base set with its own override
+    // hands over.
     const revised = defineNode({ ...aiTurn, title: "AI turn (revised)" })
 
     // Act
-    registerNodeDefinitions([aiTurn])
-    registerNodeDefinitions([revised])
+    const registry = createNodeRegistry([aiTurn, revised])
 
     // Assert
-    const matches = listNodeDefinitions().filter(
-      (definition) => definition.kind === "ai.turn"
-    )
+    const matches = registry
+      .list()
+      .filter((definition) => definition.kind === "ai.turn")
     expect(matches).toHaveLength(1)
     expect(matches[0]?.title).toBe("AI turn (revised)")
   })
 
   it("builds a node of a registered kind from its default config", () => {
-    // Arrange
-    registerNodeDefinitions([aiTurn])
-
-    // Act
+    // Arrange & Act
     const node = createWorkflowNode(createNodeRegistry([aiTurn]), "ai.turn", {
       x: 0,
       y: 0,
@@ -141,10 +123,7 @@ describe("consumer node registration", () => {
   })
 
   it("normalizes a registered kind's config against its declared keys", () => {
-    // Arrange
-    registerNodeDefinitions([aiTurn])
-
-    // Act
+    // Arrange & Act
     const config = normalizeNodeConfig(
       createNodeRegistry([aiTurn]),
       "ai.turn",
@@ -160,10 +139,9 @@ describe("consumer node registration", () => {
 
   it("reads connection rules off the registered definition", () => {
     // Arrange
-    registerNodeDefinitions([aiTurn])
+    const registry = createNodeRegistry([aiTurn])
 
     // Act & Assert
-    const registry = createNodeRegistry([aiTurn])
     expect(getAllowedTargets(registry, "ai.turn")).toEqual([
       "ai.turn",
       "result",
@@ -177,15 +155,12 @@ describe("consumer node registration", () => {
     const registry = createNodeRegistry([aiTurn])
     expect(getAllowedTargets(registry, "never.registered")).toEqual([])
     expect(getNodeOutputPaths(registry, "never.registered")).toEqual([])
-    expect(isNodeKind("never.registered")).toBe(false)
+    expect(registry.has("never.registered")).toBe(false)
   })
 
   it("shows the registered kind in the palette", () => {
-    // Arrange — the palette reads its own editor's store, not the module
-    // singleton, so its provider carries the same vocabulary under test.
-    registerNodeDefinitions([aiTurn])
-
-    // Act
+    // Arrange & Act — the palette reads its own editor's store, so the
+    // vocabulary under test is the one that editor was handed.
     render(
       <WorkflowStoreProvider definitions={[...builtinDefinitions, aiTurn]}>
         <NodePalette onAddNode={vi.fn()} />
@@ -196,29 +171,21 @@ describe("consumer node registration", () => {
     expect(screen.getByText("AI turn")).toBeInstanceOf(HTMLElement)
   })
 
-  it("empties the vocabulary on reset", () => {
-    // Arrange
-    registerNodeDefinitions([aiTurn])
+  it("leaves a second editor's vocabulary alone", () => {
+    // Two editors on one page disagree about what exists without fighting:
+    // there is no shared mutable vocabulary left for one to overwrite.
+    const withConsumerKind = createNodeRegistry([...builtinDefinitions, aiTurn])
+    const builtinsOnly = createNodeRegistry(builtinDefinitions)
 
-    // Act
-    resetNodeDefinitions()
-
-    // Assert — reset goes back to the package baseline, which is nothing at
-    // all. The built-ins are a consumer registration like any other now.
-    expect(workflowNodeKinds()).toEqual([])
-    expect(getNodeDefinition("ai.turn")).toBeUndefined()
-    expect(getNodeDefinition("evaluator")).toBeUndefined()
+    expect(withConsumerKind.has("ai.turn")).toBe(true)
+    expect(builtinsOnly.has("ai.turn")).toBe(false)
+    expect(builtinsOnly.kinds()).toEqual(builtinKinds)
   })
 })
 
 describe("consumer view registration", () => {
-  beforeEach(() => {
-    registerNodeDefinitions(builtinDefinitions)
-  })
-
   afterEach(() => {
     cleanup()
-    resetNodeDefinitions()
   })
 
   it("registers a bespoke renderer for a kind via its definition", () => {
@@ -229,17 +196,17 @@ describe("consumer view registration", () => {
     const aiTurnWithView = defineNode({ ...aiTurn, view: AiTurnNode })
 
     // Act
-    registerNodeDefinitions([aiTurnWithView])
+    const registry = createNodeRegistry([aiTurnWithView])
 
     // Assert
-    expect(getNodeDefinition("ai.turn")?.view).toBe(AiTurnNode)
+    expect(registry.get("ai.turn")?.view).toBe(AiTurnNode)
   })
 
   it("leaves a kind without a view to the generic renderer", () => {
     // Arrange & Act
-    registerNodeDefinitions([aiTurn])
+    const registry = createNodeRegistry([aiTurn])
 
     // Assert: no `view` means `buildNodeTypes` falls back to DefaultNodeRenderer.
-    expect(getNodeDefinition("ai.turn")?.view).toBeUndefined()
+    expect(registry.get("ai.turn")?.view).toBeUndefined()
   })
 })
