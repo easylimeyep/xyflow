@@ -5,12 +5,12 @@ import { CircleIcon } from "lucide-react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { NodePalette } from "../components/node-palette/node-palette"
+import { builtinDefinitions } from "./builtin-definitions"
 import { defineNode } from "./define-node"
 import { normalizeNodeConfig } from "./node-config-normalization"
 import { createWorkflowNode } from "./node-factory"
 import { getAllowedTargets, getNodeOutputPaths } from "./node-graph-rules"
 import {
-  builtinDefinitions,
   getNodeDefinition,
   isNodeKind,
   listNodeDefinitions,

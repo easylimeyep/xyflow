@@ -1,9 +1,4 @@
 import type { NodeDefinition } from "./define-node"
-import { extractor } from "../nodes/data/extractor"
-import { inlineExpression } from "../nodes/data/inline-expression"
-import { setVariable } from "../nodes/data/set-variable"
-import { evaluator } from "../nodes/logic/evaluator"
-import { result } from "../nodes/logic/result"
 
 /**
  * The node vocabulary of an editor instance.
@@ -13,18 +8,14 @@ import { result } from "../nodes/logic/result"
  * gets there through {@link registerNodeDefinitions}, and a product registers
  * exactly the kinds its backend can execute. Nothing is opt-out.
  *
- * The five definitions below still ship with the package, and a consumer that
- * wants them asks for them by name:
- *
- * ```ts
- * registerNodeDefinitions(builtinDefinitions)          // all five
- * registerNodeDefinitions([evaluator, result])         // or a subset
- * ```
- *
- * They used to be registered here, which made them the default vocabulary of
- * every editor instance: a product with its own kinds got the package's five in
- * its palette too, offering an author nodes its engine would refuse to run. The
- * definitions are unchanged — only their registration moved to the consumer.
+ * This module is the registry ENGINE only — it holds no node definitions of
+ * its own. The five the package ships (`builtinDefinitions`) live in
+ * `./builtin-definitions`, a separate module, deliberately: those five carry
+ * real component renderers, and everything in this file — mappers,
+ * validation, layout, the store slices, this package's own test setup — needs
+ * the engine (`registerNodeDefinitions`, `getNodeDefinition`, ...) without
+ * needing a live component tree to come with it. See the comment on
+ * `builtinDefinitions` for why that split matters.
  *
  * Registration is a module-level store rather than a React context because the
  * non-React layers — mappers, validation, layout, the store slices — resolve
@@ -32,19 +23,6 @@ import { result } from "../nodes/logic/result"
  * once, at module scope, before mounting the editor; `subscribeNodeDefinitions`
  * exists so a canvas that mounted first still re-renders when they do.
  */
-const builtinDefinitions = [
-  evaluator,
-  setVariable,
-  inlineExpression,
-  extractor,
-  result,
-] as const
-
-type BuiltinDefinitions = typeof builtinDefinitions
-type ExtractKind<T> = T extends NodeDefinition<infer K> ? K : never
-
-/** The kinds this package ships. Consumer kinds are not part of this union. */
-export type BuiltinNodeKind = ExtractKind<BuiltinDefinitions[number]>
 
 /**
  * A node kind is any string.
@@ -142,5 +120,3 @@ export function subscribeNodeDefinitions(listener: () => void): () => void {
     listeners.delete(listener)
   }
 }
-
-export { builtinDefinitions }

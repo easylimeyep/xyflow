@@ -1,3 +1,4 @@
+export * from "./builtin-definitions"
 export * from "./define-node"
 export * from "./node-config-normalization"
 export * from "./node-factory"

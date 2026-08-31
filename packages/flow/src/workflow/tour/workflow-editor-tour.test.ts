@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { workflowNodeKinds } from "../node-registry"
+import { workflowNodeKinds } from "../node-registry/registry"
 import { WORKFLOW_EDITOR_TOUR } from "./workflow-editor-tour"
 import type { WorkflowEditorAnchor, WorkflowTourStep } from "./types"
 

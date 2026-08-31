@@ -9,13 +9,12 @@ import {
 } from "@testing-library/react"
 import { readFileSync } from "node:fs"
 import type { MouseEvent, ReactNode } from "react"
-import { afterEach, beforeAll, describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { WORKFLOW_NODE_KIND_MIME } from "../../dnd"
 import { createKeywordSampleGraph } from "../../default-graph"
-import { createWorkflowNode } from "../../node-registry"
+import { createWorkflowNode } from "../../node-registry/node-factory"
 import { WorkflowCanvas } from "./workflow-canvas"
-import type { WorkflowGraphState } from "../../types/types"
 import type { WorkflowEditorAnchorRefs } from "../../tour"
 
 /**
@@ -24,40 +23,28 @@ import type { WorkflowEditorAnchorRefs } from "../../tour"
  * It used to be the `initialWorkflowGraph` constant, back when the editor
  * opened on a keyword node. That default is empty now — the vocabulary belongs
  * to the consumer — so a suite that needs a populated graph builds one.
- *
- * Built in `beforeAll` rather than at module scope: `createWorkflowNode` needs
- * `inlineExpression` registered, and registration itself now happens in
- * `beforeAll` (see `vitest.setup.ts`) — after this module's own top-level code
- * would otherwise have already run.
  */
-let initialWorkflowGraph: WorkflowGraphState
-let fixtureSource: ReturnType<typeof createWorkflowNode>
-let fixtureTarget: ReturnType<typeof createWorkflowNode>
-let fixtureGraphWithEdge: WorkflowGraphState
+const initialWorkflowGraph = createKeywordSampleGraph()
 
-beforeAll(() => {
-  initialWorkflowGraph = createKeywordSampleGraph()
-
-  fixtureSource = createWorkflowNode("inlineExpression", { x: 0, y: 80 })
-  fixtureSource.data.config.isRoot = true
-  fixtureTarget = createWorkflowNode("inlineExpression", { x: 360, y: 80 })
-  const fixtureEdge = {
-    id: `${fixtureSource.id}-${fixtureTarget.id}`,
-    source: fixtureSource.id,
-    target: fixtureTarget.id,
-    sourceHandle: null,
-    targetHandle: null,
-    data: {
-      sourceKind: "inlineExpression" as const,
-      targetKind: "inlineExpression" as const,
-    },
-  }
-  fixtureGraphWithEdge = {
-    ...initialWorkflowGraph,
-    nodes: [fixtureSource, fixtureTarget],
-    edges: [fixtureEdge],
-  }
-})
+const fixtureSource = createWorkflowNode("inlineExpression", { x: 0, y: 80 })
+fixtureSource.data.config.isRoot = true
+const fixtureTarget = createWorkflowNode("inlineExpression", { x: 360, y: 80 })
+const fixtureEdge = {
+  id: `${fixtureSource.id}-${fixtureTarget.id}`,
+  source: fixtureSource.id,
+  target: fixtureTarget.id,
+  sourceHandle: null,
+  targetHandle: null,
+  data: {
+    sourceKind: "inlineExpression" as const,
+    targetKind: "inlineExpression" as const,
+  },
+}
+const fixtureGraphWithEdge = {
+  ...initialWorkflowGraph,
+  nodes: [fixtureSource, fixtureTarget],
+  edges: [fixtureEdge],
+}
 
 const reactFlowRenderSpy = vi.fn()
 const fitViewSpy = vi.fn()

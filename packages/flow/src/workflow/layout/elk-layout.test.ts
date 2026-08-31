@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { createWorkflowNode } from "../node-registry"
+import { createWorkflowNode } from "../node-registry/node-factory"
 import type { WorkflowGraphState } from "../types"
 import {
   applyEvaluatorShortcutClearance,
