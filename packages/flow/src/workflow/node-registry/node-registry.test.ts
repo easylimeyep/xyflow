@@ -6,8 +6,8 @@ import {
   normalizeNodeConfig,
 } from "./node-config-normalization"
 import { getNodeDefinition, workflowNodeKinds } from "./registry"
-import { evaluator } from "../nodes/logic/evaluator"
-import { result } from "../nodes/logic/result"
+import { evaluator } from "../nodes/logic/evaluator/definition"
+import { result } from "../nodes/logic/result/definition"
 import { createNodeRegistry, EMPTY_NODE_REGISTRY } from "./registry"
 
 describe("workflow node registry", () => {

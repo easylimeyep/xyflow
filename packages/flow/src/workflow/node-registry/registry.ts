@@ -72,6 +72,12 @@ export function createNodeRegistry(
     ordered[existing] = definition
   })
 
+  // Freeze the array once so list() returns a stable reference.
+  // The identity is deliberately preserved because consumers use it as a
+  // memo/selector dependency (e.g., zustand selectors), and a fresh array
+  // on every call would break referential equality and cause re-render churn.
+  Object.freeze(ordered)
+
   const byKind = new Map(ordered.map((definition) => [definition.kind, definition]))
 
   return {
