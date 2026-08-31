@@ -1,12 +1,14 @@
 "use client"
 
-import { WorkflowEditor, createInitialGraph } from "@flow/flow"
+import {
+  WorkflowEditor,
+  builtinDefinitions,
+  createInitialGraph,
+} from "@flow/flow"
 
 import { ExamplePreview } from "./example-preview"
 
-import "./register-builtins"
-
-const initialGraph = createInitialGraph({
+const initialGraph = createInitialGraph(builtinDefinitions, {
   nodes: [],
   edges: [],
   viewport: { x: 40, y: 40, zoom: 0.8 },
@@ -17,9 +19,13 @@ const initialGraph = createInitialGraph({
   },
 })
 
-const code = `import { WorkflowEditor, createInitialGraph } from "@flow/flow"
+const code = `import {
+  WorkflowEditor,
+  builtinDefinitions,
+  createInitialGraph,
+} from "@flow/flow"
 
-const initialGraph = createInitialGraph({
+const initialGraph = createInitialGraph(builtinDefinitions, {
   nodes: [
     { id: "demo-inline-expression", kind: "inlineExpression", config: { template: ["lead"], isRoot: true, repeatable: false } },
     { id: "demo-extractor", kind: "extractor", config: { tokenNumber: 1, extractExpression: "email", unlimited: false } },
@@ -42,7 +48,12 @@ const initialGraph = createInitialGraph({
 })
 
 export function Example() {
-  return <WorkflowEditor initialGraph={initialGraph} />
+  return (
+    <WorkflowEditor
+      definitions={builtinDefinitions}
+      initialGraph={initialGraph}
+    />
+  )
 }`
 
 export function DefaultGraphExample() {
@@ -52,7 +63,10 @@ export function DefaultGraphExample() {
       description="Пример `initialGraph`, собранного через `createInitialGraph`, где размер нод, edge metadata и позиции подставляются автоматически. Для более сложных схем можно использовать async `createInitialGraphElk`."
       code={code}
     >
-      <WorkflowEditor initialGraph={initialGraph} />
+      <WorkflowEditor
+        definitions={builtinDefinitions}
+        initialGraph={initialGraph}
+      />
     </ExamplePreview>
   )
 }

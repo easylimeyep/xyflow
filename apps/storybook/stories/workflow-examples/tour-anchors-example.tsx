@@ -11,6 +11,7 @@ import {
 import {
   WORKFLOW_EDITOR_TOUR,
   WorkflowEditor,
+  builtinDefinitions,
   type WorkflowEditorAnchorElements,
   type WorkflowTourAnchor,
 } from "@flow/flow"
@@ -26,6 +27,7 @@ import Tour, { type TourProps } from "@rc-component/tour"
 import {
   WORKFLOW_EDITOR_TOUR,
   WorkflowEditor,
+  builtinDefinitions,
   type WorkflowEditorAnchorElements,
   type WorkflowTourAnchor,
 } from "@flow/flow"
@@ -74,7 +76,10 @@ export function Example() {
       >
         Start tour
       </button>
-      <WorkflowEditor anchorRefs={anchorRefs} />
+      <WorkflowEditor
+        definitions={builtinDefinitions}
+        anchorRefs={anchorRefs}
+      />
       <Tour
         open={open}
         current={current}
@@ -202,7 +207,10 @@ export function TourAnchorsExample() {
           Start tour
         </Button>
       </div>
-      <WorkflowEditor anchorRefs={anchorRefs} />
+      <WorkflowEditor
+        definitions={builtinDefinitions}
+        anchorRefs={anchorRefs}
+      />
       <Tour
         open={open}
         current={current}

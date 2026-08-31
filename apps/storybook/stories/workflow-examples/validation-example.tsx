@@ -4,6 +4,7 @@ import { useMemo, useState } from "react"
 
 import {
   WorkflowEditor,
+  builtinDefinitions,
   createInitialGraph,
   type WorkflowValidationSnapshot,
 } from "@flow/flow"
@@ -11,7 +12,7 @@ import { Button } from "@flow/ui/components/button"
 
 import { ExamplePreview } from "./example-preview"
 
-const initialGraph = createInitialGraph({
+const initialGraph = createInitialGraph(builtinDefinitions, {
   nodes: [
     {
       id: "validation-keyword",
@@ -166,11 +167,12 @@ function useMockGlobalValidationQuery() {
 
 const code = `import {
   WorkflowEditor,
+  builtinDefinitions,
   createInitialGraph,
   type WorkflowValidationSnapshot,
 } from "@flow/flow"
 
-const initialGraph = createInitialGraph({
+const initialGraph = createInitialGraph(builtinDefinitions, {
   nodes: [
     { id: "validation-keyword", kind: "inlineExpression", config: { template: ["lead"], isRoot: true } },
     { id: "validation-evaluator", kind: "evaluator", config: { conditions: [{ id: "condition", left: { type: "value", value: "{{ leadScore }}" }, operator: "is greater than", right: { type: "value", value: "50" } }], logicalOperator: "and" } },
@@ -216,6 +218,7 @@ export function Example() {
 
   return (
     <WorkflowEditor
+      definitions={builtinDefinitions}
       initialGraph={initialGraph}
       validation={validationQuery.data}
     />
@@ -224,13 +227,12 @@ export function Example() {
 
 const globalOnlyCode = `import {
   WorkflowEditor,
+  builtinDefinitions,
   createInitialGraph,
   type WorkflowValidationSnapshot,
 } from "@flow/flow"
 
-import "./register-builtins"
-
-const initialGraph = createInitialGraph({
+const initialGraph = createInitialGraph(builtinDefinitions, {
   nodes: [
     { id: "validation-keyword", kind: "inlineExpression", config: { template: ["lead"], isRoot: true } },
     { id: "validation-evaluator", kind: "evaluator", config: { conditions: [{ id: "condition", left: { type: "value", value: "{{ leadScore }}" }, operator: "is greater than", right: { type: "value", value: "50" } }], logicalOperator: "and" } },
@@ -261,6 +263,7 @@ export function Example() {
 
   return (
     <WorkflowEditor
+      definitions={builtinDefinitions}
       initialGraph={initialGraph}
       validation={validationQuery.data}
     />
@@ -303,6 +306,7 @@ export function ValidationExample() {
         </Button>
       </div>
       <WorkflowEditor
+        definitions={builtinDefinitions}
         initialGraph={initialGraph}
         validation={validationQuery.data}
       />
@@ -346,6 +350,7 @@ export function GlobalValidationExample() {
         </Button>
       </div>
       <WorkflowEditor
+        definitions={builtinDefinitions}
         initialGraph={initialGraph}
         validation={validationQuery.data}
       />

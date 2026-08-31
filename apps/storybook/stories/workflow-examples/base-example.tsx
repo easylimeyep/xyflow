@@ -1,13 +1,13 @@
 "use client"
 
-import { WorkflowEditor } from "@flow/flow"
+import { WorkflowEditor, builtinDefinitions } from "@flow/flow"
 
 import { ExamplePreview } from "./example-preview"
 
-const code = `import { WorkflowEditor } from "@flow/flow"
+const code = `import { WorkflowEditor, builtinDefinitions } from "@flow/flow"
 
 export function Example() {
-  return <WorkflowEditor />
+  return <WorkflowEditor definitions={builtinDefinitions} />
 }`
 
 export function BaseExample() {
@@ -17,7 +17,7 @@ export function BaseExample() {
       description="Текущий минимальный сценарий без дополнительных пропсов."
       code={code}
     >
-      <WorkflowEditor />
+      <WorkflowEditor definitions={builtinDefinitions} />
     </ExamplePreview>
   )
 }

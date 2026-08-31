@@ -2,6 +2,7 @@
 
 import {
   WorkflowEditor,
+  builtinDefinitions,
   createInitialGraph,
   type InitialGraphEdgeInput,
   type InitialGraphInput,
@@ -9,8 +10,6 @@ import {
 } from "@flow/flow"
 
 import { ExamplePreview } from "./example-preview"
-
-import "./register-builtins"
 
 const laneNames = [
   "email",
@@ -417,13 +416,17 @@ const graphInput = {
   },
 } satisfies InitialGraphInput
 
-const initialGraph = createInitialGraph(graphInput)
+const initialGraph = createInitialGraph(builtinDefinitions, graphInput)
 
-const code = `import { WorkflowEditor, createInitialGraph } from "@flow/flow"
+const code = `import {
+  WorkflowEditor,
+  builtinDefinitions,
+  createInitialGraph,
+} from "@flow/flow"
 
 const laneNames = ["email", "phone", "country", "budget", "intent", "company", "role", "source", "timeline", "consent"]
 
-const initialGraph = createInitialGraph({
+const initialGraph = createInitialGraph(builtinDefinitions, {
   nodes: [
     { id: "large-elk-root-keyword", kind: "inlineExpression", label: "Keyword Root", config: { template: ["lead"], isRoot: true, repeatable: false } },
     ...laneNames.flatMap((name, index) => [
@@ -449,6 +452,7 @@ const initialGraph = createInitialGraph({
 export function Example() {
   return (
     <WorkflowEditor
+      definitions={builtinDefinitions}
       initialGraph={initialGraph}
       autoLayoutOnInit="after-measure"
     />
@@ -463,6 +467,7 @@ export function LargeElkGraphExample() {
       code={code}
     >
       <WorkflowEditor
+        definitions={builtinDefinitions}
         initialGraph={initialGraph}
         autoLayoutOnInit="after-measure"
       />

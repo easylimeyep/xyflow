@@ -2,6 +2,7 @@
 
 import {
   WorkflowEditor,
+  builtinDefinitions,
   createInitialGraph,
   exportDomainWorkflowForBackend,
 } from "@flow/flow"
@@ -9,7 +10,7 @@ import { Button } from "@flow/ui/components/button"
 
 import { ExamplePreview } from "./example-preview"
 
-const initialGraph = createInitialGraph({
+const initialGraph = createInitialGraph(builtinDefinitions, {
   nodes: [
     {
       id: "backend-transform-root-a",
@@ -98,13 +99,12 @@ const initialGraph = createInitialGraph({
 
 const code = `import {
   WorkflowEditor,
+  builtinDefinitions,
   createInitialGraph,
   exportDomainWorkflowForBackend,
 } from "@flow/flow"
 
-import "./register-builtins"
-
-const initialGraph = createInitialGraph({
+const initialGraph = createInitialGraph(builtinDefinitions, {
   nodes: [
     { id: "backend-transform-root-a", kind: "inlineExpression", label: "Root A", config: { template: ["lead"], isRoot: true, repeatable: false } },
     { id: "backend-transform-root-b", kind: "inlineExpression", label: "Root B", config: { template: ["account"], isRoot: true, repeatable: false } },
@@ -145,7 +145,10 @@ function TransformButton() {
 
 export function Example() {
   return (
-    <WorkflowEditor initialGraph={initialGraph}>
+    <WorkflowEditor
+      definitions={builtinDefinitions}
+      initialGraph={initialGraph}
+    >
       <div className="flex items-center justify-between gap-3 border-b border-gray-200 bg-white px-4 py-3">
         <WorkflowEditor.Toolbar />
         <TransformButton />
@@ -183,7 +186,10 @@ export function BackendTransformExample() {
       description="Пример отдельного backend export: кнопка Transform берет текущий domain workflow, превращает его в BackendWorkflowDTO и выводит результат в консоль браузера."
       code={code}
     >
-      <WorkflowEditor initialGraph={initialGraph}>
+      <WorkflowEditor
+        definitions={builtinDefinitions}
+        initialGraph={initialGraph}
+      >
         <div className="flex items-center justify-between gap-3 border-b border-gray-200 bg-white px-4 py-3">
           <WorkflowEditor.Toolbar />
           <TransformButton />

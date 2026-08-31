@@ -1,11 +1,13 @@
 "use client"
 
-import { WorkflowEditor, createInitialGraph } from "@flow/flow"
+import {
+  WorkflowEditor,
+  builtinDefinitions,
+  createInitialGraph,
+} from "@flow/flow"
 import type { WorkflowEvaluatorOperatorCatalog } from "@flow/flow"
 
 import { ExamplePreview } from "./example-preview"
-
-import "./register-builtins"
 
 const operators = {
   value: [
@@ -54,7 +56,7 @@ const operators = {
   ],
 } satisfies WorkflowEvaluatorOperatorCatalog
 
-const initialGraph = createInitialGraph({
+const initialGraph = createInitialGraph(builtinDefinitions, {
   nodes: [
     {
       id: "demo-custom-operators-input",
@@ -130,9 +132,13 @@ const initialGraph = createInitialGraph({
   },
 })
 
-const code = `import { WorkflowEditor, createInitialGraph } from "@flow/flow"
+const code = `import {
+  WorkflowEditor,
+  builtinDefinitions,
+  createInitialGraph,
+} from "@flow/flow"
 
-const initialGraph = createInitialGraph({
+const initialGraph = createInitialGraph(builtinDefinitions, {
   nodes: [
     { id: "demo-custom-operators-input", kind: "inlineExpression", config: { template: ["lead"], isRoot: true, repeatable: false } },
     {
@@ -166,6 +172,7 @@ const initialGraph = createInitialGraph({
 export function Example() {
   return (
     <WorkflowEditor
+      definitions={builtinDefinitions}
       initialGraph={initialGraph}
       runtime={{
         evaluator: {
@@ -197,6 +204,7 @@ export function CustomOperatorsExample() {
       code={code}
     >
       <WorkflowEditor
+        definitions={builtinDefinitions}
         initialGraph={initialGraph}
         runtime={{
           evaluator: {

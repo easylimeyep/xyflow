@@ -4,13 +4,12 @@ import { useEffect, useState } from "react"
 
 import {
   WorkflowEditor,
+  builtinDefinitions,
   createInitialGraphElk,
   type WorkflowEditorProps,
 } from "@flow/flow"
 
 import { ExamplePreview } from "./example-preview"
-
-import "./register-builtins"
 
 const graphInput = {
   nodes: [
@@ -96,9 +95,13 @@ const graphInput = {
   },
 }
 
-const code = `import { WorkflowEditor, createInitialGraphElk } from "@flow/flow"
+const code = `import {
+  WorkflowEditor,
+  builtinDefinitions,
+  createInitialGraphElk,
+} from "@flow/flow"
 
-const initialGraph = await createInitialGraphElk({
+const initialGraph = await createInitialGraphElk(builtinDefinitions, {
   nodes: [
     { id: "demo-elk-inline-expression", kind: "inlineExpression", config: { template: ["lead"], isRoot: true, repeatable: false } },
     { id: "demo-elk-extractor", kind: "extractor", config: { tokenNumber: 1, extractExpression: "email", unlimited: false } },
@@ -121,7 +124,12 @@ const initialGraph = await createInitialGraphElk({
 })
 
 export function Example() {
-  return <WorkflowEditor initialGraph={initialGraph} />
+  return (
+    <WorkflowEditor
+      definitions={builtinDefinitions}
+      initialGraph={initialGraph}
+    />
+  )
 }`
 
 export function ElkGraphExample() {
@@ -132,11 +140,13 @@ export function ElkGraphExample() {
   useEffect(() => {
     let active = true
 
-    void createInitialGraphElk(graphInput).then((nextGraph) => {
-      if (active) {
-        setGraph(nextGraph)
+    void createInitialGraphElk(builtinDefinitions, graphInput).then(
+      (nextGraph) => {
+        if (active) {
+          setGraph(nextGraph)
+        }
       }
-    })
+    )
 
     return () => {
       active = false
@@ -154,7 +164,7 @@ export function ElkGraphExample() {
           Computing ELK layout...
         </div>
       ) : (
-        <WorkflowEditor initialGraph={graph} />
+        <WorkflowEditor definitions={builtinDefinitions} initialGraph={graph} />
       )}
     </ExamplePreview>
   )

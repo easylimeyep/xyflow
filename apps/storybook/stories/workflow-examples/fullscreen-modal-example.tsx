@@ -3,7 +3,11 @@
 import { useState } from "react"
 import { ExpandIcon } from "lucide-react"
 
-import { WorkflowEditor, createInitialGraph } from "@flow/flow"
+import {
+  WorkflowEditor,
+  builtinDefinitions,
+  createInitialGraph,
+} from "@flow/flow"
 import { Button } from "@flow/ui/components/button"
 import {
   Dialog,
@@ -13,7 +17,7 @@ import {
 
 import { ExamplePreview } from "./example-preview"
 
-const initialGraph = createInitialGraph({
+const initialGraph = createInitialGraph(builtinDefinitions, {
   nodes: [
     {
       id: "demo-modal-inline-expression",
@@ -101,7 +105,11 @@ const initialGraph = createInitialGraph({
 
 const code = `import { useState } from "react"
 
-import { WorkflowEditor, createInitialGraph } from "@flow/flow"
+import {
+  WorkflowEditor,
+  builtinDefinitions,
+  createInitialGraph,
+} from "@flow/flow"
 import { Button } from "@flow/ui/components/button"
 import {
   Dialog,
@@ -109,9 +117,7 @@ import {
   DialogTitle,
 } from "@flow/ui/components/dialog"
 
-import "./register-builtins"
-
-const initialGraph = createInitialGraph({
+const initialGraph = createInitialGraph(builtinDefinitions, {
   nodes: [
     { id: "demo-modal-inline-expression", kind: "inlineExpression", config: { template: ["lead"], isRoot: true, repeatable: false } },
     { id: "demo-modal-extractor", kind: "extractor", label: "Email extractor", config: { tokenNumber: 1, extractExpression: "email", unlimited: false } },
@@ -161,7 +167,10 @@ export function Example() {
             </div>
 
             <div className="min-h-0 flex-1">
-              <WorkflowEditor initialGraph={initialGraph} />
+              <WorkflowEditor
+                definitions={builtinDefinitions}
+                initialGraph={initialGraph}
+              />
             </div>
           </div>
       </Dialog>
@@ -210,32 +219,35 @@ export function FullscreenModalExample() {
           showCloseButton={false}
           className="top-0 left-0 h-svh w-screen max-w-none! translate-x-0 translate-y-0 rounded-none border-0 p-0"
         >
-            <DialogTitle className="sr-only">
-              Fullscreen workflow modal
-            </DialogTitle>
-            <DialogDescription className="sr-only">
-              Entire workflow editor rendered inside a fullscreen dialog.
-            </DialogDescription>
+          <DialogTitle className="sr-only">
+            Fullscreen workflow modal
+          </DialogTitle>
+          <DialogDescription className="sr-only">
+            Entire workflow editor rendered inside a fullscreen dialog.
+          </DialogDescription>
 
-            <div className="flex h-full min-h-0 flex-col bg-white">
-              <div className="flex items-center justify-between border-b border-gray-200 px-5 py-3">
-                <div>
-                  <p className="text-sm font-semibold text-gray-950">
-                    Lead qualification workflow
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    Весь workflow editor живёт внутри full-screen модалки.
-                  </p>
-                </div>
-                <Button variant="outline" onPress={() => setOpen(false)}>
-                  Close
-                </Button>
+          <div className="flex h-full min-h-0 flex-col bg-white">
+            <div className="flex items-center justify-between border-b border-gray-200 px-5 py-3">
+              <div>
+                <p className="text-sm font-semibold text-gray-950">
+                  Lead qualification workflow
+                </p>
+                <p className="text-sm text-gray-600">
+                  Весь workflow editor живёт внутри full-screen модалки.
+                </p>
               </div>
-
-              <div className="min-h-0 flex-1">
-                <WorkflowEditor initialGraph={initialGraph} />
-              </div>
+              <Button variant="outline" onPress={() => setOpen(false)}>
+                Close
+              </Button>
             </div>
+
+            <div className="min-h-0 flex-1">
+              <WorkflowEditor
+                definitions={builtinDefinitions}
+                initialGraph={initialGraph}
+              />
+            </div>
+          </div>
         </Dialog>
       </div>
     </ExamplePreview>

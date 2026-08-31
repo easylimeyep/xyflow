@@ -4,16 +4,10 @@ import {
   WorkflowEditor,
   builtinDefinitions,
   createInitialGraph,
-  registerNodeDefinitions,
   type WorkflowRuntimeOverlay,
 } from "@flow/flow"
 
-// `createInitialGraph` resolves every kind against the registry, and the
-// registry starts empty — so registration has to precede the call below, not
-// merely the mount.
-registerNodeDefinitions(builtinDefinitions)
-
-const initialGraph = createInitialGraph({
+const initialGraph = createInitialGraph(builtinDefinitions, {
   nodes: [
     {
       id: "observe-input",
@@ -98,6 +92,7 @@ export default function ObservePage() {
   return (
     <div className="h-svh w-screen">
       <WorkflowEditor
+        definitions={builtinDefinitions}
         initialGraph={initialGraph}
         mode="observe"
         overlay={overlay}

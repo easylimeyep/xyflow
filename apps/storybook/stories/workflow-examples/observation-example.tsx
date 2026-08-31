@@ -2,13 +2,14 @@
 
 import {
   WorkflowEditor,
+  builtinDefinitions,
   createInitialGraph,
   type WorkflowRuntimeOverlay,
 } from "@flow/flow"
 
 import { ExamplePreview } from "./example-preview"
 
-const initialGraph = createInitialGraph({
+const initialGraph = createInitialGraph(builtinDefinitions, {
   nodes: [
     {
       id: "obs-input",
@@ -42,11 +43,25 @@ const initialGraph = createInitialGraph({
         logicalOperator: "and",
       },
     },
-    { id: "obs-pass", kind: "result", label: "Qualified", config: { category: "true" } },
-    { id: "obs-skip", kind: "result", label: "Rejected", config: { category: "false" } },
+    {
+      id: "obs-pass",
+      kind: "result",
+      label: "Qualified",
+      config: { category: "true" },
+    },
+    {
+      id: "obs-skip",
+      kind: "result",
+      label: "Rejected",
+      config: { category: "false" },
+    },
   ],
   edges: [
-    { id: "obs-edge-input-extract", source: "obs-input", target: "obs-extract" },
+    {
+      id: "obs-edge-input-extract",
+      source: "obs-input",
+      target: "obs-extract",
+    },
     {
       id: "obs-edge-extract-transform",
       source: "obs-extract",
@@ -111,11 +126,10 @@ const overlay: WorkflowRuntimeOverlay = {
 
 const code = `import {
   WorkflowEditor,
+  builtinDefinitions,
   createInitialGraph,
   type WorkflowRuntimeOverlay,
 } from "@flow/flow"
-
-import "./register-builtins"
 
 // Runtime status is computed by YOUR engine and handed in as a prop.
 const overlay: WorkflowRuntimeOverlay = {
@@ -137,6 +151,7 @@ const overlay: WorkflowRuntimeOverlay = {
 export function Example() {
   return (
     <WorkflowEditor
+      definitions={builtinDefinitions}
       initialGraph={initialGraph}
       mode="observe"
       overlay={overlay}
@@ -154,6 +169,7 @@ export function ObservationExample() {
       code={code}
     >
       <WorkflowEditor
+        definitions={builtinDefinitions}
         initialGraph={initialGraph}
         mode="observe"
         overlay={overlay}
