@@ -6,6 +6,9 @@ import {
   normalizeNodeConfig,
 } from "./node-config-normalization"
 import { getNodeDefinition, workflowNodeKinds } from "./registry"
+import { evaluator } from "../nodes/logic/evaluator"
+import { result } from "../nodes/logic/result"
+import { createNodeRegistry, EMPTY_NODE_REGISTRY } from "./registry"
 
 describe("workflow node registry", () => {
   it("includes set variable definition", () => {
@@ -231,5 +234,35 @@ describe("workflow node registry", () => {
 
     expect(node.type).toBe("result")
     expect(node.data.config.category).toBe("true")
+  })
+})
+
+describe("createNodeRegistry", () => {
+  it("indexes definitions by kind and preserves declaration order", () => {
+    const registry = createNodeRegistry([evaluator, result])
+    expect(registry.kinds()).toEqual(["evaluator", "result"])
+    expect(registry.get("evaluator")).toBe(evaluator)
+    expect(registry.has("result")).toBe(true)
+  })
+
+  it("returns undefined for an unregistered kind rather than throwing", () => {
+    expect(createNodeRegistry([]).get("nope")).toBeUndefined()
+    expect(createNodeRegistry([]).has("nope")).toBe(false)
+  })
+
+  it("lets a later definition of the same kind replace an earlier one in place", () => {
+    const shadowed = { ...evaluator, title: "Shadowed" }
+    const registry = createNodeRegistry([evaluator, result, shadowed])
+    expect(registry.kinds()).toEqual(["evaluator", "result"])
+    expect(registry.get("evaluator")?.title).toBe("Shadowed")
+  })
+
+  it("drops a definition with an empty kind", () => {
+    const nameless = { ...evaluator, kind: "" }
+    expect(createNodeRegistry([nameless]).kinds()).toEqual([])
+  })
+
+  it("EMPTY_NODE_REGISTRY lists nothing", () => {
+    expect(EMPTY_NODE_REGISTRY.list()).toEqual([])
   })
 })

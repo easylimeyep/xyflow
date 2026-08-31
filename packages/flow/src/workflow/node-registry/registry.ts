@@ -34,6 +34,56 @@ import type { NodeDefinition } from "./define-node"
  */
 export type NodeKind = string
 
+export interface NodeRegistry {
+  /** The vocabulary, in palette order. */
+  list(): readonly NodeDefinition[]
+  /** The definition for a kind, or `undefined` when it is not in this registry. */
+  get(kind: NodeKind): NodeDefinition | undefined
+  /** True when the kind belongs to this registry. */
+  has(kind: NodeKind): boolean
+  /** The kinds in this registry, in palette order. */
+  kinds(): NodeKind[]
+}
+
+/**
+ * Build a vocabulary from a definition array.
+ *
+ * A later definition of a kind REPLACES an earlier one in place, so a host
+ * composing two arrays (a base set plus an override) gets the override without
+ * a duplicate palette entry, and the order stays the order it declared. A
+ * definition with an empty kind is dropped: it could never be looked up.
+ */
+export function createNodeRegistry(
+  definitions: readonly NodeDefinition[]
+): NodeRegistry {
+  const ordered: NodeDefinition[] = []
+  const index = new Map<string, number>()
+
+  definitions.forEach((definition) => {
+    if (definition.kind.length === 0) {
+      return
+    }
+    const existing = index.get(definition.kind)
+    if (existing === undefined) {
+      index.set(definition.kind, ordered.length)
+      ordered.push(definition)
+      return
+    }
+    ordered[existing] = definition
+  })
+
+  const byKind = new Map(ordered.map((definition) => [definition.kind, definition]))
+
+  return {
+    list: () => ordered,
+    get: (kind) => byKind.get(kind),
+    has: (kind) => byKind.has(kind),
+    kinds: () => ordered.map((definition) => definition.kind),
+  }
+}
+
+export const EMPTY_NODE_REGISTRY: NodeRegistry = createNodeRegistry([])
+
 const EMPTY_DEFINITIONS: readonly NodeDefinition[] = []
 
 let definitions: readonly NodeDefinition[] = EMPTY_DEFINITIONS
