@@ -20,6 +20,27 @@ import { builtinBaseDefinitions } from "../../node-registry/builtin-base-definit
 import { createNodeRegistry } from "../../node-registry/registry"
 import { WorkflowStoreProvider } from "../../store"
 
+/**
+ * jsdom has no `ResizeObserver`. This stub stands in for it so a test can
+ * drive the resize callback directly; the module under test guards with
+ * `typeof ResizeObserver === "undefined"`, so any environment without one
+ * simply never gets an observer.
+ */
+class TestResizeObserver {
+  static latest: TestResizeObserver | undefined
+  readonly callback: ResizeObserverCallback
+  constructor(callback: ResizeObserverCallback) {
+    this.callback = callback
+    TestResizeObserver.latest = this
+  }
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+  trigger() {
+    this.callback([], this as unknown as ResizeObserver)
+  }
+}
+
 const registry = createNodeRegistry(builtinBaseDefinitions)
 
 /**
@@ -995,5 +1016,91 @@ describe("WorkflowCanvas", () => {
     // Node selection stays available so the inspector can open.
     fireEvent.click(screen.getByTestId("rf-select"))
     expect(onSelectNodes).toHaveBeenCalledWith(["selected-node"])
+  })
+
+  it("refits the viewport when refitOnResize observes a box change", async () => {
+    vi.useFakeTimers()
+    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) =>
+      window.setTimeout(() => callback(performance.now()), 16)
+    )
+    vi.stubGlobal("cancelAnimationFrame", (handle: number) => {
+      window.clearTimeout(handle)
+    })
+    TestResizeObserver.latest = undefined
+    vi.stubGlobal("ResizeObserver", TestResizeObserver)
+
+    render(
+      <WorkflowCanvas
+        nodes={initialWorkflowGraph.nodes}
+        edges={initialWorkflowGraph.edges}
+        viewport={initialWorkflowGraph.viewport}
+        onNodesChange={vi.fn()}
+        onEdgesChange={vi.fn()}
+        onConnect={vi.fn()}
+        onViewportChange={vi.fn()}
+        onSelectNodes={vi.fn()}
+        onPaneClick={vi.fn()}
+        onAddNodeAt={vi.fn()}
+        onStartInsertFromEdge={vi.fn()}
+        onDeleteEdge={vi.fn()}
+        onPointerFlowPosition={vi.fn()}
+        edgeInsertPendingId={null}
+        refitOnResize
+      />,
+      { wrapper: CanvasStoreWrapper }
+    )
+
+    function latestObserver(): TestResizeObserver {
+      const observer = TestResizeObserver.latest
+      if (!observer) {
+        throw new Error("expected a ResizeObserver to have been created")
+      }
+      return observer
+    }
+
+    // The first delivery mirrors what a real ResizeObserver does on
+    // observe() — reporting the box the canvas already mounted with. It
+    // must not trigger a fit.
+    latestObserver().trigger()
+    vi.runAllTimers()
+    expect(fitViewSpy).not.toHaveBeenCalled()
+
+    // A real resize after that does trigger a fit, one frame later, with
+    // the same constants the other fit paths use.
+    latestObserver().trigger()
+    vi.runAllTimers()
+    expect(fitViewSpy).toHaveBeenCalledWith({
+      padding: 0.2,
+      minZoom: 0.1,
+      maxZoom: 4,
+    })
+  })
+
+  it("observes nothing when refitOnResize is left off", () => {
+    TestResizeObserver.latest = undefined
+    vi.stubGlobal("ResizeObserver", TestResizeObserver)
+
+    render(
+      <WorkflowCanvas
+        nodes={initialWorkflowGraph.nodes}
+        edges={initialWorkflowGraph.edges}
+        viewport={initialWorkflowGraph.viewport}
+        onNodesChange={vi.fn()}
+        onEdgesChange={vi.fn()}
+        onConnect={vi.fn()}
+        onViewportChange={vi.fn()}
+        onSelectNodes={vi.fn()}
+        onPaneClick={vi.fn()}
+        onAddNodeAt={vi.fn()}
+        onStartInsertFromEdge={vi.fn()}
+        onDeleteEdge={vi.fn()}
+        onPointerFlowPosition={vi.fn()}
+        edgeInsertPendingId={null}
+      />,
+      { wrapper: CanvasStoreWrapper }
+    )
+
+    expect(TestResizeObserver.latest).toBeUndefined()
+    expect(fitViewSpy).not.toHaveBeenCalled()
   })
 })

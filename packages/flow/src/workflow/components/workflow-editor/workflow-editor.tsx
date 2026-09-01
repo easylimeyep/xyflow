@@ -509,10 +509,17 @@ export function WorkflowEditorPalette({
 export interface WorkflowEditorCanvasProps {
   /** Extra classes for the canvas wrapper element, merged into the package's own. */
   className?: string
+  /**
+   * When `true`, the canvas refits its viewport whenever its own box
+   * resizes. Defaults to `false`; a host whose layout can resize the
+   * canvas (resizable panes, collapsible sidebars, etc.) opts in.
+   */
+  refitOnResize?: boolean
 }
 
 export function WorkflowEditorCanvas({
   className,
+  refitOnResize,
 }: WorkflowEditorCanvasProps = {}) {
   const layout = useWorkflowEditorLayoutContext()
   const styles = workflowEditorStyles()
@@ -627,6 +634,7 @@ export function WorkflowEditorCanvas({
         onMeasuredInitialAutoLayout={measuredInitialAutoLayout}
         anchorRefs={layout?.anchorRefs}
         mode={layout?.mode ?? "edit"}
+        refitOnResize={refitOnResize}
       />
     </div>
   )

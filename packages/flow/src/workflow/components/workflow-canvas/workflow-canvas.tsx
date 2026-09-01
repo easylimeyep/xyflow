@@ -80,6 +80,13 @@ interface WorkflowCanvasProps {
    * stay on. Defaults to `edit`, so existing behaviour is unchanged.
    */
   mode?: WorkflowCanvasMode
+  /**
+   * When `true`, the canvas observes its own box and refits the viewport
+   * whenever that box changes size. Defaults to `false` — a host whose
+   * layout can resize the canvas (resizable panes, collapsible sidebars,
+   * etc.) opts in explicitly; nothing observes anything otherwise.
+   */
+  refitOnResize?: boolean
 }
 
 function WorkflowCanvasInner({
@@ -102,8 +109,10 @@ function WorkflowCanvasInner({
   onMeasuredInitialAutoLayout,
   anchorRefs,
   mode = "edit",
+  refitOnResize = false,
 }: WorkflowCanvasProps) {
   const isObserving = mode === "observe"
+  const canvasRef = useRef<HTMLDivElement>(null)
   const definitions = useNodeDefinitions()
   const registry = useNodeRegistry()
   const reactFlow = useReactFlow<WorkflowNode, WorkflowEdge>()
@@ -253,6 +262,43 @@ function WorkflowCanvasInner({
     }
   }, [layoutPending, onAutoLayout, reactFlow])
   useEffect(() => {
+    const element = canvasRef.current
+    if (!refitOnResize || !element || typeof ResizeObserver === "undefined") {
+      return
+    }
+
+    let frame = 0
+    // ResizeObserver fires once immediately on observe(). That first
+    // delivery reports the box the canvas already mounted with, not a
+    // resize — skip it so mounting behaviour stays owned by the existing
+    // auto-layout fit paths above.
+    let hasSkippedInitialDelivery = false
+    const observer = new ResizeObserver(() => {
+      if (!hasSkippedInitialDelivery) {
+        hasSkippedInitialDelivery = true
+        return
+      }
+
+      // One frame later: the new box has to reach layout before a fit can be
+      // measured against it. This is the same wait the host used to perform
+      // by hand before clicking the fit button.
+      window.cancelAnimationFrame(frame)
+      frame = window.requestAnimationFrame(() => {
+        void reactFlow.fitView({
+          padding: WORKFLOW_ELK_PADDING,
+          minZoom: WORKFLOW_MIN_ZOOM,
+          maxZoom: WORKFLOW_MAX_ZOOM,
+        })
+      })
+    })
+
+    observer.observe(element)
+    return () => {
+      window.cancelAnimationFrame(frame)
+      observer.disconnect()
+    }
+  }, [refitOnResize, reactFlow])
+  useEffect(() => {
     if (!shouldRunMeasuredInitialLayout) {
       setInitialLayoutPending(false)
       return
@@ -335,7 +381,11 @@ function WorkflowCanvasInner({
 
   return (
     <>
-      <div className={styles.flow()} aria-hidden={initialLayoutPending}>
+      <div
+        ref={canvasRef}
+        className={styles.flow()}
+        aria-hidden={initialLayoutPending}
+      >
         <ReactFlow
           nodes={nodes}
           edges={edgesWithType}
