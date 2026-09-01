@@ -36,8 +36,14 @@ ADR was written:
   free the right lane while a run was being observed. Whether a run was being
   watched and how much of the canvas the palette covered were two different
   facts wearing one prop.
+- **A stylesheet reaching into the package by `aria-label`.** The palette set
+  no `overflow`, so a node registry taller than the viewport simply clipped.
+  With no `className` to pass, the host shipped its own CSS file selecting
+  `aside[aria-label="Node palette"]` — a standing dependency on an internal
+  attribute of a part the package is free to change, and one the package
+  could neither see nor break loudly.
 
-All three trace back to the same cause: no compound part accepted styling,
+All four trace back to the same cause: no compound part accepted styling,
 and the palette had opinions about its own placement that only the package
 could override.
 
@@ -59,7 +65,11 @@ its composed class string; `inline` renders the palette in flow, so a host
 can give it a lane in its own grid instead of a layer above the canvas. The
 default is `floating`, so no existing consumer's layout changes underneath
 it — `floating` stops being the only option and becomes an explicit choice
-alongside `inline`. Under `inline` the palette still exposes its own
+alongside `inline`. `floating` is a compatibility bridge rather than a second
+supported design: the only product consumer uses `inline`, and `floating`
+survives for the storybook and the two demo apps in this repository. When
+those migrate, the default flips and the variant is removed. Under `inline`
+the palette still exposes its own
 `data-state`, so a host that wants to collapse it can style that state
 itself; only the slide transform stays placement-dependent, because a slide
 off the edge of the viewport only means something when the element is
@@ -146,7 +156,14 @@ practical content of "the host owns layout now."
 
 ### Negative
 - Two placements mean two layouts the package has to keep working, tested,
-  and documented, rather than one.
+  and documented, rather than one — accepted as the cost of a migration
+  window, not in perpetuity; `floating` leaves when its last consumer does.
+- Under `inline` the package renders the palette's toggle button but styles
+  no collapse, so a host that adopts `inline` and forgets to style
+  `data-[state=closed]` ships a live button that visibly does nothing. That
+  is exactly what happened to the first host to adopt it, and neither suite
+  caught it: the package tested that it reports the state, the host tested
+  only the open lane.
 - `refitOnResize` is opt-in, so a host that resizes its lanes without
   setting it gets no error and no warning — just a viewport that quietly
   stops fitting the graph.
