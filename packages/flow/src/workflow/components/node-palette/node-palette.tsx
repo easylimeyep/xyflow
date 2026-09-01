@@ -23,6 +23,8 @@ interface NodePaletteProps {
   quickAddActive?: boolean
   isOpen?: boolean
   anchorRefs?: WorkflowEditorAnchorRefs
+  /** Extra classes for the palette's aside element, merged into the package's own. */
+  className?: string
 }
 
 export function NodePalette({
@@ -30,6 +32,7 @@ export function NodePalette({
   quickAddActive = false,
   isOpen = true,
   anchorRefs,
+  className,
 }: NodePaletteProps) {
   const entries = useNodeDefinitions()
   const containerRef = useRef<HTMLElement | null>(null)
@@ -79,7 +82,7 @@ export function NodePalette({
         aria-label="Node palette"
         aria-hidden={!isOpen}
         data-state={isOpen ? "open" : "closed"}
-        className={styles.aside()}
+        className={styles.aside({ class: className })}
       >
         <h2 className={styles.heading()}>Node Palette</h2>
         <div className={styles.list()}>

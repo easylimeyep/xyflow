@@ -342,6 +342,24 @@ describe("WorkflowEditor wiring", () => {
     )
   })
 
+  it("forwards className into the body's slot without dropping the package's own classes", () => {
+    render(
+      <WorkflowEditor definitions={builtinBaseDefinitions}>
+        <WorkflowEditor.Body className="grid grid-cols-[1fr_320px]">
+          <WorkflowEditor.Canvas className="col-start-1" />
+        </WorkflowEditor.Body>
+      </WorkflowEditor>
+    )
+
+    const body = screen.getByTestId("workflow-editor-body")
+    expect(body.className).toContain("grid-cols-[1fr_320px]")
+    expect(body.className).toContain("flex-1")
+
+    const canvas = screen.getByTestId("workflow-editor-canvas")
+    expect(canvas.className).toContain("col-start-1")
+    expect(canvas.className).toContain("flex-1")
+  })
+
   it("registers and cleans up editor anchors in one mutable registry", () => {
     const anchorRefs: WorkflowEditorAnchorRefs = { current: {} }
     const view = render(

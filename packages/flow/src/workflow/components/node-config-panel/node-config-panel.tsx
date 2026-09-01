@@ -1,6 +1,7 @@
 "use client"
 
 import { type Ref, useMemo } from "react"
+import { tv } from "tailwind-variants"
 
 import { Input } from "@flow/ui/components/input"
 import { Textarea } from "@flow/ui/components/textarea"
@@ -10,14 +11,21 @@ import type { WorkflowStoreState } from "../../store"
 import type { WorkflowCanvasMode } from "../../types"
 import { NodeInspector } from "./node-inspector"
 
+const configPanelAsideStyles = tv({
+  base: "flex w-80 shrink-0 flex-col gap-3 border-l bg-background p-3",
+})
+
 interface WorkflowEditorConfigPanelProps {
   anchorRef?: Ref<HTMLElement>
   mode?: WorkflowCanvasMode
+  /** Extra classes for the panel's aside element, merged into the package's own. */
+  className?: string
 }
 
 export function WorkflowEditorConfigPanel({
   anchorRef,
   mode = "edit",
+  className,
 }: WorkflowEditorConfigPanelProps) {
   const { selectedNodeIds, selectedNode } = useWorkflowSelection()
   const updateNodeLabel = useWorkflowShallowStore(
@@ -48,7 +56,7 @@ export function WorkflowEditorConfigPanel({
     <aside
       ref={anchorRef}
       aria-label="Workflow config panel"
-      className="flex w-80 shrink-0 flex-col gap-3 border-l bg-background p-3"
+      className={configPanelAsideStyles({ class: className })}
     >
       <div className="space-y-1">
         <h2 className="text-sm font-semibold">

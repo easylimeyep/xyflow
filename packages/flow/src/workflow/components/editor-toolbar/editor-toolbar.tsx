@@ -17,6 +17,8 @@ interface EditorToolbarProps {
   onClearError: () => void
   onExportDomain: () => DomainWorkflowDTO
   onImportJson: (rawJson: string) => boolean
+  /** Extra classes for the toolbar's root element, merged into the package's own. */
+  className?: string
 }
 
 async function copyToClipboard(text: string): Promise<boolean> {
@@ -45,6 +47,7 @@ export function EditorToolbar({
   onExportDomain,
   onImportJson,
   anchorRef,
+  className,
 }: EditorToolbarProps) {
   const [importOpen, setImportOpen] = useState(false)
   const [importText, setImportText] = useState("")
@@ -57,7 +60,7 @@ export function EditorToolbar({
   )
 
   return (
-    <div ref={anchorRef} className={styles.root()}>
+    <div ref={anchorRef} className={styles.root({ class: className })}>
       <div className={styles.actions()}>
         <Button
           type="button"

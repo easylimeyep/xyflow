@@ -336,7 +336,14 @@ function WorkflowValidationSync({
   return null
 }
 
-export function WorkflowEditorToolbar() {
+export interface WorkflowEditorToolbarProps {
+  /** Extra classes for the toolbar's root element, merged into the package's own. */
+  className?: string
+}
+
+export function WorkflowEditorToolbar({
+  className,
+}: WorkflowEditorToolbarProps = {}) {
   const layout = useWorkflowEditorLayoutContext()
   const toolbarRef = useWorkflowEditorAnchorRef(layout?.anchorRefs, "toolbar")
   const {
@@ -370,17 +377,40 @@ export function WorkflowEditorToolbar() {
       onClearError={() => setLastError(null)}
       onExportDomain={exportDomain}
       onImportJson={importFromJson}
+      className={className}
     />
   )
 }
 
-export function WorkflowEditorBody({ children }: PropsWithChildren) {
-  const styles = workflowEditorStyles()
-
-  return <div className={styles.content()}>{children}</div>
+export interface WorkflowEditorBodyProps extends PropsWithChildren {
+  /** Extra classes for the body element, merged into the package's own. */
+  readonly className?: string
 }
 
-export function WorkflowEditorValidationAlert() {
+export function WorkflowEditorBody({
+  children,
+  className,
+}: WorkflowEditorBodyProps) {
+  const styles = workflowEditorStyles()
+
+  return (
+    <div
+      className={styles.content({ class: className })}
+      data-testid="workflow-editor-body"
+    >
+      {children}
+    </div>
+  )
+}
+
+export interface WorkflowEditorValidationAlertProps {
+  /** Extra classes for the alert's wrapper element, merged into the package's own. */
+  className?: string
+}
+
+export function WorkflowEditorValidationAlert({
+  className,
+}: WorkflowEditorValidationAlertProps = {}) {
   const messages = useWorkflowStore(selectVisibleGlobalValidationMessages)
   const styles = workflowEditorStyles()
 
@@ -391,7 +421,7 @@ export function WorkflowEditorValidationAlert() {
   const [firstMessage, ...additionalMessages] = messages
 
   return (
-    <div className={styles.validationAlertWrap()}>
+    <div className={styles.validationAlertWrap({ class: className })}>
       <Alert
         variant="destructive"
         className={styles.validationAlert()}
@@ -415,9 +445,14 @@ export function WorkflowEditorValidationAlert() {
 
 export interface WorkflowEditorPaletteProps {
   open?: boolean
+  /** Extra classes for the palette's aside element, merged into the package's own. */
+  className?: string
 }
 
-export function WorkflowEditorPalette({ open }: WorkflowEditorPaletteProps) {
+export function WorkflowEditorPalette({
+  open,
+  className,
+}: WorkflowEditorPaletteProps) {
   const layout = useWorkflowEditorLayoutContext()
   const nodeCount = useWorkflowStore(selectNodeCount)
   const isObserving = layout?.mode === "observe"
@@ -458,11 +493,19 @@ export function WorkflowEditorPalette({ open }: WorkflowEditorPaletteProps) {
       }
       isOpen={open ?? layout?.isPaletteOpen ?? true}
       anchorRefs={layout?.anchorRefs}
+      className={className}
     />
   )
 }
 
-export function WorkflowEditorCanvas() {
+export interface WorkflowEditorCanvasProps {
+  /** Extra classes for the canvas wrapper element, merged into the package's own. */
+  className?: string
+}
+
+export function WorkflowEditorCanvas({
+  className,
+}: WorkflowEditorCanvasProps = {}) {
   const layout = useWorkflowEditorLayoutContext()
   const styles = workflowEditorStyles()
   const canvasRef = useWorkflowEditorAnchorRef(layout?.anchorRefs, "canvas")
@@ -527,7 +570,11 @@ export function WorkflowEditorCanvas() {
   const isObserving = layout?.mode === "observe"
 
   return (
-    <div ref={canvasRef} className={styles.canvasWrap()}>
+    <div
+      ref={canvasRef}
+      className={styles.canvasWrap({ class: className })}
+      data-testid="workflow-editor-canvas"
+    >
       {isObserving ? null : (
         <div className={styles.canvasOverlay()}>
           <div className={styles.canvasToolbar()}>
@@ -577,7 +624,14 @@ export function WorkflowEditorCanvas() {
   )
 }
 
-export function WorkflowEditorConfigPanel() {
+export interface WorkflowEditorConfigPanelProps {
+  /** Extra classes for the config panel's aside element, merged into the package's own. */
+  className?: string
+}
+
+export function WorkflowEditorConfigPanel({
+  className,
+}: WorkflowEditorConfigPanelProps = {}) {
   const layout = useWorkflowEditorLayoutContext()
   const configPanelRef = useWorkflowEditorAnchorRef(
     layout?.anchorRefs,
@@ -588,6 +642,7 @@ export function WorkflowEditorConfigPanel() {
     <WorkflowEditorConfigPanelBase
       anchorRef={configPanelRef}
       mode={layout?.mode ?? "edit"}
+      className={className}
     />
   )
 }
