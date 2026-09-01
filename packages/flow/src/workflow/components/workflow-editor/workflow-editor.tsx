@@ -447,11 +447,18 @@ export interface WorkflowEditorPaletteProps {
   open?: boolean
   /** Extra classes for the palette's aside element, merged into the package's own. */
   className?: string
+  /**
+   * Where the palette sits. `floating` pins it over the canvas at the right,
+   * which is the package's historical layout. `inline` renders it in flow, so
+   * the host can give it a lane in its own grid or flex row.
+   */
+  placement?: "floating" | "inline"
 }
 
 export function WorkflowEditorPalette({
   open,
   className,
+  placement,
 }: WorkflowEditorPaletteProps) {
   const layout = useWorkflowEditorLayoutContext()
   const nodeCount = useWorkflowStore(selectNodeCount)
@@ -494,6 +501,7 @@ export function WorkflowEditorPalette({
       isOpen={open ?? layout?.isPaletteOpen ?? true}
       anchorRefs={layout?.anchorRefs}
       className={className}
+      placement={placement}
     />
   )
 }

@@ -25,6 +25,12 @@ interface NodePaletteProps {
   anchorRefs?: WorkflowEditorAnchorRefs
   /** Extra classes for the palette's aside element, merged into the package's own. */
   className?: string
+  /**
+   * Where the palette sits. `floating` pins it over the canvas at the right,
+   * which is the package's historical layout. `inline` renders it in flow, so
+   * the host can give it a lane in its own grid or flex row.
+   */
+  placement?: "floating" | "inline"
 }
 
 export function NodePalette({
@@ -33,11 +39,12 @@ export function NodePalette({
   isOpen = true,
   anchorRefs,
   className,
+  placement = "floating",
 }: NodePaletteProps) {
   const entries = useNodeDefinitions()
   const containerRef = useRef<HTMLElement | null>(null)
   const wasOpenRef = useRef(isOpen)
-  const styles = nodePaletteStyles({ quickAddActive })
+  const styles = nodePaletteStyles({ quickAddActive, placement })
 
   useEffect(() => {
     if (!isOpen) {
