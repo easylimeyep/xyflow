@@ -6,6 +6,15 @@ import { evaluator } from "../nodes/logic/evaluator"
 import { result } from "../nodes/logic/result"
 
 /**
+ * The built-in definitions re-exported by name, each with its renderer
+ * attached. This is the single list every caller derives from: the
+ * `builtinDefinitions` array below, and the `@flow/flow/nodes` subpath that
+ * hands them out à la carte. Add a new built-in here (import + this list + the
+ * array) and both surfaces pick it up.
+ */
+export { evaluator, setVariable, inlineExpression, extractor, result }
+
+/**
  * The five definitions that ship with the package, each carrying its bespoke
  * renderer (see `NodeDefinition.view`) since they're imported here from each
  * node's `index.ts` rather than its `definition.ts`.
