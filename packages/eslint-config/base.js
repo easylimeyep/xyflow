@@ -1,5 +1,6 @@
 import js from "@eslint/js"
 import eslintConfigPrettier from "eslint-config-prettier"
+import importX from "eslint-plugin-import-x"
 import onlyWarn from "eslint-plugin-only-warn"
 import turboPlugin from "eslint-plugin-turbo"
 import tseslint from "typescript-eslint"
@@ -19,6 +20,16 @@ export const config = [
     },
     rules: {
       "turbo/no-undeclared-env-vars": "warn",
+    },
+  },
+  // `flatConfigs.typescript` registers the import-x plugin and, crucially,
+  // wires `import-x/parsers` + a TS-aware resolver so import-x can parse the
+  // .ts files it follows — without it graph rules like no-cycle silently
+  // build an empty graph and never report.
+  importX.flatConfigs.typescript,
+  {
+    rules: {
+      "import-x/no-cycle": ["error", { ignoreExternal: true }],
     },
   },
   {
