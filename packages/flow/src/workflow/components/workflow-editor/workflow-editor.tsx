@@ -75,6 +75,38 @@ function useWorkflowEditorLayoutContext() {
   return useContext(WorkflowEditorLayoutContext)
 }
 
+/**
+ * The layout state shared by every editor part, exposed so a host that renders
+ * its own parts (a bespoke palette toggle, a custom toolbar) reads the same
+ * facts the built-in parts read instead of re-deriving them from the store.
+ */
+export interface WorkflowLayout {
+  /** Whether the node palette is currently open. */
+  isPaletteOpen: boolean
+  /** Open or close the node palette. */
+  setIsPaletteOpen: (open: boolean) => void
+  /** True while a quick-add or edge-insert is waiting for a node kind. */
+  quickAddActive: boolean
+  /** The editor's interaction mode. */
+  mode: WorkflowCanvasMode
+}
+
+/**
+ * Read the editor's shared layout state. Must be called inside a
+ * `WorkflowProvider` (which `WorkflowEditor` renders for you).
+ */
+export function useWorkflowLayout(): WorkflowLayout {
+  const context = useWorkflowEditorLayoutContext()
+  if (context == null) {
+    throw new Error(
+      "useWorkflowLayout must be used inside a WorkflowProvider (WorkflowEditor renders one)."
+    )
+  }
+
+  const { isPaletteOpen, setIsPaletteOpen, quickAddActive, mode } = context
+  return { isPaletteOpen, setIsPaletteOpen, quickAddActive, mode }
+}
+
 function useUndoRedoHotkeys(
   onUndo: () => void,
   onRedo: () => void,
@@ -240,7 +272,7 @@ function WorkflowEditorLayoutProvider({
   )
 }
 
-export interface WorkflowEditorProps extends WorkflowStoreInitialProps {
+export interface WorkflowProviderProps extends WorkflowStoreInitialProps {
   runtime?: WorkflowRuntimeConfig
   validation?: WorkflowValidationSnapshot | null
   anchorRefs?: WorkflowEditorAnchorRefs
@@ -259,6 +291,12 @@ export interface WorkflowEditorProps extends WorkflowStoreInitialProps {
   children?: ReactNode
 }
 
+/**
+ * `WorkflowEditor` and `WorkflowProvider` take the same props; the editor adds
+ * only the default layout shell around them.
+ */
+export type WorkflowEditorProps = WorkflowProviderProps
+
 function DefaultWorkflowEditorComposition() {
   return (
     <>
@@ -273,7 +311,13 @@ function DefaultWorkflowEditorComposition() {
   )
 }
 
-function WorkflowEditorRoot({
+/**
+ * Headless editor context — the store, runtime observation, and shared layout
+ * state — with no markup of its own. Render this directly to own the whole
+ * layout, arranging `WorkflowEditor.*` parts inside your own DOM. For the
+ * default shell, render `WorkflowEditor` instead, which wraps this.
+ */
+export function WorkflowProvider({
   initialGraph,
   runtime,
   definitions,
@@ -283,9 +327,7 @@ function WorkflowEditorRoot({
   mode = "edit",
   overlay,
   children,
-}: WorkflowEditorProps = {}) {
-  const styles = workflowEditorStyles()
-  const rootRef = useWorkflowEditorAnchorRef(anchorRefs, "root")
+}: WorkflowProviderProps = {}) {
   const lastPointerFlowPositionRef = useRef<XYPosition | null>(null)
   const getLastPointerFlowPosition = useCallback(
     () => lastPointerFlowPositionRef.current,
@@ -313,12 +355,24 @@ function WorkflowEditorRoot({
           getLastPointerFlowPosition={getLastPointerFlowPosition}
           setLastPointerFlowPosition={setLastPointerFlowPosition}
         >
-          <div ref={rootRef} className={styles.root()}>
-            {children == null ? <DefaultWorkflowEditorComposition /> : children}
-          </div>
+          {children}
         </WorkflowEditorLayoutProvider>
       </RuntimeObservationProvider>
     </WorkflowStoreProvider>
+  )
+}
+
+function WorkflowEditorRoot(props: WorkflowEditorProps = {}) {
+  const { children, ...providerProps } = props
+  const styles = workflowEditorStyles()
+  const rootRef = useWorkflowEditorAnchorRef(providerProps.anchorRefs, "root")
+
+  return (
+    <WorkflowProvider {...providerProps}>
+      <div ref={rootRef} className={styles.root()}>
+        {children == null ? <DefaultWorkflowEditorComposition /> : children}
+      </div>
+    </WorkflowProvider>
   )
 }
 
@@ -641,11 +695,18 @@ export function WorkflowEditorCanvas({
 }
 
 export interface WorkflowEditorConfigPanelProps {
+  /**
+   * Which edge of its lane the panel borders. `left` (default) reads as a left
+   * rail; `right` mirrors the border for a host that composes the panel on the
+   * right of the canvas. Symmetrical with the palette's `placement`.
+   */
+  side?: "left" | "right"
   /** Extra classes for the config panel's aside element, merged into the package's own. */
   className?: string
 }
 
 export function WorkflowEditorConfigPanel({
+  side,
   className,
 }: WorkflowEditorConfigPanelProps = {}) {
   const layout = useWorkflowEditorLayoutContext()
@@ -658,12 +719,14 @@ export function WorkflowEditorConfigPanel({
     <WorkflowEditorConfigPanelBase
       anchorRef={configPanelRef}
       mode={layout?.mode ?? "edit"}
+      side={side}
       className={className}
     />
   )
 }
 
 export const WorkflowEditor = Object.assign(WorkflowEditorRoot, {
+  Provider: WorkflowProvider,
   Toolbar: WorkflowEditorToolbar,
   ValidationAlert: WorkflowEditorValidationAlert,
   Body: WorkflowEditorBody,
@@ -676,5 +739,6 @@ export const WorkflowEditor = Object.assign(WorkflowEditorRoot, {
     graph: useWorkflowGraph,
     selection: useWorkflowSelection,
     actions: useWorkflowActions,
+    layout: useWorkflowLayout,
   },
 })

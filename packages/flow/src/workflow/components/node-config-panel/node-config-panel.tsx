@@ -12,12 +12,27 @@ import type { WorkflowCanvasMode } from "../../types"
 import { NodeInspector } from "./node-inspector"
 
 const configPanelAsideStyles = tv({
-  base: "flex w-80 shrink-0 flex-col gap-3 border-r bg-background p-3",
+  base: "flex w-80 shrink-0 flex-col gap-3 bg-background p-3",
+  variants: {
+    side: {
+      left: "border-r",
+      right: "border-l",
+    },
+  },
+  defaultVariants: {
+    side: "left",
+  },
 })
 
 interface WorkflowEditorConfigPanelProps {
   anchorRef?: Ref<HTMLElement>
   mode?: WorkflowCanvasMode
+  /**
+   * Which edge of its lane the panel borders. `left` (default) draws the
+   * border on its right so it reads as a left rail; `right` mirrors it for a
+   * host that places the panel on the right of the canvas.
+   */
+  side?: "left" | "right"
   /** Extra classes for the panel's aside element, merged into the package's own. */
   className?: string
 }
@@ -25,6 +40,7 @@ interface WorkflowEditorConfigPanelProps {
 export function WorkflowEditorConfigPanel({
   anchorRef,
   mode = "edit",
+  side = "left",
   className,
 }: WorkflowEditorConfigPanelProps) {
   const { selectedNodeIds, selectedNode } = useWorkflowSelection()
@@ -56,7 +72,7 @@ export function WorkflowEditorConfigPanel({
     <aside
       ref={anchorRef}
       aria-label="Workflow config panel"
-      className={configPanelAsideStyles({ class: className })}
+      className={configPanelAsideStyles({ side, class: className })}
     >
       <div className="space-y-1">
         <h2 className="text-sm font-semibold">

@@ -2,13 +2,17 @@
 
 export {
   WorkflowEditor,
+  WorkflowProvider,
   WorkflowEditorBody,
   WorkflowEditorCanvas,
   WorkflowEditorConfigPanel,
   WorkflowEditorPalette,
   WorkflowEditorToolbar,
   WorkflowEditorValidationAlert,
+  useWorkflowLayout,
   type WorkflowEditorProps,
+  type WorkflowProviderProps,
+  type WorkflowLayout,
 } from "./workflow/components/workflow-editor"
 export { WORKFLOW_EDITOR_TOUR } from "./workflow/tour"
 export type {
