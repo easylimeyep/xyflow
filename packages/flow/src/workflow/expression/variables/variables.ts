@@ -80,6 +80,8 @@ function readVariableName(node: WorkflowNode): string {
       return readSetVariableName(node)
     case "extractor":
       return readExtractorVariableName(node)
+    case "pathExtractor":
+      return readPathExtractorVariableName(node)
     case "evaluator":
       return readEvaluatorLabel(node)
     default:
@@ -109,6 +111,17 @@ function readExtractorVariableName(node: WorkflowNode): string {
   return node.data.label.trim()
 }
 
+function readPathExtractorVariableName(node: WorkflowNode): string {
+  const fromConfig = node.data.config.variableLabel
+  if (typeof fromConfig === "string") {
+    const trimmedConfig = fromConfig.trim()
+    if (trimmedConfig.length > 0 && isValidJsIdentifier(trimmedConfig)) {
+      return trimmedConfig
+    }
+  }
+  return node.data.label.trim()
+}
+
 function readEvaluatorLabel(node: WorkflowNode): string {
   const fromConfig = node.data.config.label
   if (typeof fromConfig !== "string") {
@@ -129,6 +142,12 @@ function readVariableType(
     case "extractor": {
       const candidate = node.data.config.variableType
       return candidate === "array" ? "array" : "value"
+    }
+    case "pathExtractor": {
+      const candidate = node.data.config.outputType
+      return candidate === "arrayValue" || candidate === "arrayObject"
+        ? "array"
+        : "value"
     }
     default:
       return undefined

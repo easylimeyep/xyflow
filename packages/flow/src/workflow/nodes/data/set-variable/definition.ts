@@ -29,6 +29,7 @@ export const setVariable = defineNode({
     "setVariable",
     "inlineExpression",
     "extractor",
+    "pathExtractor",
     "result",
   ],
   buildDefaultConfig: () => ({

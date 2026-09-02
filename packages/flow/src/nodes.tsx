@@ -22,6 +22,7 @@ export {
   setVariable,
   inlineExpression,
   extractor,
+  pathExtractor,
   result,
   builtinDefinitions,
   type BuiltinNodeKind,

@@ -147,6 +147,25 @@ export type ExtractorNodeConfig = {
   unlimited: boolean
 }
 
+/**
+ * What shape the Path Extractor is expected to yield at `path`:
+ * - `string` — coerce the resolved value to a string
+ * - `value` — the resolved value as-is (primitive or object)
+ * - `arrayValue` — an array of primitives
+ * - `arrayObject` — an array of objects
+ */
+export type PathExtractorOutputType =
+  | "string"
+  | "value"
+  | "arrayValue"
+  | "arrayObject"
+
+export type PathExtractorNodeConfig = {
+  variableLabel: string
+  path: string
+  outputType: PathExtractorOutputType
+}
+
 export type ResultNodeConfig = {
   category: "true" | "false"
 }
@@ -156,6 +175,7 @@ export interface NodeConfigByKind {
   setVariable: SetVariableNodeConfig
   inlineExpression: InlineExpressionNodeConfig
   extractor: ExtractorNodeConfig
+  pathExtractor: PathExtractorNodeConfig
   result: ResultNodeConfig
 }
 

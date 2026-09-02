@@ -1,6 +1,7 @@
 import type { NodeDefinition } from "./define-node"
 import { extractor } from "../nodes/data/extractor"
 import { inlineExpression } from "../nodes/data/inline-expression"
+import { pathExtractor } from "../nodes/data/path-extractor"
 import { setVariable } from "../nodes/data/set-variable"
 import { evaluator } from "../nodes/logic/evaluator"
 import { result } from "../nodes/logic/result"
@@ -12,17 +13,24 @@ import { result } from "../nodes/logic/result"
  * hands them out à la carte. Add a new built-in here (import + this list + the
  * array) and both surfaces pick it up.
  */
-export { evaluator, setVariable, inlineExpression, extractor, result }
+export {
+  evaluator,
+  setVariable,
+  inlineExpression,
+  extractor,
+  pathExtractor,
+  result,
+}
 
 /**
- * The five definitions that ship with the package, each carrying its bespoke
+ * The definitions that ship with the package, each carrying its bespoke
  * renderer (see `NodeDefinition.view`) since they're imported here from each
  * node's `index.ts` rather than its `definition.ts`.
  *
  * A consumer asks for them by name:
  *
  * ```tsx
- * <WorkflowEditor definitions={builtinDefinitions} />       // all five
+ * <WorkflowEditor definitions={builtinDefinitions} />       // all of them
  * <WorkflowEditor definitions={[evaluator, result]} />      // or a subset
  * ```
  *
@@ -43,6 +51,7 @@ export const builtinDefinitions = [
   setVariable,
   inlineExpression,
   extractor,
+  pathExtractor,
   result,
 ] as const
 

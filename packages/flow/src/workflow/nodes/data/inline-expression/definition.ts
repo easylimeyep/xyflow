@@ -38,6 +38,7 @@ export const inlineExpression = defineNode({
     "setVariable",
     "inlineExpression",
     "extractor",
+    "pathExtractor",
     "result",
   ],
   buildDefaultConfig: () => ({

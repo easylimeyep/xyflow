@@ -47,6 +47,7 @@ export const evaluator = defineNode({
     "setVariable",
     "inlineExpression",
     "extractor",
+    "pathExtractor",
     "result",
   ],
   buildDefaultConfig: () => ({

@@ -7,7 +7,11 @@ import { createWorkflowError, type WorkflowError } from "../types/errors"
 import type { WorkflowNode } from "../types/types"
 import { createUniqueJsIdentifier, createUniqueLabel } from "../store/naming"
 
-const VARIABLE_LABEL_KINDS = new Set<NodeKind>(["extractor", "setVariable"])
+const VARIABLE_LABEL_KINDS = new Set<NodeKind>([
+  "extractor",
+  "pathExtractor",
+  "setVariable",
+])
 
 export function isVariableLabelKind(kind: NodeKind): boolean {
   return VARIABLE_LABEL_KINDS.has(kind)

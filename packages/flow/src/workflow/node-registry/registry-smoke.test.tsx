@@ -56,8 +56,8 @@ describe("registry smoke tests", () => {
 
   it("the base definitions cover exactly the same kinds as the built-ins", () => {
     // `builtin-definitions.ts` (with renderers) and `builtin-base-definitions.ts`
-    // (without) are two hand-maintained lists of the same five kinds. Nothing
-    // else keeps them in step: add a sixth built-in to one and every suite that
+    // (without) are two hand-maintained lists of the same kinds. Nothing
+    // else keeps them in step: add a built-in to one and every suite that
     // builds its vocabulary from the other silently runs against a narrower
     // package than the one that ships.
     expect(builtinBaseDefinitions.map((definition) => definition.kind)).toEqual(
