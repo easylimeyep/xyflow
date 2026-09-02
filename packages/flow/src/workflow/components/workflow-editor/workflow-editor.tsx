@@ -265,9 +265,9 @@ function DefaultWorkflowEditorComposition() {
       <WorkflowEditorToolbar />
       <WorkflowEditorBody>
         <WorkflowEditorValidationAlert />
+        <WorkflowEditorConfigPanel />
         <WorkflowEditorPalette />
         <WorkflowEditorCanvas />
-        <WorkflowEditorConfigPanel />
       </WorkflowEditorBody>
     </>
   )

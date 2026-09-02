@@ -12,7 +12,7 @@ import type { WorkflowCanvasMode } from "../../types"
 import { NodeInspector } from "./node-inspector"
 
 const configPanelAsideStyles = tv({
-  base: "flex w-80 shrink-0 flex-col gap-3 border-l bg-background p-3",
+  base: "flex w-80 shrink-0 flex-col gap-3 border-r bg-background p-3",
 })
 
 interface WorkflowEditorConfigPanelProps {
