@@ -60,7 +60,6 @@ export function DefaultGraphExample() {
   return (
     <ExamplePreview
       title="With default graph"
-      description="Пример `initialGraph`, собранного через `createInitialGraph`, где размер нод, edge metadata и позиции подставляются автоматически. Для более сложных схем можно использовать async `createInitialGraphElk`."
       code={code}
     >
       <WorkflowEditor

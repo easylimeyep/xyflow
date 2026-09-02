@@ -184,7 +184,6 @@ export function FullscreenModalExample() {
   return (
     <ExamplePreview
       title="Fullscreen modal workflow"
-      description="Пример, где весь editor workflow открывается внутри full-screen модалки, а не рендерится прямо на странице."
       code={code}
     >
       <div className="flex h-full min-h-0 flex-1 items-center justify-center bg-[radial-gradient(circle_at_top,#f8fafc,transparent_55%),linear-gradient(180deg,#ffffff_0%,#f3f4f6_100%)] p-6">

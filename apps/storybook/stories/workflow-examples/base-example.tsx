@@ -14,7 +14,6 @@ export function BaseExample() {
   return (
     <ExamplePreview
       title="Base"
-      description="Текущий минимальный сценарий без дополнительных пропсов."
       code={code}
     >
       <WorkflowEditor definitions={builtinDefinitions} />

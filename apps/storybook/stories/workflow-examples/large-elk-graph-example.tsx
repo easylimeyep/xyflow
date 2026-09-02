@@ -463,7 +463,6 @@ export function LargeElkGraphExample() {
   return (
     <ExamplePreview
       title="Large ELK graph"
-      description="Большой `initialGraph`, где редактор сначала измеряет реальные DOM-размеры нод, а затем запускает ELK layout: 40 узлов, fan-in в один Keyword и финальные ветки result true/result false."
       code={code}
     >
       <WorkflowEditor

@@ -163,9 +163,6 @@ export function ObservationExample() {
   return (
     <ExamplePreview
       title="Runtime observation"
-      description={
-        'mode="observe" renders an externally supplied `overlay` on a read-only canvas: node status rings, a loop counter (2 / 3), a failed node, a skipped branch, and traversed/active edges. The graph cannot be mutated; selecting a node opens the read-only inspector instead of the config form.'
-      }
       code={code}
     >
       <WorkflowEditor

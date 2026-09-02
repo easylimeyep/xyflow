@@ -188,7 +188,6 @@ export function TourAnchorsExample() {
   return (
     <ExamplePreview
       title="rc-tour workflow tour"
-      description="Живой пример @rc-component/tour поверх WORKFLOW_EDITOR_TOUR и lazy anchorRefs target callbacks."
       code={code}
     >
       <div className="flex items-center justify-between border-b border-gray-200 bg-white px-3 py-2">

@@ -156,7 +156,6 @@ export function ElkGraphExample() {
   return (
     <ExamplePreview
       title="With ELK graph"
-      description="Пример `initialGraph`, собранного через async `createInitialGraphElk`, когда стартовую схему удобнее сразу разложить ELK-алгоритмом."
       code={code}
     >
       {graph == null ? (

@@ -12,14 +12,12 @@ import { Tooltip, TooltipTrigger } from "@flow/ui/components/tooltip"
 
 type ExamplePreviewProps = {
   title: string
-  description: string
   code: string
   children: ReactNode
 }
 
 export function ExamplePreview({
   title,
-  description,
   code,
   children,
 }: ExamplePreviewProps) {
@@ -30,7 +28,6 @@ export function ExamplePreview({
           <div className="flex items-start justify-between gap-3">
             <div>
               <h2 className="text-sm font-semibold text-gray-950">{title}</h2>
-              <p className="text-sm text-gray-600">{description}</p>
             </div>
 
             <TooltipTrigger>

@@ -200,7 +200,6 @@ export function CustomOperatorsExample() {
   return (
     <ExamplePreview
       title="With custom boolean operators"
-      description="Пример кастомизации boolean evaluator-блока через `runtime.evaluator.operators`, где снаружи прокидываются группы операторов для string/array и допустимые типы правого операнда."
       code={code}
     >
       <WorkflowEditor

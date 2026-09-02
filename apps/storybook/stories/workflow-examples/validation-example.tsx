@@ -276,7 +276,6 @@ export function ValidationExample() {
   return (
     <ExamplePreview
       title="With validation"
-      description="Пример внешней server/query-like validation: snapshot приходит снаружи, WorkflowEditor показывает global Alert и подсвечивает ноду. Измени Evaluator — локальная ошибка скроется до следующей revision."
       code={code}
     >
       <div className="flex items-center gap-2 border-b border-gray-200 bg-white px-3 py-2">
@@ -320,7 +319,6 @@ export function GlobalValidationExample() {
   return (
     <ExamplePreview
       title="With global validation"
-      description="Пример validation snapshot только с workflow-level ошибками: поле nodes отсутствует, поэтому показывается только global Alert без подсветки нод."
       code={globalOnlyCode}
     >
       <div className="flex items-center gap-2 border-b border-gray-200 bg-white px-3 py-2">

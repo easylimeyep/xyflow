@@ -183,7 +183,6 @@ export function BackendTransformExample() {
   return (
     <ExamplePreview
       title="With backend transform"
-      description="Пример отдельного backend export: кнопка Transform берет текущий domain workflow, превращает его в BackendWorkflowDTO и выводит результат в консоль браузера."
       code={code}
     >
       <WorkflowEditor
