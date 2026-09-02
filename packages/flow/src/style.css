@@ -3,7 +3,11 @@
 .react-flow {
   --xy-background-color: var(--muted);
   --xy-minimap-background-color: var(--card);
-  --xy-minimap-mask-background-color: var(--background);
+  --xy-minimap-mask-background-color: color-mix(
+    in oklab,
+    var(--background) 55%,
+    transparent
+  );
   --xy-minimap-mask-stroke-color: var(--ring);
   --xy-controls-button-background-color: var(--card);
   --xy-controls-button-background-color-hover: var(--muted);
