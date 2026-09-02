@@ -196,7 +196,7 @@ export function BackendTransformExample() {
         <WorkflowEditor.Body>
           <WorkflowEditor.Palette />
           <WorkflowEditor.Canvas />
-          <WorkflowEditor.ConfigPanel />
+          <WorkflowEditor.ConfigPanel side="right" />
         </WorkflowEditor.Body>
       </WorkflowEditor>
     </ExamplePreview>
