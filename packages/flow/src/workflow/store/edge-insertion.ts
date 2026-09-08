@@ -2,6 +2,7 @@ import { addEdge } from "@xyflow/react"
 
 import { createWorkflowNode } from "../node-registry/node-factory"
 import type { NodeKind, NodeRegistry } from "../node-registry/registry"
+import { EVALUATOR_TRUE_HANDLE, isBranchingKind } from "../types/branching"
 import type {
   WorkflowEdge,
   WorkflowGraphState,
@@ -20,8 +21,6 @@ import {
   shiftNodesBySubgraph,
 } from "./geometry"
 import { toEdgeConnectionWithKind } from "./dto-mappers"
-
-const EVALUATOR_TRUE_HANDLE = "evaluator-true"
 
 export interface EdgeInsertionSuccess {
   ok: true
@@ -93,7 +92,7 @@ export function computeEdgeInsertion(
   const insertedToTarget: ConnectionLike = {
     source: nextNode.id,
     target: edgeToSplit.target,
-    sourceHandle: kind === "evaluator" ? EVALUATOR_TRUE_HANDLE : null,
+    sourceHandle: isBranchingKind(kind) ? EVALUATOR_TRUE_HANDLE : null,
     targetHandle: edgeToSplit.targetHandle ?? null,
   }
 

@@ -2,10 +2,12 @@ import type { Connection } from "@xyflow/react"
 
 import { getAllowedTargets } from "../node-registry/node-graph-rules"
 import type { NodeKind, NodeRegistry } from "../node-registry/registry"
+import {
+  EVALUATOR_FALSE_HANDLE,
+  EVALUATOR_TRUE_HANDLE,
+  isBranchingKind,
+} from "../types/branching"
 import type { WorkflowEdge, WorkflowNode } from "../types/types"
-
-const EVALUATOR_TRUE_HANDLE = "evaluator-true"
-const EVALUATOR_FALSE_HANDLE = "evaluator-false"
 
 export interface ValidationResult {
   valid: boolean
@@ -45,7 +47,7 @@ export function validateConnection(
   const allowedTargets = getAllowedTargets(registry, sourceKind)
 
   if (
-    sourceKind === "evaluator" &&
+    isBranchingKind(sourceKind) &&
     connection.sourceHandle !== EVALUATOR_TRUE_HANDLE &&
     connection.sourceHandle !== EVALUATOR_FALSE_HANDLE
   ) {
@@ -89,7 +91,7 @@ export function validateConnection(
   }
 
   if (
-    sourceKind === "evaluator" &&
+    isBranchingKind(sourceKind) &&
     edges.some(
       (edge) =>
         edge.source === connection.source &&

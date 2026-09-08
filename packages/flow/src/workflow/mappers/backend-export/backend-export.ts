@@ -7,9 +7,11 @@ import type {
   DomainWorkflowNodeDTO,
   NodeKind,
 } from "../../types"
-
-const EVALUATOR_TRUE_HANDLE = "evaluator-true"
-const EVALUATOR_FALSE_HANDLE = "evaluator-false"
+import {
+  EVALUATOR_FALSE_HANDLE,
+  EVALUATOR_TRUE_HANDLE,
+  isBranchingKind,
+} from "../../types/branching"
 
 type IncomingByTarget = Map<string, DomainWorkflowConnectionDTO[]>
 type OutgoingBySource = Map<string, DomainWorkflowConnectionDTO[]>
@@ -128,7 +130,7 @@ function validateEvaluatorBranches(
   outgoingBySource: OutgoingBySource
 ) {
   for (const node of nodeById.values()) {
-    if (node.kind !== "evaluator") {
+    if (!isBranchingKind(node.kind)) {
       continue
     }
 
@@ -143,14 +145,14 @@ function validateEvaluatorBranches(
         falseBranches += 1
       } else {
         throw new Error(
-          `Cannot export backend workflow: evaluator node "${node.id}" has unsupported branch handle.`
+          `Cannot export backend workflow: ${node.kind} node "${node.id}" has unsupported branch handle.`
         )
       }
     }
 
     if (trueBranches > 1 || falseBranches > 1) {
       throw new Error(
-        `Cannot export backend workflow: evaluator node "${node.id}" has duplicate branch connections.`
+        `Cannot export backend workflow: ${node.kind} node "${node.id}" has duplicate branch connections.`
       )
     }
   }
@@ -408,7 +410,7 @@ function mapRegularNode(
 ): BackendRegularWorkflowNodeDTO {
   return {
     id: getBackendId(backendIdByDomainId, node.id),
-    kind: node.kind as Exclude<NodeKind, "evaluator">,
+    kind: node.kind as Exclude<NodeKind, "evaluator" | "jsonEvaluator">,
     position: { ...node.position },
     label: node.label,
     config: { ...node.config },
@@ -437,7 +439,7 @@ function mapEvaluatorNode(
 
   return {
     id: getBackendId(backendIdByDomainId, node.id),
-    kind: "evaluator",
+    kind: node.kind as BackendEvaluatorWorkflowNodeDTO["kind"],
     position: { ...node.position },
     label: node.label,
     config: { ...node.config },
@@ -464,7 +466,7 @@ function mapDomainWorkflowToBackend(
         indexes.nodeById
       )
 
-      if (node.kind === "evaluator") {
+      if (isBranchingKind(node.kind)) {
         return mapEvaluatorNode(node, outgoing, backendIdByDomainId)
       }
 

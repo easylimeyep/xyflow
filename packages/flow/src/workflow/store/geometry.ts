@@ -4,6 +4,10 @@ import {
   DEFAULT_NODE_HEIGHT,
   DEFAULT_NODE_WIDTH,
 } from "../node-registry/node-factory"
+import {
+  EVALUATOR_FALSE_HANDLE,
+  EVALUATOR_TRUE_HANDLE,
+} from "../types/branching"
 import type { WorkflowNode } from "../types/types"
 import {
   EVALUATOR_FALSE_HANDLE_OFFSET_RATIO,
@@ -22,9 +26,9 @@ function getQuickAddSourceAnchorY(
 ): number {
   const nodeHeight = sourceNode.height ?? DEFAULT_NODE_HEIGHT
   const baseY = sourceNode.position.y
-  if (sourceHandle === "evaluator-true")
+  if (sourceHandle === EVALUATOR_TRUE_HANDLE)
     return baseY + nodeHeight * EVALUATOR_TRUE_HANDLE_OFFSET_RATIO
-  if (sourceHandle === "evaluator-false")
+  if (sourceHandle === EVALUATOR_FALSE_HANDLE)
     return baseY + nodeHeight * EVALUATOR_FALSE_HANDLE_OFFSET_RATIO
   return baseY + nodeHeight / 2
 }

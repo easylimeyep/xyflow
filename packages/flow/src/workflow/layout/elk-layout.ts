@@ -5,6 +5,11 @@ import {
   DEFAULT_NODE_WIDTH,
 } from "../node-registry/node-factory"
 import type { NodeRegistry } from "../node-registry/registry"
+import {
+  EVALUATOR_FALSE_HANDLE,
+  isBranchHandle,
+  isBranchingKind,
+} from "../types/branching"
 import type {
   WorkflowEdge,
   WorkflowGraphState,
@@ -24,6 +29,8 @@ const EXTRACTOR_LAYOUT_HEIGHT = 195
 const COMPACT_CONFIG_NODE_LAYOUT_HEIGHT = 116
 const EVALUATOR_LAYOUT_BASE_HEIGHT = 116
 const EVALUATOR_LAYOUT_CONDITION_HEIGHT = 56
+/** The JSON Evaluator's extra match-type select. */
+const JSON_EVALUATOR_MATCH_TYPE_HEIGHT = 52
 
 export interface ElkPort {
   id: string
@@ -79,14 +86,18 @@ function getEstimatedNodeHeight(node: WorkflowNode): number {
     case "inlineExpression":
     case "result":
       return COMPACT_CONFIG_NODE_LAYOUT_HEIGHT
-    case "evaluator": {
+    case "evaluator":
+    case "jsonEvaluator": {
       const conditionCount = Array.isArray(node.data.config.conditions)
         ? Math.max(1, node.data.config.conditions.length)
         : 1
 
       return (
         EVALUATOR_LAYOUT_BASE_HEIGHT +
-        conditionCount * EVALUATOR_LAYOUT_CONDITION_HEIGHT
+        conditionCount * EVALUATOR_LAYOUT_CONDITION_HEIGHT +
+        (node.data.kind === "jsonEvaluator"
+          ? JSON_EVALUATOR_MATCH_TYPE_HEIGHT
+          : 0)
       )
     }
     default:
@@ -227,7 +238,7 @@ function getNodeBottom(node: WorkflowNode): number {
 
 function getEvaluatorHandleY(node: WorkflowNode, handleId: string): number {
   const ratio =
-    handleId === "evaluator-false"
+    handleId === EVALUATOR_FALSE_HANDLE
       ? EVALUATOR_FALSE_HANDLE_RATIO
       : EVALUATOR_TRUE_HANDLE_RATIO
 
@@ -291,10 +302,9 @@ function isEvaluatorShortcutToResult(
   const target = nodesById.get(edge.target)
 
   return (
-    source?.data.kind === "evaluator" &&
+    isBranchingKind(source?.data.kind) &&
     target?.data.kind === "result" &&
-    (edge.sourceHandle === "evaluator-true" ||
-      edge.sourceHandle === "evaluator-false")
+    isBranchHandle(edge.sourceHandle)
   )
 }
 
@@ -351,16 +361,13 @@ export function applyEvaluatorShortcutClearance(
     }
 
     const shortcutHandle = shortcutEdge.sourceHandle
-    if (
-      shortcutHandle !== "evaluator-true" &&
-      shortcutHandle !== "evaluator-false"
-    ) {
+    if (!isBranchHandle(shortcutHandle)) {
       return
     }
 
     const sourceLaneY = getEvaluatorHandleY(source, shortcutHandle)
 
-    if (shortcutHandle === "evaluator-false") {
+    if (shortcutHandle === EVALUATOR_FALSE_HANDLE) {
       const maximumSiblingBottom = sourceLaneY - EVALUATOR_SHORTCUT_CLEARANCE
       siblingPathNodes.forEach((node) => {
         const maximumNodeY = maximumSiblingBottom - getNodeHeight(node)

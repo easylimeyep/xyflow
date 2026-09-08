@@ -26,6 +26,7 @@ export const setVariable = defineNode({
   outputPaths: [],
   allowedTargets: [
     "evaluator",
+    "jsonEvaluator",
     "setVariable",
     "inlineExpression",
     "extractor",

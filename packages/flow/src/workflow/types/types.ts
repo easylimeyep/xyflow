@@ -125,6 +125,19 @@ export type EvaluatorNodeConfig = {
   caseSensitive: boolean
 }
 
+/**
+ * How many of a JSON Evaluator's conditions have to match for the node to take
+ * its `true` branch:
+ * - `any` — at least one condition matches
+ * - `all` — every condition matches
+ * - `one` — exactly one condition matches
+ */
+export type EvaluatorMatchType = "any" | "all" | "one"
+
+export type JsonEvaluatorNodeConfig = EvaluatorNodeConfig & {
+  matchType: EvaluatorMatchType
+}
+
 export type InlineExpressionNodeConfig = {
   template: string[]
   isRoot: boolean
@@ -171,6 +184,7 @@ export type ResultNodeConfig = {
 
 export interface NodeConfigByKind {
   evaluator: EvaluatorNodeConfig
+  jsonEvaluator: JsonEvaluatorNodeConfig
   setVariable: SetVariableNodeConfig
   inlineExpression: InlineExpressionNodeConfig
   extractor: ExtractorNodeConfig
@@ -285,7 +299,7 @@ export interface BackendWorkflowDTO {
 
 export interface BackendRegularWorkflowNodeDTO {
   id: number
-  kind: Exclude<NodeKind, "evaluator">
+  kind: Exclude<NodeKind, "evaluator" | "jsonEvaluator">
   position: XYPosition
   label: string
   config: JsonObject
@@ -294,7 +308,7 @@ export interface BackendRegularWorkflowNodeDTO {
 
 export interface BackendEvaluatorWorkflowNodeDTO {
   id: number
-  kind: "evaluator"
+  kind: "evaluator" | "jsonEvaluator"
   position: XYPosition
   label: string
   config: JsonObject

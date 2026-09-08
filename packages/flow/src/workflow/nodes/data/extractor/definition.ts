@@ -42,6 +42,7 @@ export const extractor = defineNode({
   outputPaths: [],
   allowedTargets: [
     "evaluator",
+    "jsonEvaluator",
     "setVariable",
     "inlineExpression",
     "extractor",

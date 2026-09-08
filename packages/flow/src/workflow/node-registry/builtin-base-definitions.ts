@@ -3,6 +3,7 @@ import { inlineExpression } from "../nodes/data/inline-expression/definition"
 import { pathExtractor } from "../nodes/data/path-extractor/definition"
 import { setVariable } from "../nodes/data/set-variable/definition"
 import { evaluator } from "../nodes/logic/evaluator/definition"
+import { jsonEvaluator } from "../nodes/logic/json-evaluator/definition"
 import { result } from "../nodes/logic/result/definition"
 
 /**
@@ -21,6 +22,7 @@ import { result } from "../nodes/logic/result/definition"
  */
 export const builtinBaseDefinitions = [
   evaluator,
+  jsonEvaluator,
   setVariable,
   inlineExpression,
   extractor,

@@ -4,6 +4,7 @@ import { inlineExpression } from "../nodes/data/inline-expression"
 import { pathExtractor } from "../nodes/data/path-extractor"
 import { setVariable } from "../nodes/data/set-variable"
 import { evaluator } from "../nodes/logic/evaluator"
+import { jsonEvaluator } from "../nodes/logic/json-evaluator"
 import { result } from "../nodes/logic/result"
 
 /**
@@ -15,6 +16,7 @@ import { result } from "../nodes/logic/result"
  */
 export {
   evaluator,
+  jsonEvaluator,
   setVariable,
   inlineExpression,
   extractor,
@@ -48,6 +50,7 @@ export {
  */
 export const builtinDefinitions = [
   evaluator,
+  jsonEvaluator,
   setVariable,
   inlineExpression,
   extractor,

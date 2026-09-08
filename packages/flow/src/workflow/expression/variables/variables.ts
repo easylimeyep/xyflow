@@ -6,7 +6,12 @@ import type {
 import type { WorkflowVariableType } from "../../types/variable-types"
 import { isValidJsIdentifier } from "../variable-name/variable-name"
 
-const VARIABLE_NODE_KINDS = new Set(["extractor", "setVariable", "evaluator"])
+const VARIABLE_NODE_KINDS = new Set([
+  "extractor",
+  "setVariable",
+  "evaluator",
+  "jsonEvaluator",
+])
 
 export function collectWorkflowVariables(
   nodes: WorkflowNode[],
@@ -83,6 +88,7 @@ function readVariableName(node: WorkflowNode): string {
     case "pathExtractor":
       return readPathExtractorVariableName(node)
     case "evaluator":
+    case "jsonEvaluator":
       return readEvaluatorLabel(node)
     default:
       return ""

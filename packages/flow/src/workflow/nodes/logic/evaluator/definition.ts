@@ -1,38 +1,13 @@
 import { Scale } from "lucide-react"
 
 import { defineNode } from "../../../node-registry/define-node"
-import type { EvaluatorCondition, WorkflowTypedValue } from "../../../types"
-
-function isWorkflowTypedValue(value: unknown): value is WorkflowTypedValue {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    return false
-  }
-
-  const candidate = value as { type?: unknown; value?: unknown }
-  if (candidate.type === "value") {
-    return typeof candidate.value === "string"
-  }
-
-  if (candidate.type === "array") {
-    return (
-      Array.isArray(candidate.value) &&
-      candidate.value.every((entry) => typeof entry === "string")
-    )
-  }
-
-  return false
-}
-
-function isEvaluatorCondition(value: unknown): value is EvaluatorCondition {
-  if (typeof value !== "object" || value === null) return false
-  const candidate = value as Partial<EvaluatorCondition>
-  return (
-    typeof candidate.id === "string" &&
-    isWorkflowTypedValue(candidate.left) &&
-    typeof candidate.operator === "string" &&
-    (candidate.right === undefined || isWorkflowTypedValue(candidate.right))
-  )
-}
+import {
+  buildDefaultEvaluatorConfig,
+  evaluatorSubtitle,
+  EVALUATOR_ALLOWED_TARGETS,
+  EVALUATOR_OUTPUTS,
+  validateEvaluatorConfigValue,
+} from "../evaluator-shared/config"
 
 export const evaluator = defineNode({
   kind: "evaluator" as const,
@@ -42,57 +17,10 @@ export const evaluator = defineNode({
   category: "logic",
   fields: [],
   outputPaths: [],
-  allowedTargets: [
-    "evaluator",
-    "setVariable",
-    "inlineExpression",
-    "extractor",
-    "pathExtractor",
-    "result",
-  ],
-  buildDefaultConfig: () => ({
-    label: "",
-    conditions: [
-      {
-        id: crypto.randomUUID(),
-        left: { type: "value", value: "" },
-        operator: "is equal to",
-        right: { type: "value", value: "" },
-      } satisfies EvaluatorCondition,
-    ],
-    logicalOperator: "and" as const,
-    caseSensitive: false,
-  }),
+  allowedTargets: EVALUATOR_ALLOWED_TARGETS,
+  buildDefaultConfig: buildDefaultEvaluatorConfig,
   renameConfigKey: "label",
-  subtitle: (config) => {
-    const conditions = config.conditions as EvaluatorCondition[] | undefined
-    if (!conditions?.length) return "No conditions"
-    return `${conditions.length} condition${conditions.length > 1 ? "s" : ""}`
-  },
-  outputs: [
-    {
-      id: "evaluator-true",
-      top: "34%",
-      label: "true",
-    },
-    {
-      id: "evaluator-false",
-      top: "72%",
-      label: "false",
-    },
-  ],
-  validateConfigValue: (key, value) => {
-    switch (key) {
-      case "conditions":
-        return Array.isArray(value) && value.every(isEvaluatorCondition)
-      case "label":
-        return typeof value === "string"
-      case "logicalOperator":
-        return value === "and" || value === "or"
-      case "caseSensitive":
-        return typeof value === "boolean"
-      default:
-        return false
-    }
-  },
+  subtitle: evaluatorSubtitle,
+  outputs: EVALUATOR_OUTPUTS,
+  validateConfigValue: validateEvaluatorConfigValue,
 })

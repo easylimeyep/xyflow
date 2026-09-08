@@ -19,6 +19,7 @@
  */
 export {
   evaluator,
+  jsonEvaluator,
   setVariable,
   inlineExpression,
   extractor,

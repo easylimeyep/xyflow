@@ -35,6 +35,7 @@ export const inlineExpression = defineNode({
   outputPaths: ["template"],
   allowedTargets: [
     "evaluator",
+    "jsonEvaluator",
     "setVariable",
     "inlineExpression",
     "extractor",
