@@ -1,10 +1,14 @@
 import {
   DEFAULT_EVALUATOR_OPERATOR_OPTIONS,
+  type FieldOption,
   type WorkflowEvaluatorOperatorAllowType,
   type WorkflowEvaluatorOperatorCatalog,
   type WorkflowEvaluatorOperatorOption,
 } from "../types"
-import type { WorkflowRuntimeConfig } from "./types"
+import type {
+  WorkflowNodeOptionsCatalog,
+  WorkflowRuntimeConfig,
+} from "./types"
 
 const ALLOWED_OPERATOR_TYPES = new Set<WorkflowEvaluatorOperatorAllowType>([
   "value",
@@ -92,6 +96,78 @@ function normalizeEvaluatorOperatorCatalog(
   }
 }
 
+/**
+ * One select's choices, or `null` when the host listed nothing usable — the
+ * caller drops the key at that point so the node keeps its built-in list
+ * rather than rendering an empty select.
+ */
+function normalizeNodeSelectOptions(options: unknown): FieldOption[] | null {
+  if (!Array.isArray(options)) {
+    return null
+  }
+
+  const normalized: FieldOption[] = []
+  const seenValues = new Set<string>()
+
+  for (const option of options) {
+    if (typeof option !== "object" || option === null) {
+      continue
+    }
+
+    const candidate = option as Partial<FieldOption>
+    const value =
+      typeof candidate.value === "string" ? candidate.value.trim() : ""
+    const label =
+      typeof candidate.label === "string" ? candidate.label.trim() : ""
+
+    if (!value || seenValues.has(value)) {
+      continue
+    }
+
+    seenValues.add(value)
+    normalized.push({ value, label: label || value })
+  }
+
+  return normalized.length > 0 ? normalized : null
+}
+
+function normalizeNodeOptionsCatalog(
+  catalog: WorkflowNodeOptionsCatalog | undefined
+): WorkflowNodeOptionsCatalog | undefined {
+  if (!catalog || typeof catalog !== "object" || Array.isArray(catalog)) {
+    return undefined
+  }
+
+  const normalized: WorkflowNodeOptionsCatalog = {}
+
+  for (const [kind, keyedOptions] of Object.entries(catalog)) {
+    if (
+      !kind.trim() ||
+      typeof keyedOptions !== "object" ||
+      keyedOptions === null ||
+      Array.isArray(keyedOptions)
+    ) {
+      continue
+    }
+
+    const normalizedKeys: Record<string, FieldOption[]> = {}
+
+    for (const [configKey, options] of Object.entries(keyedOptions)) {
+      const normalizedOptions = normalizeNodeSelectOptions(options)
+      if (!configKey.trim() || !normalizedOptions) {
+        continue
+      }
+      normalizedKeys[configKey] = normalizedOptions
+    }
+
+    if (Object.keys(normalizedKeys).length > 0) {
+      normalized[kind] = normalizedKeys
+    }
+  }
+
+  return Object.keys(normalized).length > 0 ? normalized : undefined
+}
+
 export function normalizeWorkflowRuntimeConfig(
   runtime: WorkflowRuntimeConfig = {}
 ): WorkflowRuntimeConfig {
@@ -99,6 +175,7 @@ export function normalizeWorkflowRuntimeConfig(
     ...runtime,
     enableEvaluatorMultipleConditions:
       runtime.enableEvaluatorMultipleConditions ?? false,
+    nodeOptions: normalizeNodeOptionsCatalog(runtime.nodeOptions),
     evaluator: {
       ...runtime.evaluator,
       operators: normalizeEvaluatorOperatorCatalog(

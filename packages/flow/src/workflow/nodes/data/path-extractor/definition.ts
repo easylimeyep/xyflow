@@ -1,29 +1,22 @@
 import { Waypoints } from "lucide-react"
 
 import { defineNode } from "../../../node-registry/define-node"
-import type { PathExtractorOutputType } from "../../../types/types"
+import type { FieldOption, PathExtractorOutputType } from "../../../types/types"
+import { isSelectConfigValue } from "../../shared/node-data-utils"
 
 /**
- * The `expected out` choices, in display order. `value` is the sensible
- * default: the resolved value handed downstream as-is.
+ * The `expected out` choices the node ships with, in display order. `value` is
+ * the sensible default: the resolved value handed downstream as-is. A host may
+ * replace the list through `runtime.nodeOptions.pathExtractor.outputType`, so
+ * the component reads the active options from the store and only falls back
+ * here.
  */
 export const PATH_EXTRACTOR_OUTPUT_TYPE_OPTIONS = [
   { value: "string", label: "string" },
   { value: "value", label: "value" },
   { value: "arrayValue", label: "array value" },
   { value: "arrayObject", label: "array object" },
-] satisfies { value: PathExtractorOutputType; label: string }[]
-
-function isPathExtractorOutputType(
-  value: unknown
-): value is PathExtractorOutputType {
-  return (
-    value === "string" ||
-    value === "value" ||
-    value === "arrayValue" ||
-    value === "arrayObject"
-  )
-}
+] satisfies FieldOption[]
 
 export const pathExtractor = defineNode({
   kind: "pathExtractor" as const,
@@ -48,10 +41,7 @@ export const pathExtractor = defineNode({
       key: "outputType",
       label: "Expected out",
       type: "select",
-      options: PATH_EXTRACTOR_OUTPUT_TYPE_OPTIONS.map(({ value, label }) => ({
-        label,
-        value,
-      })),
+      options: [...PATH_EXTRACTOR_OUTPUT_TYPE_OPTIONS],
     },
   ],
   outputPaths: [],
@@ -76,7 +66,7 @@ export const pathExtractor = defineNode({
       case "path":
         return typeof value === "string"
       case "outputType":
-        return isPathExtractorOutputType(value)
+        return isSelectConfigValue(value)
       default:
         return false
     }

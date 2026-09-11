@@ -12,15 +12,15 @@ import {
 
 import { jsonEvaluatorNodeStyles } from "../../../../styles/components/nodes"
 import type { EvaluatorMatchType } from "../../../types"
-import { useBaseNodeData } from "../../shared"
+import {
+  resolveSelectedOptionValue,
+  useBaseNodeData,
+  useNodeSelectOptions,
+} from "../../shared"
 import { useNodeStoreData } from "../../shared/use-node-store-data"
 import { EvaluatorView } from "../evaluator-shared"
 import { jsonEvaluator } from "./definition"
-import {
-  DEFAULT_MATCH_TYPE,
-  isEvaluatorMatchType,
-  MATCH_TYPE_OPTIONS,
-} from "./match-type"
+import { DEFAULT_MATCH_TYPE, MATCH_TYPE_OPTIONS } from "./match-type"
 
 const styles = jsonEvaluatorNodeStyles()
 
@@ -28,9 +28,16 @@ export function JsonEvaluatorNode({ id, data, selected }: NodeProps) {
   const { config } = useBaseNodeData(data)
   const { updateNodeConfig } = useNodeStoreData(id)
 
-  const matchType = isEvaluatorMatchType(config.matchType)
-    ? config.matchType
-    : DEFAULT_MATCH_TYPE
+  const matchTypeOptions = useNodeSelectOptions(
+    jsonEvaluator.kind,
+    "matchType",
+    MATCH_TYPE_OPTIONS
+  )
+  const matchType = resolveSelectedOptionValue(
+    matchTypeOptions,
+    config.matchType,
+    DEFAULT_MATCH_TYPE
+  )
 
   return (
     <EvaluatorView
@@ -58,8 +65,8 @@ export function JsonEvaluatorNode({ id, data, selected }: NodeProps) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {MATCH_TYPE_OPTIONS.map((option) => (
-                <SelectItem key={option.id} id={option.id}>
+              {matchTypeOptions.map((option) => (
+                <SelectItem key={option.value} id={option.value}>
                   {option.label}
                 </SelectItem>
               ))}

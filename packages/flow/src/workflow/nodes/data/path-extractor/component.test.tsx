@@ -17,6 +17,24 @@ vi.mock("@xyflow/react", () => ({
   },
 }))
 
+// The select's choices come from the store (`runtime.nodeOptions`); these
+// suites render the node without a provider, so the hook is stubbed to hand
+// back the built-in list the component passes as its fallback.
+vi.mock("../../shared/use-node-select-options", async (importOriginal) => {
+  const actual = await importOriginal<
+    typeof import("../../shared/use-node-select-options")
+  >()
+
+  return {
+    ...actual,
+    useNodeSelectOptions: (
+      _kind: string,
+      _configKey: string,
+      fallbackOptions: readonly { value: string; label: string }[]
+    ) => fallbackOptions,
+  }
+})
+
 vi.mock("../../shared/use-node-store-data", () => ({
   useNodeStoreData: () => ({
     updateNodeConfig: mockUpdateNodeConfig,

@@ -15,17 +15,20 @@ import { useCallback, useRef, useState } from "react"
 import { setVariableNodeStyles } from "../../../../styles/components/nodes"
 import type { PathExtractorOutputType } from "../../../types/types"
 import { NodeShell } from "../../node-shell/node-shell"
-import { asText, useBaseNodeData, useVariableIdentifierField } from "../../shared"
+import {
+  asText,
+  resolveSelectedOptionValue,
+  useBaseNodeData,
+  useNodeSelectOptions,
+  useVariableIdentifierField,
+} from "../../shared"
 import { useNodeStoreData } from "../../shared/use-node-store-data"
-import { PATH_EXTRACTOR_OUTPUT_TYPE_OPTIONS } from "./definition"
+import {
+  pathExtractor,
+  PATH_EXTRACTOR_OUTPUT_TYPE_OPTIONS,
+} from "./definition"
 
-function readOutputType(value: unknown): PathExtractorOutputType {
-  return value === "string" ||
-    value === "arrayValue" ||
-    value === "arrayObject"
-    ? value
-    : "value"
-}
+const DEFAULT_OUTPUT_TYPE: PathExtractorOutputType = "value"
 
 export function PathExtractorNode({ id, data, selected }: NodeProps) {
   const { label: baseLabel, config } = useBaseNodeData(data)
@@ -35,7 +38,16 @@ export function PathExtractorNode({ id, data, selected }: NodeProps) {
 
   const variableLabel = asText(config.variableLabel).trim()
   const pathFromStore = asText(config.path)
-  const outputType = readOutputType(config.outputType)
+  const outputTypeOptions = useNodeSelectOptions(
+    pathExtractor.kind,
+    "outputType",
+    PATH_EXTRACTOR_OUTPUT_TYPE_OPTIONS
+  )
+  const outputType = resolveSelectedOptionValue(
+    outputTypeOptions,
+    config.outputType,
+    DEFAULT_OUTPUT_TYPE
+  )
 
   const variableLabelField = useVariableIdentifierField({
     value: variableLabel,
@@ -133,7 +145,7 @@ export function PathExtractorNode({ id, data, selected }: NodeProps) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {PATH_EXTRACTOR_OUTPUT_TYPE_OPTIONS.map((option) => (
+              {outputTypeOptions.map((option) => (
                 <SelectItem key={option.value} id={option.value}>
                   {option.label}
                 </SelectItem>

@@ -67,6 +67,7 @@ export type {
   PendingQuickAdd,
   WorkflowExportDomainMapper,
   WorkflowImportDomainMapper,
+  WorkflowNodeOptionsCatalog,
   WorkflowRuntimeEvaluatorConfig,
   WorkflowRuntimeExportDomainConfig,
   WorkflowRuntimeImportDomainConfig,

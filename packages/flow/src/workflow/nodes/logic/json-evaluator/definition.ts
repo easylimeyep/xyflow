@@ -9,7 +9,7 @@ import {
   EVALUATOR_OUTPUTS,
   validateEvaluatorConfigValue,
 } from "../evaluator-shared/config"
-import { isEvaluatorMatchType } from "./match-type"
+import { isSelectConfigValue } from "../../shared/node-data-utils"
 
 export const jsonEvaluator = defineNode({
   kind: "jsonEvaluator" as const,
@@ -29,6 +29,6 @@ export const jsonEvaluator = defineNode({
   outputs: EVALUATOR_OUTPUTS,
   validateConfigValue: (key, value) =>
     key === "matchType"
-      ? isEvaluatorMatchType(value)
+      ? isSelectConfigValue(value)
       : validateEvaluatorConfigValue(key, value),
 })

@@ -16,6 +16,15 @@ export type JsonArray = JsonValue[]
 export type FieldType = "text" | "textarea" | "number" | "boolean" | "select"
 export type FieldUi = "default" | "expression"
 
+/**
+ * The values a kind ships with, without closing the door on a host-supplied
+ * one: a select whose options come from `runtime.nodeOptions` stores whatever
+ * the host listed there, and the built-in values stay documented and
+ * autocompleted. The `Record<never, never>` intersection is the usual trick to
+ * keep the literals from collapsing into plain `string`.
+ */
+type KnownOr<TKnown extends string> = TKnown | (string & Record<never, never>)
+
 export interface FieldOption {
   label: string
   value: string
@@ -132,7 +141,7 @@ export type EvaluatorNodeConfig = {
  * - `all` — every condition matches
  * - `one` — exactly one condition matches
  */
-export type EvaluatorMatchType = "any" | "all" | "one"
+export type EvaluatorMatchType = KnownOr<"any" | "all" | "one">
 
 export type JsonEvaluatorNodeConfig = EvaluatorNodeConfig & {
   matchType: EvaluatorMatchType
@@ -166,11 +175,9 @@ export type ExtractorNodeConfig = {
  * - `arrayValue` — an array of primitives
  * - `arrayObject` — an array of objects
  */
-export type PathExtractorOutputType =
-  | "string"
-  | "value"
-  | "arrayValue"
-  | "arrayObject"
+export type PathExtractorOutputType = KnownOr<
+  "string" | "value" | "arrayValue" | "arrayObject"
+>
 
 export type PathExtractorNodeConfig = {
   variableLabel: string

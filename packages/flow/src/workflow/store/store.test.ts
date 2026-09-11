@@ -422,6 +422,55 @@ describe("workflow store", () => {
     })
   })
 
+  it("leaves node select options unset when the runtime omits them", () => {
+    expect(store.getState().runtime.nodeOptions).toBeUndefined()
+  })
+
+  it("normalizes custom runtime node select options before storing them", () => {
+    const runtimeStore = createWorkflowStore({
+      definitions: builtinBaseDefinitions,
+      runtime: {
+        nodeOptions: {
+          pathExtractor: {
+            outputType: [
+              { value: " raw ", label: " Raw " },
+              { value: "raw", label: "Duplicate" },
+              { value: " ", label: "Missing value" },
+              { value: "digest", label: " " },
+            ],
+          },
+        },
+      },
+    })
+
+    expect(runtimeStore.getState().runtime.nodeOptions).toEqual({
+      pathExtractor: {
+        outputType: [
+          { value: "raw", label: "Raw" },
+          { value: "digest", label: "digest" },
+        ],
+      },
+    })
+  })
+
+  it("drops node select option entries that normalize to nothing", () => {
+    const runtimeStore = createWorkflowStore({
+      definitions: builtinBaseDefinitions,
+      runtime: {
+        nodeOptions: {
+          pathExtractor: {
+            outputType: [],
+          },
+          jsonEvaluator: {
+            matchType: "not-a-list" as never,
+          },
+        },
+      },
+    })
+
+    expect(runtimeStore.getState().runtime.nodeOptions).toBeUndefined()
+  })
+
   it("rejects string runtime evaluator operator metadata", () => {
     const runtimeStore = createWorkflowStore({
       definitions: builtinBaseDefinitions,

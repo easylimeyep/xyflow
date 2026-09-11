@@ -195,6 +195,45 @@ describe("workflow node registry", () => {
     ).toBe(false)
   })
 
+  it("accepts host-supplied select values for runtime-configurable keys", () => {
+    // `runtime.nodeOptions` lets a host replace these choices, and a definition
+    // is a module constant that cannot see it — so the value check is shallow
+    // by design and an imported graph must survive the round trip.
+    expect(
+      decodeNodeConfig(registry, "pathExtractor", {
+        variableLabel: "city",
+        path: "user.address.city",
+        outputType: "digest",
+      })
+    ).toMatchObject({ success: true, config: { outputType: "digest" } })
+
+    expect(
+      decodeNodeConfig(registry, "jsonEvaluator", {
+        conditions: [
+          {
+            id: "condition-1",
+            left: { type: "value", value: "{{ source }}" },
+            operator: "is equal to",
+            right: { type: "value", value: "{{ target }}" },
+          },
+        ],
+        logicalOperator: "and",
+        caseSensitive: false,
+        matchType: "at-least-two",
+      })
+    ).toMatchObject({ success: true, config: { matchType: "at-least-two" } })
+  })
+
+  it("still rejects blank select values", () => {
+    expect(
+      decodeNodeConfig(registry, "pathExtractor", {
+        variableLabel: "city",
+        path: "user.address.city",
+        outputType: "  ",
+      }).success
+    ).toBe(false)
+  })
+
   it("does not expose trigger node in registry", () => {
     expect(registry.kinds()).not.toContain("trigger")
   })

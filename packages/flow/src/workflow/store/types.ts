@@ -13,6 +13,7 @@ import type { WorkflowError } from "../types/errors"
 import type {
   DomainWorkflowDTO,
   ExpressionVariableOption,
+  FieldOption,
   JsonValue,
   NodeConfigByKind,
   NodeKind,
@@ -105,8 +106,27 @@ export interface WorkflowRuntimeEvaluatorConfig {
   operators?: WorkflowEvaluatorOperatorCatalog
 }
 
+/**
+ * Host-supplied choices for the select-backed config keys of a node kind,
+ * keyed by kind and then by config key:
+ *
+ * ```ts
+ * runtime={{ nodeOptions: { pathExtractor: { outputType: [...] } } }}
+ * ```
+ *
+ * A kind or a key left out keeps the vocabulary the node ships with, and a
+ * list that normalizes to nothing is dropped rather than emptying a select.
+ * Evaluator operators are NOT here: they carry `allowTypes` and keep their own
+ * richer catalog under `evaluator.operators`.
+ */
+export type WorkflowNodeOptionsCatalog = Record<
+  NodeKind,
+  Record<string, FieldOption[]>
+>
+
 export interface WorkflowRuntimeConfig {
   evaluator?: WorkflowRuntimeEvaluatorConfig
+  nodeOptions?: WorkflowNodeOptionsCatalog
   enableEvaluatorMultipleConditions?: boolean
   importDomain?: WorkflowRuntimeImportDomainConfig
   exportDomain?: WorkflowRuntimeExportDomainConfig
