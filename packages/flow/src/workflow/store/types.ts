@@ -114,8 +114,13 @@ export interface WorkflowRuntimeEvaluatorConfig {
  * runtime={{ nodeOptions: { pathExtractor: { outputType: [...] } } }}
  * ```
  *
- * A kind or a key left out keeps the vocabulary the node ships with, and a
- * list that normalizes to nothing is dropped rather than emptying a select.
+ * A kind or a key left out keeps the vocabulary the node ships with. An empty
+ * list is honoured as an empty list — these catalogs usually come from a
+ * server, and a host that hands over `[]` (the request failed, or there really
+ * are no choices) must not have the built-in values offered in its place; the
+ * node renders a disabled select holding whatever it already stored. Only a
+ * value that is not a list at all is discarded as malformed.
+ *
  * Evaluator operators are NOT here: they carry `allowTypes` and keep their own
  * richer catalog under `evaluator.operators`.
  */

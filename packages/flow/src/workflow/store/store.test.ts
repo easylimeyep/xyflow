@@ -453,7 +453,10 @@ describe("workflow store", () => {
     })
   })
 
-  it("drops node select option entries that normalize to nothing", () => {
+  it("keeps an empty node select option list the host supplied", () => {
+    // These catalogs come from a server. An empty list says "no choices right
+    // now"; substituting the built-in list would offer values that server
+    // never sanctioned.
     const runtimeStore = createWorkflowStore({
       definitions: builtinBaseDefinitions,
       runtime: {
@@ -462,8 +465,27 @@ describe("workflow store", () => {
             outputType: [],
           },
           jsonEvaluator: {
-            matchType: "not-a-list" as never,
+            matchType: [{ value: " ", label: "Blank" }],
           },
+        },
+      },
+    })
+
+    expect(runtimeStore.getState().runtime.nodeOptions).toEqual({
+      pathExtractor: { outputType: [] },
+      jsonEvaluator: { matchType: [] },
+    })
+  })
+
+  it("drops node select option entries that are not lists at all", () => {
+    const runtimeStore = createWorkflowStore({
+      definitions: builtinBaseDefinitions,
+      runtime: {
+        nodeOptions: {
+          pathExtractor: {
+            outputType: "not-a-list" as never,
+          },
+          jsonEvaluator: "not-an-object" as never,
         },
       },
     })

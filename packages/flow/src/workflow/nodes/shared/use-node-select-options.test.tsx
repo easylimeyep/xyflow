@@ -62,6 +62,20 @@ describe("useNodeSelectOptions", () => {
     )
   })
 
+  it("honours an empty list the host supplied", () => {
+    // The server returned nothing (or the request failed). Falling back to the
+    // built-ins here would offer values that server never sanctioned.
+    render(
+      <WorkflowStoreProvider
+        runtime={{ nodeOptions: { pathExtractor: { outputType: [] } } }}
+      >
+        <OptionProbe />
+      </WorkflowStoreProvider>
+    )
+
+    expect(screen.getByTestId("options").textContent).toBe("[]")
+  })
+
   it("keeps the built-in options for a key the host left out", () => {
     render(
       <WorkflowStoreProvider
@@ -102,7 +116,13 @@ describe("resolveSelectedOptionValue", () => {
     ).toBe("digest")
   })
 
-  it("falls back to the given default when there are no options at all", () => {
+  it("keeps the stored value when there are no options at all", () => {
+    // An empty catalog is a transient server state; it must not rewrite what
+    // the node already holds.
+    expect(resolveSelectedOptionValue([], "digest", "value")).toBe("digest")
+  })
+
+  it("falls back to the given default with neither options nor a value", () => {
     expect(resolveSelectedOptionValue([], undefined, "value")).toBe("value")
   })
 })

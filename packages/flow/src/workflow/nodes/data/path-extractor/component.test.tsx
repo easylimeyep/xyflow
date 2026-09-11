@@ -17,9 +17,12 @@ vi.mock("@xyflow/react", () => ({
   },
 }))
 
-// The select's choices come from the store (`runtime.nodeOptions`); these
-// suites render the node without a provider, so the hook is stubbed to hand
-// back the built-in list the component passes as its fallback.
+// The select's choices come from the store (`runtime.nodeOptions`); this suite
+// renders the node without a provider, so the hook is stubbed to hand back the
+// built-in list the component passes as its fallback — unless a test stands in
+// its own host options.
+let mockHostOptions: { value: string; label: string }[] | null = null
+
 vi.mock("../../shared/use-node-select-options", async (importOriginal) => {
   const actual = await importOriginal<
     typeof import("../../shared/use-node-select-options")
@@ -31,7 +34,7 @@ vi.mock("../../shared/use-node-select-options", async (importOriginal) => {
       _kind: string,
       _configKey: string,
       fallbackOptions: readonly { value: string; label: string }[]
-    ) => fallbackOptions,
+    ) => mockHostOptions ?? fallbackOptions,
   }
 })
 
@@ -82,6 +85,7 @@ function createNodeProps(
 describe("PathExtractorNode", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockHostOptions = null
   })
 
   afterEach(() => {
@@ -170,5 +174,26 @@ describe("PathExtractorNode", () => {
       key: "outputType",
       value: "arrayValue",
     })
+  })
+
+  it("disables the select and keeps the stored value on empty host options", async () => {
+    // What a host hands over when its option request came back empty or
+    // failed: nothing to choose from, and the saved value must survive.
+    mockHostOptions = []
+    const user = userEvent.setup()
+    render(
+      <PathExtractorNode
+        {...createNodeProps("myVar", "user.city", "arrayObject")}
+      />
+    )
+
+    const outputSelect = screen.getByLabelText("Expected out")
+    expect(outputSelect.getAttribute("disabled")).not.toBeNull()
+    expect(outputSelect.textContent).toContain("arrayObject")
+
+    await user.click(outputSelect)
+
+    expect(screen.queryByRole("option")).toBeNull()
+    expect(mockUpdateNodeConfig).not.toHaveBeenCalled()
   })
 })

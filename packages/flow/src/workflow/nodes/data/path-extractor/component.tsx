@@ -48,6 +48,10 @@ export function PathExtractorNode({ id, data, selected }: NodeProps) {
     config.outputType,
     DEFAULT_OUTPUT_TYPE
   )
+  // A host whose option request failed hands over an empty list. Show what the
+  // node holds, muted and unopenable, rather than an editable select that can
+  // only take the value away.
+  const hasOutputTypeOptions = outputTypeOptions.length > 0
 
   const variableLabelField = useVariableIdentifierField({
     value: variableLabel,
@@ -132,6 +136,8 @@ export function PathExtractorNode({ id, data, selected }: NodeProps) {
           <Label className={styles.label()}>Expected out</Label>
           <Select
             aria-label="Expected out"
+            isDisabled={!hasOutputTypeOptions}
+            placeholder={hasOutputTypeOptions ? undefined : outputType}
             selectedKey={outputType}
             onSelectionChange={(key) => {
               updateNodeConfig(id, {

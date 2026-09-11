@@ -97,9 +97,14 @@ function normalizeEvaluatorOperatorCatalog(
 }
 
 /**
- * One select's choices, or `null` when the host listed nothing usable — the
- * caller drops the key at that point so the node keeps its built-in list
- * rather than rendering an empty select.
+ * One select's choices, or `null` when the value is not a list at all — the
+ * caller drops the key at that point so the node keeps its built-in list.
+ *
+ * An EMPTY list is not the same thing and is kept: these catalogs usually come
+ * from a server, and a host that hands over an empty array is saying "there
+ * are no choices right now" (the request failed, or the vocabulary really is
+ * empty). Quietly substituting the built-in list there would offer values the
+ * backend never sanctioned.
  */
 function normalizeNodeSelectOptions(options: unknown): FieldOption[] | null {
   if (!Array.isArray(options)) {
@@ -128,7 +133,7 @@ function normalizeNodeSelectOptions(options: unknown): FieldOption[] | null {
     normalized.push({ value, label: label || value })
   }
 
-  return normalized.length > 0 ? normalized : null
+  return normalized
 }
 
 function normalizeNodeOptionsCatalog(
@@ -154,7 +159,7 @@ function normalizeNodeOptionsCatalog(
 
     for (const [configKey, options] of Object.entries(keyedOptions)) {
       const normalizedOptions = normalizeNodeSelectOptions(options)
-      if (!configKey.trim() || !normalizedOptions) {
+      if (!configKey.trim() || normalizedOptions === null) {
         continue
       }
       normalizedKeys[configKey] = normalizedOptions

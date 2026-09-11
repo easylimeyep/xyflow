@@ -11,7 +11,9 @@ import { ExamplePreview } from "./example-preview"
 
 /**
  * Select-backed config keys a host replaces without forking a node: the key is
- * the node kind, then the config key the select writes to.
+ * the node kind, then the config key the select writes to. An empty array is a
+ * valid answer — the node then shows a disabled select holding its stored
+ * value, which is what a failed or empty server response should look like.
  */
 const nodeOptions = {
   pathExtractor: {
@@ -112,7 +114,8 @@ export function Example() {
       initialGraph={initialGraph}
       runtime={{
         // Keyed by node kind, then by the config key the select writes to.
-        // A kind or key left out keeps the vocabulary the node ships with.
+        // A kind or key left out keeps the vocabulary the node ships with;
+        // an empty array means "no choices" and disables that select.
         nodeOptions: {
           pathExtractor: {
             outputType: [

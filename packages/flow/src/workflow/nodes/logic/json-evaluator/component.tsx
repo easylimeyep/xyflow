@@ -38,6 +38,10 @@ export function JsonEvaluatorNode({ id, data, selected }: NodeProps) {
     config.matchType,
     DEFAULT_MATCH_TYPE
   )
+  // A host whose option request failed hands over an empty list. Show what the
+  // node holds, muted and unopenable, rather than an editable select that can
+  // only take the value away.
+  const hasMatchTypeOptions = matchTypeOptions.length > 0
 
   return (
     <EvaluatorView
@@ -52,6 +56,8 @@ export function JsonEvaluatorNode({ id, data, selected }: NodeProps) {
           <Label className={styles.matchTypeLabel()}>Match type</Label>
           <Select
             aria-label="Match type"
+            isDisabled={!hasMatchTypeOptions}
+            placeholder={hasMatchTypeOptions ? undefined : matchType}
             selectedKey={matchType}
             onSelectionChange={(key) => {
               updateNodeConfig(id, {
