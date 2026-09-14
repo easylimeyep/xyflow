@@ -201,7 +201,6 @@ describe("workflow node registry", () => {
     // by design and an imported graph must survive the round trip.
     expect(
       decodeNodeConfig(registry, "pathExtractor", {
-        variableLabel: "city",
         path: "user.address.city",
         outputType: "digest",
       })
@@ -227,7 +226,6 @@ describe("workflow node registry", () => {
   it("still rejects blank select values", () => {
     expect(
       decodeNodeConfig(registry, "pathExtractor", {
-        variableLabel: "city",
         path: "user.address.city",
         outputType: "  ",
       }).success

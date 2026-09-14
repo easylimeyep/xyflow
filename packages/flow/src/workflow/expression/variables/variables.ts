@@ -117,14 +117,9 @@ function readExtractorVariableName(node: WorkflowNode): string {
   return node.data.label.trim()
 }
 
+// The node carries no label field of its own: its variable name is the node
+// title, which the label rules already keep a valid identifier.
 function readPathExtractorVariableName(node: WorkflowNode): string {
-  const fromConfig = node.data.config.variableLabel
-  if (typeof fromConfig === "string") {
-    const trimmedConfig = fromConfig.trim()
-    if (trimmedConfig.length > 0 && isValidJsIdentifier(trimmedConfig)) {
-      return trimmedConfig
-    }
-  }
   return node.data.label.trim()
 }
 

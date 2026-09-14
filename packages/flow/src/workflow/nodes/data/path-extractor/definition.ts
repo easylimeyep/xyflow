@@ -26,12 +26,6 @@ export const pathExtractor = defineNode({
   category: "data",
   fields: [
     {
-      key: "variableLabel",
-      label: "Label",
-      type: "text",
-      placeholder: "myVar",
-    },
-    {
       key: "path",
       label: "Path",
       type: "text",
@@ -55,14 +49,11 @@ export const pathExtractor = defineNode({
     "result",
   ],
   buildDefaultConfig: () => ({
-    variableLabel: "",
     path: "",
     outputType: "value" as PathExtractorOutputType,
   }),
-  renameConfigKey: "variableLabel",
   validateConfigValue: (key, value) => {
     switch (key) {
-      case "variableLabel":
       case "path":
         return typeof value === "string"
       case "outputType":

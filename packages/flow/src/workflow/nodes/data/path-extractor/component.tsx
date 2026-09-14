@@ -20,7 +20,6 @@ import {
   resolveSelectedOptionValue,
   useBaseNodeData,
   useNodeSelectOptions,
-  useVariableIdentifierField,
 } from "../../shared"
 import { useNodeStoreData } from "../../shared/use-node-store-data"
 import {
@@ -36,7 +35,6 @@ export function PathExtractorNode({ id, data, selected }: NodeProps) {
   const { nodeValidationMessages, updateNodeConfig } = useNodeStoreData(id)
   const styles = setVariableNodeStyles()
 
-  const variableLabel = asText(config.variableLabel).trim()
   const pathFromStore = asText(config.path)
   const outputTypeOptions = useNodeSelectOptions(
     pathExtractor.kind,
@@ -52,18 +50,6 @@ export function PathExtractorNode({ id, data, selected }: NodeProps) {
   // node holds, muted and unopenable, rather than an editable select that can
   // only take the value away.
   const hasOutputTypeOptions = outputTypeOptions.length > 0
-
-  const variableLabelField = useVariableIdentifierField({
-    value: variableLabel,
-    allowEmpty: true,
-    onCommit: (nextLabel) => {
-      updateNodeConfig(id, {
-        kind: "pathExtractor",
-        key: "variableLabel",
-        value: nextLabel,
-      })
-    },
-  })
 
   const [draftPath, setDraftPath] = useState(pathFromStore)
   const [isPathFocused, setIsPathFocused] = useState(false)
@@ -90,24 +76,6 @@ export function PathExtractorNode({ id, data, selected }: NodeProps) {
       validationMessages={nodeValidationMessages}
     >
       <div className={styles.root()}>
-        <div className={styles.fieldGroup()}>
-          <Label className={styles.label()}>Label</Label>
-          <Input
-            ref={variableLabelField.inputRef}
-            value={variableLabelField.shownValue}
-            placeholder="myVar"
-            onFocus={variableLabelField.onFocus}
-            onChange={(event) =>
-              variableLabelField.onChange(event.target.value)
-            }
-            onBlur={variableLabelField.onBlur}
-            onKeyDown={variableLabelField.onKeyDown}
-          />
-          {variableLabelField.errorText ? (
-            <p className={styles.errorText()}>{variableLabelField.errorText}</p>
-          ) : null}
-        </div>
-
         <div className={styles.fieldGroup()}>
           <Label className={styles.label()}>Path</Label>
           <Input

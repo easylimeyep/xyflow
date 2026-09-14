@@ -180,7 +180,6 @@ export type PathExtractorOutputType = KnownOr<
 >
 
 export type PathExtractorNodeConfig = {
-  variableLabel: string
   path: string
   outputType: PathExtractorOutputType
 }

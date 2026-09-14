@@ -48,7 +48,6 @@ const initialGraph = createInitialGraph(builtinDefinitions, {
       kind: "pathExtractor",
       label: "Address",
       config: {
-        variableLabel: "city",
         path: "lead.address.city",
         outputType: "digest",
       },

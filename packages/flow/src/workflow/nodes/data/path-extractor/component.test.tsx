@@ -51,11 +51,7 @@ vi.mock(
   })
 )
 
-function createNodeProps(
-  variableLabel: string,
-  path: string,
-  outputType = "value"
-): NodeProps {
+function createNodeProps(path: string, outputType = "value"): NodeProps {
   return {
     id: "path-extractor-node-1",
     type: "pathExtractor",
@@ -63,7 +59,6 @@ function createNodeProps(
       kind: "pathExtractor",
       label: "Path Extractor",
       config: {
-        variableLabel,
         path,
         outputType,
       },
@@ -92,52 +87,20 @@ describe("PathExtractorNode", () => {
     cleanup()
   })
 
-  it("renders Label and Path inputs independently from node title", () => {
-    render(<PathExtractorNode {...createNodeProps("myVar", "user.city")} />)
+  it("renders the Path input and the node title, and carries no Label field", () => {
+    render(<PathExtractorNode {...createNodeProps("user.city")} />)
 
     expect(screen.getByText("Path Extractor")).toBeDefined()
-    const labelInput = screen.getByPlaceholderText("myVar") as HTMLInputElement
     const pathInput = screen.getByPlaceholderText(
       "user.address.city"
     ) as HTMLInputElement
-    expect(labelInput.value).toBe("myVar")
     expect(pathInput.value).toBe("user.city")
-  })
-
-  it("commits Label via updateNodeConfig on blur", () => {
-    render(<PathExtractorNode {...createNodeProps("myVar", "user.city")} />)
-
-    const labelInput = screen.getByPlaceholderText("myVar")
-    fireEvent.focus(labelInput)
-    fireEvent.change(labelInput, { target: { value: "newVar" } })
-    fireEvent.blur(labelInput)
-
-    expect(mockUpdateNodeConfig).toHaveBeenCalledWith("path-extractor-node-1", {
-      kind: "pathExtractor",
-      key: "variableLabel",
-      value: "newVar",
-    })
-  })
-
-  it("shows error and does not commit for invalid JS identifier label", () => {
-    render(<PathExtractorNode {...createNodeProps("myVar", "user.city")} />)
-
-    const labelInput = screen.getByPlaceholderText("myVar")
-    fireEvent.focus(labelInput)
-    fireEvent.change(labelInput, { target: { value: "my var!" } })
-    fireEvent.blur(labelInput)
-
-    expect(mockUpdateNodeConfig).not.toHaveBeenCalledWith(
-      "path-extractor-node-1",
-      { kind: "pathExtractor", key: "variableLabel", value: "my var!" }
-    )
-    expect(
-      screen.getByText("Label must be a valid JavaScript identifier.")
-    ).toBeDefined()
+    expect(screen.queryByPlaceholderText("myVar")).toBeNull()
+    expect(screen.queryByText("Label")).toBeNull()
   })
 
   it("commits Path via updateNodeConfig on blur", () => {
-    render(<PathExtractorNode {...createNodeProps("myVar", "user.city")} />)
+    render(<PathExtractorNode {...createNodeProps("user.city")} />)
 
     const pathInput = screen.getByPlaceholderText("user.address.city")
     fireEvent.focus(pathInput)
@@ -152,7 +115,7 @@ describe("PathExtractorNode", () => {
   })
 
   it("does not commit Path when value is unchanged", () => {
-    render(<PathExtractorNode {...createNodeProps("myVar", "user.city")} />)
+    render(<PathExtractorNode {...createNodeProps("user.city")} />)
 
     const pathInput = screen.getByPlaceholderText("user.address.city")
     fireEvent.focus(pathInput)
@@ -163,7 +126,7 @@ describe("PathExtractorNode", () => {
 
   it("commits output type via updateNodeConfig on change", async () => {
     const user = userEvent.setup()
-    render(<PathExtractorNode {...createNodeProps("myVar", "user.city")} />)
+    render(<PathExtractorNode {...createNodeProps("user.city")} />)
 
     const outputSelect = screen.getByLabelText("Expected out")
     await user.click(outputSelect)
@@ -183,7 +146,7 @@ describe("PathExtractorNode", () => {
     const user = userEvent.setup()
     render(
       <PathExtractorNode
-        {...createNodeProps("myVar", "user.city", "arrayObject")}
+        {...createNodeProps("user.city", "arrayObject")}
       />
     )
 
