@@ -17,6 +17,10 @@ export const evaluatorNodeStyles = tv({
       "flex h-8 min-w-0 items-center gap-1.5 rounded-md border border-dashed border-border bg-muted/40 px-2 py-1 text-[11px] text-muted-foreground",
     upstreamOperandIcon: "size-3 shrink-0",
     upstreamOperandText: "truncate",
+    // The shared tooltip is sized for a one-line caption; this one is a full
+    // sentence, so it needs a readable line length and balanced wrapping.
+    upstreamOperandTooltip:
+      "max-w-[min(20rem,60vw)] text-center leading-relaxed text-pretty",
     operatorRow: "flex items-center gap-1",
     operatorSelect: "w-full text-[11px]",
     deleteButton:

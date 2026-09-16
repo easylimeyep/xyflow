@@ -29,7 +29,7 @@ export function UpstreamOperand({ upstreamNodeLabel }: UpstreamOperandProps) {
         <CornerDownRight className={styles.upstreamOperandIcon()} />
         <span className={styles.upstreamOperandText()}>{text}</span>
       </div>
-      <Tooltip>
+      <Tooltip className={styles.upstreamOperandTooltip()}>
         This operand is filled with the previous node&apos;s output.
       </Tooltip>
     </TooltipTrigger>
