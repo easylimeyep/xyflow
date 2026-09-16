@@ -7,18 +7,27 @@ import {
   builtinDefinitions,
   createNodeRegistry,
   DEFAULT_EVALUATOR_OPERATOR_ID,
+  EVALUATOR_FALSE_HANDLE,
+  EVALUATOR_TRUE_HANDLE,
+  isBranchHandle,
+  isBranchingKind,
   WorkflowEditor,
   WorkflowEditorPalette,
 } from "./index"
 import type {
+  BranchHandleId,
   DomainWorkflowConnectionDTO,
   DomainWorkflowDTO,
   DomainWorkflowNodeDTO,
+  EvaluatorCondition,
+  EvaluatorMatchType,
+  JsonEvaluatorNodeConfig,
   NodeKind,
   WorkflowExportDomainMapper,
   WorkflowGraphState,
   WorkflowImportDomainMapper,
   WorkflowNode,
+  WorkflowUpstreamValue,
 } from "./index"
 
 function RuntimeProbe() {
@@ -109,6 +118,42 @@ describe("WorkflowEditor package root", () => {
     expect(exportMapper(workflowDto)).toBe(workflowDto)
     expect(importMapper(workflowDto)).toBe(workflowDto)
     expect(graphState.nodes[0]?.data.kind).toBe(nodeKind)
+  })
+
+  // A host mapping the editor's graph onto its own backend needs to tell a
+  // branching node from a plain one, and to read which branch an edge leaves
+  // through, without importing package internals.
+  it("re-exports the branching vocabulary", () => {
+    const trueHandle: BranchHandleId = EVALUATOR_TRUE_HANDLE
+
+    expect(isBranchingKind("jsonEvaluator")).toBe(true)
+    expect(isBranchingKind("inlineExpression")).toBe(false)
+    expect(isBranchingKind(undefined)).toBe(false)
+    expect(isBranchHandle(trueHandle)).toBe(true)
+    expect(isBranchHandle(EVALUATOR_FALSE_HANDLE)).toBe(true)
+    expect(isBranchHandle(null)).toBe(false)
+  })
+
+  // The JSON Evaluator's left operand is a bare marker the backend fills with
+  // the previous node's output, so a host mapper has to be able to name it.
+  it("re-exports the JSON Evaluator config vocabulary", () => {
+    const upstream: WorkflowUpstreamValue = { type: "upstream" }
+    const condition: EvaluatorCondition = {
+      id: "condition-1",
+      left: upstream,
+      operator: DEFAULT_EVALUATOR_OPERATOR_ID,
+      right: { type: "value", value: "42" },
+    }
+    const matchType: EvaluatorMatchType = "any"
+    const config: JsonEvaluatorNodeConfig = {
+      label: "",
+      conditions: [condition],
+      logicalOperator: "and",
+      caseSensitive: false,
+      matchType,
+    }
+
+    expect(config.conditions[0]?.left).toEqual({ type: "upstream" })
   })
 
   // Only the palette is mounted, not the whole default composition: the canvas
