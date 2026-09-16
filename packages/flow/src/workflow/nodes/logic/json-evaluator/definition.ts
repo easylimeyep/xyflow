@@ -21,7 +21,9 @@ export const jsonEvaluator = defineNode({
   outputPaths: [],
   allowedTargets: EVALUATOR_ALLOWED_TARGETS,
   buildDefaultConfig: () => ({
-    ...buildDefaultEvaluatorConfig(),
+    // The backend substitutes the previous node's output for every left
+    // operand, so conditions start with an upstream marker instead of a value.
+    ...buildDefaultEvaluatorConfig("upstream"),
     matchType: "any" satisfies EvaluatorMatchType,
   }),
   renameConfigKey: "label",

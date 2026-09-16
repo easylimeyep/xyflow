@@ -1,28 +1,40 @@
 import type {
   EvaluatorCondition,
-  WorkflowTypedValue,
   WorkflowEvaluatorOperatorOption,
+  WorkflowOperandValue,
+  WorkflowTypedValue,
+  WorkflowUpstreamValue,
 } from "../../../types"
 import type { WorkflowVariableType } from "../../../types/variable-types"
 
 const SINGLE_VARIABLE_TEMPLATE_REGEX =
   /^\s*\{\{\s*([A-Za-z_$][\w$]*)\s*\}\}\s*$/
 
-export function createValueOperand(value = ""): WorkflowTypedValue {
+export function createValueOperand(value = ""): WorkflowOperandValue {
   return { type: "value", value }
+}
+
+/**
+ * The left operand of a node whose comparison target comes from upstream. The
+ * backend substitutes the previous node's output, so nothing is stored here.
+ */
+export function createUpstreamOperand(): WorkflowUpstreamValue {
+  return { type: "upstream" }
 }
 
 export function normalizeArrayValues(values: string[]): string[] {
   return values.length > 0 ? values : [""]
 }
 
-export function createArrayOperand(value: string[] = [""]): WorkflowTypedValue {
+export function createArrayOperand(
+  value: string[] = [""]
+): WorkflowOperandValue {
   return { type: "array", value: normalizeArrayValues(value) }
 }
 
 export function createEmptyOperand(
   type: WorkflowVariableType
-): WorkflowTypedValue {
+): WorkflowOperandValue {
   return type === "array" ? createArrayOperand() : createValueOperand()
 }
 
@@ -34,9 +46,9 @@ export function areStringArraysEqual(left: string[], right: string[]): boolean {
 }
 
 export function switchOperandType(
-  operand: WorkflowTypedValue,
+  operand: WorkflowOperandValue,
   nextType: WorkflowVariableType
-): WorkflowTypedValue {
+): WorkflowOperandValue {
   if (operand.type === nextType) {
     return operand
   }
@@ -53,11 +65,12 @@ export function switchOperandType(
 }
 
 export function createDefaultCondition(
-  operator: WorkflowEvaluatorOperatorOption
+  operator: WorkflowEvaluatorOperatorOption,
+  left: WorkflowTypedValue = createValueOperand()
 ): EvaluatorCondition {
   return {
     id: crypto.randomUUID(),
-    left: createValueOperand(),
+    left,
     operator: operator.id,
     ...reconcileRightOperand(undefined, operator),
   }
@@ -76,7 +89,7 @@ export function getAllowedRightOperandTypes(
 }
 
 export function reconcileRightOperand(
-  currentRight: WorkflowTypedValue | undefined,
+  currentRight: WorkflowOperandValue | undefined,
   operator: WorkflowEvaluatorOperatorOption | undefined
 ): Pick<EvaluatorCondition, "right"> {
   const allowedTypes = getAllowedRightOperandTypes(operator)
@@ -107,6 +120,12 @@ export function resolveEffectiveLeftOperandType(
 } {
   if (left.type === "array") {
     return { type: "array" }
+  }
+
+  // An upstream operand carries no value to inspect; the backend always hands
+  // the condition a single value.
+  if (left.type === "upstream") {
+    return { type: "value" }
   }
 
   const variableName = parseSingleVariableTemplate(left.value)

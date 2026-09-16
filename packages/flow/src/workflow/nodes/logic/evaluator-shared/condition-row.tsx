@@ -26,6 +26,8 @@ import {
   reconcileRightOperand,
   resolveEffectiveLeftOperandType,
 } from "./operands"
+import { UpstreamOperand } from "./upstream-operand"
+import type { EvaluatorLeftOperandSource } from "./config"
 
 const styles = evaluatorNodeStyles()
 
@@ -37,6 +39,9 @@ interface ConditionRowProps {
   canDelete: boolean
   showDragHandle: boolean
   isOverlay?: boolean
+  /** `upstream` swaps the left operand editor for a read-only source badge. */
+  leftOperandSource?: EvaluatorLeftOperandSource
+  upstreamNodeLabel?: string | null
   onUpdate: (id: string, patch: Partial<Omit<EvaluatorCondition, "id">>) => void
   onDelete: (id: string) => void
 }
@@ -49,6 +54,8 @@ export function ConditionRow({
   canDelete,
   showDragHandle,
   isOverlay,
+  leftOperandSource = "editable",
+  upstreamNodeLabel,
   onUpdate,
   onDelete,
 }: ConditionRowProps) {
@@ -140,14 +147,19 @@ export function ConditionRow({
       )}
 
       <div className={styles.conditionBody()}>
-        <OperandEditor
-          operand={condition.left}
-          label="Left"
-          placeholder="value"
-          variables={variables}
-          unresolvedVariableName={effectiveLeftOperand.unresolvedVariableName}
-          onChange={updateLeftOperand}
-        />
+        {leftOperandSource === "upstream" ||
+        condition.left.type === "upstream" ? (
+          <UpstreamOperand upstreamNodeLabel={upstreamNodeLabel} />
+        ) : (
+          <OperandEditor
+            operand={condition.left}
+            label="Left"
+            placeholder="value"
+            variables={variables}
+            unresolvedVariableName={effectiveLeftOperand.unresolvedVariableName}
+            onChange={updateLeftOperand}
+          />
+        )}
 
         <div className={styles.operatorRow()}>
           <Select

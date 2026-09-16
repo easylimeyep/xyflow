@@ -56,9 +56,19 @@ export interface WorkflowEvaluatorOperatorCatalog {
 }
 
 export const DEFAULT_EVALUATOR_OPERATOR_ID = "is equal to"
-export type WorkflowTypedValue =
+/** An operand the user types in, either a single value or a list of them. */
+export type WorkflowOperandValue =
   | { type: "value"; value: string }
   | { type: "array"; value: string[] }
+
+/**
+ * A left operand the backend fills with the previous node's output. It carries
+ * no value of its own, which is why the editor renders it as a static badge
+ * instead of an input.
+ */
+export type WorkflowUpstreamValue = { type: "upstream" }
+
+export type WorkflowTypedValue = WorkflowOperandValue | WorkflowUpstreamValue
 
 export const DEFAULT_EVALUATOR_OPERATOR_OPTIONS: WorkflowEvaluatorOperatorCatalog =
   {
@@ -124,7 +134,7 @@ export interface EvaluatorCondition {
   id: string
   left: WorkflowTypedValue
   operator: ConditionOperator
-  right?: WorkflowTypedValue
+  right?: WorkflowOperandValue
 }
 
 export type EvaluatorNodeConfig = {

@@ -25,6 +25,7 @@ import {
 } from "../../shared"
 import { useNodeStoreData } from "../../shared/use-node-store-data"
 import { ConditionRow, LogicalOperatorRow } from "./condition-row"
+import { createLeftOperand, type EvaluatorLeftOperandSource } from "./config"
 import { createDefaultCondition } from "./operands"
 
 const styles = evaluatorNodeStyles()
@@ -40,6 +41,11 @@ export interface EvaluatorViewProps {
   /** Title shown when the node carries no label of its own. */
   fallbackTitle: string
   outputs?: OutputHandle[]
+  /**
+   * `upstream` means the backend fills every left operand with the previous
+   * node's output, so the view shows a badge instead of an editor.
+   */
+  leftOperandSource?: EvaluatorLeftOperandSource
   /** Extra controls rendered under the condition list (see JSON Evaluator). */
   footer?: ReactNode
 }
@@ -51,6 +57,7 @@ export function EvaluatorView({
   kind,
   fallbackTitle,
   outputs,
+  leftOperandSource = "editable",
   footer,
 }: EvaluatorViewProps) {
   const { label: baseLabel, config } = useBaseNodeData(data)
@@ -61,6 +68,7 @@ export function EvaluatorView({
     evaluatorOperators,
     enableEvaluatorMultipleConditions,
     nodeValidationMessages,
+    upstreamNodeLabel,
     updateNodeConfig,
   } = useNodeStoreData(nodeId)
 
@@ -104,8 +112,14 @@ export function EvaluatorView({
     const defaultOperator = evaluatorOperators.value[0]
     if (!defaultOperator) return
 
-    setConditions([...conditions, createDefaultCondition(defaultOperator)])
-  }, [evaluatorOperators, conditions, setConditions])
+    setConditions([
+      ...conditions,
+      createDefaultCondition(
+        defaultOperator,
+        createLeftOperand(leftOperandSource)
+      ),
+    ])
+  }, [evaluatorOperators, conditions, leftOperandSource, setConditions])
 
   const handleUpdateCondition = useCallback(
     (conditionId: string, patch: Partial<Omit<EvaluatorCondition, "id">>) => {
@@ -220,6 +234,8 @@ export function EvaluatorView({
                       visibleConditions.length > 1
                     }
                     showDragHandle={showDragHandle}
+                    leftOperandSource={leftOperandSource}
+                    upstreamNodeLabel={upstreamNodeLabel}
                     onUpdate={handleUpdateCondition}
                     onDelete={handleDeleteCondition}
                   />
@@ -242,6 +258,8 @@ export function EvaluatorView({
                       operators={evaluatorOperators}
                       canDelete={false}
                       showDragHandle={true}
+                      leftOperandSource={leftOperandSource}
+                      upstreamNodeLabel={upstreamNodeLabel}
                       isOverlay
                       onUpdate={() => undefined}
                       onDelete={() => undefined}

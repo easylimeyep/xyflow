@@ -1,6 +1,7 @@
 import {
   selectExpressionVariableTypesForNode,
   selectExpressionVariablesForNode,
+  selectSingleUpstreamNodeLabel,
   selectVisibleValidationMessagesForNode,
   useWorkflowShallowStore,
   useWorkflowStore,
@@ -30,6 +31,9 @@ export function useNodeStoreData(nodeId: string) {
   const nodeValidationMessages = useWorkflowStore((state: WorkflowStoreState) =>
     selectVisibleValidationMessagesForNode(state, nodeId)
   )
+  const upstreamNodeLabel = useWorkflowStore((state: WorkflowStoreState) =>
+    selectSingleUpstreamNodeLabel(state, nodeId)
+  )
   const updateNodeConfig = useWorkflowShallowStore(
     (state: WorkflowStoreState) => state.updateNodeConfig
   )
@@ -41,6 +45,7 @@ export function useNodeStoreData(nodeId: string) {
     expressionVariables,
     expressionVariableTypes,
     nodeValidationMessages,
+    upstreamNodeLabel,
     evaluatorOperators,
     enableEvaluatorMultipleConditions,
     updateNodeConfig,

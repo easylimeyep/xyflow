@@ -10,6 +10,7 @@ import type { WorkflowEvaluatorOperatorCatalog } from "../../../types"
 import { JsonEvaluatorNode } from "./component"
 
 const mockUpdateNodeConfig = vi.fn()
+let mockUpstreamNodeLabel: string | null = null
 
 const mockEvaluatorOperators: WorkflowEvaluatorOperatorCatalog = {
   value: [
@@ -45,9 +46,10 @@ vi.mock("@flow/ui/components/sortable", () => ({
 // suites render the node without a provider, so the hook is stubbed to hand
 // back the built-in list the component passes as its fallback.
 vi.mock("../../shared/use-node-select-options", async (importOriginal) => {
-  const actual = await importOriginal<
-    typeof import("../../shared/use-node-select-options")
-  >()
+  const actual =
+    await importOriginal<
+      typeof import("../../shared/use-node-select-options")
+    >()
 
   return {
     ...actual,
@@ -101,6 +103,7 @@ vi.mock("../../shared/use-node-store-data", () => ({
     expressionVariableTypes: {},
     evaluatorOperators: mockEvaluatorOperators,
     enableEvaluatorMultipleConditions: true,
+    upstreamNodeLabel: mockUpstreamNodeLabel,
     updateNodeConfig: mockUpdateNodeConfig,
   }),
 }))
@@ -145,6 +148,7 @@ function createNodeProps(config?: Record<string, unknown>): NodeProps {
 describe("JsonEvaluatorNode", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockUpstreamNodeLabel = null
   })
 
   afterEach(() => {
@@ -183,6 +187,42 @@ describe("JsonEvaluatorNode", () => {
       key: "matchType",
       value: "one",
     })
+  })
+
+  it("shows the left operand as a read-only upstream badge", () => {
+    render(<JsonEvaluatorNode {...createNodeProps()} />)
+
+    expect(screen.getByText("Previous node output")).toBeDefined()
+    expect(screen.queryByLabelText("Left operand type")).toBeNull()
+    // The right operand stays editable.
+    expect(screen.getByLabelText("Right operand type")).toBeDefined()
+  })
+
+  it("names the single upstream node in the badge", () => {
+    mockUpstreamNodeLabel = "Fetch order"
+    render(<JsonEvaluatorNode {...createNodeProps()} />)
+
+    expect(screen.getByText('Output of "Fetch order"')).toBeDefined()
+  })
+
+  it("keeps the badge for a condition still holding a typed left operand", () => {
+    render(
+      <JsonEvaluatorNode
+        {...createNodeProps({
+          conditions: [
+            {
+              id: "condition-1",
+              left: { type: "value", value: "legacy" },
+              operator: "is equal to",
+              right: { type: "value", value: "" },
+            },
+          ],
+        })}
+      />
+    )
+
+    expect(screen.getByText("Previous node output")).toBeDefined()
+    expect(screen.queryByDisplayValue("legacy")).toBeNull()
   })
 
   it("commits condition changes under the jsonEvaluator kind", () => {

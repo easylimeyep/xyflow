@@ -51,6 +51,7 @@ export function JsonEvaluatorNode({ id, data, selected }: NodeProps) {
       kind="jsonEvaluator"
       fallbackTitle="JSON Evaluator"
       outputs={jsonEvaluator.outputs}
+      leftOperandSource="upstream"
       footer={
         <div className={styles.matchTypeField()}>
           <Label className={styles.matchTypeLabel()}>Match type</Label>

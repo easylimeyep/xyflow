@@ -11,7 +11,7 @@ import { ExpressionInput } from "../../../components/expression-input"
 import { WorkflowTypeSelect } from "../../../components/workflow-type-select/workflow-type-select"
 import type {
   ExpressionVariableOption,
-  WorkflowTypedValue,
+  WorkflowOperandValue,
 } from "../../../types"
 import type { WorkflowVariableType } from "../../../types/variable-types"
 import {
@@ -26,13 +26,13 @@ const styles = evaluatorNodeStyles()
 const ARRAY_PREVIEW_LIMIT = 3
 
 interface OperandEditorProps {
-  operand: WorkflowTypedValue
+  operand: WorkflowOperandValue
   label: string
   placeholder: string
   variables: ExpressionVariableOption[]
   allowedTypes?: WorkflowVariableType[]
   unresolvedVariableName?: string
-  onChange: (nextOperand: WorkflowTypedValue) => void
+  onChange: (nextOperand: WorkflowOperandValue) => void
 }
 
 export function OperandEditor({
@@ -95,10 +95,10 @@ export function OperandEditor({
 }
 
 interface ArrayOperandPopoverProps {
-  operand: Extract<WorkflowTypedValue, { type: "array" }>
+  operand: Extract<WorkflowOperandValue, { type: "array" }>
   label: string
   placeholder: string
-  onChange: (nextOperand: WorkflowTypedValue) => void
+  onChange: (nextOperand: WorkflowOperandValue) => void
 }
 
 function ArrayOperandPopover({

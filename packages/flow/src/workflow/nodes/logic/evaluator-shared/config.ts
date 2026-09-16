@@ -6,10 +6,12 @@ import {
 import type {
   EvaluatorCondition,
   JsonObject,
+  WorkflowOperandValue,
   WorkflowTypedValue,
 } from "../../../types"
+import { createUpstreamOperand, createValueOperand } from "./operands"
 
-function isWorkflowTypedValue(value: unknown): value is WorkflowTypedValue {
+function isOperandValue(value: unknown): value is WorkflowOperandValue {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     return false
   }
@@ -29,6 +31,17 @@ function isWorkflowTypedValue(value: unknown): value is WorkflowTypedValue {
   return false
 }
 
+function isWorkflowTypedValue(value: unknown): value is WorkflowTypedValue {
+  if (isOperandValue(value)) return true
+
+  // An upstream operand is a bare marker: the backend supplies its value.
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    (value as { type?: unknown }).type === "upstream"
+  )
+}
+
 export function isEvaluatorCondition(
   value: unknown
 ): value is EvaluatorCondition {
@@ -38,18 +51,29 @@ export function isEvaluatorCondition(
     typeof candidate.id === "string" &&
     isWorkflowTypedValue(candidate.left) &&
     typeof candidate.operator === "string" &&
-    (candidate.right === undefined || isWorkflowTypedValue(candidate.right))
+    (candidate.right === undefined || isOperandValue(candidate.right))
   )
 }
 
+/** How a kind sources the left operand of every condition it creates. */
+export type EvaluatorLeftOperandSource = "editable" | "upstream"
+
+export function createLeftOperand(
+  source: EvaluatorLeftOperandSource
+): WorkflowTypedValue {
+  return source === "upstream" ? createUpstreamOperand() : createValueOperand()
+}
+
 /** The starting config both evaluator kinds share. */
-export function buildDefaultEvaluatorConfig(): JsonObject {
+export function buildDefaultEvaluatorConfig(
+  leftOperandSource: EvaluatorLeftOperandSource = "editable"
+): JsonObject {
   return {
     label: "",
     conditions: [
       {
         id: crypto.randomUUID(),
-        left: { type: "value", value: "" },
+        left: createLeftOperand(leftOperandSource),
         operator: "is equal to",
         right: { type: "value", value: "" },
       } satisfies EvaluatorCondition,

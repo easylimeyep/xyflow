@@ -113,3 +113,25 @@ export const selectExpressionVariableTypesForNode = (
     nodeId
   )
 }
+
+/**
+ * The label of the single node feeding `nodeId`. Returns `null` when the node
+ * has no incoming edge, or more than one, because a badge naming "the previous
+ * node" would be wrong in both cases.
+ */
+export const selectSingleUpstreamNodeLabel = (
+  state: WorkflowStoreState,
+  nodeId: string
+): string | null => {
+  const { nodes, edges } = state.history.present
+
+  let sourceId: string | null = null
+  for (const edge of edges) {
+    if (edge.target !== nodeId) continue
+    if (sourceId !== null) return null
+    sourceId = edge.source
+  }
+
+  if (!sourceId) return null
+  return nodes.find((node) => node.id === sourceId)?.data.label ?? null
+}
