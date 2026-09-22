@@ -3,7 +3,12 @@ import type {
   WorkflowGraphState,
   WorkflowNodeData,
 } from "../types/types"
-import { collectWorkflowVariables } from "../expression/variables/variables"
+import { createWorkflowVariableCatalogBuilder } from "../expression/variables/variables"
+import {
+  upstreamScope,
+  type VariableScopeResolver,
+} from "../expression/variables/variable-scope"
+import type { NodeRegistry } from "../node-registry/registry"
 import type {
   ExpressionDepsEdge,
   ExpressionDepsGraph,
@@ -80,39 +85,37 @@ export function computeStructuralSignature(
   return stableSerialize(expressionDeps)
 }
 
-export function buildExpressionSliceState(
-  graph: WorkflowGraphState
-): Pick<
-  WorkflowStoreState,
+type ExpressionSliceKeys =
   | "expressionDeps"
   | "expressionStructuralVersion"
   | "expressionStructuralSignature"
   | "expressionCatalogCache"
-> {
+  | "expressionVariableTypesCache"
+
+export function buildExpressionSliceState(
+  graph: WorkflowGraphState,
+  registry: NodeRegistry,
+  scope: VariableScopeResolver
+): Pick<WorkflowStoreState, ExpressionSliceKeys> {
   const expressionDeps = projectExpressionDeps(graph)
   const expressionStructuralSignature =
     computeStructuralSignature(expressionDeps)
-  const expressionCatalogCache = buildExpressionCatalogCache(graph)
   return {
     expressionDeps,
     expressionStructuralVersion: 0,
     expressionStructuralSignature,
-    expressionCatalogCache,
+    ...buildExpressionCaches(registry, scope, graph),
   }
 }
 
+/**
+ * The dependencies the caches need are already on `state` — every call site
+ * passes it — so no slice has to thread the registry or the scope through.
+ */
 export function buildExpressionSlicePatch(
   state: WorkflowStoreState,
   graph: WorkflowGraphState
-): Partial<
-  Pick<
-    WorkflowStoreState,
-    | "expressionDeps"
-    | "expressionStructuralVersion"
-    | "expressionStructuralSignature"
-    | "expressionCatalogCache"
-  >
-> {
+): Partial<Pick<WorkflowStoreState, ExpressionSliceKeys>> {
   const expressionDeps = projectExpressionDeps(graph)
   const expressionStructuralSignature =
     computeStructuralSignature(expressionDeps)
@@ -123,22 +126,49 @@ export function buildExpressionSlicePatch(
     expressionDeps,
     expressionStructuralVersion: state.expressionStructuralVersion + 1,
     expressionStructuralSignature,
-    expressionCatalogCache: buildExpressionCatalogCache(graph),
+    ...buildExpressionCaches(
+      state.registry,
+      state.runtime.variables?.scope ?? upstreamScope,
+      graph
+    ),
   }
 }
 
-function buildExpressionCatalogCache(
+/**
+ * Both catalogs, from one walk per node.
+ *
+ * They are built together because they are two views of one answer: computing
+ * them apart is exactly how an option and its type tag drift out of step.
+ */
+function buildExpressionCaches(
+  registry: NodeRegistry,
+  scope: VariableScopeResolver,
   graph: WorkflowGraphState
-): Map<string, ExpressionVariableOption[]> {
-  const cache = new Map<string, ExpressionVariableOption[]>()
-  cache.set("__global__", [])
+): Pick<
+  WorkflowStoreState,
+  "expressionCatalogCache" | "expressionVariableTypesCache"
+> {
+  // `__global__` is the key a null nodeId maps onto: an expression edited
+  // outside any node can reference nothing.
+  const expressionCatalogCache = new Map<string, ExpressionVariableOption[]>([
+    ["__global__", []],
+  ])
+  const expressionVariableTypesCache = new Map<string, Record<string, string>>([
+    ["__global__", {}],
+  ])
+
+  const buildCatalog = createWorkflowVariableCatalogBuilder(
+    registry,
+    scope,
+    graph.nodes,
+    graph.edges
+  )
 
   graph.nodes.forEach((node) => {
-    cache.set(
-      node.id,
-      collectWorkflowVariables(graph.nodes, graph.edges, node.id)
-    )
+    const catalog = buildCatalog(node.id)
+    expressionCatalogCache.set(node.id, catalog.options)
+    expressionVariableTypesCache.set(node.id, catalog.types)
   })
 
-  return cache
+  return { expressionCatalogCache, expressionVariableTypesCache }
 }

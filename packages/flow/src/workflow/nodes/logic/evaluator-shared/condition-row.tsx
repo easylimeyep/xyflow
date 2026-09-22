@@ -19,7 +19,6 @@ import type {
   WorkflowEvaluatorOperatorCatalog,
   WorkflowTypedValue,
 } from "../../../types"
-import type { WorkflowVariableType } from "../../../types/variable-types"
 import { OperandEditor } from "./operand-editor"
 import {
   getAllowedRightOperandTypes,
@@ -34,7 +33,7 @@ const styles = evaluatorNodeStyles()
 interface ConditionRowProps {
   condition: EvaluatorCondition
   variables: ExpressionVariableOption[]
-  variableTypes: Record<string, WorkflowVariableType>
+  variableTypes: Record<string, string>
   operators: WorkflowEvaluatorOperatorCatalog
   canDelete: boolean
   showDragHandle: boolean

@@ -6,6 +6,7 @@ import {
 } from "@flow/store"
 
 import { initialWorkflowGraph } from "../default-graph/default-graph"
+import { upstreamScope } from "../expression/variables/variable-scope"
 import { createNodeRegistry } from "../node-registry/registry"
 import type { WorkflowGraphState } from "../types/types"
 import { cloneGraphState } from "./helpers"
@@ -51,7 +52,11 @@ export function createWorkflowStore(
         registry,
         history: createHistoryState(initialGraph),
         measuredInitialAutoLayoutAttempted: false,
-        ...createExpressionSlice(initialGraph),
+        ...createExpressionSlice(
+          initialGraph,
+          registry,
+          runtime.variables?.scope ?? upstreamScope
+        ),
         ...createValidationSlice(set, get),
         ...createSelectionSlice(set, get),
         ...createIntentSlice(set, get),

@@ -9,6 +9,7 @@ import type { HistoryState } from "@flow/store"
 
 import type { NodeDefinition } from "../node-registry/define-node"
 import type { NodeRegistry } from "../node-registry/registry"
+import type { VariableScopeResolver } from "../expression/variables/variable-scope"
 import type { WorkflowError } from "../types/errors"
 import type {
   DomainWorkflowDTO,
@@ -129,12 +130,24 @@ export type WorkflowNodeOptionsCatalog = Record<
   Record<string, FieldOption[]>
 >
 
+export interface WorkflowRuntimeVariablesConfig {
+  /**
+   * Which nodes may contribute variables to the node being edited.
+   *
+   * Defaults to `upstreamScope` — only what the graph routes into the node.
+   * `graphScope` offers every variable on the canvas instead, and a host may
+   * pass its own resolver.
+   */
+  scope?: VariableScopeResolver
+}
+
 export interface WorkflowRuntimeConfig {
   evaluator?: WorkflowRuntimeEvaluatorConfig
   nodeOptions?: WorkflowNodeOptionsCatalog
   enableEvaluatorMultipleConditions?: boolean
   importDomain?: WorkflowRuntimeImportDomainConfig
   exportDomain?: WorkflowRuntimeExportDomainConfig
+  variables?: WorkflowRuntimeVariablesConfig
 }
 
 export interface WorkflowStoreQueries {
@@ -147,6 +160,7 @@ export interface WorkflowStoreQueries {
   expressionStructuralVersion: number
   expressionStructuralSignature: string
   expressionCatalogCache: Map<string, ExpressionVariableOption[]>
+  expressionVariableTypesCache: Map<string, Record<string, string>>
   selectedNodeIds: string[]
   nodeDragOriginGraph: WorkflowGraphState | null
   quickAddPending: PendingQuickAdd | null

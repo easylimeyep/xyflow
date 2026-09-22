@@ -1,6 +1,7 @@
 import { InfinityIcon } from "lucide-react"
 
 import { defineNode } from "../../../node-registry/define-node"
+import { isValidJsIdentifier } from "../../../expression/variable-name"
 import {
   WORKFLOW_VARIABLE_TYPES,
   type WorkflowVariableType,
@@ -56,6 +57,27 @@ export const extractor = defineNode({
     unlimited: false,
   }),
   renameConfigKey: "extractExpression",
+  // The node title stands in whenever the expression is not usable as an
+  // identifier, so an author who has not yet named the extraction still gets a
+  // referenceable variable.
+  variable: (node) => {
+    const configured = node.config.extractExpression
+    const fromConfig =
+      typeof configured === "string" ? configured.trim() : undefined
+    const name =
+      fromConfig && fromConfig.length > 0 && isValidJsIdentifier(fromConfig)
+        ? fromConfig
+        : node.label.trim()
+
+    if (name.length === 0) {
+      return null
+    }
+
+    return {
+      name,
+      type: node.config.variableType === "array" ? "array" : "value",
+    }
+  },
   validateConfigValue: (key, value) => {
     switch (key) {
       case "tokenNumber":

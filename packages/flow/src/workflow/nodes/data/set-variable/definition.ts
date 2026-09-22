@@ -1,6 +1,7 @@
 import { Braces } from "lucide-react"
 
 import { defineNode } from "../../../node-registry/define-node"
+import { isValidJsIdentifier } from "../../../expression/variable-name"
 import {
   WORKFLOW_VARIABLE_TYPES,
   type WorkflowVariableType,
@@ -41,6 +42,22 @@ export const setVariable = defineNode({
   }),
   extraExpressionConfigKeys: ["valueExpression"],
   renameConfigKey: "variableName",
+  variable: (node) => {
+    const configured = node.config.variableName
+    if (typeof configured !== "string") {
+      return null
+    }
+
+    const name = configured.trim()
+    if (name.length === 0 || !isValidJsIdentifier(name)) {
+      return null
+    }
+
+    return {
+      name,
+      type: node.config.variableType === "array" ? "array" : "value",
+    }
+  },
   validateConfigValue: (key, value) => {
     switch (key) {
       case "variableName":

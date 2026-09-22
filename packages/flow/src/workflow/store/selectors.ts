@@ -4,12 +4,10 @@ import type {
   NormalizedWorkflowValidationMessage,
   WorkflowEdge,
   WorkflowNode,
-  WorkflowVariableType,
 } from "../types/types"
 import type { NodeRegistry } from "../node-registry/registry"
 import type { WorkflowStoreState } from "./types"
 import { isValidationMessageVisible } from "./validation"
-import { collectWorkflowVariableTypes } from "../expression/variables/variables"
 
 export function selectNodeRegistry(state: WorkflowStoreState): NodeRegistry {
   return state.registry
@@ -87,30 +85,31 @@ export const selectNodeHasVisibleValidation = (
   nodeId: string
 ): boolean => selectVisibleValidationMessagesForNode(state, nodeId).length > 0
 
+// Stable references for cache misses: these selectors run through
+// `useWorkflowStore`, which compares with `Object.is`, so a fresh empty literal
+// per call would re-render every subscriber on every store change.
+// Frozen as well as shared: these go out by reference to every component that
+// hits an empty catalog, so one push would be visible to all of them.
+const EMPTY_VARIABLE_OPTIONS: ExpressionVariableOption[] = []
+const EMPTY_VARIABLE_TYPES: Record<string, string> = {}
+Object.freeze(EMPTY_VARIABLE_OPTIONS)
+Object.freeze(EMPTY_VARIABLE_TYPES)
+
 export const selectExpressionVariablesForNode = (
   state: WorkflowStoreState,
   nodeId: string | null
 ): ExpressionVariableOption[] => {
   const cacheKey = nodeId ?? "__global__"
-  const cached = state.expressionCatalogCache.get(cacheKey)
-  if (cached) {
-    return cached
-  }
-  return []
+  return state.expressionCatalogCache.get(cacheKey) ?? EMPTY_VARIABLE_OPTIONS
 }
 
 export const selectExpressionVariableTypesForNode = (
   state: WorkflowStoreState,
   nodeId: string | null
-): Record<string, WorkflowVariableType> => {
-  if (!nodeId) {
-    return {}
-  }
-
-  return collectWorkflowVariableTypes(
-    state.history.present.nodes,
-    state.history.present.edges,
-    nodeId
+): Record<string, string> => {
+  const cacheKey = nodeId ?? "__global__"
+  return (
+    state.expressionVariableTypesCache.get(cacheKey) ?? EMPTY_VARIABLE_TYPES
   )
 }
 

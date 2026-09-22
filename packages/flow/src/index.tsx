@@ -54,8 +54,21 @@ export {
   type NodeCategory,
   type NodeDefinition,
   type NodeRegistry,
+  type NodeVariable,
+  type NodeVariableReader,
+  type NodeVariableSource,
   type OutputHandle,
 } from "./workflow/node-registry"
+export {
+  graphScope,
+  upstreamScope,
+  type VariableScopeEdge,
+  type VariableScopeInput,
+  type VariableScopeNode,
+  type VariableScopeResolver,
+  type WorkflowVariableCatalog,
+} from "./workflow/expression/variables"
+export { isValidJsIdentifier } from "./workflow/expression/variable-name"
 export {
   exportDomainWorkflowForBackend,
   exportDraftDomainWorkflowForBackend,
@@ -75,6 +88,7 @@ export type {
   WorkflowRuntimeEvaluatorConfig,
   WorkflowRuntimeExportDomainConfig,
   WorkflowRuntimeImportDomainConfig,
+  WorkflowRuntimeVariablesConfig,
   WorkflowStoreGetState,
   WorkflowStoreGraphCommands,
   WorkflowStoreHistoryCommands,

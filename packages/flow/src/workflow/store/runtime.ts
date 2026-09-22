@@ -5,10 +5,11 @@ import {
   type WorkflowEvaluatorOperatorCatalog,
   type WorkflowEvaluatorOperatorOption,
 } from "../types"
-import type {
-  WorkflowNodeOptionsCatalog,
-  WorkflowRuntimeConfig,
-} from "./types"
+import {
+  upstreamScope,
+  type VariableScopeResolver,
+} from "../expression/variables/variable-scope"
+import type { WorkflowNodeOptionsCatalog, WorkflowRuntimeConfig } from "./types"
 
 const ALLOWED_OPERATOR_TYPES = new Set<WorkflowEvaluatorOperatorAllowType>([
   "value",
@@ -173,11 +174,34 @@ function normalizeNodeOptionsCatalog(
   return Object.keys(normalized).length > 0 ? normalized : undefined
 }
 
+/**
+ * The scope the editor will actually use.
+ *
+ * A value that is not callable is treated as absent, the same way a malformed
+ * operator catalog falls back to the built-in one: a runtime config may arrive
+ * deserialised from a server, where a function cannot survive the trip.
+ *
+ * This guards the SHAPE of the config, not the behaviour of the resolver. A
+ * resolver that throws, or returns something that is not a list of ids, is a
+ * bug in host code and is deliberately left to fail loudly — swallowing it
+ * would silently empty the catalog and send the author hunting for a missing
+ * variable instead of a stack trace.
+ */
+function normalizeVariableScope(
+  scope: VariableScopeResolver | undefined
+): VariableScopeResolver {
+  return typeof scope === "function" ? scope : upstreamScope
+}
+
 export function normalizeWorkflowRuntimeConfig(
   runtime: WorkflowRuntimeConfig = {}
 ): WorkflowRuntimeConfig {
   return {
     ...runtime,
+    variables: {
+      ...runtime.variables,
+      scope: normalizeVariableScope(runtime.variables?.scope),
+    },
     enableEvaluatorMultipleConditions:
       runtime.enableEvaluatorMultipleConditions ?? false,
     nodeOptions: normalizeNodeOptionsCatalog(runtime.nodeOptions),

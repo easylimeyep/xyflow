@@ -52,6 +52,23 @@ export const pathExtractor = defineNode({
     path: "",
     outputType: "value" as PathExtractorOutputType,
   }),
+  // The node carries no label field of its own: its variable name is the node
+  // title, which the label rules already keep a valid identifier.
+  variable: (node) => {
+    const name = node.label.trim()
+    if (name.length === 0) {
+      return null
+    }
+
+    const outputType = node.config.outputType
+    return {
+      name,
+      type:
+        outputType === "arrayValue" || outputType === "arrayObject"
+          ? "array"
+          : "value",
+    }
+  },
   validateConfigValue: (key, value) => {
     switch (key) {
       case "path":

@@ -13,6 +13,49 @@ export interface OutputHandle {
   labelClassName?: string
 }
 
+/**
+ * The slice of a node a variable reader may inspect.
+ *
+ * Deliberately narrower than `WorkflowNode`: a reader answers a question about
+ * the node's CONFIGURATION, and handing it position, measurements or selection
+ * state would invite readers that depend on where a node sits on the canvas.
+ */
+export interface NodeVariableSource {
+  id: string
+  label: string
+  /**
+   * Read-only: this is the live config off the store, handed to host code
+   * without a copy. A mutation here would bypass `updateNodeConfig`, missing
+   * the history stack and the structural signature — so the caches would never
+   * learn of it.
+   */
+  config: Readonly<Record<string, unknown>>
+}
+
+export interface NodeVariable {
+  name: string
+  /**
+   * A tag the catalog carries but never interprets. Meaning is the consumer's:
+   * the built-in evaluator reads `"array"` as a multi-value operand and treats
+   * every other tag as a single value. A host is free to emit its own.
+   */
+  type?: string
+}
+
+/**
+ * How a kind reports the variable it produces.
+ *
+ * Optional on a definition: a kind without one produces no variable and never
+ * reaches the catalog. Returning `null` says the same for one node — the name
+ * is empty, or not a valid identifier right now.
+ *
+ * This is the ONLY thing that makes a kind a variable producer. There is no
+ * second list of producing kinds to keep in step with it.
+ */
+export type NodeVariableReader = (
+  node: NodeVariableSource
+) => NodeVariable | null
+
 export interface NodeDefinition<K extends string = string> {
   kind: K
   title: string
@@ -44,6 +87,13 @@ export interface NodeDefinition<K extends string = string> {
    * `nodes/logic/evaluator/component.tsx`), so the reverse import would cycle.
    */
   view?: ComponentType<NodeProps>
+  /**
+   * The variable this kind contributes to the expression catalog.
+   *
+   * Absent means the kind produces nothing — that is how `inlineExpression`
+   * and `result` stay out of autocomplete without anyone listing them.
+   */
+  variable?: NodeVariableReader
   validateConfigValue?: (key: string, value: unknown) => boolean
   normalizeConfigValue?: (key: string, value: unknown) => unknown
 }

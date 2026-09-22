@@ -7,6 +7,7 @@ import {
   evaluatorSubtitle,
   EVALUATOR_ALLOWED_TARGETS,
   EVALUATOR_OUTPUTS,
+  readEvaluatorVariable,
   validateEvaluatorConfigValue,
 } from "../evaluator-shared/config"
 import { isSelectConfigValue } from "../../shared/node-data-utils"
@@ -29,6 +30,7 @@ export const jsonEvaluator = defineNode({
   renameConfigKey: "label",
   subtitle: evaluatorSubtitle,
   outputs: EVALUATOR_OUTPUTS,
+  variable: readEvaluatorVariable,
   validateConfigValue: (key, value) =>
     key === "matchType"
       ? isSelectConfigValue(value)

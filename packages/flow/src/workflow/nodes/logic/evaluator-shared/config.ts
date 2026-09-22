@@ -1,4 +1,8 @@
-import type { OutputHandle } from "../../../node-registry/define-node"
+import type {
+  NodeVariableReader,
+  OutputHandle,
+} from "../../../node-registry/define-node"
+import { isValidJsIdentifier } from "../../../expression/variable-name"
 import {
   EVALUATOR_FALSE_HANDLE,
   EVALUATOR_TRUE_HANDLE,
@@ -109,6 +113,27 @@ export function evaluatorSubtitle(config: { conditions?: unknown }): string {
   const conditions = config.conditions as EvaluatorCondition[] | undefined
   if (!conditions?.length) return "No conditions"
   return `${conditions.length} condition${conditions.length > 1 ? "s" : ""}`
+}
+
+/**
+ * Both evaluator kinds name their result through the same config key, so they
+ * share one reader rather than each carrying a copy.
+ *
+ * No type tag: an evaluator's result is a branch outcome, and nothing has ever
+ * asked whether it is a single value or a list.
+ */
+export const readEvaluatorVariable: NodeVariableReader = (node) => {
+  const configured = node.config.label
+  if (typeof configured !== "string") {
+    return null
+  }
+
+  const name = configured.trim()
+  if (name.length === 0 || !isValidJsIdentifier(name)) {
+    return null
+  }
+
+  return { name }
 }
 
 /** Branch handles every evaluator kind exposes. */

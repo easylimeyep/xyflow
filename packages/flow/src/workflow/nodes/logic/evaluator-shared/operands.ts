@@ -111,9 +111,14 @@ function parseSingleVariableTemplate(value: string): string | undefined {
   return templateMatch?.[1]
 }
 
+/**
+ * `variableTypes` carries opaque tags: the catalog transports whatever a node
+ * definition reported without interpreting it. Narrowing is this evaluator's
+ * job, and it only ever asks one question — is this operand a list?
+ */
 export function resolveEffectiveLeftOperandType(
   left: WorkflowTypedValue,
-  variableTypes: Record<string, WorkflowVariableType>
+  variableTypes: Record<string, string>
 ): {
   type: WorkflowVariableType
   unresolvedVariableName?: string
@@ -138,5 +143,8 @@ export function resolveEffectiveLeftOperandType(
     return { type: "value", unresolvedVariableName: variableName }
   }
 
-  return { type: variableType }
+  // A tag this evaluator does not recognise is NOT an unresolved reference:
+  // the variable exists, it is simply typed in a vocabulary belonging to
+  // someone else. Flagging it would paint every host-defined tag as broken.
+  return { type: variableType === "array" ? "array" : "value" }
 }
