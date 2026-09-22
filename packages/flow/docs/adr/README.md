@@ -10,3 +10,4 @@
 | [0006](0006-node-vocabulary-is-an-instance-prop.md) | A node vocabulary is an instance prop | accepted | 2026-08-31 |
 | [0007](0007-the-host-owns-layout.md) | The host owns layout | accepted | 2026-09-01 |
 | [0008](0008-provider-and-shell-are-separate-seams.md) | The provider and the shell are separate seams | accepted | 2026-09-02 |
+| [0009](0009-the-host-owns-variable-scope.md) | The host owns variable scope | accepted | 2026-09-22 |
