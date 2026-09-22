@@ -22,10 +22,7 @@ import {
   useNodeSelectOptions,
 } from "../../shared"
 import { useNodeStoreData } from "../../shared/use-node-store-data"
-import {
-  pathExtractor,
-  PATH_EXTRACTOR_OUTPUT_TYPE_OPTIONS,
-} from "./definition"
+import { pathExtractor, PATH_EXTRACTOR_OUTPUT_TYPE_OPTIONS } from "./definition"
 
 const DEFAULT_OUTPUT_TYPE: PathExtractorOutputType = "value"
 

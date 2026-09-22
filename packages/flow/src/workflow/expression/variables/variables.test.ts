@@ -5,10 +5,7 @@ import { defineNode } from "../../node-registry/define-node"
 import type { WorkflowEdge, WorkflowNode } from "../../types/types"
 import { collectWorkflowVariables } from "./variables"
 import { graphScope, upstreamScope } from "./variable-scope"
-import type {
-  VariableScopeNode,
-  VariableScopeResolver,
-} from "./variable-scope"
+import type { VariableScopeNode, VariableScopeResolver } from "./variable-scope"
 import { builtinBaseDefinitions } from "../../node-registry/builtin-base-definitions"
 import { createNodeRegistry } from "../../node-registry/registry"
 
@@ -566,7 +563,7 @@ describe("collectWorkflowVariables duplicate names", () => {
     const inline = node("inlineExpression", "InlineA")
 
     // The same three nodes, only the order the resolver walks them differs.
-    const tagFor = (producers: typeof first[]) =>
+    const tagFor = (producers: (typeof first)[]) =>
       collectWorkflowVariables(
         registry,
         graphScope,

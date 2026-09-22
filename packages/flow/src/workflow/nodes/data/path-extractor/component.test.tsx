@@ -24,9 +24,10 @@ vi.mock("@xyflow/react", () => ({
 let mockHostOptions: { value: string; label: string }[] | null = null
 
 vi.mock("../../shared/use-node-select-options", async (importOriginal) => {
-  const actual = await importOriginal<
-    typeof import("../../shared/use-node-select-options")
-  >()
+  const actual =
+    await importOriginal<
+      typeof import("../../shared/use-node-select-options")
+    >()
 
   return {
     ...actual,
@@ -145,9 +146,7 @@ describe("PathExtractorNode", () => {
     mockHostOptions = []
     const user = userEvent.setup()
     render(
-      <PathExtractorNode
-        {...createNodeProps("user.city", "arrayObject")}
-      />
+      <PathExtractorNode {...createNodeProps("user.city", "arrayObject")} />
     )
 
     const outputSelect = screen.getByLabelText("Expected out")

@@ -16,7 +16,9 @@ describe("jsonEvaluator definition", () => {
   it("accepts a condition whose left operand is upstream", () => {
     const config = jsonEvaluator.buildDefaultConfig()
 
-    expect(isEvaluatorCondition((config.conditions as unknown as unknown[])[0])).toBe(true)
+    expect(
+      isEvaluatorCondition((config.conditions as unknown as unknown[])[0])
+    ).toBe(true)
     expect(
       jsonEvaluator.validateConfigValue?.("conditions", config.conditions)
     ).toBe(true)
