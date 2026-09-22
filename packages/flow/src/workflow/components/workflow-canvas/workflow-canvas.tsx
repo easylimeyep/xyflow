@@ -19,7 +19,7 @@ import {
   SelectionMode,
   useReactFlow,
   useNodesInitialized,
-  useViewport,
+  useStore,
   type Connection,
   type EdgeChange,
   type EdgeProps,
@@ -116,7 +116,16 @@ function WorkflowCanvasInner({
   const definitions = useNodeDefinitions()
   const registry = useNodeRegistry()
   const reactFlow = useReactFlow<WorkflowNode, WorkflowEdge>()
-  const viewportState = useViewport()
+  // The two zoom buttons only need to know whether a limit has been reached.
+  // `useViewport` would hand over the whole transform, which re-renders this
+  // component on every pan and zoom frame; these selectors return a boolean,
+  // so the canvas re-renders only when a limit is actually crossed.
+  const maxZoomReached = useStore(
+    (state) => (state.transform[2] ?? 1) >= WORKFLOW_MAX_ZOOM
+  )
+  const minZoomReached = useStore(
+    (state) => (state.transform[2] ?? 1) <= WORKFLOW_MIN_ZOOM
+  )
   const nodesInitialized = useNodesInitialized()
   const [layoutPending, setLayoutPending] = useState(false)
   const shouldRunMeasuredInitialLayout =
@@ -374,9 +383,6 @@ function WorkflowCanvasInner({
   const zoomOutRef = useWorkflowEditorAnchorRef(anchorRefs, "zoomOut")
   const fitViewRef = useWorkflowEditorAnchorRef(anchorRefs, "fitView")
   const autoLayoutRef = useWorkflowEditorAnchorRef(anchorRefs, "autoLayout")
-  const maxZoomReached = viewportState.zoom >= WORKFLOW_MAX_ZOOM
-  const minZoomReached = viewportState.zoom <= WORKFLOW_MIN_ZOOM
-
   const styles = workflowCanvasStyles({ initializing: initialLayoutPending })
 
   return (

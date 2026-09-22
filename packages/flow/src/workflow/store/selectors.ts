@@ -7,7 +7,64 @@ import type {
 } from "../types/types"
 import type { NodeRegistry } from "../node-registry/registry"
 import type { WorkflowStoreState } from "./types"
-import { isValidationMessageVisible } from "./validation"
+import {
+  isValidationMessageVisible,
+  type WorkflowValidationStoreState,
+} from "./validation"
+
+// The visible-validation selectors run through `useWorkflowStore`, which
+// compares with `Object.is`. A freshly filtered array per call made every
+// subscriber re-render on every store change — which is how selecting one node
+// used to re-render every node on the canvas.
+//
+// The answer is therefore memoised per validation state. `state.validation` is
+// replaced wholesale whenever a snapshot arrives or a message is hidden, and
+// `isValidationMessageVisible` reads nothing else, so that object is the whole
+// cache key; a WeakMap lets a superseded state take its entry with it.
+// Emptiness has one shared answer, so a canvas with no validation at all hands
+// out a single array rather than one per node; treat it as read-only.
+interface VisibleValidationCache {
+  global?: NormalizedWorkflowValidationMessage[]
+  byNodeId: Map<string, NormalizedWorkflowNodeValidationMessage[]>
+}
+
+const visibleValidationCaches = new WeakMap<
+  WorkflowValidationStoreState,
+  VisibleValidationCache
+>()
+
+function visibleValidationCacheFor(
+  validation: WorkflowValidationStoreState
+): VisibleValidationCache {
+  const existing = visibleValidationCaches.get(validation)
+  if (existing) {
+    return existing
+  }
+
+  const cache: VisibleValidationCache = { byNodeId: new Map() }
+  visibleValidationCaches.set(validation, cache)
+  return cache
+}
+
+function filterVisible<TMessage extends { key: string }>(
+  state: WorkflowStoreState,
+  messages: TMessage[] | undefined,
+  emptyAnswer: TMessage[]
+): TMessage[] {
+  if (messages === undefined || messages.length === 0) {
+    return emptyAnswer
+  }
+
+  const visible = messages.filter((message) =>
+    isValidationMessageVisible(state, message)
+  )
+  return visible.length === 0 ? emptyAnswer : visible
+}
+
+const EMPTY_GLOBAL_VALIDATION_MESSAGES: NormalizedWorkflowValidationMessage[] =
+  []
+const EMPTY_NODE_VALIDATION_MESSAGES: NormalizedWorkflowNodeValidationMessage[] =
+  []
 
 export function selectNodeRegistry(state: WorkflowStoreState): NodeRegistry {
   return state.registry
@@ -27,10 +84,18 @@ export const selectLastErrorMessage = (
 
 export const selectVisibleGlobalValidationMessages = (
   state: WorkflowStoreState
-): NormalizedWorkflowValidationMessage[] =>
-  state.validation.server?.global.filter((message) =>
-    isValidationMessageVisible(state, message)
-  ) ?? []
+): NormalizedWorkflowValidationMessage[] => {
+  const cache = visibleValidationCacheFor(state.validation)
+  if (cache.global === undefined) {
+    cache.global = filterVisible(
+      state,
+      state.validation.server?.global,
+      EMPTY_GLOBAL_VALIDATION_MESSAGES
+    )
+  }
+
+  return cache.global
+}
 
 export const selectPresentNodes = (state: WorkflowStoreState): WorkflowNode[] =>
   state.history.present.nodes
@@ -75,10 +140,21 @@ export const selectSelectedNode = (
 export const selectVisibleValidationMessagesForNode = (
   state: WorkflowStoreState,
   nodeId: string
-): NormalizedWorkflowNodeValidationMessage[] =>
-  state.validation.server?.nodesById[nodeId]?.filter((message) =>
-    isValidationMessageVisible(state, message)
-  ) ?? []
+): NormalizedWorkflowNodeValidationMessage[] => {
+  const cache = visibleValidationCacheFor(state.validation)
+  const cached = cache.byNodeId.get(nodeId)
+  if (cached !== undefined) {
+    return cached
+  }
+
+  const visible = filterVisible(
+    state,
+    state.validation.server?.nodesById[nodeId],
+    EMPTY_NODE_VALIDATION_MESSAGES
+  )
+  cache.byNodeId.set(nodeId, visible)
+  return visible
+}
 
 export const selectNodeHasVisibleValidation = (
   state: WorkflowStoreState,
@@ -87,13 +163,11 @@ export const selectNodeHasVisibleValidation = (
 
 // Stable references for cache misses: these selectors run through
 // `useWorkflowStore`, which compares with `Object.is`, so a fresh empty literal
-// per call would re-render every subscriber on every store change.
-// Frozen as well as shared: these go out by reference to every component that
-// hits an empty catalog, so one push would be visible to all of them.
+// per call would re-render every subscriber on every store change. Shared by
+// reference across every component that hits an empty catalog, so treat them as
+// read-only.
 const EMPTY_VARIABLE_OPTIONS: ExpressionVariableOption[] = []
 const EMPTY_VARIABLE_TYPES: Record<string, string> = {}
-Object.freeze(EMPTY_VARIABLE_OPTIONS)
-Object.freeze(EMPTY_VARIABLE_TYPES)
 
 export const selectExpressionVariablesForNode = (
   state: WorkflowStoreState,

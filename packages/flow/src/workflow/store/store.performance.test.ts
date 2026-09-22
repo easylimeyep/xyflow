@@ -7,6 +7,10 @@ import type {
   WorkflowNode,
 } from "../types/types"
 import { createWorkflowStore } from "./store"
+import {
+  selectVisibleGlobalValidationMessages,
+  selectVisibleValidationMessagesForNode,
+} from "./selectors"
 import { builtinBaseDefinitions } from "../node-registry/builtin-base-definitions"
 import { createNodeRegistry } from "../node-registry/registry"
 
@@ -115,6 +119,76 @@ describe("workflow interaction performance budgets", () => {
     expect(store.getState().expressionCatalogCache).toBe(
       initialExpressionCatalogRef
     )
+  })
+
+  it("answers an empty validation catalog with one stable reference per selector", () => {
+    // `useWorkflowStore` compares selector output with `Object.is`. A fresh
+    // `[]` per call made every node on the canvas re-render on every store
+    // update, so selecting one node repainted the whole canvas.
+    const store = createWorkflowStore({
+      definitions: builtinBaseDefinitions,
+      initialGraph: createRepresentativeGraph(24),
+    })
+    const nodeId = store.getState().history.present.nodes[3]?.id
+    if (!nodeId) {
+      throw new Error("expected a node in the representative graph")
+    }
+
+    const before = selectVisibleValidationMessagesForNode(
+      store.getState(),
+      nodeId
+    )
+    const beforeGlobal = selectVisibleGlobalValidationMessages(store.getState())
+
+    store.getState().setSelectedNodes([nodeId])
+
+    expect(
+      selectVisibleValidationMessagesForNode(store.getState(), nodeId)
+    ).toBe(before)
+    expect(selectVisibleGlobalValidationMessages(store.getState())).toBe(
+      beforeGlobal
+    )
+  })
+
+  it("reuses one filtered array per validation state, so a selection leaves it alone", () => {
+    const store = createWorkflowStore({
+      definitions: builtinBaseDefinitions,
+      initialGraph: createRepresentativeGraph(24),
+    })
+    const nodeId = store.getState().history.present.nodes[5]?.id
+    if (!nodeId) {
+      throw new Error("expected a node in the representative graph")
+    }
+
+    store.getState().setValidation({
+      nodes: [{ nodeId, message: "required" }],
+      global: [{ message: "workflow is incomplete" }],
+    })
+
+    const messages = selectVisibleValidationMessagesForNode(
+      store.getState(),
+      nodeId
+    )
+    const globalMessages = selectVisibleGlobalValidationMessages(
+      store.getState()
+    )
+    expect(messages).toHaveLength(1)
+    expect(globalMessages).toHaveLength(1)
+
+    store.getState().setSelectedNodes([nodeId])
+
+    expect(
+      selectVisibleValidationMessagesForNode(store.getState(), nodeId)
+    ).toBe(messages)
+    expect(selectVisibleGlobalValidationMessages(store.getState())).toBe(
+      globalMessages
+    )
+
+    // Hiding replaces the validation state, so the memo has to answer afresh.
+    store.getState().hideValidationForNode(nodeId)
+    expect(
+      selectVisibleValidationMessagesForNode(store.getState(), nodeId)
+    ).toHaveLength(0)
   })
 
   it("keeps viewport bursts lightweight enough for smooth pan/zoom interaction", () => {

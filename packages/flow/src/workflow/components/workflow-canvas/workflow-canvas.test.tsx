@@ -198,7 +198,9 @@ vi.mock("@xyflow/react", () => {
         return { x: safeX - 10, y: safeY - 20 }
       },
     }),
-    useViewport: () => ({ x: 0, y: 0, zoom: 1 }),
+    useStore: (
+      selector: (state: { transform: [number, number, number] }) => unknown
+    ) => selector({ transform: [0, 0, 1] }),
     useNodesInitialized: () => nodesInitializedMock(),
     ReactFlow: ({
       children,
