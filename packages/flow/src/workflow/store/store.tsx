@@ -1,9 +1,7 @@
-import {
-  createContextStore,
-  createStore,
-  createHistoryState,
-  type StoreApi,
-} from "@flow/store"
+import type { PropsWithChildren, ReactElement } from "react"
+
+import { createContextStore, withHistory } from "@ez-kit/zu-store"
+import { createStore } from "zustand/vanilla"
 
 import { initialWorkflowGraph } from "../default-graph/default-graph"
 import { upstreamScope } from "../expression/variables/variable-scope"
@@ -23,7 +21,12 @@ import {
   createNodeCrudSlice,
   createSelectionSlice,
 } from "./slices"
-import type { WorkflowStoreInitialProps, WorkflowStoreState } from "./types"
+import type {
+  WorkflowHistorySlice,
+  WorkflowStoreApi,
+  WorkflowStoreInitialProps,
+  WorkflowStoreState,
+} from "./types"
 import { createValidationSlice } from "./validation"
 
 export type {
@@ -36,9 +39,28 @@ export type {
 } from "./types"
 export type { WorkflowValidationStoreState } from "./validation"
 
+/**
+ * How many graphs back undo reaches. Below `withHistory`'s own default of 100,
+ * because a step here is a whole graph rather than a field.
+ */
+const HISTORY_LIMIT = 50
+
+/**
+ * The only part of the store undo/redo may touch.
+ *
+ * Without it `withHistory` would snapshot and restore the entire state, so an
+ * undo would roll back the selection, the pending quick-add/edge-insert intents
+ * and the last error along with the graph.
+ */
+const workflowHistorySlice = (
+  state: WorkflowStoreState
+): WorkflowHistorySlice => ({
+  graph: state.graph,
+})
+
 export function createWorkflowStore(
   initialProps: WorkflowStoreInitialProps = {}
-): StoreApi<WorkflowStoreState> {
+): WorkflowStoreApi {
   const initialGraph = cloneGraphState(
     initialProps.initialGraph ?? initialWorkflowGraph
   )
@@ -46,47 +68,67 @@ export function createWorkflowStore(
   const registry = createNodeRegistry(initialProps.definitions ?? [])
 
   return createStore<WorkflowStoreState>()(
-    (set, get) =>
-      ({
-        runtime,
-        registry,
-        history: createHistoryState(initialGraph),
-        measuredInitialAutoLayoutAttempted: false,
-        ...createExpressionSlice(
-          initialGraph,
+    withHistory(
+      (set, get, api) =>
+        ({
+          runtime,
           registry,
-          runtime.variables?.scope ?? upstreamScope
-        ),
-        ...createValidationSlice(set, get),
-        ...createSelectionSlice(set, get),
-        ...createIntentSlice(set, get),
-        ...createNodeCrudSlice(set, get),
-        ...createLayoutSlice(set, get),
-        ...createConnectionSlice(set, get),
-        ...createGraphSlice(set, get),
-        ...createHistorySlice(set, get),
-        ...createIoSlice(set, get),
-      }) as WorkflowStoreState
+          graph: initialGraph,
+          measuredInitialAutoLayoutAttempted: false,
+          ...createExpressionSlice(
+            initialGraph,
+            registry,
+            runtime.variables?.scope ?? upstreamScope
+          ),
+          ...createValidationSlice(set, get, api),
+          ...createSelectionSlice(set, get, api),
+          ...createIntentSlice(set, get, api),
+          ...createNodeCrudSlice(set, get, api),
+          ...createLayoutSlice(set, get, api),
+          ...createConnectionSlice(set, get, api),
+          ...createGraphSlice(set, get, api),
+          ...createHistorySlice(set, get, api),
+          ...createIoSlice(set, get, api),
+        }) as WorkflowStoreState,
+      { limit: HISTORY_LIMIT, partialize: workflowHistorySlice }
+    )
   )
 }
 
 const workflowStore = createContextStore<
-  WorkflowStoreState,
+  WorkflowStoreApi,
   WorkflowStoreInitialProps
->(createWorkflowStore)
+>(({ defaultValue }) => createWorkflowStore(defaultValue), {
+  name: "workflow",
+})
 
-export const WorkflowStoreProvider = workflowStore.Provider
-export const useWorkflowStore = workflowStore.useStore
-export const useWorkflowShallowStore = workflowStore.useShallowStore
+/**
+ * Keeps this package's own prop-per-seed API (`<WorkflowStoreProvider
+ * definitions={...} initialGraph={...} />`) over `createContextStore`'s single
+ * `defaultValue` envelope. The store is still built once, on first render.
+ */
+export function WorkflowStoreProvider({
+  children,
+  ...initialProps
+}: PropsWithChildren<WorkflowStoreInitialProps>): ReactElement {
+  return (
+    <workflowStore.Provider defaultValue={initialProps}>
+      {children}
+    </workflowStore.Provider>
+  )
+}
+
+export const useWorkflowStore = workflowStore.useSelector
+export const useWorkflowShallowStore = workflowStore.useShallowSelector
 /**
  * The store itself, for values a component reads only inside a handler.
  * Reading through this subscribes to nothing, so the component does not
  * re-render when the value changes.
  */
-export const useWorkflowStoreApi = workflowStore.useStoreApi
+export const useWorkflowStoreApi = workflowStore.useStore
 
 export function useWorkflowGraph(): WorkflowGraphState {
-  return useWorkflowStore((state) => state.history.present)
+  return useWorkflowStore((state) => state.graph)
 }
 
 export function useWorkflowSelection() {

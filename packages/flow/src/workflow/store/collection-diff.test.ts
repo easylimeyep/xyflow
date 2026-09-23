@@ -1,4 +1,3 @@
-import { createHistoryState } from "@flow/store"
 import { describe, expect, it } from "vitest"
 
 import { createWorkflowNode } from "../node-registry/node-factory"
@@ -93,16 +92,14 @@ describe("collection-diff", () => {
       ...previous,
       edges: [],
     }
-    const history = {
-      ...createHistoryState(previous),
-      past: [previous],
-      present,
-      future: [],
-    }
     const removedNodeIds = new Set([previous.nodes[0]!.id])
 
     expect(
-      shouldSquashPreviousEdgeRemovalWithNodeRemoval(history, removedNodeIds)
+      shouldSquashPreviousEdgeRemovalWithNodeRemoval(
+        previous,
+        present,
+        removedNodeIds
+      )
     ).toBe(true)
   })
 })

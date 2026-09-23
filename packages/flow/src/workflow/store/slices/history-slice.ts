@@ -1,48 +1,52 @@
-import {
-  type HistoryState,
-  redoHistoryState,
-  undoHistoryState,
-} from "@flow/store"
-
-import type { WorkflowGraphState } from "../../types/types"
-import { buildExpressionSlicePatch } from "../expression-deps"
 import { projectSelectionToNodes } from "../selection-sync"
-import type { WorkflowSliceCreator, WorkflowStoreState } from "../types"
+import { buildExpressionSlicePatch } from "../expression-deps"
+import type { WorkflowSliceCreator, WorkflowStoreApi } from "../types"
+import type { WorkflowStoreSetState } from "../types"
 
-function applyHistoryNavigation(
-  state: WorkflowStoreState,
-  historyFn: (
-    h: HistoryState<WorkflowGraphState>
-  ) => HistoryState<WorkflowGraphState>
-): Partial<WorkflowStoreState> {
-  const nextHistory = historyFn(state.history)
-  const nextPresentNodes = projectSelectionToNodes(
-    nextHistory.present.nodes,
-    state.selectedNodeIds
-  )
-  const historyWithSelection =
-    nextPresentNodes === nextHistory.present.nodes
-      ? nextHistory
-      : {
-          ...nextHistory,
-          present: {
-            ...nextHistory.present,
-            nodes: nextPresentNodes,
-          },
-        }
-  return {
-    history: historyWithSelection,
-    nodeDragOriginGraph: null,
-    lastError: null,
-    ...buildExpressionSlicePatch(state, historyWithSelection.present),
-  }
+/**
+ * Re-derives everything undo/redo left untouched.
+ *
+ * `withHistory` restores the graph and nothing else, by design — the selection
+ * and the pending intents are deliberately outside the history slice. But two
+ * things do have to follow the graph back: the per-node `selected` flags, which
+ * live on the restored nodes and would otherwise carry the selection the graph
+ * had when it was recorded, and the expression caches derived from it.
+ *
+ * The write runs under `skip` because it touches `graph`, and a recorded write
+ * here would push the navigation itself onto the undo stack.
+ */
+function syncAfterHistoryNavigation(
+  api: WorkflowStoreApi,
+  set: WorkflowStoreSetState
+): void {
+  api.history.getState().skip(() => {
+    set((state) => {
+      const nextNodes = projectSelectionToNodes(
+        state.graph.nodes,
+        state.selectedNodeIds
+      )
+      const nextGraph =
+        nextNodes === state.graph.nodes
+          ? state.graph
+          : { ...state.graph, nodes: nextNodes }
+
+      return {
+        graph: nextGraph,
+        nodeDragOriginGraph: null,
+        lastError: null,
+        ...buildExpressionSlicePatch(state, nextGraph),
+      }
+    })
+  })
 }
 
-export const createHistorySlice: WorkflowSliceCreator = (set) => ({
+export const createHistorySlice: WorkflowSliceCreator = (set, _get, api) => ({
   undo: () => {
-    set((state) => applyHistoryNavigation(state, undoHistoryState))
+    api.history.getState().undo()
+    syncAfterHistoryNavigation(api, set)
   },
   redo: () => {
-    set((state) => applyHistoryNavigation(state, redoHistoryState))
+    api.history.getState().redo()
+    syncAfterHistoryNavigation(api, set)
   },
 })

@@ -70,12 +70,6 @@ export function selectNodeRegistry(state: WorkflowStoreState): NodeRegistry {
   return state.registry
 }
 
-export const selectCanUndo = (state: WorkflowStoreState): boolean =>
-  state.history.past.length > 0
-
-export const selectCanRedo = (state: WorkflowStoreState): boolean =>
-  state.history.future.length > 0
-
 export const selectLastError = (state: WorkflowStoreState) => state.lastError
 
 export const selectLastErrorMessage = (
@@ -98,16 +92,16 @@ export const selectVisibleGlobalValidationMessages = (
 }
 
 export const selectPresentNodes = (state: WorkflowStoreState): WorkflowNode[] =>
-  state.history.present.nodes
+  state.graph.nodes
 
 export const selectPresentEdges = (state: WorkflowStoreState): WorkflowEdge[] =>
-  state.history.present.edges
+  state.graph.edges
 
 export const selectViewport = (state: WorkflowStoreState) =>
-  state.history.present.viewport
+  state.graph.viewport
 
 export const selectNodeCount = (state: WorkflowStoreState): number =>
-  state.history.present.nodes.length
+  state.graph.nodes.length
 
 export const selectSelectedNodeIds = (state: WorkflowStoreState): string[] =>
   state.selectedNodeIds
@@ -131,10 +125,7 @@ export const selectSelectedNode = (
 ): WorkflowNode | null => {
   const selectedNodeId = selectSelectedSingleNodeId(state)
   if (!selectedNodeId) return null
-  return (
-    state.history.present.nodes.find((node) => node.id === selectedNodeId) ??
-    null
-  )
+  return state.graph.nodes.find((node) => node.id === selectedNodeId) ?? null
 }
 
 export const selectVisibleValidationMessagesForNode = (
@@ -196,7 +187,7 @@ export const selectSingleUpstreamNodeLabel = (
   state: WorkflowStoreState,
   nodeId: string
 ): string | null => {
-  const { nodes, edges } = state.history.present
+  const { nodes, edges } = state.graph
 
   let sourceId: string | null = null
   for (const edge of edges) {

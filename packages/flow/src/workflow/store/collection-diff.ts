@@ -1,5 +1,4 @@
 import type { EdgeChange, NodeChange } from "@xyflow/react"
-import type { HistoryState } from "@flow/store"
 
 import type {
   WorkflowEdge,
@@ -123,14 +122,21 @@ function areSetsEqual(left: Set<string>, right: Set<string>): boolean {
   return true
 }
 
+/**
+ * Whether removing `removedNodeIds` should fold into the previous undo step
+ * rather than open a new one — the case where that step did nothing but drop
+ * the very edges incident to the nodes now going away.
+ *
+ * `previousGraph` is the last entry on the undo stack, which is `undefined`
+ * when the stack is empty.
+ */
 export function shouldSquashPreviousEdgeRemovalWithNodeRemoval(
-  history: HistoryState<WorkflowGraphState>,
+  previousGraph: WorkflowGraphState | undefined,
+  currentGraph: WorkflowGraphState,
   removedNodeIds: Set<string>
 ): boolean {
-  if (removedNodeIds.size === 0 || history.past.length === 0) return false
-  const previousGraph = history.past[history.past.length - 1]
+  if (removedNodeIds.size === 0) return false
   if (!previousGraph) return false
-  const currentGraph = history.present
   if (!haveSameNodeIds(previousGraph.nodes, currentGraph.nodes)) return false
   const removedEdgeIds = getRemovedEdgeIdSet(
     previousGraph.edges,

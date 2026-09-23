@@ -93,7 +93,7 @@ describe("workflow store", () => {
   })
 
   it("initializes graph with root keyword and no trigger nodes", () => {
-    const nodes = store.getState().history.present.nodes
+    const nodes = store.getState().graph.nodes
     expect(nodes.some((node) => node.data.kind === "inlineExpression")).toBe(
       true
     )
@@ -102,29 +102,29 @@ describe("workflow store", () => {
   })
 
   it("adds node and updates history", () => {
-    const before = store.getState().history.present.nodes.length
+    const before = store.getState().graph.nodes.length
     store.getState().addNode("setVariable", { x: 50, y: 50 })
     const state = store.getState()
 
-    expect(state.history.present.nodes.length).toBe(before + 1)
-    expect(state.history.past.length).toBeGreaterThan(0)
+    expect(state.graph.nodes.length).toBe(before + 1)
+    expect(store.history.getState().pasts.length).toBeGreaterThan(0)
   })
 
   it("supports undo and redo", () => {
     const workflowStore = store.getState()
-    const before = workflowStore.history.present.nodes.length
+    const before = workflowStore.graph.nodes.length
 
     workflowStore.addNode("extractor", { x: 120, y: 100 })
     store.getState().undo()
-    expect(store.getState().history.present.nodes.length).toBe(before)
+    expect(store.getState().graph.nodes.length).toBe(before)
 
     store.getState().redo()
-    expect(store.getState().history.present.nodes.length).toBe(before + 1)
+    expect(store.getState().graph.nodes.length).toBe(before + 1)
   })
 
   it("auto-layout commits as a single undoable history step", async () => {
     const state = store.getState()
-    const targetNode = state.history.present.nodes[0]
+    const targetNode = state.graph.nodes[0]
     if (!targetNode) {
       throw new Error("fixture node not found")
     }
@@ -134,8 +134,8 @@ describe("workflow store", () => {
       y: targetNode.position.y + 40,
     }
     computeWorkflowAutoLayoutMock.mockResolvedValue({
-      ...state.history.present,
-      nodes: state.history.present.nodes.map((node) =>
+      ...state.graph,
+      nodes: state.graph.nodes.map((node) =>
         node.id === targetNode.id ? { ...node, position: nextPosition } : node
       ),
     })
@@ -143,39 +143,35 @@ describe("workflow store", () => {
     const didLayout = await state.autoLayout()
 
     expect(didLayout).toBe(true)
-    expect(store.getState().history.present.nodes[0]?.position).toEqual(
-      nextPosition
-    )
-    expect(store.getState().history.past.length).toBe(1)
+    expect(store.getState().graph.nodes[0]?.position).toEqual(nextPosition)
+    expect(store.history.getState().pasts.length).toBe(1)
 
     store.getState().undo()
-    expect(store.getState().history.present.nodes[0]?.position).toEqual(
+    expect(store.getState().graph.nodes[0]?.position).toEqual(
       targetNode.position
     )
 
     store.getState().redo()
-    expect(store.getState().history.present.nodes[0]?.position).toEqual(
-      nextPosition
-    )
+    expect(store.getState().graph.nodes[0]?.position).toEqual(nextPosition)
   })
 
   it("keeps graph stable and reports an error when auto-layout fails", async () => {
     const state = store.getState()
-    const beforeGraph = state.history.present
+    const beforeGraph = state.graph
     computeWorkflowAutoLayoutMock.mockRejectedValue(new Error("ELK exploded"))
 
     const didLayout = await state.autoLayout()
 
     expect(didLayout).toBe(false)
-    expect(store.getState().history.present).toEqual(beforeGraph)
-    expect(store.getState().history.past).toHaveLength(0)
+    expect(store.getState().graph).toEqual(beforeGraph)
+    expect(store.history.getState().pasts).toHaveLength(0)
     expect(store.getState().lastError?.code).toBe("AUTO_LAYOUT_FAILED")
     expect(store.getState().lastError?.message).toContain("ELK exploded")
   })
 
   it("applies measured initial auto-layout without creating undo history", async () => {
     const state = store.getState()
-    const targetNode = state.history.present.nodes[0]
+    const targetNode = state.graph.nodes[0]
     if (!targetNode) {
       throw new Error("fixture node not found")
     }
@@ -185,8 +181,8 @@ describe("workflow store", () => {
       y: targetNode.position.y + 120,
     }
     computeWorkflowAutoLayoutMock.mockResolvedValue({
-      ...state.history.present,
-      nodes: state.history.present.nodes.map((node) =>
+      ...state.graph,
+      nodes: state.graph.nodes.map((node) =>
         node.id === targetNode.id ? { ...node, position: nextPosition } : node
       ),
     })
@@ -194,22 +190,18 @@ describe("workflow store", () => {
     const didLayout = await state.measuredInitialAutoLayout()
 
     expect(didLayout).toBe(true)
-    expect(store.getState().history.present.nodes[0]?.position).toEqual(
-      nextPosition
-    )
-    expect(store.getState().history.past).toHaveLength(0)
-    expect(store.getState().history.future).toHaveLength(0)
+    expect(store.getState().graph.nodes[0]?.position).toEqual(nextPosition)
+    expect(store.history.getState().pasts).toHaveLength(0)
+    expect(store.history.getState().futures).toHaveLength(0)
     expect(store.getState().measuredInitialAutoLayoutAttempted).toBe(true)
 
     store.getState().undo()
-    expect(store.getState().history.present.nodes[0]?.position).toEqual(
-      nextPosition
-    )
+    expect(store.getState().graph.nodes[0]?.position).toEqual(nextPosition)
   })
 
   it("guards measured initial auto-layout to one attempt", async () => {
     const state = store.getState()
-    computeWorkflowAutoLayoutMock.mockResolvedValue(state.history.present)
+    computeWorkflowAutoLayoutMock.mockResolvedValue(state.graph)
 
     await state.measuredInitialAutoLayout()
     await store.getState().measuredInitialAutoLayout()
@@ -219,14 +211,14 @@ describe("workflow store", () => {
 
   it("keeps graph stable and reports an error when measured initial auto-layout fails", async () => {
     const state = store.getState()
-    const beforeGraph = state.history.present
+    const beforeGraph = state.graph
     computeWorkflowAutoLayoutMock.mockRejectedValue(new Error("ELK failed"))
 
     const didLayout = await state.measuredInitialAutoLayout()
 
     expect(didLayout).toBe(false)
-    expect(store.getState().history.present).toEqual(beforeGraph)
-    expect(store.getState().history.past).toHaveLength(0)
+    expect(store.getState().graph).toEqual(beforeGraph)
+    expect(store.history.getState().pasts).toHaveLength(0)
     expect(store.getState().measuredInitialAutoLayoutAttempted).toBe(true)
     expect(store.getState().lastError?.code).toBe("AUTO_LAYOUT_FAILED")
     expect(store.getState().lastError?.message).toContain("ELK failed")
@@ -234,19 +226,17 @@ describe("workflow store", () => {
 
   it("keeps node add + measurement update as a single undo step", () => {
     const state = store.getState()
-    const before = state.history.present.nodes.length
+    const before = state.graph.nodes.length
 
     state.addNode("extractor", { x: 120, y: 100 })
     const addedNode = store
       .getState()
-      .history.present.nodes.find(
-        (node: WorkflowNode) => node.data.kind === "extractor"
-      )
+      .graph.nodes.find((node: WorkflowNode) => node.data.kind === "extractor")
     if (!addedNode) {
       throw new Error("added node not found")
     }
 
-    const historyAfterAdd = store.getState().history.past.length
+    const historyAfterAdd = store.history.getState().pasts.length
     store.getState().onNodesChange([
       {
         id: addedNode.id,
@@ -258,12 +248,12 @@ describe("workflow store", () => {
 
     const measuredNode = store
       .getState()
-      .history.present.nodes.find((node) => node.id === addedNode.id)
+      .graph.nodes.find((node) => node.id === addedNode.id)
     expect(measuredNode?.measured).toEqual({ width: 260, height: 195 })
-    expect(store.getState().history.past.length).toBe(historyAfterAdd)
+    expect(store.history.getState().pasts.length).toBe(historyAfterAdd)
 
     store.getState().undo()
-    expect(store.getState().history.present.nodes.length).toBe(before)
+    expect(store.getState().graph.nodes.length).toBe(before)
   })
 
   it("imports workflow from domain json", () => {
@@ -307,21 +297,17 @@ describe("workflow store", () => {
 
     expect(imported).toBe(true)
     expect(runtimeStore.getState().lastError).toBeNull()
-    expect(runtimeStore.getState().history.present.document.name).toBe(
-      "mapped-import"
-    )
-    expect(
-      runtimeStore.getState().history.present.document.metadata
-    ).toMatchObject({
+    expect(runtimeStore.getState().graph.document.name).toBe("mapped-import")
+    expect(runtimeStore.getState().graph.document.metadata).toMatchObject({
       importedByMapper: true,
     })
-    expect(runtimeStore.getState().history.present.nodes[0]?.data.label).toBe(
+    expect(runtimeStore.getState().graph.nodes[0]?.data.label).toBe(
       "Mapped Root"
     )
   })
 
   it("keeps default exportDomain output when runtime mapper is not provided", () => {
-    const expected = exportDomainDto(registry, store.getState().history.present)
+    const expected = exportDomainDto(registry, store.getState().graph)
 
     expect(store.getState().exportDomain()).toEqual(expected)
   })
@@ -342,10 +328,7 @@ describe("workflow store", () => {
       },
     })
 
-    const basePayload = exportDomainDto(
-      registry,
-      runtimeStore.getState().history.present
-    )
+    const basePayload = exportDomainDto(registry, runtimeStore.getState().graph)
 
     expect(runtimeStore.getState().exportDomain()).toEqual({
       ...basePayload,
@@ -596,7 +579,7 @@ describe("workflow store", () => {
       },
     })
 
-    const beforeGraph = runtimeStore.getState().history.present
+    const beforeGraph = runtimeStore.getState().graph
     const imported = runtimeStore
       .getState()
       .importFromJson(JSON.stringify(store.getState().exportDomain(), null, 2))
@@ -605,38 +588,34 @@ describe("workflow store", () => {
     expect(runtimeStore.getState().lastError?.message).toContain(
       "invalid schema"
     )
-    expect(runtimeStore.getState().history.present).toEqual(beforeGraph)
+    expect(runtimeStore.getState().graph).toEqual(beforeGraph)
   })
 
   it("rejects invalid connections and keeps graph stable", () => {
     const state = store.getState()
     state.addNode("inlineExpression", { x: 360, y: 80 })
-    const trigger = findRootKeywordNode(store.getState().history.present.nodes)
-    const inlineNode = findNonRootKeywordNode(
-      store.getState().history.present.nodes
-    )
+    const trigger = findRootKeywordNode(store.getState().graph.nodes)
+    const inlineNode = findNonRootKeywordNode(store.getState().graph.nodes)
     if (!trigger || !inlineNode) {
       throw new Error("fixture nodes not found")
     }
 
-    const edgeCount = store.getState().history.present.edges.length
+    const edgeCount = store.getState().graph.edges.length
     // Root keyword cannot accept incoming connections.
     state.onConnect({ source: inlineNode.id, target: trigger.id })
     const nextState = store.getState()
 
-    expect(nextState.history.present.edges.length).toBe(edgeCount)
+    expect(nextState.graph.edges.length).toBe(edgeCount)
     expect(nextState.lastError?.message).toContain("Root Keyword")
   })
 
   it("creates valid connections and clears previous errors", () => {
     const state = store.getState()
     state.addNode("extractor", { x: 480, y: 120 })
-    const trigger = findRootKeywordNode(state.history.present.nodes)
+    const trigger = findRootKeywordNode(state.graph.nodes)
     const extractor = store
       .getState()
-      .history.present.nodes.find(
-        (node: WorkflowNode) => node.data.kind === "extractor"
-      )
+      .graph.nodes.find((node: WorkflowNode) => node.data.kind === "extractor")
     if (!trigger || !extractor) {
       throw new Error("fixture nodes not found")
     }
@@ -645,43 +624,41 @@ describe("workflow store", () => {
     state.onConnect({ source: extractor.id, target: trigger.id })
     expect(store.getState().lastError?.message).toContain("Root Keyword")
 
-    const beforeEdgeCount = store.getState().history.present.edges.length
+    const beforeEdgeCount = store.getState().graph.edges.length
     store.getState().onConnect({ source: trigger.id, target: extractor.id })
     const nextState = store.getState()
 
-    expect(nextState.history.present.edges.length).toBe(beforeEdgeCount + 1)
+    expect(nextState.graph.edges.length).toBe(beforeEdgeCount + 1)
     expect(nextState.lastError).toBeNull()
   })
 
   it("undoes and redoes a created connection", () => {
     const state = store.getState()
     state.addNode("extractor", { x: 480, y: 120 })
-    const trigger = findRootKeywordNode(store.getState().history.present.nodes)
+    const trigger = findRootKeywordNode(store.getState().graph.nodes)
     const extractor = store
       .getState()
-      .history.present.nodes.find(
-        (node: WorkflowNode) => node.data.kind === "extractor"
-      )
+      .graph.nodes.find((node: WorkflowNode) => node.data.kind === "extractor")
     if (!trigger || !extractor) {
       throw new Error("fixture nodes not found")
     }
 
-    const basePastLength = store.getState().history.past.length
+    const basePastLength = store.history.getState().pasts.length
     store.getState().onConnect({ source: trigger.id, target: extractor.id })
     const afterConnectState = store.getState()
 
-    expect(afterConnectState.history.present.edges).toHaveLength(1)
-    expect(afterConnectState.history.past.length).toBe(basePastLength + 1)
+    expect(afterConnectState.graph.edges).toHaveLength(1)
+    expect(store.history.getState().pasts.length).toBe(basePastLength + 1)
 
     store.getState().undo()
     const afterUndoState = store.getState()
-    expect(afterUndoState.history.present.edges).toHaveLength(0)
+    expect(afterUndoState.graph.edges).toHaveLength(0)
 
     store.getState().redo()
     const afterRedoState = store.getState()
-    expect(afterRedoState.history.present.edges).toHaveLength(1)
+    expect(afterRedoState.graph.edges).toHaveLength(1)
     expect(
-      afterRedoState.history.present.edges.some(
+      afterRedoState.graph.edges.some(
         (edge) => edge.source === trigger.id && edge.target === extractor.id
       )
     ).toBe(true)
@@ -694,10 +671,10 @@ describe("workflow store", () => {
 
     const evaluatorNode = store
       .getState()
-      .history.present.nodes.find((node) => node.data.kind === "evaluator")
+      .graph.nodes.find((node) => node.data.kind === "evaluator")
     const inlineNode = store
       .getState()
-      .history.present.nodes.find(
+      .graph.nodes.find(
         (node: WorkflowNode) =>
           node.data.kind === "inlineExpression" &&
           node.data.config.isRoot !== true
@@ -711,25 +688,23 @@ describe("workflow store", () => {
       target: inlineNode.id,
       sourceHandle: "evaluator-true",
     })
-    const beforeCycleEdgeCount = store.getState().history.present.edges.length
+    const beforeCycleEdgeCount = store.getState().graph.edges.length
 
     state.onConnect({ source: inlineNode.id, target: evaluatorNode.id })
     const nextState = store.getState()
 
-    expect(nextState.history.present.edges.length).toBe(
-      beforeCycleEdgeCount + 1
-    )
+    expect(nextState.graph.edges.length).toBe(beforeCycleEdgeCount + 1)
     expect(nextState.lastError).toBeNull()
   })
 
   it("updates label and config fields as committed history changes", () => {
     const state = store.getState()
-    const targetNode = state.history.present.nodes[0]
+    const targetNode = state.graph.nodes[0]
     if (!targetNode) {
       throw new Error("fixture node not found")
     }
 
-    const initialPastLength = state.history.past.length
+    const initialPastLength = store.history.getState().pasts.length
     state.updateNodeLabel(targetNode.id, "Updated label")
     state.updateNodeConfig(targetNode.id, {
       kind: "inlineExpression",
@@ -738,22 +713,24 @@ describe("workflow store", () => {
     })
 
     const nextState = store.getState()
-    const updatedNode = nextState.history.present.nodes.find(
+    const updatedNode = nextState.graph.nodes.find(
       (node) => node.id === targetNode.id
     )
 
     expect(updatedNode?.data.label).toBe("Updated label")
     expect(updatedNode?.data.config.template).toEqual(["{{ updated-value }}"])
-    expect(nextState.history.past.length).toBeGreaterThan(initialPastLength)
+    expect(store.history.getState().pasts.length).toBeGreaterThan(
+      initialPastLength
+    )
   })
 
   it("normalizes validation snapshots outside graph history", () => {
-    const targetNode = store.getState().history.present.nodes[0]
+    const targetNode = store.getState().graph.nodes[0]
     if (!targetNode) {
       throw new Error("fixture node not found")
     }
-    const beforeGraph = store.getState().history.present
-    const beforePastLength = store.getState().history.past.length
+    const beforeGraph = store.getState().graph
+    const beforePastLength = store.history.getState().pasts.length
 
     store.getState().setValidation({
       revision: "validation-1",
@@ -769,8 +746,8 @@ describe("workflow store", () => {
       ],
     })
 
-    expect(store.getState().history.present).toBe(beforeGraph)
-    expect(store.getState().history.past).toHaveLength(beforePastLength)
+    expect(store.getState().graph).toBe(beforeGraph)
+    expect(store.history.getState().pasts).toHaveLength(beforePastLength)
     expect(
       selectVisibleGlobalValidationMessages(store.getState())
     ).toHaveLength(1)
@@ -801,7 +778,7 @@ describe("workflow store", () => {
   })
 
   it("preserves locally hidden validation for repeated revisions and resets for new revisions", () => {
-    const targetNode = store.getState().history.present.nodes[0]
+    const targetNode = store.getState().graph.nodes[0]
     if (!targetNode) {
       throw new Error("fixture node not found")
     }
@@ -834,7 +811,7 @@ describe("workflow store", () => {
   })
 
   it("hides node validation after node config and label changes", () => {
-    const targetNode = store.getState().history.present.nodes[0]
+    const targetNode = store.getState().graph.nodes[0]
     if (!targetNode) {
       throw new Error("fixture node not found")
     }
@@ -874,10 +851,10 @@ describe("workflow store", () => {
   it("hides touched node and global validation after edge changes", () => {
     const state = store.getState()
     state.addNode("extractor", { x: 480, y: 120 })
-    const source = findRootKeywordNode(store.getState().history.present.nodes)
+    const source = findRootKeywordNode(store.getState().graph.nodes)
     const target = store
       .getState()
-      .history.present.nodes.find((node) => node.data.kind === "extractor")
+      .graph.nodes.find((node) => node.data.kind === "extractor")
     if (!source || !target) {
       throw new Error("fixture nodes not found")
     }
@@ -920,12 +897,12 @@ describe("workflow store", () => {
 
   it("keeps node drag transient until drag end commit", () => {
     const state = store.getState()
-    const targetNode = state.history.present.nodes[0]
+    const targetNode = state.graph.nodes[0]
     if (!targetNode) {
       throw new Error("fixture node not found")
     }
 
-    const basePastLength = state.history.past.length
+    const basePastLength = store.history.getState().pasts.length
     state.onNodesChange([
       {
         id: targetNode.id,
@@ -934,7 +911,7 @@ describe("workflow store", () => {
         dragging: true,
       },
     ])
-    expect(store.getState().history.past.length).toBe(basePastLength)
+    expect(store.history.getState().pasts.length).toBe(basePastLength)
     const signatureAfterTransientDrag =
       store.getState().expressionStructuralSignature
     const versionAfterTransientDrag =
@@ -948,7 +925,7 @@ describe("workflow store", () => {
         dragging: false,
       },
     ])
-    expect(store.getState().history.past.length).toBe(basePastLength + 1)
+    expect(store.history.getState().pasts.length).toBe(basePastLength + 1)
     expect(store.getState().expressionStructuralSignature).toBe(
       signatureAfterTransientDrag
     )
@@ -959,13 +936,13 @@ describe("workflow store", () => {
 
   it("undoes node drag from the first hotkey press", () => {
     const state = store.getState()
-    const targetNode = state.history.present.nodes[0]
+    const targetNode = state.graph.nodes[0]
     if (!targetNode) {
       throw new Error("fixture node not found")
     }
 
     const initialPosition = { ...targetNode.position }
-    const basePastLength = state.history.past.length
+    const basePastLength = store.history.getState().pasts.length
 
     state.onNodesChange([
       {
@@ -985,18 +962,18 @@ describe("workflow store", () => {
       },
     ])
 
-    expect(store.getState().history.past.length).toBe(basePastLength + 1)
+    expect(store.history.getState().pasts.length).toBe(basePastLength + 1)
 
     store.getState().undo()
     const nodeAfterUndo = store
       .getState()
-      .history.present.nodes.find((node) => node.id === targetNode.id)
+      .graph.nodes.find((node) => node.id === targetNode.id)
     expect(nodeAfterUndo?.position).toEqual(initialPosition)
   })
 
   it("reapplies committed node drag with redo", () => {
     const state = store.getState()
-    const targetNode = state.history.present.nodes[0]
+    const targetNode = state.graph.nodes[0]
     if (!targetNode) {
       throw new Error("fixture node not found")
     }
@@ -1026,24 +1003,20 @@ describe("workflow store", () => {
 
     store.getState().undo()
     expect(
-      store
-        .getState()
-        .history.present.nodes.find((node) => node.id === targetNode.id)
+      store.getState().graph.nodes.find((node) => node.id === targetNode.id)
         ?.position
     ).toEqual(initialPosition)
 
     store.getState().redo()
     expect(
-      store
-        .getState()
-        .history.present.nodes.find((node) => node.id === targetNode.id)
+      store.getState().graph.nodes.find((node) => node.id === targetNode.id)
         ?.position
     ).toEqual(draggedPosition)
   })
 
   it("walks through multiple committed drag positions with undo and redo", () => {
     const state = store.getState()
-    const targetNode = state.history.present.nodes[0]
+    const targetNode = state.graph.nodes[0]
     if (!targetNode) {
       throw new Error("fixture node not found")
     }
@@ -1093,40 +1066,32 @@ describe("workflow store", () => {
 
     store.getState().undo()
     expect(
-      store
-        .getState()
-        .history.present.nodes.find((node) => node.id === targetNode.id)
+      store.getState().graph.nodes.find((node) => node.id === targetNode.id)
         ?.position
     ).toEqual(middlePosition)
 
     store.getState().undo()
     expect(
-      store
-        .getState()
-        .history.present.nodes.find((node) => node.id === targetNode.id)
+      store.getState().graph.nodes.find((node) => node.id === targetNode.id)
         ?.position
     ).toEqual(initialPosition)
 
     store.getState().redo()
     expect(
-      store
-        .getState()
-        .history.present.nodes.find((node) => node.id === targetNode.id)
+      store.getState().graph.nodes.find((node) => node.id === targetNode.id)
         ?.position
     ).toEqual(middlePosition)
 
     store.getState().redo()
     expect(
-      store
-        .getState()
-        .history.present.nodes.find((node) => node.id === targetNode.id)
+      store.getState().graph.nodes.find((node) => node.id === targetNode.id)
         ?.position
     ).toEqual(finalPosition)
   })
 
   it("keeps selected node highlight and panel selection in sync after undo/redo", () => {
     const state = store.getState()
-    const targetNode = state.history.present.nodes[0]
+    const targetNode = state.graph.nodes[0]
     if (!targetNode) {
       throw new Error("fixture node not found")
     }
@@ -1157,7 +1122,7 @@ describe("workflow store", () => {
 
     store.getState().undo()
     const stateAfterUndo = store.getState()
-    const selectedNodeAfterUndo = stateAfterUndo.history.present.nodes.find(
+    const selectedNodeAfterUndo = stateAfterUndo.graph.nodes.find(
       (node) => node.id === targetNode.id
     )
     expect(stateAfterUndo.selectedNodeIds).toEqual([targetNode.id])
@@ -1166,7 +1131,7 @@ describe("workflow store", () => {
 
     store.getState().redo()
     const stateAfterRedo = store.getState()
-    const selectedNodeAfterRedo = stateAfterRedo.history.present.nodes.find(
+    const selectedNodeAfterRedo = stateAfterRedo.graph.nodes.find(
       (node) => node.id === targetNode.id
     )
     expect(stateAfterRedo.selectedNodeIds).toEqual([targetNode.id])
@@ -1176,7 +1141,7 @@ describe("workflow store", () => {
 
   it("keeps expression catalog selector value stable across drag-only updates", () => {
     const state = store.getState()
-    const targetNode = findRootKeywordNode(state.history.present.nodes)
+    const targetNode = findRootKeywordNode(state.graph.nodes)
     if (!targetNode) {
       throw new Error("root keyword fixture node not found")
     }
@@ -1250,11 +1215,11 @@ describe("workflow store", () => {
     firstStore.getState().addNode("setVariable", { x: 320, y: 80 })
     firstStore.getState().addNode("inlineExpression", { x: 620, y: 80 })
     const firstInlineNode = findNonRootKeywordNode(
-      firstStore.getState().history.present.nodes
+      firstStore.getState().graph.nodes
     )
     const firstSetVariable = firstStore
       .getState()
-      .history.present.nodes.find((node) => node.data.kind === "setVariable")
+      .graph.nodes.find((node) => node.data.kind === "setVariable")
     if (!firstInlineNode || !firstSetVariable) {
       throw new Error("first store fixtures not found")
     }
@@ -1272,7 +1237,7 @@ describe("workflow store", () => {
       firstInlineNode.id
     )
     const secondInlineNode = findRootKeywordNode(
-      secondStore.getState().history.present.nodes
+      secondStore.getState().graph.nodes
     )
     if (!secondInlineNode) {
       throw new Error("second store root fixture not found")
@@ -1289,7 +1254,7 @@ describe("workflow store", () => {
 
   it("increments structural version only on structural graph changes", () => {
     const state = store.getState()
-    const targetNode = state.history.present.nodes[0]
+    const targetNode = state.graph.nodes[0]
     if (!targetNode) {
       throw new Error("fixture node not found")
     }
@@ -1325,49 +1290,47 @@ describe("workflow store", () => {
   it("commits structural edge changes to history", () => {
     const state = store.getState()
     state.addNode("inlineExpression", { x: 360, y: 80 })
-    const inlineNode = findNonRootKeywordNode(
-      store.getState().history.present.nodes
-    )
-    const trigger = findRootKeywordNode(store.getState().history.present.nodes)
+    const inlineNode = findNonRootKeywordNode(store.getState().graph.nodes)
+    const trigger = findRootKeywordNode(store.getState().graph.nodes)
     if (!trigger || !inlineNode) throw new Error("fixture nodes not found")
     store.getState().onConnect({ source: trigger.id, target: inlineNode.id })
-    const edge = store.getState().history.present.edges[0]
+    const edge = store.getState().graph.edges[0]
     if (!edge) throw new Error("fixture edge not found")
 
-    const basePastLength = store.getState().history.past.length
+    const basePastLength = store.history.getState().pasts.length
 
     store.getState().onEdgesChange([{ type: "remove", id: edge.id }])
 
-    expect(store.getState().history.past.length).toBe(basePastLength + 1)
+    expect(store.history.getState().pasts.length).toBe(basePastLength + 1)
   })
 
   it("updates viewport without committing history entries", () => {
     const state = store.getState()
-    const basePastLength = state.history.past.length
-    const previousNodesRef = state.history.present.nodes
-    const previousEdgesRef = state.history.present.edges
+    const basePastLength = store.history.getState().pasts.length
+    const previousNodesRef = state.graph.nodes
+    const previousEdgesRef = state.graph.edges
 
     state.setViewport({ x: 111, y: 222, zoom: 1.5 })
 
     const nextState = store.getState()
-    expect(nextState.history.present.viewport).toEqual({
+    expect(nextState.graph.viewport).toEqual({
       x: 111,
       y: 222,
       zoom: 1.5,
     })
-    expect(nextState.history.past.length).toBe(basePastLength)
-    expect(nextState.history.present.nodes).toBe(previousNodesRef)
-    expect(nextState.history.present.edges).toBe(previousEdgesRef)
+    expect(store.history.getState().pasts.length).toBe(basePastLength)
+    expect(nextState.graph.nodes).toBe(previousNodesRef)
+    expect(nextState.graph.edges).toBe(previousEdgesRef)
   })
 
   it("does not seed undo history when initial nodes receive measurement updates", () => {
     const state = store.getState()
-    const initialNode = state.history.present.nodes[0]
+    const initialNode = state.graph.nodes[0]
     if (!initialNode) {
       throw new Error("initial node not found")
     }
 
-    const basePastLength = state.history.past.length
+    const basePastLength = store.history.getState().pasts.length
     state.onNodesChange([
       {
         id: initialNode.id,
@@ -1377,14 +1340,14 @@ describe("workflow store", () => {
       },
     ])
 
-    expect(store.getState().history.past.length).toBe(basePastLength)
-    expect(store.getState().history.future).toHaveLength(0)
+    expect(store.history.getState().pasts.length).toBe(basePastLength)
+    expect(store.history.getState().futures).toHaveLength(0)
   })
 
   it("skips viewport writes when viewport does not change", () => {
     const state = store.getState()
-    const previousHistoryRef = state.history
-    const previousPresentRef = state.history.present
+    const previousPastLength = store.history.getState().pasts.length
+    const previousPresentRef = state.graph
 
     state.setViewport({
       x: previousPresentRef.viewport.x,
@@ -1393,31 +1356,31 @@ describe("workflow store", () => {
     })
 
     const nextState = store.getState()
-    expect(nextState.history).toBe(previousHistoryRef)
-    expect(nextState.history.present).toBe(previousPresentRef)
+    expect(store.history.getState().pasts.length).toBe(previousPastLength)
+    expect(nextState.graph).toBe(previousPresentRef)
   })
 
   it("keeps nodes and edges stable across frequent viewport updates", () => {
     const state = store.getState()
-    const basePastLength = state.history.past.length
-    const initialNodesRef = state.history.present.nodes
-    const initialEdgesRef = state.history.present.edges
+    const basePastLength = store.history.getState().pasts.length
+    const initialNodesRef = state.graph.nodes
+    const initialEdgesRef = state.graph.edges
 
     for (let index = 0; index < 20; index += 1) {
       state.setViewport({ x: index * 10, y: index * 5, zoom: 1 + index * 0.01 })
     }
 
     const nextState = store.getState()
-    expect(nextState.history.past.length).toBe(basePastLength)
-    expect(nextState.history.present.nodes).toBe(initialNodesRef)
-    expect(nextState.history.present.edges).toBe(initialEdgesRef)
+    expect(store.history.getState().pasts.length).toBe(basePastLength)
+    expect(nextState.graph.nodes).toBe(initialNodesRef)
+    expect(nextState.graph.edges).toBe(initialEdgesRef)
   })
 
   it("keeps selectedNodeIds in sync when selected nodes get removed", () => {
     const state = store.getState()
     state.addNode("inlineExpression", { x: 360, y: 80 })
-    const firstNode = store.getState().history.present.nodes[0]
-    const secondNode = store.getState().history.present.nodes[1]
+    const firstNode = store.getState().graph.nodes[0]
+    const secondNode = store.getState().graph.nodes[1]
     if (!firstNode || !secondNode) {
       throw new Error("fixture node not found")
     }
@@ -1433,77 +1396,109 @@ describe("workflow store", () => {
 
   it("creates node + connection in one history step through quick add", () => {
     const state = store.getState()
-    const sourceNode = findRootKeywordNode(state.history.present.nodes)
+    const sourceNode = findRootKeywordNode(state.graph.nodes)
     if (!sourceNode) {
       throw new Error("source node not found")
     }
 
-    const basePastLength = state.history.past.length
-    const baseNodeCount = state.history.present.nodes.length
-    const baseEdgeCount = state.history.present.edges.length
+    const basePastLength = store.history.getState().pasts.length
+    const baseNodeCount = state.graph.nodes.length
+    const baseEdgeCount = state.graph.edges.length
 
     state.startQuickAddFromOutput(sourceNode.id, null)
     expect(store.getState().quickAddPending).toEqual({
       sourceNodeId: sourceNode.id,
       sourceHandle: null,
     })
-    expect(store.getState().history.past.length).toBe(basePastLength)
+    expect(store.history.getState().pasts.length).toBe(basePastLength)
 
     state.confirmQuickAddNode("evaluator")
     const nextState = store.getState()
     expect(nextState.quickAddPending).toBeNull()
-    expect(nextState.history.present.nodes.length).toBe(baseNodeCount + 1)
-    expect(nextState.history.present.edges.length).toBe(baseEdgeCount + 1)
-    expect(nextState.history.past.length).toBe(basePastLength + 1)
+    expect(nextState.graph.nodes.length).toBe(baseNodeCount + 1)
+    expect(nextState.graph.edges.length).toBe(baseEdgeCount + 1)
+    expect(store.history.getState().pasts.length).toBe(basePastLength + 1)
+  })
+
+  it("undoes the graph without rolling back the selection", () => {
+    // History tracks the `graph` slice and nothing else, so the selection —
+    // which sits beside it in the store — is not restored along with the graph.
+    // It is re-projected onto the nodes that came back instead.
+    const state = store.getState()
+    state.addNode("extractor", { x: 480, y: 120 })
+
+    const extractor = store
+      .getState()
+      .graph.nodes.find((node: WorkflowNode) => node.data.kind === "extractor")
+    if (!extractor) {
+      throw new Error("fixture node not found")
+    }
+    const nodeCountBeforeUndo = store.getState().graph.nodes.length
+
+    const trigger = findRootKeywordNode(store.getState().graph.nodes)
+    if (!trigger) {
+      throw new Error("fixture node not found")
+    }
+    store.getState().setSelectedNodes([trigger.id])
+
+    store.getState().undo()
+
+    const afterUndo = store.getState()
+    expect(afterUndo.graph.nodes.length).toBe(nodeCountBeforeUndo - 1)
+    expect(afterUndo.selectedNodeIds).toEqual([trigger.id])
+    expect(
+      afterUndo.graph.nodes.find((node: WorkflowNode) => node.id === trigger.id)
+        ?.selected
+    ).toBe(true)
+  })
+
+  it("keeps selecting a node out of the undo stack", () => {
+    const state = store.getState()
+    const pastLengthBefore = store.history.getState().pasts.length
+    const target = state.graph.nodes[0]
+    if (!target) {
+      throw new Error("fixture node not found")
+    }
+
+    state.setSelectedNodes([target.id])
+
+    expect(store.getState().selectedNodeIds).toEqual([target.id])
+    expect(store.history.getState().pasts.length).toBe(pastLengthBefore)
   })
 
   it("undoes add-node and connect steps in reverse order", () => {
     const state = store.getState()
-    const initialNodeCount = state.history.present.nodes.length
-    const initialEdgeCount = state.history.present.edges.length
+    const initialNodeCount = state.graph.nodes.length
+    const initialEdgeCount = state.graph.edges.length
 
     state.addNode("extractor", { x: 480, y: 120 })
-    const trigger = findRootKeywordNode(store.getState().history.present.nodes)
+    const trigger = findRootKeywordNode(store.getState().graph.nodes)
     const extractor = store
       .getState()
-      .history.present.nodes.find(
-        (node: WorkflowNode) => node.data.kind === "extractor"
-      )
+      .graph.nodes.find((node: WorkflowNode) => node.data.kind === "extractor")
     if (!trigger || !extractor) {
       throw new Error("fixture nodes not found")
     }
 
     store.getState().onConnect({ source: trigger.id, target: extractor.id })
-    expect(store.getState().history.present.nodes.length).toBe(
-      initialNodeCount + 1
-    )
-    expect(store.getState().history.present.edges.length).toBe(
-      initialEdgeCount + 1
-    )
+    expect(store.getState().graph.nodes.length).toBe(initialNodeCount + 1)
+    expect(store.getState().graph.edges.length).toBe(initialEdgeCount + 1)
 
     store.getState().undo()
-    expect(store.getState().history.present.nodes.length).toBe(
-      initialNodeCount + 1
-    )
-    expect(store.getState().history.present.edges.length).toBe(initialEdgeCount)
+    expect(store.getState().graph.nodes.length).toBe(initialNodeCount + 1)
+    expect(store.getState().graph.edges.length).toBe(initialEdgeCount)
 
     store.getState().undo()
-    expect(store.getState().history.present.nodes.length).toBe(initialNodeCount)
-    expect(store.getState().history.present.edges.length).toBe(initialEdgeCount)
+    expect(store.getState().graph.nodes.length).toBe(initialNodeCount)
+    expect(store.getState().graph.edges.length).toBe(initialEdgeCount)
 
     store.getState().redo()
-    expect(store.getState().history.present.nodes.length).toBe(
-      initialNodeCount + 1
-    )
-    expect(store.getState().history.present.edges.length).toBe(initialEdgeCount)
+    expect(store.getState().graph.nodes.length).toBe(initialNodeCount + 1)
+    expect(store.getState().graph.edges.length).toBe(initialEdgeCount)
 
     store.getState().redo()
-    expect(store.getState().history.present.nodes.length).toBe(
-      initialNodeCount + 1
-    )
-    expect(store.getState().history.present.edges.length).toBe(
-      initialEdgeCount + 1
-    )
+    expect(store.getState().graph.nodes.length).toBe(initialNodeCount + 1)
+    expect(store.getState().graph.edges.length).toBe(initialEdgeCount + 1)
   })
 
   it("supports quick add from evaluator outputs with source handle", () => {
@@ -1511,9 +1506,7 @@ describe("workflow store", () => {
     state.addNode("evaluator", { x: 700, y: 160 })
     const evaluatorNode = store
       .getState()
-      .history.present.nodes.find(
-        (node: WorkflowNode) => node.data.kind === "evaluator"
-      )
+      .graph.nodes.find((node: WorkflowNode) => node.data.kind === "evaluator")
     if (!evaluatorNode) {
       throw new Error("evaluator node not found")
     }
@@ -1522,7 +1515,7 @@ describe("workflow store", () => {
     store.getState().confirmQuickAddNode("extractor")
     const edgeFromTrue = store
       .getState()
-      .history.present.edges.find(
+      .graph.edges.find(
         (edge) =>
           edge.source === evaluatorNode.id &&
           edge.sourceHandle === "evaluator-true"
@@ -1535,7 +1528,7 @@ describe("workflow store", () => {
     store.getState().confirmQuickAddNode("setVariable")
     const edgeFromFalse = store
       .getState()
-      .history.present.edges.find(
+      .graph.edges.find(
         (edge) =>
           edge.source === evaluatorNode.id &&
           edge.sourceHandle === "evaluator-false"
@@ -1545,7 +1538,7 @@ describe("workflow store", () => {
 
   it("restores quick-add node and edge in a single undo after node deletion", () => {
     const state = store.getState()
-    const sourceNode = findRootKeywordNode(state.history.present.nodes)
+    const sourceNode = findRootKeywordNode(state.graph.nodes)
     if (!sourceNode) {
       throw new Error("source node not found")
     }
@@ -1558,7 +1551,7 @@ describe("workflow store", () => {
     if (!quickAddedNodeId) {
       throw new Error("quick-added node was not selected")
     }
-    const quickAddEdge = beforeDeleteState.history.present.edges.find(
+    const quickAddEdge = beforeDeleteState.graph.edges.find(
       (edge) =>
         edge.source === sourceNode.id && edge.target === quickAddedNodeId
     )
@@ -1566,36 +1559,32 @@ describe("workflow store", () => {
       throw new Error("quick-add edge not found")
     }
 
-    const pastBeforeDelete = beforeDeleteState.history.past.length
-    const nodesBeforeDelete = beforeDeleteState.history.present.nodes.length
-    const edgesBeforeDelete = beforeDeleteState.history.present.edges.length
+    const pastBeforeDelete = store.history.getState().pasts.length
+    const nodesBeforeDelete = beforeDeleteState.graph.nodes.length
+    const edgesBeforeDelete = beforeDeleteState.graph.edges.length
 
     store.getState().onNodesChange([{ id: quickAddedNodeId, type: "remove" }])
     store.getState().onEdgesChange([{ id: quickAddEdge.id, type: "remove" }])
 
     const deletedState = store.getState()
-    expect(deletedState.history.present.nodes.length).toBe(
-      nodesBeforeDelete - 1
-    )
-    expect(deletedState.history.present.edges.length).toBe(
-      edgesBeforeDelete - 1
-    )
-    expect(deletedState.history.past.length).toBe(pastBeforeDelete + 1)
+    expect(deletedState.graph.nodes.length).toBe(nodesBeforeDelete - 1)
+    expect(deletedState.graph.edges.length).toBe(edgesBeforeDelete - 1)
+    expect(store.history.getState().pasts.length).toBe(pastBeforeDelete + 1)
 
     store.getState().undo()
     const undoState = store.getState()
-    expect(undoState.history.present.nodes.length).toBe(nodesBeforeDelete)
-    expect(undoState.history.present.edges.length).toBe(edgesBeforeDelete)
+    expect(undoState.graph.nodes.length).toBe(nodesBeforeDelete)
+    expect(undoState.graph.edges.length).toBe(edgesBeforeDelete)
 
     store.getState().redo()
     const redoState = store.getState()
-    expect(redoState.history.present.nodes.length).toBe(nodesBeforeDelete - 1)
-    expect(redoState.history.present.edges.length).toBe(edgesBeforeDelete - 1)
+    expect(redoState.graph.nodes.length).toBe(nodesBeforeDelete - 1)
+    expect(redoState.graph.edges.length).toBe(edgesBeforeDelete - 1)
   })
 
   it("restores node and edge in one undo when edge-remove arrives before node-remove", () => {
     const state = store.getState()
-    const sourceNode = findRootKeywordNode(state.history.present.nodes)
+    const sourceNode = findRootKeywordNode(state.graph.nodes)
     if (!sourceNode) {
       throw new Error("source node not found")
     }
@@ -1608,7 +1597,7 @@ describe("workflow store", () => {
     if (!quickAddedNodeId) {
       throw new Error("quick-added node was not selected")
     }
-    const quickAddEdge = beforeDeleteState.history.present.edges.find(
+    const quickAddEdge = beforeDeleteState.graph.edges.find(
       (edge) =>
         edge.source === sourceNode.id && edge.target === quickAddedNodeId
     )
@@ -1616,26 +1605,22 @@ describe("workflow store", () => {
       throw new Error("quick-add edge not found")
     }
 
-    const pastBeforeDelete = beforeDeleteState.history.past.length
-    const nodesBeforeDelete = beforeDeleteState.history.present.nodes.length
-    const edgesBeforeDelete = beforeDeleteState.history.present.edges.length
+    const pastBeforeDelete = store.history.getState().pasts.length
+    const nodesBeforeDelete = beforeDeleteState.graph.nodes.length
+    const edgesBeforeDelete = beforeDeleteState.graph.edges.length
 
     store.getState().onEdgesChange([{ id: quickAddEdge.id, type: "remove" }])
     store.getState().onNodesChange([{ id: quickAddedNodeId, type: "remove" }])
 
     const deletedState = store.getState()
-    expect(deletedState.history.present.nodes.length).toBe(
-      nodesBeforeDelete - 1
-    )
-    expect(deletedState.history.present.edges.length).toBe(
-      edgesBeforeDelete - 1
-    )
-    expect(deletedState.history.past.length).toBe(pastBeforeDelete + 1)
+    expect(deletedState.graph.nodes.length).toBe(nodesBeforeDelete - 1)
+    expect(deletedState.graph.edges.length).toBe(edgesBeforeDelete - 1)
+    expect(store.history.getState().pasts.length).toBe(pastBeforeDelete + 1)
 
     store.getState().undo()
     const undoState = store.getState()
-    expect(undoState.history.present.nodes.length).toBe(nodesBeforeDelete)
-    expect(undoState.history.present.edges.length).toBe(edgesBeforeDelete)
+    expect(undoState.graph.nodes.length).toBe(nodesBeforeDelete)
+    expect(undoState.graph.edges.length).toBe(edgesBeforeDelete)
   })
 
   it("restores multi-node delete with connected edges in one undo step", () => {
@@ -1645,16 +1630,14 @@ describe("workflow store", () => {
 
     const inlineNode = store
       .getState()
-      .history.present.nodes.find(
+      .graph.nodes.find(
         (node: WorkflowNode) =>
           node.data.kind === "inlineExpression" &&
           node.data.config.isRoot !== true
       )
     const extractorNode = store
       .getState()
-      .history.present.nodes.find(
-        (node: WorkflowNode) => node.data.kind === "extractor"
-      )
+      .graph.nodes.find((node: WorkflowNode) => node.data.kind === "extractor")
     if (!inlineNode || !extractorNode) {
       throw new Error("fixture nodes not found")
     }
@@ -1664,12 +1647,12 @@ describe("workflow store", () => {
       .onConnect({ source: inlineNode.id, target: extractorNode.id })
 
     const beforeDeleteState = store.getState()
-    const pastBeforeDelete = beforeDeleteState.history.past.length
-    const nodesBeforeDelete = beforeDeleteState.history.present.nodes.length
-    const edgesBeforeDelete = beforeDeleteState.history.present.edges.length
+    const pastBeforeDelete = store.history.getState().pasts.length
+    const nodesBeforeDelete = beforeDeleteState.graph.nodes.length
+    const edgesBeforeDelete = beforeDeleteState.graph.edges.length
 
     const removedNodeIds = new Set([inlineNode.id, extractorNode.id])
-    const removedEdgeIds = beforeDeleteState.history.present.edges
+    const removedEdgeIds = beforeDeleteState.graph.edges
       .filter(
         (edge) =>
           removedNodeIds.has(edge.source) || removedNodeIds.has(edge.target)
@@ -1687,23 +1670,21 @@ describe("workflow store", () => {
       )
 
     const deletedState = store.getState()
-    expect(deletedState.history.past.length).toBe(pastBeforeDelete + 1)
-    expect(deletedState.history.present.nodes.length).toBe(
-      nodesBeforeDelete - 2
-    )
-    expect(deletedState.history.present.edges.length).toBe(
+    expect(store.history.getState().pasts.length).toBe(pastBeforeDelete + 1)
+    expect(deletedState.graph.nodes.length).toBe(nodesBeforeDelete - 2)
+    expect(deletedState.graph.edges.length).toBe(
       edgesBeforeDelete - removedEdgeIds.length
     )
 
     store.getState().undo()
     const undoState = store.getState()
-    expect(undoState.history.present.nodes.length).toBe(nodesBeforeDelete)
-    expect(undoState.history.present.edges.length).toBe(edgesBeforeDelete)
+    expect(undoState.graph.nodes.length).toBe(nodesBeforeDelete)
+    expect(undoState.graph.edges.length).toBe(edgesBeforeDelete)
 
     store.getState().redo()
     const redoState = store.getState()
-    expect(redoState.history.present.nodes.length).toBe(nodesBeforeDelete - 2)
-    expect(redoState.history.present.edges.length).toBe(
+    expect(redoState.graph.nodes.length).toBe(nodesBeforeDelete - 2)
+    expect(redoState.graph.edges.length).toBe(
       edgesBeforeDelete - removedEdgeIds.length
     )
   })
@@ -1711,12 +1692,8 @@ describe("workflow store", () => {
   it("does not start quick add on occupied output and allows explicit cancel", () => {
     const state = store.getState()
     state.addNode("inlineExpression", { x: 360, y: 80 })
-    const triggerNode = findRootKeywordNode(
-      store.getState().history.present.nodes
-    )
-    const inlineNode = findNonRootKeywordNode(
-      store.getState().history.present.nodes
-    )
+    const triggerNode = findRootKeywordNode(store.getState().graph.nodes)
+    const inlineNode = findNonRootKeywordNode(store.getState().graph.nodes)
     if (!triggerNode || !inlineNode) {
       throw new Error("fixture nodes not found")
     }
@@ -1740,28 +1717,24 @@ describe("workflow store", () => {
   it("splits edge into source->new and new->target in one history step", () => {
     const state = store.getState()
     state.addNode("inlineExpression", { x: 360, y: 80 })
-    const triggerNode = findRootKeywordNode(
-      store.getState().history.present.nodes
-    )
-    const inlineNode = findNonRootKeywordNode(
-      store.getState().history.present.nodes
-    )
+    const triggerNode = findRootKeywordNode(store.getState().graph.nodes)
+    const inlineNode = findNonRootKeywordNode(store.getState().graph.nodes)
     if (!triggerNode || !inlineNode) throw new Error("fixture nodes not found")
     store
       .getState()
       .onConnect({ source: triggerNode.id, target: inlineNode.id })
-    const initialEdge = store.getState().history.present.edges[0]
+    const initialEdge = store.getState().graph.edges[0]
     if (!initialEdge) {
       throw new Error("fixture edge not found")
     }
 
     const targetBefore = store
       .getState()
-      .history.present.nodes.find((node) => node.id === initialEdge.target)
+      .graph.nodes.find((node) => node.id === initialEdge.target)
     if (!targetBefore) {
       throw new Error("target node not found")
     }
-    const basePastLength = store.getState().history.past.length
+    const basePastLength = store.history.getState().pasts.length
 
     state.startEdgeInsertFromEdge(initialEdge.id)
     expect(store.getState().edgeInsertPending).toEqual({
@@ -1771,14 +1744,14 @@ describe("workflow store", () => {
     state.confirmEdgeInsertNode("evaluator")
 
     const nextState = store.getState()
-    const insertedNode = nextState.history.present.nodes.find(
+    const insertedNode = nextState.graph.nodes.find(
       (node) => node.data.kind === "evaluator"
     )
     if (!insertedNode) {
       throw new Error("inserted node not found")
     }
 
-    const nextEdges = nextState.history.present.edges
+    const nextEdges = nextState.graph.edges
     expect(nextEdges.some((edge) => edge.id === initialEdge.id)).toBe(false)
     expect(
       nextEdges.some(
@@ -1792,9 +1765,9 @@ describe("workflow store", () => {
           edge.source === insertedNode.id && edge.target === initialEdge.target
       )
     ).toBe(true)
-    expect(nextState.history.past.length).toBe(basePastLength + 1)
+    expect(store.history.getState().pasts.length).toBe(basePastLength + 1)
 
-    const targetAfter = nextState.history.present.nodes.find(
+    const targetAfter = nextState.graph.nodes.find(
       (node) => node.id === initialEdge.target
     )
     expect(targetAfter?.position.x).toBeGreaterThan(targetBefore.position.x)
@@ -1803,12 +1776,8 @@ describe("workflow store", () => {
   it("preserves sourceHandle and targetHandle when split succeeds", () => {
     const state = store.getState()
     state.addNode("inlineExpression", { x: 360, y: 80 })
-    const triggerNode = findRootKeywordNode(
-      store.getState().history.present.nodes
-    )
-    const transformNode = findNonRootKeywordNode(
-      store.getState().history.present.nodes
-    )
+    const triggerNode = findRootKeywordNode(store.getState().graph.nodes)
+    const transformNode = findNonRootKeywordNode(store.getState().graph.nodes)
     if (!triggerNode || !transformNode) {
       throw new Error("fixture nodes not found")
     }
@@ -1821,7 +1790,7 @@ describe("workflow store", () => {
     })
     const createdEdge = store
       .getState()
-      .history.present.edges.find(
+      .graph.edges.find(
         (edge) =>
           edge.source === triggerNode.id &&
           edge.target === transformNode.id &&
@@ -1836,18 +1805,18 @@ describe("workflow store", () => {
     state.confirmEdgeInsertNode("evaluator")
 
     const nextState = store.getState()
-    const insertedNode = nextState.history.present.nodes.find(
+    const insertedNode = nextState.graph.nodes.find(
       (node) => node.data.kind === "evaluator"
     )
     if (!insertedNode) {
       throw new Error("inserted node not found")
     }
 
-    const sourceLeg = nextState.history.present.edges.find(
+    const sourceLeg = nextState.graph.edges.find(
       (edge) =>
         edge.source === triggerNode.id && edge.target === insertedNode.id
     )
-    const targetLeg = nextState.history.present.edges.find(
+    const targetLeg = nextState.graph.edges.find(
       (edge) =>
         edge.source === insertedNode.id && edge.target === transformNode.id
     )
@@ -1861,17 +1830,13 @@ describe("workflow store", () => {
     const state = store.getState()
     state.addNode("evaluator", { x: 360, y: 80 })
     state.addNode("result", { x: 720, y: 80 })
-    const rootNode = findRootKeywordNode(store.getState().history.present.nodes)
+    const rootNode = findRootKeywordNode(store.getState().graph.nodes)
     const evaluatorNode = store
       .getState()
-      .history.present.nodes.find(
-        (node: WorkflowNode) => node.data.kind === "evaluator"
-      )
+      .graph.nodes.find((node: WorkflowNode) => node.data.kind === "evaluator")
     const resultNode = store
       .getState()
-      .history.present.nodes.find(
-        (node: WorkflowNode) => node.data.kind === "result"
-      )
+      .graph.nodes.find((node: WorkflowNode) => node.data.kind === "result")
     if (!rootNode || !evaluatorNode || !resultNode) {
       throw new Error("fixture nodes not found")
     }
@@ -1884,7 +1849,7 @@ describe("workflow store", () => {
     })
     const edgeToSplit = store
       .getState()
-      .history.present.edges.find(
+      .graph.edges.find(
         (edge) =>
           edge.source === evaluatorNode.id && edge.target === resultNode.id
       )
@@ -1896,25 +1861,25 @@ describe("workflow store", () => {
     state.confirmEdgeInsertNode("evaluator")
 
     const nextState = store.getState()
-    const insertedNode = nextState.history.present.nodes.find(
+    const insertedNode = nextState.graph.nodes.find(
       (node) => node.data.kind === "evaluator" && node.id !== evaluatorNode.id
     )
     if (!insertedNode) {
       throw new Error("inserted evaluator not found")
     }
-    const continuation = nextState.history.present.edges.find(
+    const continuation = nextState.graph.edges.find(
       (edge) => edge.source === insertedNode.id && edge.target === resultNode.id
     )
 
     expect(continuation?.sourceHandle).toBe("evaluator-true")
     expect(
-      nextState.history.present.edges.some(
+      nextState.graph.edges.some(
         (edge) => edge.source === insertedNode.id && edge.sourceHandle === null
       )
     ).toBe(false)
 
     const backend = exportDomainWorkflowForBackend(
-      exportDomainDto(registry, nextState.history.present)
+      exportDomainDto(registry, nextState.graph)
     )
     const insertedBackendNode = backend.nodes.find(
       (node) => node.label === insertedNode.data.label
@@ -1930,12 +1895,8 @@ describe("workflow store", () => {
   it("undoes and redoes edge insert as a single history step", () => {
     const state = store.getState()
     state.addNode("inlineExpression", { x: 360, y: 80 })
-    const triggerNode = findRootKeywordNode(
-      store.getState().history.present.nodes
-    )
-    const inlineNode = findNonRootKeywordNode(
-      store.getState().history.present.nodes
-    )
+    const triggerNode = findRootKeywordNode(store.getState().graph.nodes)
+    const inlineNode = findNonRootKeywordNode(store.getState().graph.nodes)
     if (!triggerNode || !inlineNode) {
       throw new Error("fixture nodes not found")
     }
@@ -1943,7 +1904,7 @@ describe("workflow store", () => {
     store
       .getState()
       .onConnect({ source: triggerNode.id, target: inlineNode.id })
-    const initialEdge = store.getState().history.present.edges[0]
+    const initialEdge = store.getState().graph.edges[0]
     if (!initialEdge) {
       throw new Error("fixture edge not found")
     }
@@ -1953,39 +1914,35 @@ describe("workflow store", () => {
     state.confirmEdgeInsertNode("evaluator")
 
     const insertedState = store.getState()
-    expect(insertedState.history.present.nodes.length).toBe(
-      beforeInsertState.history.present.nodes.length + 1
+    expect(insertedState.graph.nodes.length).toBe(
+      beforeInsertState.graph.nodes.length + 1
     )
-    expect(insertedState.history.present.edges.length).toBe(
-      beforeInsertState.history.present.edges.length + 1
+    expect(insertedState.graph.edges.length).toBe(
+      beforeInsertState.graph.edges.length + 1
     )
 
     store.getState().undo()
     const afterUndoState = store.getState()
-    expect(afterUndoState.history.present.nodes.length).toBe(
-      beforeInsertState.history.present.nodes.length
+    expect(afterUndoState.graph.nodes.length).toBe(
+      beforeInsertState.graph.nodes.length
     )
-    expect(afterUndoState.history.present.edges.length).toBe(
-      beforeInsertState.history.present.edges.length
+    expect(afterUndoState.graph.edges.length).toBe(
+      beforeInsertState.graph.edges.length
     )
     expect(
-      afterUndoState.history.present.edges.some(
-        (edge) => edge.id === initialEdge.id
-      )
+      afterUndoState.graph.edges.some((edge) => edge.id === initialEdge.id)
     ).toBe(true)
 
     store.getState().redo()
     const afterRedoState = store.getState()
-    expect(afterRedoState.history.present.nodes.length).toBe(
-      beforeInsertState.history.present.nodes.length + 1
+    expect(afterRedoState.graph.nodes.length).toBe(
+      beforeInsertState.graph.nodes.length + 1
     )
-    expect(afterRedoState.history.present.edges.length).toBe(
-      beforeInsertState.history.present.edges.length + 1
+    expect(afterRedoState.graph.edges.length).toBe(
+      beforeInsertState.graph.edges.length + 1
     )
     expect(
-      afterRedoState.history.present.edges.some(
-        (edge) => edge.id === initialEdge.id
-      )
+      afterRedoState.graph.edges.some((edge) => edge.id === initialEdge.id)
     ).toBe(false)
   })
 
@@ -1993,12 +1950,10 @@ describe("workflow store", () => {
     const state = store.getState()
     state.addNode("inlineExpression", { x: 360, y: 80 })
     state.addNode("setVariable", { x: 720, y: 80 })
-    const inlineNode = findNonRootKeywordNode(
-      store.getState().history.present.nodes
-    )
+    const inlineNode = findNonRootKeywordNode(store.getState().graph.nodes)
     const setVariableNode = store
       .getState()
-      .history.present.nodes.find(
+      .graph.nodes.find(
         (node: WorkflowNode) => node.data.kind === "setVariable"
       )
     if (!inlineNode || !setVariableNode) {
@@ -2010,7 +1965,7 @@ describe("workflow store", () => {
       .onConnect({ source: inlineNode.id, target: setVariableNode.id })
     const edgeToSplit = store
       .getState()
-      .history.present.edges.find(
+      .graph.edges.find(
         (edge) =>
           edge.source === inlineNode.id && edge.target === setVariableNode.id
       )
@@ -2026,7 +1981,7 @@ describe("workflow store", () => {
     expect(nextState.edgeInsertPending).toBeNull()
     expect(nextState.lastError?.code).toBe("EDGE_INSERT_FAILED")
     expect(
-      nextState.history.present.edges.some((edge) => edge.id === edgeToSplit.id)
+      nextState.graph.edges.some((edge) => edge.id === edgeToSplit.id)
     ).toBe(true)
   })
 
@@ -2037,12 +1992,12 @@ describe("workflow store", () => {
 
     const setVariableNode = store
       .getState()
-      .history.present.nodes.find(
+      .graph.nodes.find(
         (node: WorkflowNode) => node.data.kind === "setVariable"
       )
     const inlineExpressionNode = store
       .getState()
-      .history.present.nodes.find(
+      .graph.nodes.find(
         (node: WorkflowNode) =>
           node.data.kind === "inlineExpression" &&
           node.data.config.isRoot !== true
@@ -2069,10 +2024,10 @@ describe("workflow store", () => {
     })
 
     const nextState = store.getState()
-    const nextSetVariableNode = nextState.history.present.nodes.find(
+    const nextSetVariableNode = nextState.graph.nodes.find(
       (node) => node.id === setVariableNode.id
     )
-    const nextInlineExpressionNode = nextState.history.present.nodes.find(
+    const nextInlineExpressionNode = nextState.graph.nodes.find(
       (node) => node.id === inlineExpressionNode.id
     )
 
@@ -2090,12 +2045,10 @@ describe("workflow store", () => {
 
     const extractorNode = store
       .getState()
-      .history.present.nodes.find(
-        (node: WorkflowNode) => node.data.kind === "extractor"
-      )
+      .graph.nodes.find((node: WorkflowNode) => node.data.kind === "extractor")
     const inlineExpressionNode = store
       .getState()
-      .history.present.nodes.find(
+      .graph.nodes.find(
         (node: WorkflowNode) =>
           node.data.kind === "inlineExpression" &&
           node.data.config.isRoot !== true
@@ -2122,10 +2075,10 @@ describe("workflow store", () => {
     })
 
     const nextState = store.getState()
-    const nextExtractorNode = nextState.history.present.nodes.find(
+    const nextExtractorNode = nextState.graph.nodes.find(
       (node) => node.id === extractorNode.id
     )
-    const nextInlineExpressionNode = nextState.history.present.nodes.find(
+    const nextInlineExpressionNode = nextState.graph.nodes.find(
       (node) => node.id === inlineExpressionNode.id
     )
 
@@ -2142,7 +2095,7 @@ describe("workflow store", () => {
     state.addNode("setVariable", { x: 900, y: 80 })
     const setVariableNodes = store
       .getState()
-      .history.present.nodes.filter((node) => node.data.kind === "setVariable")
+      .graph.nodes.filter((node) => node.data.kind === "setVariable")
     const firstNode = setVariableNodes[0]
     const secondNode = setVariableNodes[1]
     if (!firstNode || !secondNode) {
@@ -2160,7 +2113,7 @@ describe("workflow store", () => {
 
     const extractorLabels = store
       .getState()
-      .history.present.nodes.filter((node) => node.data.kind === "extractor")
+      .graph.nodes.filter((node) => node.data.kind === "extractor")
       .map((node) => node.data.label)
       .sort()
 
@@ -2173,7 +2126,7 @@ describe("workflow store", () => {
     state.addNode("extractor", { x: 560, y: 80 })
     const extractorNodes = store
       .getState()
-      .history.present.nodes.filter(
+      .graph.nodes.filter(
         (node: WorkflowNode) => node.data.kind === "extractor"
       )
     const firstExtractor = extractorNodes[0]
@@ -2185,7 +2138,7 @@ describe("workflow store", () => {
     state.addNode("inlineExpression", { x: 900, y: 80 })
     const inlineExpressionNode = store
       .getState()
-      .history.present.nodes.find(
+      .graph.nodes.find(
         (node: WorkflowNode) =>
           node.data.kind === "inlineExpression" &&
           node.data.config.isRoot !== true
@@ -2203,10 +2156,10 @@ describe("workflow store", () => {
     state.updateNodeLabel(firstExtractor.id, secondExtractor.data.label)
 
     const nextState = store.getState()
-    const nextFirstExtractor = nextState.history.present.nodes.find(
+    const nextFirstExtractor = nextState.graph.nodes.find(
       (node) => node.id === firstExtractor.id
     )
-    const nextInlineExpressionNode = nextState.history.present.nodes.find(
+    const nextInlineExpressionNode = nextState.graph.nodes.find(
       (node) => node.id === inlineExpressionNode.id
     )
 

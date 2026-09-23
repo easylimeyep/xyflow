@@ -89,7 +89,7 @@ describe("createHistoryHotkeyHandler integration", () => {
       initialGraph: createKeywordSampleGraph(builtinBaseDefinitions),
     })
     const state = workflowStore.getState()
-    const sourceNode = state.history.present.nodes.find(
+    const sourceNode = state.graph.nodes.find(
       (node: WorkflowNode) =>
         node.data.kind === "inlineExpression" &&
         node.data.config.isRoot === true
@@ -106,7 +106,7 @@ describe("createHistoryHotkeyHandler integration", () => {
     if (!quickAddedNodeId) {
       throw new Error("quick-added node not found")
     }
-    const quickAddEdge = beforeDeleteState.history.present.edges.find(
+    const quickAddEdge = beforeDeleteState.graph.edges.find(
       (edge) =>
         edge.source === sourceNode.id && edge.target === quickAddedNodeId
     )
@@ -114,8 +114,8 @@ describe("createHistoryHotkeyHandler integration", () => {
       throw new Error("quick-add edge not found")
     }
 
-    const nodesBeforeDelete = beforeDeleteState.history.present.nodes.length
-    const edgesBeforeDelete = beforeDeleteState.history.present.edges.length
+    const nodesBeforeDelete = beforeDeleteState.graph.nodes.length
+    const edgesBeforeDelete = beforeDeleteState.graph.edges.length
 
     workflowStore
       .getState()
@@ -125,12 +125,8 @@ describe("createHistoryHotkeyHandler integration", () => {
       .onEdgesChange([{ id: quickAddEdge.id, type: "remove" }])
 
     const deletedState = workflowStore.getState()
-    expect(deletedState.history.present.nodes.length).toBe(
-      nodesBeforeDelete - 1
-    )
-    expect(deletedState.history.present.edges.length).toBe(
-      edgesBeforeDelete - 1
-    )
+    expect(deletedState.graph.nodes.length).toBe(nodesBeforeDelete - 1)
+    expect(deletedState.graph.edges.length).toBe(edgesBeforeDelete - 1)
 
     const handler = createHistoryHotkeyHandler(
       () => workflowStore.getState().undo(),
@@ -147,8 +143,8 @@ describe("createHistoryHotkeyHandler integration", () => {
     )
 
     const undoState = workflowStore.getState()
-    expect(undoState.history.present.nodes.length).toBe(nodesBeforeDelete)
-    expect(undoState.history.present.edges.length).toBe(edgesBeforeDelete)
+    expect(undoState.graph.nodes.length).toBe(nodesBeforeDelete)
+    expect(undoState.graph.edges.length).toBe(edgesBeforeDelete)
 
     window.dispatchEvent(
       new KeyboardEvent("keydown", {
@@ -159,8 +155,8 @@ describe("createHistoryHotkeyHandler integration", () => {
     )
 
     const redoState = workflowStore.getState()
-    expect(redoState.history.present.nodes.length).toBe(nodesBeforeDelete - 1)
-    expect(redoState.history.present.edges.length).toBe(edgesBeforeDelete - 1)
+    expect(redoState.graph.nodes.length).toBe(nodesBeforeDelete - 1)
+    expect(redoState.graph.edges.length).toBe(edgesBeforeDelete - 1)
 
     window.removeEventListener("keydown", handler)
   })
@@ -171,7 +167,7 @@ describe("createHistoryHotkeyHandler integration", () => {
       initialGraph: createKeywordSampleGraph(builtinBaseDefinitions),
     })
     const state = workflowStore.getState()
-    const sourceNode = state.history.present.nodes.find(
+    const sourceNode = state.graph.nodes.find(
       (node: WorkflowNode) =>
         node.data.kind === "inlineExpression" &&
         node.data.config.isRoot === true
@@ -188,7 +184,7 @@ describe("createHistoryHotkeyHandler integration", () => {
     if (!quickAddedNodeId) {
       throw new Error("quick-added node not found")
     }
-    const quickAddEdge = beforeDeleteState.history.present.edges.find(
+    const quickAddEdge = beforeDeleteState.graph.edges.find(
       (edge) =>
         edge.source === sourceNode.id && edge.target === quickAddedNodeId
     )
@@ -196,8 +192,8 @@ describe("createHistoryHotkeyHandler integration", () => {
       throw new Error("quick-add edge not found")
     }
 
-    const nodesBeforeDelete = beforeDeleteState.history.present.nodes.length
-    const edgesBeforeDelete = beforeDeleteState.history.present.edges.length
+    const nodesBeforeDelete = beforeDeleteState.graph.nodes.length
+    const edgesBeforeDelete = beforeDeleteState.graph.edges.length
 
     workflowStore
       .getState()
@@ -207,12 +203,8 @@ describe("createHistoryHotkeyHandler integration", () => {
       .onNodesChange([{ id: quickAddedNodeId, type: "remove" }])
 
     const deletedState = workflowStore.getState()
-    expect(deletedState.history.present.nodes.length).toBe(
-      nodesBeforeDelete - 1
-    )
-    expect(deletedState.history.present.edges.length).toBe(
-      edgesBeforeDelete - 1
-    )
+    expect(deletedState.graph.nodes.length).toBe(nodesBeforeDelete - 1)
+    expect(deletedState.graph.edges.length).toBe(edgesBeforeDelete - 1)
 
     const handler = createHistoryHotkeyHandler(
       () => workflowStore.getState().undo(),
@@ -229,8 +221,8 @@ describe("createHistoryHotkeyHandler integration", () => {
     )
 
     const undoState = workflowStore.getState()
-    expect(undoState.history.present.nodes.length).toBe(nodesBeforeDelete)
-    expect(undoState.history.present.edges.length).toBe(edgesBeforeDelete)
+    expect(undoState.graph.nodes.length).toBe(nodesBeforeDelete)
+    expect(undoState.graph.edges.length).toBe(edgesBeforeDelete)
 
     window.removeEventListener("keydown", handler)
   })

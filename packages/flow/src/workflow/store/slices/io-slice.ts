@@ -1,4 +1,3 @@
-import { createHistoryState } from "@flow/store"
 import { addEdge, type XYPosition } from "@xyflow/react"
 
 import { refactorPlainVariableReferencesInGraph } from "../graph-refactors"
@@ -26,20 +25,20 @@ import {
   buildExpressionSlicePatch,
   cloneGraphState,
   commitGraphState,
+  projectSelectionWithoutHistory,
   deduplicateNodeLabels,
   getFallbackPasteAnchor,
   readTextFromClipboard,
   writeTextToClipboard,
 } from "../helpers"
-import { projectSelectionToNodes } from "../selection-sync"
 import type { WorkflowSliceCreator } from "../types"
 
 const VARIABLE_LABEL_KINDS = new Set(["extractor", "setVariable"])
 
-export const createIoSlice: WorkflowSliceCreator = (set, get) => ({
+export const createIoSlice: WorkflowSliceCreator = (set, get, api) => ({
   copySelectionToClipboard: async () => {
     const state = get()
-    const currentGraph = state.history.present
+    const currentGraph = state.graph
     const selectedNodeIdSet = new Set(state.selectedNodeIds)
     const selectedNodes = currentGraph.nodes.filter((node) =>
       selectedNodeIdSet.has(node.id)
@@ -95,7 +94,7 @@ export const createIoSlice: WorkflowSliceCreator = (set, get) => ({
       return false
     }
 
-    const currentGraph = get().history.present
+    const currentGraph = get().graph
     const anchor = pasteAnchor ?? getFallbackPasteAnchor(currentGraph.viewport)
     const usedLabels = new Set(
       currentGraph.nodes.map((n) => n.data.label.trim()).filter(Boolean)
@@ -120,20 +119,11 @@ export const createIoSlice: WorkflowSliceCreator = (set, get) => ({
       edges: nextEdges,
     })
     const pastedNodeIds = nextNodesWithRefactors.map((node) => node.id)
-    set((state) => ({
+    projectSelectionWithoutHistory(api, set, pastedNodeIds)
+    set({
       selectedNodeIds: pastedNodeIds,
-      history: {
-        ...state.history,
-        present: {
-          ...state.history.present,
-          nodes: projectSelectionToNodes(
-            state.history.present.nodes,
-            pastedNodeIds
-          ),
-        },
-      },
       lastError: null,
-    }))
+    })
     get().hideGlobalValidation()
     return true
   },
@@ -184,28 +174,33 @@ export const createIoSlice: WorkflowSliceCreator = (set, get) => ({
       }
     })
 
-    set((state) => ({
-      history: createHistoryState({
-        ...importedGraph,
-        nodes: normalizedNodes,
-      }),
-      selectedNodeIds: [],
-      nodeDragOriginGraph: null,
-      lastError: null,
-      validation: {
-        server: null,
-        locallyHiddenKeys: new Set<string>(),
-      },
-      ...buildExpressionSlicePatch(state, {
-        ...importedGraph,
-        nodes: normalizedNodes,
-      }),
-    }))
+    // An import replaces the document, so the undo stack that belonged to the
+    // previous one goes with it rather than letting undo cross the boundary.
+    api.history.getState().clear()
+    api.history.getState().skip(() => {
+      set((state) => ({
+        graph: {
+          ...importedGraph,
+          nodes: normalizedNodes,
+        },
+        selectedNodeIds: [],
+        nodeDragOriginGraph: null,
+        lastError: null,
+        validation: {
+          server: null,
+          locallyHiddenKeys: new Set<string>(),
+        },
+        ...buildExpressionSlicePatch(state, {
+          ...importedGraph,
+          nodes: normalizedNodes,
+        }),
+      }))
+    })
     return true
   },
   exportDomain: () => {
     const state = get()
-    const payload = exportDomainDto(state.registry, state.history.present)
+    const payload = exportDomainDto(state.registry, state.graph)
     const nextPayload = state.runtime.exportDomain?.mapper?.(payload) ?? payload
 
     return nextPayload

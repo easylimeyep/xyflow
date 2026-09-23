@@ -18,7 +18,6 @@
     "@rc-component/tour": "^2.4.0",
     "@flow/expression-editor": "workspace:*",
     "@flow/flow": "workspace:*",
-    "@flow/store": "workspace:*",
     "@flow/ui": "workspace:*",
     "lucide-react": "^1.16.0",
     "next": "16.1.6",

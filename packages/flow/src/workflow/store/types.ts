@@ -4,8 +4,8 @@ import type {
   Viewport,
   XYPosition,
 } from "@xyflow/react"
-import type { StoreApi } from "@flow/store"
-import type { HistoryState } from "@flow/store"
+import type { StoreHistory } from "@ez-kit/zu-store"
+import type { StoreApi } from "zustand/vanilla"
 
 import type { NodeDefinition } from "../node-registry/define-node"
 import type { NodeRegistry } from "../node-registry/registry"
@@ -151,7 +151,11 @@ export interface WorkflowRuntimeConfig {
 }
 
 export interface WorkflowStoreQueries {
-  history: HistoryState<WorkflowGraphState>
+  /**
+   * The graph the canvas renders. This is the only field history tracks — see
+   * `workflowHistorySlice` in `./store`.
+   */
+  graph: WorkflowGraphState
   runtime: WorkflowRuntimeConfig
   /** The node vocabulary this editor instance was created with. */
   registry: NodeRegistry
@@ -236,10 +240,28 @@ export interface WorkflowStoreInitialProps {
   definitions?: readonly NodeDefinition[]
 }
 
+/**
+ * The part of the store `withHistory` records. Everything outside it — selection,
+ * pending intents, the last error, the derived expression caches — is left alone
+ * by undo/redo, which is why it is a slice and not the whole state.
+ */
+export interface WorkflowHistorySlice {
+  graph: WorkflowGraphState
+}
+
+/**
+ * The store handle, including the `history` sub-store `withHistory` attaches to
+ * it. Slices reach for it to drive undo/redo and to suppress recording.
+ */
+export type WorkflowStoreApi = StoreApi<WorkflowStoreState> & {
+  history: StoreApi<StoreHistory<WorkflowHistorySlice>>
+}
+
 export type WorkflowStoreSetState = StoreApi<WorkflowStoreState>["setState"]
 export type WorkflowStoreGetState = StoreApi<WorkflowStoreState>["getState"]
 
 export type WorkflowSliceCreator = (
   set: WorkflowStoreSetState,
-  get: WorkflowStoreGetState
+  get: WorkflowStoreGetState,
+  api: WorkflowStoreApi
 ) => Partial<WorkflowStoreState>

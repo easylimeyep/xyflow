@@ -9,9 +9,9 @@ import {
 import { commitGraphState, replacePresentGraphState } from "../history-helpers"
 import type { WorkflowSliceCreator } from "../types"
 
-export const createConnectionSlice: WorkflowSliceCreator = (set, get) => ({
+export const createConnectionSlice: WorkflowSliceCreator = (set, get, api) => ({
   onEdgesChange: (changes) => {
-    const currentGraph = get().history.present
+    const currentGraph = get().graph
     const nextEdges = applyEdgeChanges(changes, currentGraph.edges)
     if (!hasEdgeCollectionChanged(currentGraph.edges, nextEdges)) return
     const touchedNodeIds = getTouchedNodeIdsForEdgeChanges(
@@ -26,12 +26,12 @@ export const createConnectionSlice: WorkflowSliceCreator = (set, get) => ({
       get().hideGlobalValidation()
       return
     }
-    replacePresentGraphState(set, nextGraph)
+    replacePresentGraphState(api, set, nextGraph)
     get().hideValidationForNodes(touchedNodeIds)
     get().hideGlobalValidation()
   },
   onConnect: (connection) => {
-    const currentGraph = get().history.present
+    const currentGraph = get().graph
     const result = applyConnectNodesCommand(get().registry, currentGraph, {
       connection,
     })

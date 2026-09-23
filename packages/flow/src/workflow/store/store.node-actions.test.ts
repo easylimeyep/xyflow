@@ -42,14 +42,14 @@ describe("workflow store node actions", () => {
       initialGraph: createKeywordSampleGraph(builtinBaseDefinitions),
     })
     const state = store.getState()
-    const rootNode = findRootKeywordNode(state.history.present.nodes)
+    const rootNode = findRootKeywordNode(state.graph.nodes)
     if (!rootNode) {
       throw new Error("root node not found")
     }
 
     state.addNode("setVariable", { x: 320, y: 100 })
     state.addNode("extractor", { x: 640, y: 100 })
-    const graphWithNodes = store.getState().history.present
+    const graphWithNodes = store.getState().graph
     const setVariableNode = graphWithNodes.nodes.find(
       (node) => node.data.kind === "setVariable"
     )
@@ -65,7 +65,7 @@ describe("workflow store node actions", () => {
       .onConnect({ source: setVariableNode.id, target: extractorNode.id })
     store.getState().setSelectedNodes([setVariableNode.id, extractorNode.id])
     const beforeDuplicateState = store.getState()
-    const pastBeforeDuplicate = beforeDuplicateState.history.past.length
+    const pastBeforeDuplicate = store.history.getState().pasts.length
 
     const duplicated = store.getState().duplicateNodes()
 
@@ -75,13 +75,13 @@ describe("workflow store node actions", () => {
     const duplicatedState = store.getState()
     const duplicatedNodeIds = duplicatedState.selectedNodeIds
     expect(duplicatedNodeIds).toHaveLength(2)
-    expect(duplicatedState.history.present.nodes).toHaveLength(
-      beforeDuplicateState.history.present.nodes.length + 2
+    expect(duplicatedState.graph.nodes).toHaveLength(
+      beforeDuplicateState.graph.nodes.length + 2
     )
-    expect(duplicatedState.history.past.length).toBe(pastBeforeDuplicate + 1)
+    expect(store.history.getState().pasts.length).toBe(pastBeforeDuplicate + 1)
 
-    const duplicatedNodes = duplicatedState.history.present.nodes.filter(
-      (node) => duplicatedNodeIds.includes(node.id)
+    const duplicatedNodes = duplicatedState.graph.nodes.filter((node) =>
+      duplicatedNodeIds.includes(node.id)
     )
     expect(duplicatedNodes.map((node) => node.data.label).sort()).toEqual([
       "Extractor 2",
@@ -104,7 +104,7 @@ describe("workflow store node actions", () => {
       ])
     )
 
-    const duplicatedEdge = duplicatedState.history.present.edges.find(
+    const duplicatedEdge = duplicatedState.graph.edges.find(
       (edge) =>
         duplicatedNodeIds.includes(edge.source) &&
         duplicatedNodeIds.includes(edge.target)
@@ -112,11 +112,11 @@ describe("workflow store node actions", () => {
     expect(duplicatedEdge).toBeDefined()
 
     store.getState().undo()
-    expect(store.getState().history.present.nodes).toHaveLength(
-      beforeDuplicateState.history.present.nodes.length
+    expect(store.getState().graph.nodes).toHaveLength(
+      beforeDuplicateState.graph.nodes.length
     )
-    expect(store.getState().history.present.edges).toHaveLength(
-      beforeDuplicateState.history.present.edges.length
+    expect(store.getState().graph.edges).toHaveLength(
+      beforeDuplicateState.graph.edges.length
     )
   })
 
@@ -126,7 +126,7 @@ describe("workflow store node actions", () => {
       initialGraph: createKeywordSampleGraph(builtinBaseDefinitions),
     })
     const state = store.getState()
-    const rootNode = findRootKeywordNode(state.history.present.nodes)
+    const rootNode = findRootKeywordNode(state.graph.nodes)
     if (!rootNode) {
       throw new Error("root node not found")
     }
@@ -134,7 +134,7 @@ describe("workflow store node actions", () => {
     state.addNode("setVariable", { x: 320, y: 100 })
     const addedNode = store
       .getState()
-      .history.present.nodes.find((node) => node.data.kind === "setVariable")
+      .graph.nodes.find((node) => node.data.kind === "setVariable")
     if (!addedNode) {
       throw new Error("added node not found")
     }
@@ -145,19 +145,19 @@ describe("workflow store node actions", () => {
     const deleted = store.getState().deleteNodes()
 
     expect(deleted).toBe(true)
-    expect(store.getState().history.present.nodes).toHaveLength(
-      beforeDeleteState.history.present.nodes.length - 1
+    expect(store.getState().graph.nodes).toHaveLength(
+      beforeDeleteState.graph.nodes.length - 1
     )
-    expect(store.getState().history.present.edges).toHaveLength(
-      beforeDeleteState.history.present.edges.length - 1
+    expect(store.getState().graph.edges).toHaveLength(
+      beforeDeleteState.graph.edges.length - 1
     )
 
     store.getState().undo()
-    expect(store.getState().history.present.nodes).toHaveLength(
-      beforeDeleteState.history.present.nodes.length
+    expect(store.getState().graph.nodes).toHaveLength(
+      beforeDeleteState.graph.nodes.length
     )
-    expect(store.getState().history.present.edges).toHaveLength(
-      beforeDeleteState.history.present.edges.length
+    expect(store.getState().graph.edges).toHaveLength(
+      beforeDeleteState.graph.edges.length
     )
   })
 })

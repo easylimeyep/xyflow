@@ -4,9 +4,9 @@ import { buildExpressionSlicePatch } from "../expression-deps"
 import { commitGraphState } from "../history-helpers"
 import type { WorkflowSliceCreator } from "../types"
 
-export const createLayoutSlice: WorkflowSliceCreator = (set, get) => ({
+export const createLayoutSlice: WorkflowSliceCreator = (set, get, api) => ({
   autoLayout: async () => {
-    const currentGraph = get().history.present
+    const currentGraph = get().graph
 
     try {
       const nextGraph = await computeWorkflowAutoLayout(
@@ -38,7 +38,7 @@ export const createLayoutSlice: WorkflowSliceCreator = (set, get) => ({
       return true
     }
 
-    const currentGraph = get().history.present
+    const currentGraph = get().graph
     set({ measuredInitialAutoLayoutAttempted: true })
 
     try {
@@ -47,16 +47,16 @@ export const createLayoutSlice: WorkflowSliceCreator = (set, get) => ({
         currentGraph
       )
 
-      set((state) => ({
-        history: {
-          past: state.history.past,
-          present: nextGraph,
-          future: [],
-        },
-        nodeDragOriginGraph: null,
-        lastError: null,
-        ...buildExpressionSlicePatch(state, nextGraph),
-      }))
+      // The one-off layout pass that runs once the nodes have been measured is
+      // not something the user did, so it is not something to undo back past.
+      api.history.getState().skip(() => {
+        set((state) => ({
+          graph: nextGraph,
+          nodeDragOriginGraph: null,
+          lastError: null,
+          ...buildExpressionSlicePatch(state, nextGraph),
+        }))
+      })
       return true
     } catch (error) {
       const message =

@@ -63,12 +63,8 @@ describe("workflow store clipboard actions", () => {
     })
     const state = store.getState()
     state.addNode("inlineExpression", { x: 360, y: 80 })
-    const triggerNode = findRootKeywordNode(
-      store.getState().history.present.nodes
-    )
-    const inlineNode = findNonRootKeywordNode(
-      store.getState().history.present.nodes
-    )
+    const triggerNode = findRootKeywordNode(store.getState().graph.nodes)
+    const inlineNode = findNonRootKeywordNode(store.getState().graph.nodes)
     if (!triggerNode || !inlineNode) {
       throw new Error("fixture nodes not found")
     }
@@ -102,7 +98,7 @@ describe("workflow store clipboard actions", () => {
 
     const selectedSetVariable = store
       .getState()
-      .history.present.nodes.find(
+      .graph.nodes.find(
         (node: WorkflowNode) => node.data.kind === "setVariable"
       )
     if (!selectedSetVariable) {
@@ -145,16 +141,16 @@ describe("workflow store clipboard actions", () => {
     ])
     clipboardReadTextMock.mockResolvedValue(payload)
 
-    const beforeNodeCount = store.getState().history.present.nodes.length
+    const beforeNodeCount = store.getState().graph.nodes.length
 
     const pasted = await store.getState().pasteFromClipboard({ x: 300, y: 200 })
     expect(pasted).toBe(true)
 
     const nextState = store.getState()
-    expect(nextState.history.present.nodes.length).toBe(beforeNodeCount + 2)
+    expect(nextState.graph.nodes.length).toBe(beforeNodeCount + 2)
     expect(nextState.selectedNodeIds).toHaveLength(2)
 
-    const pastedNodes = nextState.history.present.nodes.filter((node) =>
+    const pastedNodes = nextState.graph.nodes.filter((node) =>
       nextState.selectedNodeIds.includes(node.id)
     )
     const pastedNodeIds = [...nextState.selectedNodeIds]
@@ -204,7 +200,7 @@ describe("workflow store clipboard actions", () => {
 
     expect(pasted).toBe(true)
     const nextState = store.getState()
-    const pastedExtractor = nextState.history.present.nodes.find((node) =>
+    const pastedExtractor = nextState.graph.nodes.find((node) =>
       nextState.selectedNodeIds.includes(node.id)
     )
     expect(pastedExtractor?.position).toEqual({ x: 120, y: 120 })
@@ -258,9 +254,7 @@ describe("workflow store clipboard actions", () => {
       definitions: builtinBaseDefinitions,
       initialGraph: createKeywordSampleGraph(builtinBaseDefinitions),
     })
-    const triggerNode = findRootKeywordNode(
-      store.getState().history.present.nodes
-    )
+    const triggerNode = findRootKeywordNode(store.getState().graph.nodes)
     if (!triggerNode) {
       throw new Error("fixture node not found")
     }
@@ -312,7 +306,7 @@ describe("workflow store clipboard actions", () => {
       },
     ])
     clipboardReadTextMock.mockResolvedValue(payload)
-    const beforeNodeCount = store.getState().history.present.nodes.length
+    const beforeNodeCount = store.getState().graph.nodes.length
 
     const [firstPasteResult, secondPasteResult] = await Promise.all([
       store.getState().pasteFromClipboard(),
@@ -321,9 +315,7 @@ describe("workflow store clipboard actions", () => {
 
     expect(firstPasteResult).toBe(true)
     expect(secondPasteResult).toBe(true)
-    expect(store.getState().history.present.nodes.length).toBe(
-      beforeNodeCount + 4
-    )
+    expect(store.getState().graph.nodes.length).toBe(beforeNodeCount + 4)
     expect(store.getState().lastError).toBeNull()
   })
 
@@ -371,7 +363,7 @@ describe("workflow store clipboard actions", () => {
     expect(pasted).toBe(true)
 
     const nextState = store.getState()
-    const pastedNodes = nextState.history.present.nodes.filter((node) =>
+    const pastedNodes = nextState.graph.nodes.filter((node) =>
       nextState.selectedNodeIds.includes(node.id)
     )
     const pastedInlineExpression = pastedNodes.find(
@@ -451,7 +443,7 @@ describe("workflow store clipboard actions", () => {
     expect(pasted).toBe(true)
     const pastedNodes = store
       .getState()
-      .history.present.nodes.filter((node) =>
+      .graph.nodes.filter((node) =>
         store.getState().selectedNodeIds.includes(node.id)
       )
     const pastedSetVariable = pastedNodes.find(
@@ -497,13 +489,13 @@ describe("workflow store clipboard actions", () => {
       initialGraph: createKeywordSampleGraph(builtinBaseDefinitions),
     })
     const initialState = store.getState()
-    const node = findRootKeywordNode(initialState.history.present.nodes)
+    const node = findRootKeywordNode(initialState.graph.nodes)
     if (!node) {
       throw new Error("root keyword fixture not found")
     }
 
-    const previousHistory = initialState.history
-    const previousNodesRef = initialState.history.present.nodes
+    const previousPastLength = store.history.getState().pasts.length
+    const previousNodesRef = initialState.graph.nodes
     const previousNode = node
     const sameTemplate =
       Array.isArray(node.data.config.template) &&
@@ -519,9 +511,9 @@ describe("workflow store clipboard actions", () => {
     })
 
     const nextState = store.getState()
-    expect(nextState.history).toBe(previousHistory)
-    expect(nextState.history.present.nodes).toBe(previousNodesRef)
-    const nextNode = nextState.history.present.nodes.find(
+    expect(store.history.getState().pasts.length).toBe(previousPastLength)
+    expect(nextState.graph.nodes).toBe(previousNodesRef)
+    const nextNode = nextState.graph.nodes.find(
       (candidate) => candidate.id === node.id
     )
     expect(nextNode).toBe(previousNode)

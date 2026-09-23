@@ -173,7 +173,7 @@ function QuickAddControls() {
   const startQuickAddFromOutput = WorkflowEditor.use.store(
     (state) => state.startQuickAddFromOutput
   )
-  const nodes = WorkflowEditor.use.store((state) => state.history.present.nodes)
+  const nodes = WorkflowEditor.use.store((state) => state.graph.nodes)
 
   return (
     <button
@@ -233,9 +233,7 @@ function LastErrorControls() {
 function SelectedNodePositionProbe() {
   const selectedNode = WorkflowEditor.use.store((state) => {
     const selectedNodeId = state.selectedNodeIds[0]
-    return state.history.present.nodes.find(
-      (node) => node.id === selectedNodeId
-    )
+    return state.graph.nodes.find((node) => node.id === selectedNodeId)
   })
 
   return (

@@ -13,7 +13,6 @@
     "@rc-component/tour": "^2.4.0",
     "@flow/expression-editor": "workspace:*",
     "@flow/flow": "workspace:*",
-    "@flow/store": "workspace:*",
     "@flow/ui": "workspace:*",
     "@xyflow/react": "^12.10.1",
     "lucide-react": "^1.16.0",

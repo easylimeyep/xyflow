@@ -1,5 +1,4 @@
 import type { NodeChange } from "@xyflow/react"
-import { pushHistoryState } from "@flow/store"
 
 import {
   applyConnectNodesCommand,
@@ -17,13 +16,15 @@ import {
 } from "../collection-diff"
 import { buildExpressionSlicePatch } from "../expression-deps"
 import { createSmartQuickAddPosition } from "../geometry"
-import { commitGraphState } from "../history-helpers"
-import { projectSelectionToNodes } from "../selection-sync"
+import {
+  commitGraphState,
+  projectSelectionWithoutHistory,
+} from "../history-helpers"
 import type { WorkflowSliceCreator, WorkflowStoreState } from "../types"
 
-export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
+export const createGraphSlice: WorkflowSliceCreator = (set, get, api) => ({
   confirmQuickAddNode: (kind) => {
-    const currentGraph = get().history.present
+    const currentGraph = get().graph
     const pending = get().quickAddPending
     if (!pending) return
 
@@ -87,18 +88,10 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
     }
 
     commitGraphState(set, connectResult.nextGraph)
+    projectSelectionWithoutHistory(api, set, [nextNode.id])
     set((state) => ({
       quickAddPending: null,
       selectedNodeIds: [nextNode.id],
-      history: {
-        ...state.history,
-        present: {
-          ...state.history.present,
-          nodes: projectSelectionToNodes(state.history.present.nodes, [
-            nextNode.id,
-          ]),
-        },
-      },
       lastError: null,
       ...hideValidationForStructuralNodeChange(
         state,
@@ -108,7 +101,7 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
     }))
   },
   confirmEdgeInsertNode: (kind) => {
-    const currentGraph = get().history.present
+    const currentGraph = get().graph
     const pending = get().edgeInsertPending
     if (!pending) return
 
@@ -134,25 +127,16 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
     }
 
     commitGraphState(set, result.nextGraph)
+    projectSelectionWithoutHistory(api, set, [insertedNodeId])
     set((state) => ({
       edgeInsertPending: null,
       selectedNodeIds: [insertedNodeId],
-      history: {
-        ...state.history,
-        present: {
-          ...state.history.present,
-          nodes: projectSelectionToNodes(state.history.present.nodes, [
-            insertedNodeId,
-          ]),
-        },
-      },
       lastError: null,
       ...hideValidationForStructuralNodeChange(state, [insertedNodeId], true),
     }))
   },
   onNodesChange: (changes) => {
-    const history = get().history
-    const currentGraph = history.present
+    const currentGraph = get().graph
     const computed = applyNodeChangesCommand(currentGraph, {
       changes,
       selectedNodeIds: get().selectedNodeIds,
@@ -182,31 +166,17 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
 
     if (shouldCommitSemanticHistory) {
       if (
-        shouldSquashPreviousEdgeRemovalWithNodeRemoval(history, removedNodeIds)
+        shouldSquashPreviousEdgeRemovalWithNodeRemoval(
+          api.history.getState().pasts.at(-1)?.graph,
+          currentGraph,
+          removedNodeIds
+        )
       ) {
-        set((state) => ({
-          history: {
-            ...state.history,
-            present: nextGraph,
-            future: [],
-          },
-          selectedNodeIds: nextSelectedNodeIds,
-          nodeDragOriginGraph: null,
-          ...expressionPatchFor(state),
-          ...hideValidationForStructuralNodeChange(
-            state,
-            removedNodeIds,
-            shouldHideGlobalValidation
-          ),
-        }))
-        return
-      }
-
-      if (positionOnlyChange) {
-        const dragOriginGraph = get().nodeDragOriginGraph ?? currentGraph
-        if (!haveNodePositionsChanged(dragOriginGraph.nodes, nextGraph.nodes)) {
+        // Folds into the undo step the preceding edge removal already opened,
+        // so this write must not open one of its own.
+        api.history.getState().skip(() => {
           set((state) => ({
-            history: { ...state.history, present: nextGraph },
+            graph: nextGraph,
             selectedNodeIds: nextSelectedNodeIds,
             nodeDragOriginGraph: null,
             ...expressionPatchFor(state),
@@ -216,15 +186,44 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
               shouldHideGlobalValidation
             ),
           }))
+        })
+        return
+      }
+
+      if (positionOnlyChange) {
+        const dragOriginGraph = get().nodeDragOriginGraph ?? currentGraph
+        if (!haveNodePositionsChanged(dragOriginGraph.nodes, nextGraph.nodes)) {
+          // The drag put every node back where it started — nothing to undo.
+          api.history.getState().skip(() => {
+            set((state) => ({
+              graph: nextGraph,
+              selectedNodeIds: nextSelectedNodeIds,
+              nodeDragOriginGraph: null,
+              ...expressionPatchFor(state),
+              ...hideValidationForStructuralNodeChange(
+                state,
+                removedNodeIds,
+                shouldHideGlobalValidation
+              ),
+            }))
+          })
           return
         }
         if (get().nodeDragOriginGraph) {
+          // A drag is one undo step, from where the nodes were picked up to
+          // where they were dropped — not one per intermediate position. The
+          // moves in between were written with recording suppressed, so the
+          // graph currently holds the last of them, not the origin.
+          //
+          // Putting the origin back under `skip` and then committing the final
+          // graph normally makes the recorded step span the whole drag. Both
+          // writes land in the same event handler, so React renders once, at
+          // the final position.
+          api.history.getState().skip(() => {
+            set({ graph: dragOriginGraph })
+          })
           set((state) => ({
-            history: {
-              past: [...state.history.past, dragOriginGraph],
-              present: nextGraph,
-              future: [],
-            },
+            graph: nextGraph,
             selectedNodeIds: nextSelectedNodeIds,
             nodeDragOriginGraph: null,
             ...expressionPatchFor(state),
@@ -239,7 +238,7 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
       }
 
       set((state) => ({
-        history: pushHistoryState(state.history, nextGraph),
+        graph: nextGraph,
         selectedNodeIds: nextSelectedNodeIds,
         nodeDragOriginGraph: null,
         ...expressionPatchFor(state),
@@ -252,42 +251,47 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
       return
     }
 
-    set((state) => ({
-      history: { ...state.history, present: nextGraph },
-      selectedNodeIds: nextSelectedNodeIds,
-      nodeDragOriginGraph:
-        hasDraggingPositionChanges && !state.nodeDragOriginGraph
-          ? currentGraph
-          : hasDraggingPositionChanges
-            ? state.nodeDragOriginGraph
-            : null,
-      ...expressionPatchFor(state),
-      ...hideValidationForStructuralNodeChange(
-        state,
-        removedNodeIds,
-        shouldHideGlobalValidation
-      ),
-    }))
+    // Transient: a selection flip or a mid-drag position, neither of which is
+    // an undo step of its own.
+    api.history.getState().skip(() => {
+      set((state) => ({
+        graph: nextGraph,
+        selectedNodeIds: nextSelectedNodeIds,
+        nodeDragOriginGraph:
+          hasDraggingPositionChanges && !state.nodeDragOriginGraph
+            ? currentGraph
+            : hasDraggingPositionChanges
+              ? state.nodeDragOriginGraph
+              : null,
+        ...expressionPatchFor(state),
+        ...hideValidationForStructuralNodeChange(
+          state,
+          removedNodeIds,
+          shouldHideGlobalValidation
+        ),
+      }))
+    })
   },
   setViewport: (viewport) => {
-    set((state) => {
-      const currentViewport = state.history.present.viewport
-      if (
-        currentViewport.x === viewport.x &&
-        currentViewport.y === viewport.y &&
-        currentViewport.zoom === viewport.zoom
-      ) {
-        return state
-      }
-      return {
-        history: {
-          ...state.history,
-          present: {
-            ...state.history.present,
+    // The viewport rides along inside `graph`, so it is inside the history
+    // slice — but panning and zooming are not edits and must not be undoable.
+    api.history.getState().skip(() => {
+      set((state) => {
+        const currentViewport = state.graph.viewport
+        if (
+          currentViewport.x === viewport.x &&
+          currentViewport.y === viewport.y &&
+          currentViewport.zoom === viewport.zoom
+        ) {
+          return state
+        }
+        return {
+          graph: {
+            ...state.graph,
             viewport: { x: viewport.x, y: viewport.y, zoom: viewport.zoom },
           },
-        },
-      }
+        }
+      })
     })
   },
 })

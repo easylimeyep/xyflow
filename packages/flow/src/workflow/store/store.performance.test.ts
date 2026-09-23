@@ -70,7 +70,7 @@ function createRepresentativeGraph(nodeCount = 180): WorkflowGraphState {
 describe("expression cache identity across a graph commit", () => {
   function catalogIdentities(store: ReturnType<typeof createWorkflowStore>) {
     const state = store.getState()
-    return state.history.present.nodes.map((node) => ({
+    return state.graph.nodes.map((node) => ({
       id: node.id,
       options: state.expressionCatalogCache.get(node.id),
       types: state.expressionVariableTypesCache.get(node.id),
@@ -158,7 +158,7 @@ describe("workflow interaction performance budgets", () => {
       definitions: builtinBaseDefinitions,
       initialGraph: createRepresentativeGraph(),
     })
-    const targetNode = store.getState().history.present.nodes[90]
+    const targetNode = store.getState().graph.nodes[90]
     if (!targetNode) {
       throw new Error("expected target node in representative graph")
     }
@@ -198,7 +198,7 @@ describe("workflow interaction performance budgets", () => {
     const durationMs = performance.now() - startTime
     const averageTransientUpdateMs = durationMs / 121
     expect(averageTransientUpdateMs).toBeLessThan(8)
-    expect(store.getState().history.past).toHaveLength(1)
+    expect(store.history.getState().pasts).toHaveLength(1)
     expect(store.getState().expressionStructuralVersion).toBe(initialVersion)
     expect(store.getState().expressionDeps).toBe(initialExpressionDepsRef)
     expect(store.getState().expressionCatalogCache).toBe(
@@ -214,7 +214,7 @@ describe("workflow interaction performance budgets", () => {
       definitions: builtinBaseDefinitions,
       initialGraph: createRepresentativeGraph(),
     })
-    const nodesBeforeDrag = store.getState().history.present.nodes
+    const nodesBeforeDrag = store.getState().graph.nodes
     const draggedNode = nodesBeforeDrag[90]
     if (!draggedNode) {
       throw new Error("expected target node in representative graph")
@@ -243,14 +243,14 @@ describe("workflow interaction performance budgets", () => {
       },
     ])
 
-    const nodesAfterDrag = store.getState().history.present.nodes
+    const nodesAfterDrag = store.getState().graph.nodes
     const changedNodeIds = nodesAfterDrag
       .filter((node, index) => node !== nodesBeforeDrag[index])
       .map((node) => node.id)
 
     expect(changedNodeIds).toEqual([draggedNode.id])
-    expect(store.getState().history.present.edges).toBe(
-      store.getState().history.past[0]?.edges
+    expect(store.getState().graph.edges).toBe(
+      store.history.getState().pasts[0]?.graph.edges
     )
   })
 
@@ -261,7 +261,7 @@ describe("workflow interaction performance budgets", () => {
       definitions: builtinBaseDefinitions,
       initialGraph: createRepresentativeGraph(),
     })
-    const draggedNode = store.getState().history.present.nodes[90]
+    const draggedNode = store.getState().graph.nodes[90]
     if (!draggedNode) {
       throw new Error("expected target node in representative graph")
     }
@@ -292,14 +292,14 @@ describe("workflow interaction performance budgets", () => {
 
     const undoneNode = store
       .getState()
-      .history.present.nodes.find((node) => node.id === draggedNode.id)
+      .graph.nodes.find((node) => node.id === draggedNode.id)
     expect(undoneNode?.position).toEqual(dragStartPosition)
 
     store.getState().redo()
 
     const redoneNode = store
       .getState()
-      .history.present.nodes.find((node) => node.id === draggedNode.id)
+      .graph.nodes.find((node) => node.id === draggedNode.id)
     expect(redoneNode?.position).toEqual({
       x: dragStartPosition.x + 140,
       y: dragStartPosition.y + 140,
@@ -314,7 +314,7 @@ describe("workflow interaction performance budgets", () => {
       definitions: builtinBaseDefinitions,
       initialGraph: createRepresentativeGraph(24),
     })
-    const nodeId = store.getState().history.present.nodes[3]?.id
+    const nodeId = store.getState().graph.nodes[3]?.id
     if (!nodeId) {
       throw new Error("expected a node in the representative graph")
     }
@@ -340,7 +340,7 @@ describe("workflow interaction performance budgets", () => {
       definitions: builtinBaseDefinitions,
       initialGraph: createRepresentativeGraph(24),
     })
-    const nodeId = store.getState().history.present.nodes[5]?.id
+    const nodeId = store.getState().graph.nodes[5]?.id
     if (!nodeId) {
       throw new Error("expected a node in the representative graph")
     }
@@ -381,8 +381,8 @@ describe("workflow interaction performance budgets", () => {
       definitions: builtinBaseDefinitions,
       initialGraph: createRepresentativeGraph(),
     })
-    const initialNodesRef = store.getState().history.present.nodes
-    const initialEdgesRef = store.getState().history.present.edges
+    const initialNodesRef = store.getState().graph.nodes
+    const initialEdgesRef = store.getState().graph.edges
 
     const startTime = performance.now()
 
@@ -398,8 +398,8 @@ describe("workflow interaction performance budgets", () => {
     const averageViewportUpdateMs = durationMs / 240
     const nextState = store.getState()
     expect(averageViewportUpdateMs).toBeLessThan(1)
-    expect(nextState.history.past).toHaveLength(0)
-    expect(nextState.history.present.nodes).toBe(initialNodesRef)
-    expect(nextState.history.present.edges).toBe(initialEdgesRef)
+    expect(store.history.getState().pasts).toHaveLength(0)
+    expect(nextState.graph.nodes).toBe(initialNodesRef)
+    expect(nextState.graph.edges).toBe(initialEdgesRef)
   })
 })

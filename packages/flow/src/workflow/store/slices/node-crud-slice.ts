@@ -20,7 +20,7 @@ const VARIABLE_LABEL_KINDS = new Set(["extractor", "setVariable"])
 
 export const createNodeCrudSlice: WorkflowSliceCreator = (set, get) => ({
   addNode: (kind, position) => {
-    const currentGraph = get().history.present
+    const currentGraph = get().graph
     const result = applyAddNodeCommand(get().registry, currentGraph, {
       kind,
       position,
@@ -35,7 +35,7 @@ export const createNodeCrudSlice: WorkflowSliceCreator = (set, get) => ({
   },
   duplicateNodes: (nodeIds) => {
     const state = get()
-    const currentGraph = state.history.present
+    const currentGraph = state.graph
     const targetNodeIds = normalizeTargetNodeIds(
       nodeIds ?? state.selectedNodeIds,
       currentGraph.nodes
@@ -103,7 +103,7 @@ export const createNodeCrudSlice: WorkflowSliceCreator = (set, get) => ({
     set((nextState) => ({
       selectedNodeIds: duplicatedNodeIds,
       lastError: null,
-      ...buildExpressionSlicePatch(nextState, nextState.history.present),
+      ...buildExpressionSlicePatch(nextState, nextState.graph),
     }))
     get().hideGlobalValidation()
     return true
@@ -112,7 +112,7 @@ export const createNodeCrudSlice: WorkflowSliceCreator = (set, get) => ({
     const state = get()
     const targetNodeIds = normalizeTargetNodeIds(
       nodeIds ?? state.selectedNodeIds,
-      state.history.present.nodes
+      state.graph.nodes
     )
     if (targetNodeIds.length === 0) {
       return false
@@ -124,7 +124,7 @@ export const createNodeCrudSlice: WorkflowSliceCreator = (set, get) => ({
     return true
   },
   updateNodeLabel: (nodeId, nextLabel) => {
-    const currentGraph = get().history.present
+    const currentGraph = get().graph
     const result = applyUpdateNodeLabelCommand(get().registry, currentGraph, {
       nodeId,
       nextLabel,
@@ -141,7 +141,7 @@ export const createNodeCrudSlice: WorkflowSliceCreator = (set, get) => ({
     set({ lastError: null })
   },
   updateNodeConfig: (nodeId, update) => {
-    const currentGraph = get().history.present
+    const currentGraph = get().graph
     const result = applyUpdateNodeConfigCommand(get().registry, currentGraph, {
       nodeId,
       update,

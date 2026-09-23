@@ -7,10 +7,10 @@ function applySelection(
   nextSelectedNodeIds: string[]
 ): Partial<WorkflowStoreState> | WorkflowStoreState {
   const nextNodes = projectSelectionToNodes(
-    state.history.present.nodes,
+    state.graph.nodes,
     nextSelectedNodeIds
   )
-  const nodesChanged = nextNodes !== state.history.present.nodes
+  const nodesChanged = nextNodes !== state.graph.nodes
   if (
     !nodesChanged &&
     haveSameIdSet(state.selectedNodeIds, nextSelectedNodeIds)
@@ -22,22 +22,23 @@ function applySelection(
   }
   return {
     selectedNodeIds: nextSelectedNodeIds,
-    history: {
-      ...state.history,
-      present: {
-        ...state.history.present,
-        nodes: nextNodes,
-      },
+    graph: {
+      ...state.graph,
+      nodes: nextNodes,
     },
   }
 }
 
-export const createSelectionSlice: WorkflowSliceCreator = (set) => ({
+export const createSelectionSlice: WorkflowSliceCreator = (set, _get, api) => ({
   selectedNodeIds: [],
   nodeDragOriginGraph: null,
   setSelectedNodes: (nodeIds) => {
     const normalizedNodeIds = normalizeSelectionIds(nodeIds)
-    set((state) => applySelection(state, normalizedNodeIds))
+    // Selecting is not an undo step, but it does flip `selected` on the
+    // graph's own nodes — which is inside the history slice.
+    api.history.getState().skip(() => {
+      set((state) => applySelection(state, normalizedNodeIds))
+    })
   },
   setSelectedNode: (nodeId) => {
     const nextSelectedNodeIds = nodeId ? [nodeId] : []

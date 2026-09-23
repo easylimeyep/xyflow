@@ -7,7 +7,7 @@ export const createIntentSlice: WorkflowSliceCreator = (set, get) => ({
   lastError: null,
   setLastError: (message) => set({ lastError: message }),
   startQuickAddFromOutput: (sourceNodeId, sourceHandle = null) => {
-    const currentGraph = get().history.present
+    const currentGraph = get().graph
     const sourceNode = currentGraph.nodes.find(
       (node) => node.id === sourceNodeId
     )
@@ -24,7 +24,7 @@ export const createIntentSlice: WorkflowSliceCreator = (set, get) => ({
     })
   },
   startEdgeInsertFromEdge: (edgeId) => {
-    const currentGraph = get().history.present
+    const currentGraph = get().graph
     const edge = currentGraph.edges.find((candidate) => candidate.id === edgeId)
     if (!edge) return
     set({

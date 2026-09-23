@@ -8,7 +8,7 @@ export {
 export {
   cloneGraphState,
   commitGraphState,
-  createInitialHistory,
+  projectSelectionWithoutHistory,
   replacePresentGraphState,
 } from "./history-helpers"
 

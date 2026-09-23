@@ -11,13 +11,12 @@ import {
   type ReactNode,
 } from "react"
 
+import { useHistory } from "@ez-kit/zu-store"
 import type { XYPosition } from "@xyflow/react"
 import { Button } from "@flow/ui/components/button"
 import { Alert, AlertDescription, AlertTitle } from "@flow/ui/components/alert"
 import { PlusIcon } from "lucide-react"
 import {
-  selectCanRedo,
-  selectCanUndo,
   selectEdgeInsertPending,
   selectLastErrorMessage,
   selectNodeCount,
@@ -401,25 +400,19 @@ export function WorkflowEditorToolbar({
 }: WorkflowEditorToolbarProps = {}) {
   const layout = useWorkflowEditorLayoutContext()
   const toolbarRef = useWorkflowEditorAnchorRef(layout?.anchorRefs, "toolbar")
-  const {
-    canUndo,
-    canRedo,
-    lastError,
-    setLastError,
-    undo,
-    redo,
-    exportDomain,
-    importFromJson,
-  } = useWorkflowShallowStore((state: WorkflowStoreState) => ({
-    canUndo: selectCanUndo(state),
-    canRedo: selectCanRedo(state),
-    lastError: selectLastErrorMessage(state),
-    setLastError: state.setLastError,
-    undo: state.undo,
-    redo: state.redo,
-    exportDomain: state.exportDomain,
-    importFromJson: state.importFromJson,
-  }))
+  // `withHistory` keeps the stacks in a sub-store of their own, so these two
+  // subscribe to history alone — a graph edit that records nothing leaves the
+  // toolbar untouched.
+  const { canUndo, canRedo } = useHistory(useWorkflowStoreApi())
+  const { lastError, setLastError, undo, redo, exportDomain, importFromJson } =
+    useWorkflowShallowStore((state: WorkflowStoreState) => ({
+      lastError: selectLastErrorMessage(state),
+      setLastError: state.setLastError,
+      undo: state.undo,
+      redo: state.redo,
+      exportDomain: state.exportDomain,
+      importFromJson: state.importFromJson,
+    }))
 
   return (
     <EditorToolbar
@@ -586,8 +579,12 @@ export function WorkflowEditorCanvas({
     layout?.anchorRefs,
     "paletteToggle"
   )
-  const captureOnce = () => true
-  const initialViewport = useWorkflowStore(selectViewport, captureOnce)
+  // The canvas owns the viewport after mount, so this is a one-time read: it
+  // takes the value off the store handle instead of subscribing to it.
+  const workflowStoreApi = useWorkflowStoreApi()
+  const [initialViewport] = useState(() =>
+    selectViewport(workflowStoreApi.getState())
+  )
   const { nodes, edges, edgeInsertPending } = useWorkflowShallowStore(
     (state: WorkflowStoreState) => ({
       nodes: selectPresentNodes(state),
