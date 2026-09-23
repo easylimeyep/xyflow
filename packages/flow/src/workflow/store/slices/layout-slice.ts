@@ -49,6 +49,10 @@ export const createLayoutSlice: WorkflowSliceCreator = (set, get, api) => ({
 
       // The one-off layout pass that runs once the nodes have been measured is
       // not something the user did, so it is not something to undo back past.
+      // It does move every node though, so a redo branch recorded before it no
+      // longer describes this graph — dropped before the write, so nothing ever
+      // sees the laid-out graph beside a redo step from the abandoned branch.
+      api.history.getState().clearFutures()
       api.history.getState().skip(() => {
         set((state) => ({
           graph: nextGraph,

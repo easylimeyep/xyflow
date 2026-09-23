@@ -15,7 +15,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@ez-kit/zu-store": "^1.1.0",
+    "@ez-kit/zu-store": "^1.2.0",
     "@flow/expression-editor": "workspace:*",
     "@flow/ui": "workspace:*",
     "@xyflow/react": "^12.10.1",

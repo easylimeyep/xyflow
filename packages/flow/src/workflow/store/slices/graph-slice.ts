@@ -173,7 +173,11 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get, api) => ({
         )
       ) {
         // Folds into the undo step the preceding edge removal already opened,
-        // so this write must not open one of its own.
+        // so this write must not open one of its own. It is still a user edit
+        // though, so the redo branch it lands on top of no longer applies —
+        // cleared before the write, never after, so nothing observes the new
+        // graph beside a redo step that would resurrect the removed node.
+        api.history.getState().clearFutures()
         api.history.getState().skip(() => {
           set((state) => ({
             graph: nextGraph,

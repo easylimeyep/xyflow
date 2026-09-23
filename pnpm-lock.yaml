@@ -273,8 +273,8 @@ importers:
   packages/flow:
     dependencies:
       '@ez-kit/zu-store':
-        specifier: ^1.1.0
-        version: 1.1.0(next@16.1.6(@playwright/test@1.60.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)(zod@3.25.76)(zustand@5.0.12(@types/react@19.2.14)(react@19.2.4)(use-sync-external-store@1.6.0(react@19.2.4)))
+        specifier: ^1.2.0
+        version: 1.2.0(next@16.1.6(@playwright/test@1.60.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)(zod@3.25.76)(zustand@5.0.12(@types/react@19.2.14)(react@19.2.4)(use-sync-external-store@1.6.0(react@19.2.4)))
       '@flow/expression-editor':
         specifier: workspace:*
         version: link:../expression-editor
@@ -1017,8 +1017,8 @@ packages:
       '@noble/hashes':
         optional: true
 
-  '@ez-kit/store-core@1.1.0':
-    resolution: {integrity: sha512-dhnjZcYACuj+DeCdInhCuPEBXowLmuCWVBzb5ABKDE7C5F5a33Kn4KVaCg8oOYxh67ExfsZZvISeZ99piHjPSw==}
+  '@ez-kit/store-core@1.2.0':
+    resolution: {integrity: sha512-hJYw4AA82PL/T/Calc6RMWDdIUFgO4KdkC2YE7fFsXuBuEDSAhiv+HQ9qtxpfTQcTfAsTauMErz7sybu1r5Enw==}
     engines: {node: '>=20'}
     peerDependencies:
       react: '>=18.0.0'
@@ -1039,8 +1039,8 @@ packages:
       zod:
         optional: true
 
-  '@ez-kit/zu-store@1.1.0':
-    resolution: {integrity: sha512-TwKkj8pJ2iZVSRJF+9IYZD9pK0CLZZ+abMCqYdU8NTXMyHm6H1omA1K4DfVfilSZXYqWh4DcgFhSfQrYbieFxQ==}
+  '@ez-kit/zu-store@1.2.0':
+    resolution: {integrity: sha512-0wGBVfvxZ1fjvAV2ehX6MLolzdeTRiGBMNDUxX3k5EzDWV16pphNoMbbAidJFrdaAyBeEIve2PKe+XNAR1q6Sw==}
     engines: {node: '>=20'}
     peerDependencies:
       next: '>=14.0.0'
@@ -7663,21 +7663,21 @@ snapshots:
     optionalDependencies:
       '@noble/hashes': 1.8.0
 
-  '@ez-kit/store-core@1.1.0(react@19.2.4)':
+  '@ez-kit/store-core@1.2.0(react@19.2.4)':
     dependencies:
       react: 19.2.4
 
   '@ez-kit/store-persist@1.0.0(next@16.1.6(@playwright/test@1.60.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)(zod@3.25.76)':
     dependencies:
-      '@ez-kit/store-core': 1.1.0(react@19.2.4)
+      '@ez-kit/store-core': 1.2.0(react@19.2.4)
       react: 19.2.4
     optionalDependencies:
       next: 16.1.6(@playwright/test@1.60.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       zod: 3.25.76
 
-  '@ez-kit/zu-store@1.1.0(next@16.1.6(@playwright/test@1.60.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)(zod@3.25.76)(zustand@5.0.12(@types/react@19.2.14)(react@19.2.4)(use-sync-external-store@1.6.0(react@19.2.4)))':
+  '@ez-kit/zu-store@1.2.0(next@16.1.6(@playwright/test@1.60.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)(zod@3.25.76)(zustand@5.0.12(@types/react@19.2.14)(react@19.2.4)(use-sync-external-store@1.6.0(react@19.2.4)))':
     dependencies:
-      '@ez-kit/store-core': 1.1.0(react@19.2.4)
+      '@ez-kit/store-core': 1.2.0(react@19.2.4)
       '@ez-kit/store-persist': 1.0.0(next@16.1.6(@playwright/test@1.60.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)(zod@3.25.76)
       react: 19.2.4
       zustand: 5.0.12(@types/react@19.2.14)(react@19.2.4)(use-sync-external-store@1.6.0(react@19.2.4))

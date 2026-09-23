@@ -1623,6 +1623,78 @@ describe("workflow store", () => {
     expect(undoState.graph.edges.length).toBe(edgesBeforeDelete)
   })
 
+  it("drops the redo branch when a node delete folds into the previous step", () => {
+    // The squashing delete writes the graph under `skip`, so it opens no undo
+    // step of its own — but it is still an edit, and an edit makes whatever
+    // redo branch an earlier undo left behind unreachable. Without clearing it,
+    // `redo` would apply a graph from the abandoned branch and put the deleted
+    // node back on the canvas.
+    const state = store.getState()
+    const rootNode = findRootKeywordNode(state.graph.nodes)
+    if (!rootNode) {
+      throw new Error("fixture node not found")
+    }
+
+    state.addNode("extractor", { x: 480, y: 120 })
+    const doomedNode = store
+      .getState()
+      .graph.nodes.find((node: WorkflowNode) => node.data.kind === "extractor")
+    state.addNode("inlineExpression", { x: 360, y: 320 })
+    const inlineNode = findNonRootKeywordNode(store.getState().graph.nodes)
+    state.addNode("setVariable", { x: 700, y: 320 })
+    const tailNode = store
+      .getState()
+      .graph.nodes.find(
+        (node: WorkflowNode) => node.data.kind === "setVariable"
+      )
+    if (!doomedNode || !inlineNode || !tailNode) {
+      throw new Error("fixture nodes not found")
+    }
+
+    // One edge into the node that will be deleted, one edge that has nothing to
+    // do with it — removing the second is what leaves a redo branch behind.
+    store.getState().onConnect({ source: rootNode.id, target: doomedNode.id })
+    store.getState().onConnect({ source: inlineNode.id, target: tailNode.id })
+
+    const connectedState = store.getState()
+    const doomedEdge = connectedState.graph.edges.find(
+      (edge) => edge.target === doomedNode.id
+    )
+    const unrelatedEdge = connectedState.graph.edges.find(
+      (edge) => edge.source === inlineNode.id && edge.target === tailNode.id
+    )
+    if (!doomedEdge || !unrelatedEdge) {
+      throw new Error("fixture edges not found")
+    }
+
+    store.getState().onEdgesChange([{ id: doomedEdge.id, type: "remove" }])
+    store.getState().onEdgesChange([{ id: unrelatedEdge.id, type: "remove" }])
+
+    // Puts the unrelated edge back and opens a redo branch that still holds the
+    // node about to be deleted.
+    store.getState().undo()
+    expect(store.history.getState().futures.length).toBe(1)
+
+    const pastsBeforeDelete = store.history.getState().pasts.length
+    const nodesBeforeDelete = store.getState().graph.nodes.length
+    store.getState().onNodesChange([{ id: doomedNode.id, type: "remove" }])
+
+    // Folded into the edge removal on top of the undo stack, so no new step...
+    expect(store.history.getState().pasts.length).toBe(pastsBeforeDelete)
+    // ...and the redo branch is gone rather than left pointing at a graph that
+    // still contains the node.
+    expect(store.history.getState().futures.length).toBe(0)
+
+    store.getState().redo()
+    const redoState = store.getState()
+    expect(redoState.graph.nodes.length).toBe(nodesBeforeDelete - 1)
+    expect(
+      redoState.graph.nodes.some(
+        (node: WorkflowNode) => node.id === doomedNode.id
+      )
+    ).toBe(false)
+  })
+
   it("restores multi-node delete with connected edges in one undo step", () => {
     const state = store.getState()
     state.addNode("inlineExpression", { x: 360, y: 80 })
