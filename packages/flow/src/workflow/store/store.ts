@@ -78,6 +78,12 @@ const workflowStore = createContextStore<
 export const WorkflowStoreProvider = workflowStore.Provider
 export const useWorkflowStore = workflowStore.useStore
 export const useWorkflowShallowStore = workflowStore.useShallowStore
+/**
+ * The store itself, for values a component reads only inside a handler.
+ * Reading through this subscribes to nothing, so the component does not
+ * re-render when the value changes.
+ */
+export const useWorkflowStoreApi = workflowStore.useStoreApi
 
 export function useWorkflowGraph(): WorkflowGraphState {
   return useWorkflowStore((state) => state.history.present)

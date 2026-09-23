@@ -1,7 +1,7 @@
 import { createWorkflowError } from "../../types/errors"
 import { computeWorkflowAutoLayout } from "../../layout"
 import { buildExpressionSlicePatch } from "../expression-deps"
-import { cloneGraphState, commitGraphState } from "../history-helpers"
+import { commitGraphState } from "../history-helpers"
 import type { WorkflowSliceCreator } from "../types"
 
 export const createLayoutSlice: WorkflowSliceCreator = (set, get) => ({
@@ -50,7 +50,7 @@ export const createLayoutSlice: WorkflowSliceCreator = (set, get) => ({
       set((state) => ({
         history: {
           past: state.history.past,
-          present: cloneGraphState(nextGraph),
+          present: nextGraph,
           future: [],
         },
         nodeDragOriginGraph: null,

@@ -9,6 +9,10 @@ import {
   type VariableScopeResolver,
 } from "../expression/variables/variable-scope"
 import type { NodeRegistry } from "../node-registry/registry"
+import {
+  reuseEqualCatalog,
+  reuseEqualVariableTypes,
+} from "./expression-cache-reuse"
 import type {
   ExpressionDepsEdge,
   ExpressionDepsGraph,
@@ -129,7 +133,8 @@ export function buildExpressionSlicePatch(
     ...buildExpressionCaches(
       state.registry,
       state.runtime.variables?.scope ?? upstreamScope,
-      graph
+      graph,
+      state
     ),
   }
 }
@@ -143,19 +148,48 @@ export function buildExpressionSlicePatch(
 function buildExpressionCaches(
   registry: NodeRegistry,
   scope: VariableScopeResolver,
-  graph: WorkflowGraphState
+  graph: WorkflowGraphState,
+  previous?: Pick<
+    WorkflowStoreState,
+    "expressionCatalogCache" | "expressionVariableTypesCache"
+  >
 ): Pick<
   WorkflowStoreState,
   "expressionCatalogCache" | "expressionVariableTypesCache"
 > {
+  const expressionCatalogCache = new Map<string, ExpressionVariableOption[]>()
+  const expressionVariableTypesCache = new Map<string, Record<string, string>>()
+
+  const remember = (
+    cacheKey: string,
+    catalog: {
+      options: ExpressionVariableOption[]
+      types: Record<string, string>
+    }
+  ) => {
+    // The whole graph is walked again on every structural change, so most
+    // answers come back identical. Keeping the previous reference for those
+    // is what stops one added node from re-rendering every other node: the
+    // catalog selectors compare with `Object.is`.
+    expressionCatalogCache.set(
+      cacheKey,
+      reuseEqualCatalog(
+        previous?.expressionCatalogCache.get(cacheKey),
+        catalog.options
+      )
+    )
+    expressionVariableTypesCache.set(
+      cacheKey,
+      reuseEqualVariableTypes(
+        previous?.expressionVariableTypesCache.get(cacheKey),
+        catalog.types
+      )
+    )
+  }
+
   // `__global__` is the key a null nodeId maps onto: an expression edited
   // outside any node can reference nothing.
-  const expressionCatalogCache = new Map<string, ExpressionVariableOption[]>([
-    ["__global__", []],
-  ])
-  const expressionVariableTypesCache = new Map<string, Record<string, string>>([
-    ["__global__", {}],
-  ])
+  remember("__global__", { options: [], types: {} })
 
   const buildCatalog = createWorkflowVariableCatalogBuilder(
     registry,
@@ -165,9 +199,7 @@ function buildExpressionCaches(
   )
 
   graph.nodes.forEach((node) => {
-    const catalog = buildCatalog(node.id)
-    expressionCatalogCache.set(node.id, catalog.options)
-    expressionVariableTypesCache.set(node.id, catalog.types)
+    remember(node.id, buildCatalog(node.id))
   })
 
   return { expressionCatalogCache, expressionVariableTypesCache }

@@ -31,6 +31,7 @@ import {
   useWorkflowSelection,
   useWorkflowShallowStore,
   useWorkflowStore,
+  useWorkflowStoreApi,
   WorkflowStoreProvider,
   type WorkflowRuntimeConfig,
   type WorkflowStoreInitialProps,
@@ -515,7 +516,10 @@ export function WorkflowEditorPalette({
   placement,
 }: WorkflowEditorPaletteProps) {
   const layout = useWorkflowEditorLayoutContext()
-  const nodeCount = useWorkflowStore(selectNodeCount)
+  // The node count only decides where a palette-added node lands, which is
+  // read once per click. Selecting it would re-render the whole palette on
+  // every node added or removed anywhere on the canvas.
+  const storeApi = useWorkflowStoreApi()
   const isObserving = layout?.mode === "observe"
   const quickAddPending = useWorkflowStore(selectQuickAddPending)
   const edgeInsertPending = useWorkflowStore(selectEdgeInsertPending)
@@ -542,7 +546,7 @@ export function WorkflowEditorPalette({
       return
     }
 
-    const offset = nodeCount * 20
+    const offset = selectNodeCount(storeApi.getState()) * 20
     addNode(kind, { x: 80 + offset, y: 120 + offset })
   }
 

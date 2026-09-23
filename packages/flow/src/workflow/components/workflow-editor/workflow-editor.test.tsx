@@ -476,6 +476,21 @@ describe("WorkflowEditor wiring", () => {
     expect(paletteRenderSpy.mock.calls.length).toBe(baselinePaletteRenders)
   })
 
+  it("does not rerender palette when a node is added", async () => {
+    const user = userEvent.setup()
+    render(<WorkflowEditor definitions={builtinBaseDefinitions} />)
+
+    await user.click(screen.getByRole("button", { name: "palette-add-node" }))
+    const baselinePaletteRenders = paletteRenderSpy.mock.calls.length
+
+    // The palette reads the node count only to place the node it adds, so
+    // growing the graph is none of its business to re-render over.
+    await user.click(screen.getByRole("button", { name: "palette-add-node" }))
+    await user.click(screen.getByRole("button", { name: "palette-add-node" }))
+
+    expect(paletteRenderSpy.mock.calls.length).toBe(baselinePaletteRenders)
+  })
+
   it("keeps non-canvas render budget stable on pointer updates", async () => {
     const user = userEvent.setup()
     render(<WorkflowEditor definitions={builtinBaseDefinitions} />)

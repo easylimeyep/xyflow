@@ -67,6 +67,91 @@ function createRepresentativeGraph(nodeCount = 180): WorkflowGraphState {
   }
 }
 
+describe("expression cache identity across a graph commit", () => {
+  function catalogIdentities(store: ReturnType<typeof createWorkflowStore>) {
+    const state = store.getState()
+    return state.history.present.nodes.map((node) => ({
+      id: node.id,
+      options: state.expressionCatalogCache.get(node.id),
+      types: state.expressionVariableTypesCache.get(node.id),
+    }))
+  }
+
+  it("keeps the catalog reference of every untouched node when a node is added", () => {
+    // Adding a node rebuilds every node's catalog, because the scope resolver
+    // is host code and cannot say whose answer changed. What must not happen
+    // is a NEW reference for an answer that did not change: the catalog
+    // selectors compare with `Object.is`, so that used to re-render every node
+    // on the canvas for one drop from the palette.
+    const store = createWorkflowStore({
+      definitions: builtinBaseDefinitions,
+      initialGraph: createRepresentativeGraph(40),
+    })
+    const before = catalogIdentities(store)
+
+    store.getState().addNode("inlineExpression", { x: 4000, y: 4000 })
+
+    const after = store.getState()
+    const churned = before.filter(
+      (entry) =>
+        after.expressionCatalogCache.get(entry.id) !== entry.options ||
+        after.expressionVariableTypesCache.get(entry.id) !== entry.types
+    )
+
+    expect(churned).toEqual([])
+  })
+
+  it("hands the affected node a new catalog reference when its variables change", () => {
+    const producer = createWorkflowNode(registry, "setVariable", { x: 0, y: 0 })
+    producer.data.config.variableName = "total"
+    const consumer = createWorkflowNode(registry, "inlineExpression", {
+      x: 220,
+      y: 0,
+    })
+    const store = createWorkflowStore({
+      definitions: builtinBaseDefinitions,
+      initialGraph: {
+        nodes: [producer, consumer],
+        edges: [
+          {
+            id: `${producer.id}-${consumer.id}`,
+            source: producer.id,
+            target: consumer.id,
+            sourceHandle: null,
+            targetHandle: null,
+            data: {
+              sourceKind: producer.data.kind,
+              targetKind: consumer.data.kind,
+            },
+          },
+        ],
+        viewport: { x: 0, y: 0, zoom: 1 },
+        document: {
+          id: "identity-doc",
+          name: "Identity",
+          version: 1,
+          metadata: {},
+        },
+      },
+    })
+
+    const beforeConsumerCatalog = store
+      .getState()
+      .expressionCatalogCache.get(consumer.id)
+    expect(beforeConsumerCatalog).toHaveLength(1)
+
+    store.getState().updateNodeConfig(producer.id, {
+      kind: "setVariable",
+      key: "variableName",
+      value: "grandTotal",
+    })
+
+    expect(store.getState().expressionCatalogCache.get(consumer.id)).not.toBe(
+      beforeConsumerCatalog
+    )
+  })
+})
+
 describe("workflow interaction performance budgets", () => {
   it("keeps transient drag updates within a frame-safe latency budget on representative graphs", () => {
     const store = createWorkflowStore({
@@ -119,6 +204,106 @@ describe("workflow interaction performance budgets", () => {
     expect(store.getState().expressionCatalogCache).toBe(
       initialExpressionCatalogRef
     )
+  })
+
+  it("leaves every untouched node object alone when a drag is committed", () => {
+    // Committing a drag to history used to deep-clone the whole graph, which
+    // handed ReactFlow a brand-new object for every node and re-rendered the
+    // entire canvas on mouse-up. Only the dragged node may change identity.
+    const store = createWorkflowStore({
+      definitions: builtinBaseDefinitions,
+      initialGraph: createRepresentativeGraph(),
+    })
+    const nodesBeforeDrag = store.getState().history.present.nodes
+    const draggedNode = nodesBeforeDrag[90]
+    if (!draggedNode) {
+      throw new Error("expected target node in representative graph")
+    }
+
+    const dragStartPosition = { ...draggedNode.position }
+    const committedPosition = {
+      x: dragStartPosition.x + 140,
+      y: dragStartPosition.y + 140,
+    }
+
+    store.getState().onNodesChange([
+      {
+        id: draggedNode.id,
+        type: "position",
+        position: { x: dragStartPosition.x + 40, y: dragStartPosition.y + 40 },
+        dragging: true,
+      },
+    ])
+    store.getState().onNodesChange([
+      {
+        id: draggedNode.id,
+        type: "position",
+        position: committedPosition,
+        dragging: false,
+      },
+    ])
+
+    const nodesAfterDrag = store.getState().history.present.nodes
+    const changedNodeIds = nodesAfterDrag
+      .filter((node, index) => node !== nodesBeforeDrag[index])
+      .map((node) => node.id)
+
+    expect(changedNodeIds).toEqual([draggedNode.id])
+    expect(store.getState().history.present.edges).toBe(
+      store.getState().history.past[0]?.edges
+    )
+  })
+
+  it("restores the pre-drag position on undo without aliasing the committed graph", () => {
+    // Dropping the defensive deep clone only holds while history entries stay
+    // immutable, so undo must still hand back the original position.
+    const store = createWorkflowStore({
+      definitions: builtinBaseDefinitions,
+      initialGraph: createRepresentativeGraph(),
+    })
+    const draggedNode = store.getState().history.present.nodes[90]
+    if (!draggedNode) {
+      throw new Error("expected target node in representative graph")
+    }
+
+    const dragStartPosition = { ...draggedNode.position }
+
+    store.getState().onNodesChange([
+      {
+        id: draggedNode.id,
+        type: "position",
+        position: { x: dragStartPosition.x + 40, y: dragStartPosition.y + 40 },
+        dragging: true,
+      },
+    ])
+    store.getState().onNodesChange([
+      {
+        id: draggedNode.id,
+        type: "position",
+        position: {
+          x: dragStartPosition.x + 140,
+          y: dragStartPosition.y + 140,
+        },
+        dragging: false,
+      },
+    ])
+
+    store.getState().undo()
+
+    const undoneNode = store
+      .getState()
+      .history.present.nodes.find((node) => node.id === draggedNode.id)
+    expect(undoneNode?.position).toEqual(dragStartPosition)
+
+    store.getState().redo()
+
+    const redoneNode = store
+      .getState()
+      .history.present.nodes.find((node) => node.id === draggedNode.id)
+    expect(redoneNode?.position).toEqual({
+      x: dragStartPosition.x + 140,
+      y: dragStartPosition.y + 140,
+    })
   })
 
   it("answers an empty validation catalog with one stable reference per selector", () => {

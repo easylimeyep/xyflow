@@ -11,6 +11,13 @@ import { buildExpressionSlicePatch } from "./expression-deps"
 
 import type { WorkflowStoreSetState } from "./types"
 
+/**
+ * Deep-copies a graph coming from outside the store (host-provided initial
+ * graph, imported JSON) so later edits cannot reach back into the caller's
+ * object. Graphs produced inside the store are already treated as immutable
+ * and are stored by reference, which keeps node identity stable across history
+ * commits and avoids re-rendering every node on the canvas.
+ */
 export function cloneGraphState(graph: WorkflowGraphState): WorkflowGraphState {
   return cloneDeep(graph)
 }
@@ -26,7 +33,7 @@ export function commitGraphState(
   nextGraph: WorkflowGraphState
 ): void {
   set((state) => ({
-    history: pushHistoryState(state.history, cloneGraphState(nextGraph)),
+    history: pushHistoryState(state.history, nextGraph),
     nodeDragOriginGraph: null,
     ...buildExpressionSlicePatch(state, nextGraph),
   }))
@@ -39,7 +46,7 @@ export function replacePresentGraphState(
   set((state) => ({
     history: {
       ...state.history,
-      present: cloneGraphState(nextGraph),
+      present: nextGraph,
     },
     nodeDragOriginGraph: null,
     ...buildExpressionSlicePatch(state, nextGraph),

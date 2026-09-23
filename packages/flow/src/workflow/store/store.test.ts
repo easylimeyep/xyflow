@@ -1221,12 +1221,20 @@ describe("workflow store", () => {
     )
     expect(afterCommitCatalog).toBe(afterTransientCatalog)
 
+    // A structural change rebuilds every catalog, but renaming this node does
+    // not change what IT may reference — it is the root, so its catalog is
+    // empty either way. The rebuild is observable through the structural
+    // version; the reference is deliberately not, because handing out a new
+    // one for an unchanged answer re-renders the node for nothing.
+    const beforeStructuralVersion = store.getState().expressionStructuralVersion
     store.getState().updateNodeLabel(targetNode.id, "Keyword changed")
-    const afterStructuralChangeCatalog = selectExpressionVariablesForNode(
-      store.getState(),
-      targetNode.id
+
+    expect(store.getState().expressionStructuralVersion).toBe(
+      beforeStructuralVersion + 1
     )
-    expect(afterStructuralChangeCatalog).not.toBe(afterCommitCatalog)
+    expect(
+      selectExpressionVariablesForNode(store.getState(), targetNode.id)
+    ).toBe(afterCommitCatalog)
   })
 
   it("keeps cache scoped per store instance", () => {

@@ -37,6 +37,14 @@ export interface ContextStore<TState, TInitialProps extends object> {
   useShallowStore: <TSelected>(
     selector: ContextStoreSelector<TState, TSelected>
   ) => TSelected
+  /**
+   * The store itself, for a read that must NOT subscribe.
+   *
+   * A value a component only needs inside an event handler has no business
+   * re-rendering it when that value changes; reach for this rather than
+   * selecting the value and ignoring the render.
+   */
+  useStoreApi: () => StoreApi<TState>
   Item: <TSelected>(
     props: ContextStoreItemProps<TState, TSelected>
   ) => ReactElement
@@ -89,6 +97,7 @@ export function createContextStore<TState, TInitialProps extends object>(
   return {
     Provider,
     useStore: useBoundStore,
+    useStoreApi: useContextStoreApi,
     useShallowStore: (selector) => useBoundStore(selector, shallow),
     Item,
   }

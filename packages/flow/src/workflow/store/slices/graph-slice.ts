@@ -17,7 +17,7 @@ import {
 } from "../collection-diff"
 import { buildExpressionSlicePatch } from "../expression-deps"
 import { createSmartQuickAddPosition } from "../geometry"
-import { cloneGraphState, commitGraphState } from "../history-helpers"
+import { commitGraphState } from "../history-helpers"
 import { projectSelectionToNodes } from "../selection-sync"
 import type { WorkflowSliceCreator, WorkflowStoreState } from "../types"
 
@@ -187,7 +187,7 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
         set((state) => ({
           history: {
             ...state.history,
-            present: cloneGraphState(nextGraph),
+            present: nextGraph,
             future: [],
           },
           selectedNodeIds: nextSelectedNodeIds,
@@ -221,8 +221,8 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
         if (get().nodeDragOriginGraph) {
           set((state) => ({
             history: {
-              past: [...state.history.past, cloneGraphState(dragOriginGraph)],
-              present: cloneGraphState(nextGraph),
+              past: [...state.history.past, dragOriginGraph],
+              present: nextGraph,
               future: [],
             },
             selectedNodeIds: nextSelectedNodeIds,
@@ -239,7 +239,7 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
       }
 
       set((state) => ({
-        history: pushHistoryState(state.history, cloneGraphState(nextGraph)),
+        history: pushHistoryState(state.history, nextGraph),
         selectedNodeIds: nextSelectedNodeIds,
         nodeDragOriginGraph: null,
         ...expressionPatchFor(state),
@@ -257,7 +257,7 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get) => ({
       selectedNodeIds: nextSelectedNodeIds,
       nodeDragOriginGraph:
         hasDraggingPositionChanges && !state.nodeDragOriginGraph
-          ? cloneGraphState(currentGraph)
+          ? currentGraph
           : hasDraggingPositionChanges
             ? state.nodeDragOriginGraph
             : null,

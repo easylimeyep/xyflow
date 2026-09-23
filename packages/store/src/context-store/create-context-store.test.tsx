@@ -148,6 +148,61 @@ describe("createContextStore", () => {
     expect(screen.getByText("0").textContent).toBe("0")
   })
 
+  it("reads through useStoreApi without subscribing", () => {
+    let renders = 0
+    let capturedStore: StoreApi<CounterState> | null = null
+    let readCount: (() => number) | null = null
+
+    const counter = createContextStore<CounterState, CounterInitialProps>(
+      (initialProps) => {
+        const store = createCounterStore(initialProps)
+        capturedStore = store
+        return store
+      }
+    )
+
+    function Value() {
+      renders += 1
+      const store = counter.useStoreApi()
+      readCount = () => store.getState().count
+
+      return <span>static</span>
+    }
+
+    render(
+      <counter.Provider initialCount={0}>
+        <Value />
+      </counter.Provider>
+    )
+
+    expect(renders).toBe(1)
+    expect(readCount!()).toBe(0)
+
+    act(() => {
+      capturedStore!.setState({ count: 7 })
+    })
+
+    // The point of the api: the value is readable, and changing it renders
+    // nothing.
+    expect(readCount!()).toBe(7)
+    expect(renders).toBe(1)
+  })
+
+  it("throws from useStoreApi outside a Provider", () => {
+    const counter = createContextStore<CounterState, CounterInitialProps>(
+      createCounterStore
+    )
+
+    function Orphan() {
+      counter.useStoreApi()
+      return null
+    }
+
+    expect(() => render(<Orphan />)).toThrow(
+      "Missing createContextStore.Provider in the component tree."
+    )
+  })
+
   it("supports useShallowStore for shallow comparison", () => {
     let renders = 0
     let capturedStore: StoreApi<CounterState> | null = null
