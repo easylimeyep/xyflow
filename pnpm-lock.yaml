@@ -278,6 +278,9 @@ importers:
 
   packages/flow:
     dependencies:
+      '@ez-kit/zu-store':
+        specifier: ^1.0.0
+        version: 1.0.0(next@16.1.6(@playwright/test@1.60.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)(zod@3.25.76)(zustand@5.0.12(@types/react@19.2.14)(react@19.2.4)(use-sync-external-store@1.6.0(react@19.2.4)))
       '@flow/expression-editor':
         specifier: workspace:*
         version: link:../expression-editor
@@ -302,6 +305,9 @@ importers:
       tailwind-variants:
         specifier: ^3.2.2
         version: 3.2.2(tailwind-merge@3.5.0)(tailwindcss@4.3.3)
+      zustand:
+        specifier: ^5.0.12
+        version: 5.0.12(@types/react@19.2.14)(react@19.2.4)(use-sync-external-store@1.6.0(react@19.2.4))
     devDependencies:
       '@flow/eslint-config':
         specifier: workspace:*
@@ -1052,6 +1058,45 @@ packages:
       '@noble/hashes': ^1.8.0 || ^2.0.0
     peerDependenciesMeta:
       '@noble/hashes':
+        optional: true
+
+  '@ez-kit/store-core@1.0.0':
+    resolution: {integrity: sha512-O6EOP3fw8/2qAAqMN9y/tw+XFMcX5K3kGcRRsdWkU67aEXeMD3aexvP2pPYcFkcYYu9EEPXXpW3idyECO2R4YA==}
+    engines: {node: '>=20'}
+    peerDependencies:
+      react: '>=18.0.0'
+
+  '@ez-kit/store-persist@1.0.0':
+    resolution: {integrity: sha512-x3AmT95K0lThxKucibDxBiT4L/cx1bog7JeyYFcF+AT3+uBwUXGvsG/BdW3W7+q6xApjh1TVmNGSaHZl+nYfzg==}
+    engines: {node: '>=20'}
+    peerDependencies:
+      next: '>=14.0.0'
+      react: '>=18.0.0'
+      react-router: '>=6.0.0'
+      zod: '>=3.0.0'
+    peerDependenciesMeta:
+      next:
+        optional: true
+      react-router:
+        optional: true
+      zod:
+        optional: true
+
+  '@ez-kit/zu-store@1.0.0':
+    resolution: {integrity: sha512-IPUc25lBonOR6rtLlZDevRkw01Jc4zizbBKAcRf8JMI3pcW/bME6g+aoFJnoiWczEt2Y3t0eXQ+vuohw8FUrtw==}
+    engines: {node: '>=20'}
+    peerDependencies:
+      next: '>=14.0.0'
+      react: '>=18.0.0'
+      react-router: '>=6.0.0'
+      zod: '>=3.0.0'
+      zustand: ^5.0.0
+    peerDependenciesMeta:
+      next:
+        optional: true
+      react-router:
+        optional: true
+      zod:
         optional: true
 
   '@floating-ui/core@1.7.5':
@@ -7461,6 +7506,28 @@ snapshots:
     optionalDependencies:
       '@noble/hashes': 1.8.0
 
+  '@ez-kit/store-core@1.0.0(react@19.2.4)':
+    dependencies:
+      react: 19.2.4
+
+  '@ez-kit/store-persist@1.0.0(next@16.1.6(@playwright/test@1.60.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)(zod@3.25.76)':
+    dependencies:
+      '@ez-kit/store-core': 1.0.0(react@19.2.4)
+      react: 19.2.4
+    optionalDependencies:
+      next: 16.1.6(@playwright/test@1.60.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      zod: 3.25.76
+
+  '@ez-kit/zu-store@1.0.0(next@16.1.6(@playwright/test@1.60.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)(zod@3.25.76)(zustand@5.0.12(@types/react@19.2.14)(react@19.2.4)(use-sync-external-store@1.6.0(react@19.2.4)))':
+    dependencies:
+      '@ez-kit/store-core': 1.0.0(react@19.2.4)
+      '@ez-kit/store-persist': 1.0.0(next@16.1.6(@playwright/test@1.60.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)(zod@3.25.76)
+      react: 19.2.4
+      zustand: 5.0.12(@types/react@19.2.14)(react@19.2.4)(use-sync-external-store@1.6.0(react@19.2.4))
+    optionalDependencies:
+      next: 16.1.6(@playwright/test@1.60.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      zod: 3.25.76
+
   '@floating-ui/core@1.7.5':
     dependencies:
       '@floating-ui/utils': 0.2.11
@@ -10625,8 +10692,8 @@ snapshots:
       eslint: 9.39.2(jiti@2.7.0)
       eslint-import-resolver-node: 0.3.10
       eslint-module-utils: 2.14.0(@typescript-eslint/parser@8.55.0(eslint@9.39.2(jiti@2.7.0))(typescript@5.9.3))(eslint-import-resolver-node@0.3.10)(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.2(jiti@2.7.0))
-      hasown: 2.0.2
-      is-core-module: 2.16.1
+      hasown: 2.0.4
+      is-core-module: 2.16.2
       is-glob: 4.0.3
       minimatch: 3.1.2
       object.fromentries: 2.0.8

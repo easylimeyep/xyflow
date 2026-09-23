@@ -15,6 +15,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@ez-kit/zu-store": "^1.0.0",
     "@flow/expression-editor": "workspace:*",
     "@flow/store": "workspace:*",
     "@flow/ui": "workspace:*",
@@ -22,17 +23,18 @@
     "elkjs": "^0.11.0",
     "es-toolkit": "^1.45.1",
     "lucide-react": "^1.16.0",
-    "tailwind-variants": "^3.2.2"
+    "tailwind-variants": "^3.2.2",
+    "zustand": "^5.0.12"
   },
   "devDependencies": {
+    "@flow/eslint-config": "workspace:*",
+    "@flow/typescript-config": "workspace:*",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
     "@types/node": "^25.1.0",
     "@types/react": "^19.2.10",
     "@types/react-dom": "^19.2.3",
     "@vitest/coverage-v8": "^4.1.0",
-    "@flow/eslint-config": "workspace:*",
-    "@flow/typescript-config": "workspace:*",
     "eslint": "^9.39.2",
     "jsdom": "^29.0.1",
     "react": "^19.2.4",
