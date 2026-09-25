@@ -201,6 +201,7 @@ describe("workflow ELK layout adapter", () => {
       "elk.edgeRouting": "ORTHOGONAL",
       "elk.layered.spacing.nodeNodeBetweenLayers": "160",
       "elk.spacing.nodeNode": "112",
+      "elk.spacing.componentComponent": "112",
       "elk.spacing.edgeNode": "48",
       "elk.spacing.edgeEdge": "24",
     })
