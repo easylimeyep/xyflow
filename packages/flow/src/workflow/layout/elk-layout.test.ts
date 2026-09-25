@@ -290,6 +290,47 @@ describe("workflow ELK layout adapter", () => {
     ])
   })
 
+  it("does not clear a shortcut around targets on the same jsonEvaluator branch", () => {
+    const evaluator = createWorkflowNode(registry, "jsonEvaluator", {
+      x: 0,
+      y: 80,
+    })
+    const score = createWorkflowNode(registry, "extractor", { x: 360, y: 80 })
+    const result = createWorkflowNode(registry, "result", { x: 720, y: 80 })
+    score.measured = { width: 260, height: 120 }
+    result.measured = { width: 260, height: 100 }
+
+    const nodes = [evaluator, score, result]
+    const edges = [
+      {
+        id: "true-path",
+        source: evaluator.id,
+        target: score.id,
+        sourceHandle: "evaluator-true",
+        targetHandle: null,
+        data: { sourceKind: "jsonEvaluator", targetKind: "extractor" },
+      },
+      {
+        id: "score-to-result",
+        source: score.id,
+        target: result.id,
+        sourceHandle: null,
+        targetHandle: null,
+        data: { sourceKind: "extractor", targetKind: "result" },
+      },
+      {
+        id: "true-shortcut",
+        source: evaluator.id,
+        target: result.id,
+        sourceHandle: "evaluator-true",
+        targetHandle: null,
+        data: { sourceKind: "jsonEvaluator", targetKind: "result" },
+      },
+    ]
+
+    expect(applyEvaluatorShortcutClearance(nodes, edges)).toBe(nodes)
+  })
+
   it("reuses the original node array when ELK positions do not change", () => {
     const extractor = createWorkflowNode(registry, "extractor", {
       x: 120,

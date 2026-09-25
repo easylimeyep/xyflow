@@ -1,6 +1,10 @@
+import { allowsMultipleBranchTargets } from "../../node-registry/node-graph-rules"
+import type { NodeRegistry } from "../../node-registry/registry"
 import type {
   BackendEvaluatorWorkflowNodeDTO,
+  BackendMultiTargetEvaluatorWorkflowNodeDTO,
   BackendRegularWorkflowNodeDTO,
+  BackendSingleTargetEvaluatorWorkflowNodeDTO,
   BackendWorkflowDTO,
   DomainWorkflowConnectionDTO,
   DomainWorkflowDTO,
@@ -126,6 +130,7 @@ function validateRoots(
 }
 
 function validateEvaluatorBranches(
+  registry: NodeRegistry,
   nodeById: Map<string, DomainWorkflowNodeDTO>,
   outgoingBySource: OutgoingBySource
 ) {
@@ -133,6 +138,8 @@ function validateEvaluatorBranches(
     if (!isBranchingKind(node.kind)) {
       continue
     }
+
+    const allowsMultiple = allowsMultipleBranchTargets(registry, node.kind)
 
     const outgoing = outgoingBySource.get(node.id) ?? []
     let trueBranches = 0
@@ -150,7 +157,7 @@ function validateEvaluatorBranches(
       }
     }
 
-    if (trueBranches > 1 || falseBranches > 1) {
+    if (!allowsMultiple && (trueBranches > 1 || falseBranches > 1)) {
       throw new Error(
         `Cannot export backend workflow: ${node.kind} node "${node.id}" has duplicate branch connections.`
       )
@@ -181,6 +188,7 @@ function sortedNodesByPositionLabelAndId(
 }
 
 function resolveBackendOrder(
+  registry: NodeRegistry,
   dto: DomainWorkflowDTO,
   indexes: GraphIndexes
 ): DomainWorkflowNodeDTO[] {
@@ -191,7 +199,7 @@ function resolveBackendOrder(
   )
 
   validateRoots(roots, incomingByTarget)
-  validateEvaluatorBranches(nodeById, outgoingBySource)
+  validateEvaluatorBranches(registry, nodeById, outgoingBySource)
 
   const reachableIds = collectReachableIds(roots, outgoingBySource)
   const unreachable = dto.nodes.find((node) => !reachableIds.has(node.id))
@@ -420,35 +428,78 @@ function mapRegularNode(
   }
 }
 
-function mapEvaluatorNode(
-  node: DomainWorkflowNodeDTO,
+function branchTargetIds(
   outgoing: DomainWorkflowConnectionDTO[],
+  sourceHandle: string,
   backendIdByDomainId: Map<string, number>
-): BackendEvaluatorWorkflowNodeDTO {
-  let nextTrue: number | null = null
-  let nextFalse: number | null = null
+): number[] {
+  return outgoing
+    .filter((connection) => connection.sourceHandle === sourceHandle)
+    .map((connection) =>
+      getBackendId(backendIdByDomainId, connection.targetNodeId)
+    )
+}
 
-  for (const connection of outgoing) {
-    if (connection.sourceHandle === EVALUATOR_TRUE_HANDLE) {
-      nextTrue = getBackendId(backendIdByDomainId, connection.targetNodeId)
-    }
-    if (connection.sourceHandle === EVALUATOR_FALSE_HANDLE) {
-      nextFalse = getBackendId(backendIdByDomainId, connection.targetNodeId)
-    }
-  }
-
+function mapEvaluatorNodeBase(
+  node: DomainWorkflowNodeDTO,
+  backendIdByDomainId: Map<string, number>
+) {
   return {
     id: getBackendId(backendIdByDomainId, node.id),
     kind: node.kind as BackendEvaluatorWorkflowNodeDTO["kind"],
     position: { ...node.position },
     label: node.label,
     config: { ...node.config },
-    next_true: nextTrue,
-    next_false: nextFalse,
+  }
+}
+
+function mapMultiTargetEvaluatorNode(
+  node: DomainWorkflowNodeDTO,
+  outgoing: DomainWorkflowConnectionDTO[],
+  backendIdByDomainId: Map<string, number>
+): BackendMultiTargetEvaluatorWorkflowNodeDTO {
+  return {
+    ...mapEvaluatorNodeBase(node, backendIdByDomainId),
+    next_true: branchTargetIds(
+      outgoing,
+      EVALUATOR_TRUE_HANDLE,
+      backendIdByDomainId
+    ),
+    next_false: branchTargetIds(
+      outgoing,
+      EVALUATOR_FALSE_HANDLE,
+      backendIdByDomainId
+    ),
+  }
+}
+
+function mapSingleTargetEvaluatorNode(
+  node: DomainWorkflowNodeDTO,
+  outgoing: DomainWorkflowConnectionDTO[],
+  backendIdByDomainId: Map<string, number>
+): BackendSingleTargetEvaluatorWorkflowNodeDTO {
+  // Draft export skips branch validation, so a duplicated branch can reach
+  // here; the last target wins, as it always has.
+  const nextTrue = branchTargetIds(
+    outgoing,
+    EVALUATOR_TRUE_HANDLE,
+    backendIdByDomainId
+  ).at(-1)
+  const nextFalse = branchTargetIds(
+    outgoing,
+    EVALUATOR_FALSE_HANDLE,
+    backendIdByDomainId
+  ).at(-1)
+
+  return {
+    ...mapEvaluatorNodeBase(node, backendIdByDomainId),
+    next_true: nextTrue ?? null,
+    next_false: nextFalse ?? null,
   }
 }
 
 function mapDomainWorkflowToBackend(
+  registry: NodeRegistry,
   dto: DomainWorkflowDTO,
   orderedNodes: DomainWorkflowNodeDTO[],
   indexes: GraphIndexes
@@ -466,29 +517,41 @@ function mapDomainWorkflowToBackend(
         indexes.nodeById
       )
 
-      if (isBranchingKind(node.kind)) {
-        return mapEvaluatorNode(node, outgoing, backendIdByDomainId)
+      if (!isBranchingKind(node.kind)) {
+        return mapRegularNode(node, outgoing, backendIdByDomainId)
       }
 
-      return mapRegularNode(node, outgoing, backendIdByDomainId)
+      return allowsMultipleBranchTargets(registry, node.kind)
+        ? mapMultiTargetEvaluatorNode(node, outgoing, backendIdByDomainId)
+        : mapSingleTargetEvaluatorNode(node, outgoing, backendIdByDomainId)
     }),
   }
 }
 
+/**
+ * Serialize a domain workflow into the backend's numbered-node shape.
+ *
+ * The registry is the editor's vocabulary: it decides, per kind, whether a
+ * branch serializes to one target (`next_true: number | null`) or to a list
+ * (`next_true: number[]`). A host reads it with `useNodeRegistry()` or builds
+ * it with `createNodeRegistry(definitions)`.
+ */
 export function exportDomainWorkflowForBackend(
+  registry: NodeRegistry,
   dto: DomainWorkflowDTO
 ): BackendWorkflowDTO {
   const indexes = buildGraphIndexes(dto)
-  const orderedNodes = resolveBackendOrder(dto, indexes)
+  const orderedNodes = resolveBackendOrder(registry, dto, indexes)
 
-  return mapDomainWorkflowToBackend(dto, orderedNodes, indexes)
+  return mapDomainWorkflowToBackend(registry, dto, orderedNodes, indexes)
 }
 
 export function exportDraftDomainWorkflowForBackend(
+  registry: NodeRegistry,
   dto: DomainWorkflowDTO
 ): BackendWorkflowDTO {
   const indexes = buildGraphIndexes(dto)
   const orderedNodes = resolveDraftBackendOrder(dto, indexes)
 
-  return mapDomainWorkflowToBackend(dto, orderedNodes, indexes)
+  return mapDomainWorkflowToBackend(registry, dto, orderedNodes, indexes)
 }

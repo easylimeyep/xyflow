@@ -322,14 +322,42 @@ export interface BackendRegularWorkflowNodeDTO {
   next: number[]
 }
 
-export interface BackendEvaluatorWorkflowNodeDTO {
+interface BackendEvaluatorWorkflowNodeBaseDTO {
   id: number
   kind: "evaluator" | "jsonEvaluator"
   position: XYPosition
   label: string
   config: JsonObject
+}
+
+/** A branching kind with one target per branch — the plain evaluator. */
+export interface BackendSingleTargetEvaluatorWorkflowNodeDTO extends BackendEvaluatorWorkflowNodeBaseDTO {
   next_true: number | null
   next_false: number | null
+}
+
+/**
+ * A branching kind whose definition declares `multipleBranchTargets` — the
+ * JSON evaluator. An unconnected branch is an empty list, never `null`.
+ */
+export interface BackendMultiTargetEvaluatorWorkflowNodeDTO extends BackendEvaluatorWorkflowNodeBaseDTO {
+  next_true: number[]
+  next_false: number[]
+}
+
+/**
+ * The shape follows the registry the export was handed, not the kind: a host
+ * may flip `multipleBranchTargets` on either evaluator. Narrow with
+ * {@link isMultiTargetEvaluatorDTO}, never with `kind`.
+ */
+export type BackendEvaluatorWorkflowNodeDTO =
+  | BackendSingleTargetEvaluatorWorkflowNodeDTO
+  | BackendMultiTargetEvaluatorWorkflowNodeDTO
+
+export function isMultiTargetEvaluatorDTO(
+  node: BackendEvaluatorWorkflowNodeDTO
+): node is BackendMultiTargetEvaluatorWorkflowNodeDTO {
+  return Array.isArray(node.next_true)
 }
 
 export type BackendWorkflowNodeDTO =

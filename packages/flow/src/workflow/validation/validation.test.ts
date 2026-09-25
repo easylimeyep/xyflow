@@ -119,6 +119,84 @@ describe("validateConnection", () => {
     expect(result.reason).toContain("already has an outgoing connection")
   })
 
+  it.each(["evaluator-true", "evaluator-false"])(
+    "accepts a second jsonEvaluator %s branch to another target",
+    (sourceHandle) => {
+      const evaluator = createWorkflowNode(registry, "jsonEvaluator", {
+        x: 0,
+        y: 0,
+      })
+      const firstResult = createWorkflowNode(registry, "result", {
+        x: 300,
+        y: -80,
+      })
+      const secondResult = createWorkflowNode(registry, "result", {
+        x: 300,
+        y: 80,
+      })
+      const existing = [
+        {
+          id: "json-evaluator-first",
+          source: evaluator.id,
+          target: firstResult.id,
+          sourceHandle,
+          targetHandle: null,
+          data: {
+            sourceKind: evaluator.data.kind,
+            targetKind: firstResult.data.kind,
+          },
+        },
+      ]
+
+      const result = validateConnection(
+        registry,
+        { source: evaluator.id, target: secondResult.id, sourceHandle },
+        [evaluator, firstResult, secondResult],
+        existing
+      )
+
+      expect(result).toEqual({ valid: true })
+    }
+  )
+
+  it("still rejects a jsonEvaluator branch duplicating an existing edge", () => {
+    const evaluator = createWorkflowNode(registry, "jsonEvaluator", {
+      x: 0,
+      y: 0,
+    })
+    const resultNode = createWorkflowNode(registry, "result", {
+      x: 300,
+      y: 0,
+    })
+    const existing = [
+      {
+        id: "json-evaluator-true",
+        source: evaluator.id,
+        target: resultNode.id,
+        sourceHandle: "evaluator-true",
+        targetHandle: null,
+        data: {
+          sourceKind: evaluator.data.kind,
+          targetKind: resultNode.data.kind,
+        },
+      },
+    ]
+
+    const result = validateConnection(
+      registry,
+      {
+        source: evaluator.id,
+        target: resultNode.id,
+        sourceHandle: "evaluator-true",
+      },
+      [evaluator, resultNode],
+      existing
+    )
+
+    expect(result.valid).toBe(false)
+    expect(result.reason).toContain("already exists")
+  })
+
   it("rejects a second evaluator false branch to another target", () => {
     const evaluator = createWorkflowNode(registry, "evaluator", { x: 0, y: 0 })
     const firstResult = createWorkflowNode(registry, "result", {

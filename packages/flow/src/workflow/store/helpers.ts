@@ -28,6 +28,7 @@ export {
   hasNodeCollectionChanged,
   hasOutgoingConnection,
   haveSameIdSet,
+  isOutputSaturated,
   normalizeSelectionIds,
   shouldCommitEdgeHistory,
   shouldCommitNodeHistory,

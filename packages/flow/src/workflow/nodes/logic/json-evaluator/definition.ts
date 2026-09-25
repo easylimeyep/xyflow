@@ -30,6 +30,9 @@ export const jsonEvaluator = defineNode({
   renameConfigKey: "label",
   subtitle: evaluatorSubtitle,
   outputs: EVALUATOR_OUTPUTS,
+  // A JSON payload routes to several consumers per outcome; the plain
+  // evaluator keeps its one-target-per-branch contract.
+  multipleBranchTargets: true,
   variable: readEvaluatorVariable,
   validateConfigValue: (key, value) =>
     key === "matchType"

@@ -338,7 +338,13 @@ export function applyEvaluatorShortcutClearance(
 
     const siblingPathNodeIds = new Set<string>()
     outgoing.forEach((siblingEdge) => {
-      if (siblingEdge.id === shortcutEdge.id) {
+      // Only the opposite branch runs alongside the shortcut. A fan-out kind
+      // can put several edges on the shortcut's own branch; those share its
+      // lane and need no clearance from it.
+      if (
+        siblingEdge.id === shortcutEdge.id ||
+        siblingEdge.sourceHandle === shortcutEdge.sourceHandle
+      ) {
         return
       }
 

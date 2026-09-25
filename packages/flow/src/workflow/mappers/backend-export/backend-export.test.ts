@@ -4,11 +4,17 @@ import {
   exportDomainWorkflowForBackend,
   exportDraftDomainWorkflowForBackend,
 } from "./backend-export"
-import type {
-  DomainWorkflowConnectionDTO,
-  DomainWorkflowDTO,
-  DomainWorkflowNodeDTO,
+import {
+  type DomainWorkflowConnectionDTO,
+  type DomainWorkflowDTO,
+  type DomainWorkflowNodeDTO,
+  isMultiTargetEvaluatorDTO,
 } from "../../types"
+import { builtinBaseDefinitions } from "../../node-registry/builtin-base-definitions"
+import { createNodeRegistry } from "../../node-registry/registry"
+import { jsonEvaluator } from "../../nodes/logic/json-evaluator/definition"
+
+const registry = createNodeRegistry(builtinBaseDefinitions)
 
 function node(
   id: string,
@@ -68,7 +74,7 @@ describe("exportDomainWorkflowForBackend", () => {
       [connection("root", "step"), connection("step", "result")]
     )
 
-    const backend = exportDomainWorkflowForBackend(dto)
+    const backend = exportDomainWorkflowForBackend(registry, dto)
 
     expect(backend).toMatchObject({
       id: "workflow-1",
@@ -112,7 +118,7 @@ describe("exportDomainWorkflowForBackend", () => {
       ]
     )
 
-    const backend = exportDomainWorkflowForBackend(dto)
+    const backend = exportDomainWorkflowForBackend(registry, dto)
 
     expect(backend.nodes.map((backendNode) => backendNode.label)).toEqual([
       "root-a",
@@ -148,7 +154,7 @@ describe("exportDomainWorkflowForBackend", () => {
       ]
     )
 
-    const backend = exportDomainWorkflowForBackend(dto)
+    const backend = exportDomainWorkflowForBackend(registry, dto)
 
     expect(backend.nodes[1]).toMatchObject({
       id: 2,
@@ -196,7 +202,7 @@ describe("exportDomainWorkflowForBackend", () => {
       ]
     )
 
-    const backend = exportDomainWorkflowForBackend(dto)
+    const backend = exportDomainWorkflowForBackend(registry, dto)
 
     expect(backend.nodes[1]?.config).toMatchObject({
       extractExpression: "emails",
@@ -238,7 +244,7 @@ describe("exportDomainWorkflowForBackend", () => {
       ]
     )
 
-    const backend = exportDomainWorkflowForBackend(dto)
+    const backend = exportDomainWorkflowForBackend(registry, dto)
 
     expect(backend.nodes[1]).toMatchObject({
       next_true: 3,
@@ -249,7 +255,7 @@ describe("exportDomainWorkflowForBackend", () => {
   it("rejects graphs without roots", () => {
     const dto = workflow([node("step", "setVariable", 0, 0)], [])
 
-    expect(() => exportDomainWorkflowForBackend(dto)).toThrow("root")
+    expect(() => exportDomainWorkflowForBackend(registry, dto)).toThrow("root")
   })
 
   it("rejects root nodes with incoming connections", () => {
@@ -257,14 +263,18 @@ describe("exportDomainWorkflowForBackend", () => {
     const source = node("source", "setVariable", 0, 0)
     const dto = workflow([source, root], [connection("source", "root")])
 
-    expect(() => exportDomainWorkflowForBackend(dto)).toThrow("incoming")
+    expect(() => exportDomainWorkflowForBackend(registry, dto)).toThrow(
+      "incoming"
+    )
   })
 
   it("rejects connections with unknown endpoints", () => {
     const root = node("root", "inlineExpression", 0, 0, { isRoot: true })
     const dto = workflow([root], [connection("root", "missing")])
 
-    expect(() => exportDomainWorkflowForBackend(dto)).toThrow("unknown")
+    expect(() => exportDomainWorkflowForBackend(registry, dto)).toThrow(
+      "unknown"
+    )
   })
 
   it("rejects unreachable nodes", () => {
@@ -272,7 +282,9 @@ describe("exportDomainWorkflowForBackend", () => {
     const unreachable = node("unreachable", "setVariable", 200, 0)
     const dto = workflow([root, unreachable], [])
 
-    expect(() => exportDomainWorkflowForBackend(dto)).toThrow("unreachable")
+    expect(() => exportDomainWorkflowForBackend(registry, dto)).toThrow(
+      "unreachable"
+    )
   })
 
   it("serializes cyclic reachable graphs using existing link fields", () => {
@@ -284,7 +296,7 @@ describe("exportDomainWorkflowForBackend", () => {
       [connection("root", "a"), connection("a", "b"), connection("b", "a")]
     )
 
-    const backend = exportDomainWorkflowForBackend(dto)
+    const backend = exportDomainWorkflowForBackend(registry, dto)
 
     expect(backend.nodes.map((backendNode) => backendNode.label)).toEqual([
       "root",
@@ -309,7 +321,7 @@ describe("exportDomainWorkflowForBackend", () => {
       ]
     )
 
-    const backend = exportDomainWorkflowForBackend(dto)
+    const backend = exportDomainWorkflowForBackend(registry, dto)
 
     expect(backend.nodes.map((backendNode) => backendNode.label)).toEqual([
       "root",
@@ -333,7 +345,95 @@ describe("exportDomainWorkflowForBackend", () => {
       ]
     )
 
-    expect(() => exportDomainWorkflowForBackend(dto)).toThrow("duplicate")
+    expect(() => exportDomainWorkflowForBackend(registry, dto)).toThrow(
+      "duplicate"
+    )
+  })
+
+  it("serializes every jsonEvaluator branch target as a list", () => {
+    const root = node("root", "inlineExpression", 0, 0, { isRoot: true })
+    const evaluator = node("evaluator", "jsonEvaluator", 200, 0)
+    const firstTrue = node("firstTrue", "result", 400, 0)
+    const secondTrue = node("secondTrue", "result", 400, 100)
+    const onlyFalse = node("onlyFalse", "result", 400, 200)
+    const dto = workflow(
+      [root, evaluator, firstTrue, secondTrue, onlyFalse],
+      [
+        connection("root", "evaluator"),
+        connection("evaluator", "secondTrue", "evaluator-true"),
+        connection("evaluator", "firstTrue", "evaluator-true"),
+        connection("evaluator", "onlyFalse", "evaluator-false"),
+      ]
+    )
+
+    const backend = exportDomainWorkflowForBackend(registry, dto)
+
+    expect(backend.nodes.map((backendNode) => backendNode.label)).toEqual([
+      "root",
+      "evaluator",
+      "firstTrue",
+      "secondTrue",
+      "onlyFalse",
+    ])
+    expect(backend.nodes[1]).toMatchObject({
+      kind: "jsonEvaluator",
+      next_true: [3, 4],
+      next_false: [5],
+    })
+  })
+
+  it("serializes an unconnected jsonEvaluator branch as an empty list", () => {
+    const root = node("root", "inlineExpression", 0, 0, { isRoot: true })
+    const evaluator = node("evaluator", "jsonEvaluator", 200, 0)
+    const dto = workflow([root, evaluator], [connection("root", "evaluator")])
+
+    const backend = exportDomainWorkflowForBackend(registry, dto)
+
+    expect(backend.nodes[1]).toMatchObject({ next_true: [], next_false: [] })
+  })
+
+  it("keeps the single-target evaluator shape for a plain evaluator", () => {
+    const root = node("root", "inlineExpression", 0, 0, { isRoot: true })
+    const evaluator = node("evaluator", "evaluator", 200, 0)
+    const success = node("success", "result", 400, 0)
+    const dto = workflow(
+      [root, evaluator, success],
+      [
+        connection("root", "evaluator"),
+        connection("evaluator", "success", "evaluator-true"),
+      ]
+    )
+
+    const backend = exportDomainWorkflowForBackend(registry, dto)
+
+    expect(backend.nodes[1]).toMatchObject({
+      kind: "evaluator",
+      next_true: 3,
+      next_false: null,
+    })
+  })
+
+  it("reads the fan-out rule from the registry it is handed", () => {
+    const singleTargetRegistry = createNodeRegistry([
+      ...builtinBaseDefinitions,
+      { ...jsonEvaluator, multipleBranchTargets: false },
+    ])
+    const root = node("root", "inlineExpression", 0, 0, { isRoot: true })
+    const evaluator = node("evaluator", "jsonEvaluator", 200, 0)
+    const first = node("first", "result", 400, 0)
+    const second = node("second", "result", 400, 100)
+    const dto = workflow(
+      [root, evaluator, first, second],
+      [
+        connection("root", "evaluator"),
+        connection("evaluator", "first", "evaluator-true"),
+        connection("evaluator", "second", "evaluator-true"),
+      ]
+    )
+
+    expect(() =>
+      exportDomainWorkflowForBackend(singleTargetRegistry, dto)
+    ).toThrow("duplicate")
   })
 })
 
@@ -346,7 +446,7 @@ describe("exportDraftDomainWorkflowForBackend", () => {
     const result = node("result", "result", 400, 0, { category: "true" })
     const dto = workflow([result, step], [connection("step", "result")])
 
-    const backend = exportDraftDomainWorkflowForBackend(dto)
+    const backend = exportDraftDomainWorkflowForBackend(registry, dto)
 
     expect(backend).toMatchObject({
       id: "workflow-1",
@@ -385,7 +485,7 @@ describe("exportDraftDomainWorkflowForBackend", () => {
       [connection("source", "target")]
     )
 
-    const backend = exportDraftDomainWorkflowForBackend(dto)
+    const backend = exportDraftDomainWorkflowForBackend(registry, dto)
 
     expect(backend.nodes.map((backendNode) => backendNode.label)).toEqual([
       "source",
@@ -402,7 +502,7 @@ describe("exportDraftDomainWorkflowForBackend", () => {
     const b = node("b", "extractor", 200, 0)
     const dto = workflow([b, a], [connection("a", "b"), connection("b", "a")])
 
-    const backend = exportDraftDomainWorkflowForBackend(dto)
+    const backend = exportDraftDomainWorkflowForBackend(registry, dto)
 
     expect(backend.nodes.map((backendNode) => backendNode.label)).toEqual([
       "a",
@@ -422,8 +522,8 @@ describe("exportDraftDomainWorkflowForBackend", () => {
       [connection("root", "branch-b"), connection("root", "branch-a")]
     )
 
-    const first = exportDraftDomainWorkflowForBackend(dto)
-    const second = exportDraftDomainWorkflowForBackend(dto)
+    const first = exportDraftDomainWorkflowForBackend(registry, dto)
+    const second = exportDraftDomainWorkflowForBackend(registry, dto)
 
     expect(second).toEqual(first)
     expect(first.nodes.map((backendNode) => backendNode.label)).toEqual([
@@ -447,7 +547,7 @@ describe("exportDraftDomainWorkflowForBackend", () => {
       [connection("evaluator", "true-result", "evaluator-true")]
     )
 
-    const backend = exportDraftDomainWorkflowForBackend(dto)
+    const backend = exportDraftDomainWorkflowForBackend(registry, dto)
 
     expect(backend.nodes[0]).toMatchObject({
       id: 1,
@@ -462,6 +562,59 @@ describe("exportDraftDomainWorkflowForBackend", () => {
     const step = node("step", "setVariable", 0, 0)
     const dto = workflow([step], [connection("step", "missing")])
 
-    expect(() => exportDraftDomainWorkflowForBackend(dto)).toThrow("unknown")
+    expect(() => exportDraftDomainWorkflowForBackend(registry, dto)).toThrow(
+      "unknown"
+    )
+  })
+
+  it("keeps every jsonEvaluator branch target in a draft export", () => {
+    const evaluator = node("evaluator", "jsonEvaluator", 0, 0)
+    const first = node("first", "result", 200, 0)
+    const second = node("second", "result", 200, 100)
+    const dto = workflow(
+      [evaluator, first, second],
+      [
+        connection("evaluator", "first", "evaluator-false"),
+        connection("evaluator", "second", "evaluator-false"),
+      ]
+    )
+
+    const [backendEvaluator] = exportDraftDomainWorkflowForBackend(
+      registry,
+      dto
+    ).nodes
+
+    expect(backendEvaluator).toMatchObject({
+      next_true: [],
+      next_false: [2, 3],
+    })
+  })
+})
+
+describe("isMultiTargetEvaluatorDTO", () => {
+  it("tells a list-shaped evaluator from a single-target one", () => {
+    const base = {
+      id: 1,
+      position: { x: 0, y: 0 },
+      label: "evaluator",
+      config: {},
+    }
+
+    expect(
+      isMultiTargetEvaluatorDTO({
+        ...base,
+        kind: "jsonEvaluator",
+        next_true: [],
+        next_false: [2],
+      })
+    ).toBe(true)
+    expect(
+      isMultiTargetEvaluatorDTO({
+        ...base,
+        kind: "evaluator",
+        next_true: null,
+        next_false: 2,
+      })
+    ).toBe(false)
   })
 })

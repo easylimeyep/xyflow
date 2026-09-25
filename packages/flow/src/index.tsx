@@ -43,6 +43,7 @@ export {
   EVALUATOR_TRUE_HANDLE,
   isBranchHandle,
   isBranchingKind,
+  isMultiTargetEvaluatorDTO,
 } from "./workflow/types"
 export {
   builtinDefinitions,
@@ -99,6 +100,8 @@ export type {
 } from "./workflow/store/types"
 export type {
   BackendEvaluatorWorkflowNodeDTO,
+  BackendMultiTargetEvaluatorWorkflowNodeDTO,
+  BackendSingleTargetEvaluatorWorkflowNodeDTO,
   BackendRegularWorkflowNodeDTO,
   BackendWorkflowDTO,
   BackendWorkflowNodeDTO,

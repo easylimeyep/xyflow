@@ -1,6 +1,9 @@
 import type { EdgeChange, NodeChange } from "@xyflow/react"
 import type { HistoryState } from "@flow/store"
 
+import { allowsMultipleBranchTargets } from "../node-registry/node-graph-rules"
+import type { NodeKind, NodeRegistry } from "../node-registry/registry"
+
 import type {
   WorkflowEdge,
   WorkflowGraphState,
@@ -167,4 +170,25 @@ export function hasOutgoingConnection(
       edge.source === sourceNodeId &&
       (edge.sourceHandle ?? null) === (sourceHandle ?? null)
   )
+}
+
+/**
+ * True when an output takes no further quick-added target: it is already
+ * connected, and its kind does not fan branches out to several targets.
+ *
+ * The kind is resolved lazily: the edge check runs first, so an unconnected
+ * output — most of them, on every store update — never pays for a node lookup.
+ */
+export function isOutputSaturated(
+  registry: NodeRegistry,
+  edges: WorkflowEdge[],
+  sourceNodeId: string,
+  sourceHandle: string | null,
+  resolveSourceKind: () => NodeKind | undefined
+): boolean {
+  if (!hasOutgoingConnection(edges, sourceNodeId, sourceHandle)) {
+    return false
+  }
+  const kind = resolveSourceKind()
+  return kind === undefined || !allowsMultipleBranchTargets(registry, kind)
 }

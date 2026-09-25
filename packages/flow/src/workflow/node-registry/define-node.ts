@@ -70,6 +70,17 @@ export interface NodeDefinition<K extends string = string> {
   allowedTargets: string[]
 
   outputs?: OutputHandle[]
+  /**
+   * A branching kind whose `true` and `false` handles each fan out to any
+   * number of targets.
+   *
+   * Absent means one target per branch — the plain evaluator's contract, and
+   * the backend's `next_true: number | null` shape. Declaring it switches the
+   * kind's export to `next_true: number[]`. Validation, quick add and export
+   * ask this through `allowsMultipleBranchTargets`; there is no list of
+   * fan-out kinds to keep in step with it.
+   */
+  multipleBranchTargets?: boolean
   showTarget?: boolean
   subtitle?: (config: Record<string, unknown>) => string
   inlineFields?: NodeFieldSchema[]
