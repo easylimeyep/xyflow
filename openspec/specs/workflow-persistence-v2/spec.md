@@ -106,7 +106,7 @@ Workflow domain import SHALL support an optional runtime pre-processing step tha
 
 ### Requirement: Domain workflows export to backend execution DTOs
 
-The workflow mapper layer SHALL provide an `exportDomainWorkflowForBackend` utility that converts a validated `DomainWorkflowDTO` into a `BackendWorkflowDTO` without changing the existing domain import/export contract.
+The workflow mapper layer SHALL provide an `exportDomainWorkflowForBackend` utility that converts a validated `DomainWorkflowDTO` into a `BackendWorkflowDTO` without changing the existing domain import/export contract. The utility SHALL take the editor's node registry as its first argument and the domain workflow as its second, because the registry decides how each evaluator kind's branches serialize.
 
 #### Scenario: Backend export preserves workflow document fields
 
@@ -119,6 +119,11 @@ The workflow mapper layer SHALL provide an `exportDomainWorkflowForBackend` util
 - **WHEN** a domain workflow node is exported for backend consumption
 - **THEN** the backend node MUST preserve the node `kind`, `position`, `label`, and `config`
 - **AND** the backend node id MUST be a number assigned by backend export order
+
+#### Scenario: Backend export reads branch fan-out from the registry it is handed
+
+- **WHEN** the same domain workflow is exported with two registries that disagree on whether an evaluator kind fans out its branches
+- **THEN** each export MUST serialize that kind's branches according to the registry it was handed
 
 ### Requirement: Backend export assigns deterministic numeric node IDs
 
@@ -159,7 +164,7 @@ Backend workflow export SHALL derive node order from graph connections, not from
 
 ### Requirement: Backend export embeds outgoing links in nodes
 
-Backend workflow export SHALL encode graph links directly on each backend node.
+Backend workflow export SHALL encode graph links directly on each backend node. An evaluator kind whose definition declares branch fan-out is a multi-target evaluator; every other evaluator kind is a single-target evaluator.
 
 #### Scenario: Regular nodes export next arrays
 
@@ -173,15 +178,33 @@ Backend workflow export SHALL encode graph links directly on each backend node.
 
 #### Scenario: Evaluator nodes export scalar branch links
 
-- **WHEN** an evaluator node has an outgoing connection with `sourceHandle` equal to `evaluator-true`
+- **WHEN** a single-target evaluator node has an outgoing connection with `sourceHandle` equal to `evaluator-true`
 - **THEN** the backend evaluator node MUST set `next_true` to that target's numeric backend ID
-- **WHEN** an evaluator node has an outgoing connection with `sourceHandle` equal to `evaluator-false`
+- **WHEN** a single-target evaluator node has an outgoing connection with `sourceHandle` equal to `evaluator-false`
 - **THEN** the backend evaluator node MUST set `next_false` to that target's numeric backend ID
 
 #### Scenario: Missing evaluator branches export null
 
-- **WHEN** an evaluator node has no true or false outgoing connection
+- **WHEN** a single-target evaluator node has no true or false outgoing connection
 - **THEN** the missing backend branch field MUST be `null`
+
+#### Scenario: Multi-target evaluator nodes export branch link lists
+
+- **WHEN** a multi-target evaluator node has one or more outgoing connections with `sourceHandle` equal to `evaluator-true`
+- **THEN** the backend evaluator node MUST set `next_true` to an array of those targets' numeric backend IDs, in backend export order
+- **WHEN** a multi-target evaluator node has one or more outgoing connections with `sourceHandle` equal to `evaluator-false`
+- **THEN** the backend evaluator node MUST set `next_false` to an array of those targets' numeric backend IDs, in backend export order
+
+#### Scenario: Missing multi-target evaluator branches export empty lists
+
+- **WHEN** a multi-target evaluator node has no true or no false outgoing connection
+- **THEN** the missing backend branch field MUST be an empty array, never `null`
+
+#### Scenario: The JSON Evaluator is a multi-target evaluator by default
+
+- **WHEN** a workflow is exported with the built-in node definitions
+- **THEN** `jsonEvaluator` nodes MUST export branch link lists
+- **AND** `evaluator` nodes MUST export scalar branch links
 
 ### Requirement: Backend export rejects non-exportable graphs
 
@@ -214,12 +237,17 @@ Backend workflow export SHALL fail with explicit validation errors instead of pr
 
 #### Scenario: Duplicate evaluator branches are rejected
 
-- **WHEN** an evaluator node has more than one outgoing `evaluator-true` connection or more than one outgoing `evaluator-false` connection
+- **WHEN** a single-target evaluator node has more than one outgoing `evaluator-true` connection or more than one outgoing `evaluator-false` connection
 - **THEN** backend export MUST fail with a validation error
+
+#### Scenario: Several multi-target evaluator branch targets are accepted
+
+- **WHEN** a multi-target evaluator node has more than one outgoing `evaluator-true` connection or more than one outgoing `evaluator-false` connection
+- **THEN** backend export MUST NOT fail on account of those connections
 
 ### Requirement: Domain workflow drafts export to backend persistence DTOs
 
-The workflow mapper layer SHALL provide an `exportDraftDomainWorkflowForBackend` utility that converts a structurally valid `DomainWorkflowDTO` into a `BackendWorkflowDTO` without requiring the workflow to be execution-ready.
+The workflow mapper layer SHALL provide an `exportDraftDomainWorkflowForBackend` utility that converts a structurally valid `DomainWorkflowDTO` into a `BackendWorkflowDTO` without requiring the workflow to be execution-ready. The utility SHALL take the editor's node registry as its first argument and the domain workflow draft as its second.
 
 #### Scenario: Draft backend export preserves workflow document fields
 
@@ -265,7 +293,7 @@ Draft backend workflow export SHALL assign numeric node IDs sequentially from `1
 
 ### Requirement: Draft backend export embeds outgoing links in nodes
 
-Draft backend workflow export SHALL encode graph links directly on each backend node using the same backend node link fields as strict backend export.
+Draft backend workflow export SHALL encode graph links directly on each backend node using the same backend node link fields as strict backend export, including the single-target and multi-target evaluator shapes.
 
 #### Scenario: Draft regular nodes export next arrays
 
@@ -279,28 +307,34 @@ Draft backend workflow export SHALL encode graph links directly on each backend 
 
 #### Scenario: Draft evaluator nodes export scalar branch links
 
-- **WHEN** an evaluator node in a domain workflow draft has an outgoing connection with `sourceHandle` equal to `evaluator-true`
+- **WHEN** a single-target evaluator node in a domain workflow draft has an outgoing connection with `sourceHandle` equal to `evaluator-true`
 - **THEN** the backend evaluator node MUST set `next_true` to that target's numeric backend ID
-- **WHEN** an evaluator node in a domain workflow draft has an outgoing connection with `sourceHandle` equal to `evaluator-false`
+- **WHEN** a single-target evaluator node in a domain workflow draft has an outgoing connection with `sourceHandle` equal to `evaluator-false`
 - **THEN** the backend evaluator node MUST set `next_false` to that target's numeric backend ID
 
 #### Scenario: Draft evaluator nodes export missing branches as null
 
-- **WHEN** an evaluator node in a domain workflow draft has no true or false outgoing connection
+- **WHEN** a single-target evaluator node in a domain workflow draft has no true or false outgoing connection
 - **THEN** the missing backend branch field MUST be `null`
+
+#### Scenario: Draft multi-target evaluator nodes keep every branch target
+
+- **WHEN** a multi-target evaluator node in a domain workflow draft has several outgoing connections on one branch handle
+- **THEN** the matching backend branch field MUST list every one of those targets' numeric backend IDs
+- **AND** a branch with no outgoing connection MUST export as an empty array
 
 ### Requirement: Evaluator outputs accept a single outgoing connection
 
-Workflow connection validation SHALL prevent each evaluator output handle from connecting to more than one target node.
+Workflow connection validation SHALL prevent each output handle of a single-target evaluator from connecting to more than one target node.
 
 #### Scenario: Existing evaluator true branch blocks another true branch
 
-- **WHEN** an evaluator node already has an outgoing connection with `sourceHandle` equal to `evaluator-true`
+- **WHEN** a single-target evaluator node already has an outgoing connection with `sourceHandle` equal to `evaluator-true`
 - **THEN** connection validation MUST reject another outgoing connection from the same evaluator with `sourceHandle` equal to `evaluator-true`
 
 #### Scenario: Existing evaluator false branch blocks another false branch
 
-- **WHEN** an evaluator node already has an outgoing connection with `sourceHandle` equal to `evaluator-false`
+- **WHEN** a single-target evaluator node already has an outgoing connection with `sourceHandle` equal to `evaluator-false`
 - **THEN** connection validation MUST reject another outgoing connection from the same evaluator with `sourceHandle` equal to `evaluator-false`
 
 #### Scenario: Existing evaluator true branch allows false branch
@@ -326,3 +360,33 @@ Workflow domain import/export, clipboard import/export, and backend export SHALL
 #### Scenario: Legacy payloads receive variable metadata defaults
 - **WHEN** an imported legacy payload omits extractor `variableType`, setter `clear`, or evaluator `label`
 - **THEN** config normalization MUST apply the node definition defaults for the missing fields
+
+### Requirement: Multi-target evaluator outputs accept several outgoing connections
+
+Workflow connection validation SHALL let each output handle of a multi-target evaluator connect to any number of distinct target nodes. Whether an evaluator kind is multi-target SHALL be read from the node definition the editor was given, never from a fixed list of kinds, and only a kind with `evaluator-true` / `evaluator-false` handles can be multi-target.
+
+#### Scenario: Existing multi-target true branch allows another true branch
+
+- **WHEN** a multi-target evaluator node already has an outgoing connection with `sourceHandle` equal to `evaluator-true`
+- **THEN** connection validation MUST allow another outgoing connection from the same evaluator with `sourceHandle` equal to `evaluator-true` to a different target when all other connection rules pass
+
+#### Scenario: Existing multi-target false branch allows another false branch
+
+- **WHEN** a multi-target evaluator node already has an outgoing connection with `sourceHandle` equal to `evaluator-false`
+- **THEN** connection validation MUST allow another outgoing connection from the same evaluator with `sourceHandle` equal to `evaluator-false` to a different target when all other connection rules pass
+
+#### Scenario: Multi-target branch still rejects an exact duplicate
+
+- **WHEN** a multi-target evaluator node already has an outgoing connection to a target on a branch handle
+- **THEN** connection validation MUST reject a second connection to the same target on the same branch handle
+
+#### Scenario: A host can make the JSON Evaluator single-target again
+
+- **WHEN** a host hands the editor a `jsonEvaluator` definition that does not declare branch fan-out
+- **THEN** `jsonEvaluator` outputs MUST follow the single-outgoing-connection rule
+- **AND** backend export MUST serialize its branches as scalar links
+
+#### Scenario: Fan-out declared on a non-branching kind has no effect
+
+- **WHEN** a node kind without `evaluator-true` / `evaluator-false` handles declares branch fan-out
+- **THEN** connection validation, branch quick-add and backend export MUST treat that kind as if it did not
