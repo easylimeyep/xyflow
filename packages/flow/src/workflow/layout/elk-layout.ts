@@ -83,6 +83,7 @@ function getEstimatedNodeHeight(node: WorkflowNode): number {
     case "extractor":
       return EXTRACTOR_LAYOUT_HEIGHT
     case "setVariable":
+    case "jsonSetter":
     case "inlineExpression":
     case "result":
       return COMPACT_CONFIG_NODE_LAYOUT_HEIGHT

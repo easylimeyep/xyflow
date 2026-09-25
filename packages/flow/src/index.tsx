@@ -122,6 +122,7 @@ export type {
   InlineExpressionNodeConfig,
   JsonArray,
   JsonEvaluatorNodeConfig,
+  JsonSetterNodeConfig,
   JsonObject,
   JsonPrimitive,
   JsonValue,

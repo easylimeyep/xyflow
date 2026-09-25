@@ -437,6 +437,44 @@ describe("exportDomainWorkflowForBackend", () => {
   })
 })
 
+describe("jsonSetter export", () => {
+  const setterConfig = {
+    variableName: "payload",
+    variableType: "value",
+    valueExpression: "{{ root }}",
+    clear: false,
+    appendInput: true,
+  }
+
+  it("exports a jsonSetter as a regular node carrying appendInput", () => {
+    const root = node("root", "inlineExpression", 0, 0, { isRoot: true })
+    const setter = node("setter", "jsonSetter", 200, 0, setterConfig)
+    const dto = workflow([setter, root], [connection("root", "setter")])
+
+    const backend = exportDomainWorkflowForBackend(registry, dto)
+
+    expect(backend.nodes[1]).toMatchObject({
+      kind: "jsonSetter",
+      config: setterConfig,
+      next: [],
+    })
+  })
+
+  it("keeps appendInput in a draft export", () => {
+    const setter = node("setter", "jsonSetter", 0, 0, setterConfig)
+
+    const backend = exportDraftDomainWorkflowForBackend(
+      registry,
+      workflow([setter], [])
+    )
+
+    expect(backend.nodes[0]).toMatchObject({
+      kind: "jsonSetter",
+      config: { appendInput: true },
+    })
+  })
+})
+
 describe("exportDraftDomainWorkflowForBackend", () => {
   it("preserves workflow fields and node semantic fields", () => {
     const step = node("step", "setVariable", 200, 0, {

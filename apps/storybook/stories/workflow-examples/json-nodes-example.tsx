@@ -35,6 +35,20 @@ const initialGraph = createInitialGraph(builtinDefinitions, {
       config: { path: "lead.tags", outputType: "arrayValue" },
     },
     {
+      id: "demo-json-tags-setter",
+      kind: "jsonSetter",
+      label: "Save tags",
+      // `appendInput` is only stored and exported; the backend decides what
+      // appending the node's input means.
+      config: {
+        variableName: "leadTags",
+        variableType: "array",
+        valueExpression: "",
+        clear: false,
+        appendInput: true,
+      },
+    },
+    {
       id: "demo-json-evaluator",
       kind: "jsonEvaluator",
       label: "Lead rules",
@@ -84,8 +98,13 @@ const initialGraph = createInitialGraph(builtinDefinitions, {
       target: "demo-json-tags",
     },
     {
-      id: "demo-json-edge-tags-to-evaluator",
+      id: "demo-json-edge-tags-to-setter",
       source: "demo-json-tags",
+      target: "demo-json-tags-setter",
+    },
+    {
+      id: "demo-json-edge-setter-to-evaluator",
+      source: "demo-json-tags-setter",
       target: "demo-json-evaluator",
     },
     {
@@ -122,6 +141,9 @@ const initialGraph = createInitialGraph(builtinDefinitions, {
     // the next node should expect.
     { id: "city", kind: "pathExtractor", label: "City", config: { path: "lead.address.city", outputType: "value" } },
     { id: "tags", kind: "pathExtractor", label: "Tags", config: { path: "lead.tags", outputType: "arrayValue" } },
+    // The JSON setter stores a variable like the Setter; \`appendInput\` is a
+    // flag for the backend.
+    { id: "save-tags", kind: "jsonSetter", label: "Save tags", config: { variableName: "leadTags", variableType: "array", valueExpression: "", clear: false, appendInput: true } },
     // The JSON evaluator stores no left operand: every condition compares the
     // previous node's output, and \`matchType\` decides how many must hold.
     { id: "rules", kind: "jsonEvaluator", label: "Lead rules", config: {
@@ -138,7 +160,8 @@ const initialGraph = createInitialGraph(builtinDefinitions, {
   edges: [
     { id: "e1", source: "input", target: "city" },
     { id: "e2", source: "city", target: "tags" },
-    { id: "e3", source: "tags", target: "rules" },
+    { id: "e3", source: "tags", target: "save-tags" },
+    { id: "e3b", source: "save-tags", target: "rules" },
     { id: "e4", source: "rules", sourceHandle: "evaluator-true", target: "qualified" },
     { id: "e5", source: "rules", sourceHandle: "evaluator-false", target: "rejected" },
   ],

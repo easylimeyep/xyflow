@@ -37,6 +37,7 @@ export const inlineExpression = defineNode({
     "evaluator",
     "jsonEvaluator",
     "setVariable",
+    "jsonSetter",
     "inlineExpression",
     "extractor",
     "pathExtractor",

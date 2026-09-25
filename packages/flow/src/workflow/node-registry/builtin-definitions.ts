@@ -1,6 +1,7 @@
 import type { NodeDefinition } from "./define-node"
 import { extractor } from "../nodes/data/extractor"
 import { inlineExpression } from "../nodes/data/inline-expression"
+import { jsonSetter } from "../nodes/data/json-setter"
 import { pathExtractor } from "../nodes/data/path-extractor"
 import { setVariable } from "../nodes/data/set-variable"
 import { evaluator } from "../nodes/logic/evaluator"
@@ -18,6 +19,7 @@ export {
   evaluator,
   jsonEvaluator,
   setVariable,
+  jsonSetter,
   inlineExpression,
   extractor,
   pathExtractor,
@@ -52,6 +54,7 @@ export const builtinDefinitions = [
   evaluator,
   jsonEvaluator,
   setVariable,
+  jsonSetter,
   inlineExpression,
   extractor,
   pathExtractor,

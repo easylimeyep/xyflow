@@ -155,6 +155,7 @@ export const EVALUATOR_ALLOWED_TARGETS = [
   "evaluator",
   "jsonEvaluator",
   "setVariable",
+  "jsonSetter",
   "inlineExpression",
   "extractor",
   "pathExtractor",

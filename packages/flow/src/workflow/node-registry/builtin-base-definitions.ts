@@ -1,5 +1,6 @@
 import { extractor } from "../nodes/data/extractor/definition"
 import { inlineExpression } from "../nodes/data/inline-expression/definition"
+import { jsonSetter } from "../nodes/data/json-setter/definition"
 import { pathExtractor } from "../nodes/data/path-extractor/definition"
 import { setVariable } from "../nodes/data/set-variable/definition"
 import { evaluator } from "../nodes/logic/evaluator/definition"
@@ -24,6 +25,7 @@ export const builtinBaseDefinitions = [
   evaluator,
   jsonEvaluator,
   setVariable,
+  jsonSetter,
   inlineExpression,
   extractor,
   pathExtractor,

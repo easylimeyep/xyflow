@@ -171,6 +171,10 @@ export type SetVariableNodeConfig = {
   clear: boolean
 }
 
+export type JsonSetterNodeConfig = SetVariableNodeConfig & {
+  appendInput: boolean
+}
+
 export type ExtractorNodeConfig = {
   tokenNumber: number
   extractExpression: string
@@ -202,6 +206,7 @@ export interface NodeConfigByKind {
   evaluator: EvaluatorNodeConfig
   jsonEvaluator: JsonEvaluatorNodeConfig
   setVariable: SetVariableNodeConfig
+  jsonSetter: JsonSetterNodeConfig
   inlineExpression: InlineExpressionNodeConfig
   extractor: ExtractorNodeConfig
   pathExtractor: PathExtractorNodeConfig
