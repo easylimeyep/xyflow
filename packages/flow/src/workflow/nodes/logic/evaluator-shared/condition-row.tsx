@@ -155,7 +155,7 @@ export function ConditionRow({
             label="Left"
             placeholder="value"
             variables={variables}
-            unresolvedVariableName={effectiveLeftOperand.unresolvedVariableName}
+            variableTypes={variableTypes}
             onChange={updateLeftOperand}
           />
         )}
@@ -187,6 +187,7 @@ export function ConditionRow({
             label="Right"
             placeholder="target value"
             variables={variables}
+            variableTypes={variableTypes}
             allowedTypes={allowedRightTypes}
             onChange={(right) => onUpdate(condition.id, { right })}
           />

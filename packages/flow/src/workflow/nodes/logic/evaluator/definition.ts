@@ -7,6 +7,7 @@ import {
   EVALUATOR_ALLOWED_TARGETS,
   EVALUATOR_OUTPUTS,
   readEvaluatorVariable,
+  refactorEvaluatorConfigValue,
   validateEvaluatorConfigValue,
 } from "../evaluator-shared/config"
 
@@ -21,6 +22,7 @@ export const evaluator = defineNode({
   allowedTargets: EVALUATOR_ALLOWED_TARGETS,
   buildDefaultConfig: buildDefaultEvaluatorConfig,
   renameConfigKey: "label",
+  refactorConfigValue: refactorEvaluatorConfigValue,
   subtitle: evaluatorSubtitle,
   outputs: EVALUATOR_OUTPUTS,
   variable: readEvaluatorVariable,

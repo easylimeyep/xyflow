@@ -2,7 +2,7 @@ import type { NodeProps } from "@xyflow/react"
 import type { LucideIcon } from "lucide-react"
 import type { ComponentType } from "react"
 
-import type { JsonObject, NodeFieldSchema } from "../types/types"
+import type { JsonObject, JsonValue, NodeFieldSchema } from "../types/types"
 
 export type NodeCategory = "control" | "logic" | "data" | "io"
 
@@ -56,6 +56,17 @@ export type NodeVariableReader = (
   node: NodeVariableSource
 ) => NodeVariable | null
 
+/**
+ * Rewrites the expression templates nested inside one structured config value
+ * (anything other than a string or a string array) during a variable rename.
+ * Must return the value it was given when nothing changed.
+ */
+export type NodeConfigValueRefactor = (
+  key: string,
+  value: JsonValue,
+  rewrite: (template: string) => string
+) => JsonValue
+
 export interface NodeDefinition<K extends string = string> {
   kind: K
   title: string
@@ -86,6 +97,13 @@ export interface NodeDefinition<K extends string = string> {
   inlineFields?: NodeFieldSchema[]
   extraExpressionConfigKeys?: string[]
   renameConfigKey?: string
+  /**
+   * Reaches templates the plain string and string-array handling cannot, such
+   * as the operands nested inside evaluator conditions. Every config key is
+   * offered to it, after string and string-array expression keys were already
+   * rewritten; a key it does not own must come back unchanged.
+   */
+  refactorConfigValue?: NodeConfigValueRefactor
   /**
    * A bespoke renderer for this kind.
    *

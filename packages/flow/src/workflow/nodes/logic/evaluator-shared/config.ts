@@ -1,4 +1,5 @@
 import type {
+  NodeConfigValueRefactor,
   NodeVariableReader,
   OutputHandle,
 } from "../../../node-registry/define-node"
@@ -10,6 +11,7 @@ import {
 import type {
   EvaluatorCondition,
   JsonObject,
+  JsonValue,
   WorkflowOperandValue,
   WorkflowTypedValue,
 } from "../../../types"
@@ -57,6 +59,65 @@ export function isEvaluatorCondition(
     typeof candidate.operator === "string" &&
     (candidate.right === undefined || isOperandValue(candidate.right))
   )
+}
+
+function refactorOperand(
+  operand: WorkflowOperandValue,
+  rewrite: (template: string) => string
+): WorkflowOperandValue {
+  if (operand.type === "value") {
+    const value = rewrite(operand.value)
+    return value === operand.value ? operand : createValueOperand(value)
+  }
+
+  const value = operand.value.map(rewrite)
+  return value.every((entry, index) => entry === operand.value[index])
+    ? operand
+    : { type: "array", value }
+}
+
+function refactorCondition(
+  condition: EvaluatorCondition,
+  rewrite: (template: string) => string
+): EvaluatorCondition {
+  // An upstream operand carries no template of its own.
+  const left =
+    condition.left.type === "upstream"
+      ? condition.left
+      : refactorOperand(condition.left, rewrite)
+  const right = condition.right && refactorOperand(condition.right, rewrite)
+  if (left === condition.left && right === condition.right) {
+    return condition
+  }
+
+  return right ? { ...condition, left, right } : { ...condition, left }
+}
+
+/**
+ * Rewrites the templates inside condition operands when a variable is
+ * renamed. A condition that fails validation (say, legacy data) is passed
+ * through untouched without holding back the valid ones beside it. Returns
+ * the value it was given when nothing references the name, so the refactor
+ * can tell an untouched node apart by identity.
+ */
+export const refactorEvaluatorConfigValue: NodeConfigValueRefactor = (
+  key,
+  value,
+  rewrite
+) => {
+  if (key !== "conditions" || !Array.isArray(value)) {
+    return value
+  }
+
+  const conditions = value.map((entry) =>
+    isEvaluatorCondition(entry) ? refactorCondition(entry, rewrite) : entry
+  )
+  if (conditions.every((condition, index) => condition === value[index])) {
+    return value
+  }
+
+  // A condition is plain JSON; its interface just cannot say so.
+  return conditions as JsonValue
 }
 
 /** How a kind sources the left operand of every condition it creates. */

@@ -135,3 +135,72 @@ describe("plain variable refactor", () => {
     expect(nextNodes[0]).toBe(inline)
   })
 })
+
+describe("structured config value refactor", () => {
+  it.each(["evaluator", "jsonEvaluator"] as const)(
+    "rewrites %s condition operands, including array rows",
+    (kind) => {
+      const node = createWorkflowNode(registry, kind, { x: 0, y: 0 })
+      node.data.config.conditions = [
+        {
+          id: "c1",
+          left: { type: "value", value: "{{ city }}" },
+          operator: "is one of",
+          right: {
+            type: "array",
+            value: ["Moscow", "{{ city }}", "prefix-{{ city }}"],
+          },
+        },
+      ]
+
+      const [nextNode] = refactorPlainVariableReferencesInGraph(
+        registry,
+        [node],
+        "city",
+        "town"
+      )
+
+      expect(nextNode?.data.config.conditions).toEqual([
+        {
+          id: "c1",
+          left: { type: "value", value: "{{ town }}" },
+          operator: "is one of",
+          right: {
+            type: "array",
+            value: ["Moscow", "{{ town }}", "prefix-{{ town }}"],
+          },
+        },
+      ])
+      expect(node.data.config.conditions).toMatchObject([
+        { left: { value: "{{ city }}" } },
+      ])
+    }
+  )
+
+  it("returns an evaluator unchanged when no condition references the name", () => {
+    const node = createWorkflowNode(registry, "evaluator", { x: 0, y: 0 })
+
+    const [nextNode] = refactorPlainVariableReferencesInGraph(
+      registry,
+      [node],
+      "city",
+      "town"
+    )
+
+    expect(nextNode).toBe(node)
+  })
+
+  it("leaves a structured value alone on a kind that declares no rewrite", () => {
+    const extractor = createWorkflowNode(registry, "extractor", { x: 0, y: 0 })
+    extractor.data.config.nested = { template: "{{ city }}" }
+
+    const [nextNode] = refactorPlainVariableReferencesInGraph(
+      registry,
+      [extractor],
+      "city",
+      "town"
+    )
+
+    expect(nextNode).toBe(extractor)
+  })
+})

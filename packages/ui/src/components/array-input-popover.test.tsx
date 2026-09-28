@@ -133,4 +133,101 @@ describe("ArrayInputPopover", () => {
     expect(handleValuesChange).toHaveBeenNthCalledWith(3, [])
     expect(handleOpenChange).toHaveBeenCalledWith(false)
   })
+  it("renders rows through a custom entry renderer", () => {
+    const handleValuesChange = vi.fn()
+
+    render(
+      <ArrayInputPopover
+        open={true}
+        values={["first", "second"]}
+        label="Left"
+        placeholder="value"
+        renderEntry={({ value, ariaLabel, onChange }) => (
+          <textarea
+            aria-label={ariaLabel}
+            data-testid="custom-entry"
+            value={value}
+            onChange={(event) => onChange(event.target.value)}
+          />
+        )}
+        onOpenChange={() => undefined}
+        onValuesChange={handleValuesChange}
+      />
+    )
+
+    expect(screen.getAllByTestId("custom-entry")).toHaveLength(2)
+    fireEvent.change(screen.getByLabelText("Left array value 2"), {
+      target: { value: "updated" },
+    })
+    expect(handleValuesChange).toHaveBeenCalledWith(["first", "updated"])
+  })
+
+  it("previews entries by the variant their meta reports", () => {
+    render(
+      <ArrayInputPopover
+        open={false}
+        values={["Moscow", "{{ city }}"]}
+        label="Left"
+        placeholder="value"
+        getEntryMeta={(value) => ({
+          variant: value.startsWith("{{") ? "variable" : "literal",
+        })}
+        onOpenChange={() => undefined}
+        onValuesChange={() => undefined}
+      />
+    )
+
+    expect(
+      screen
+        .getByText("Moscow")
+        .closest("[data-entry-variant]")
+        ?.getAttribute("data-entry-variant")
+    ).toBe("literal")
+    expect(
+      screen
+        .getByText("{{ city }}")
+        .closest("[data-entry-variant]")
+        ?.getAttribute("data-entry-variant")
+    ).toBe("variable")
+  })
+
+  it("marks an entry with a warning icon labelled by its message", () => {
+    render(
+      <ArrayInputPopover
+        open={false}
+        values={["{{ missing }}", "Moscow"]}
+        label="Left"
+        placeholder="value"
+        getEntryMeta={(value) =>
+          value === "{{ missing }}"
+            ? { variant: "variable", warning: "Could not resolve missing" }
+            : {}
+        }
+        onOpenChange={() => undefined}
+        onValuesChange={() => undefined}
+      />
+    )
+
+    expect(screen.getAllByLabelText("Could not resolve missing")).toHaveLength(
+      1
+    )
+  })
+
+  it("applies the popover class name to the open popover", () => {
+    render(
+      <ArrayInputPopover
+        open={true}
+        values={["first"]}
+        label="Left"
+        placeholder="value"
+        popoverClassName="w-80"
+        onOpenChange={() => undefined}
+        onValuesChange={() => undefined}
+      />
+    )
+
+    expect(
+      screen.getByLabelText("Left array value 1").closest(".w-80")
+    ).not.toBeNull()
+  })
 })

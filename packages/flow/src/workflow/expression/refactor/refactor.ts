@@ -1,7 +1,7 @@
 import { parseTemplateSegments } from "@flow/expression-editor"
 
 import type { NodeKind, NodeRegistry } from "../../node-registry/registry"
-import type { WorkflowNode } from "../../types/types"
+import type { JsonValue, WorkflowNode } from "../../types/types"
 
 export function refactorPlainVariableReferencesInGraph(
   registry: NodeRegistry,
@@ -47,22 +47,28 @@ function refactorExpressionFieldsInGraph(
 ): WorkflowNode[] {
   return nodes.map((node) => {
     const expressionKeys = getRefactorableConfigKeys(registry, node)
-    if (expressionKeys.length === 0) {
+    const refactorConfigValue = getDefinition(
+      registry,
+      node
+    )?.refactorConfigValue
+    if (expressionKeys.length === 0 && !refactorConfigValue) {
       return node
     }
 
     let configChanged = false
     const nextConfig = { ...node.data.config }
+    const setConfigValue = (key: string, nextValue: JsonValue) => {
+      nextConfig[key] = nextValue
+      configChanged = true
+    }
+
     expressionKeys.forEach((key) => {
       const value = nextConfig[key]
       if (typeof value === "string") {
         const nextValue = refactorExpression(value)
-        if (nextValue === value) {
-          return
+        if (nextValue !== value) {
+          setConfigValue(key, nextValue)
         }
-
-        nextConfig[key] = nextValue
-        configChanged = true
         return
       }
 
@@ -74,13 +80,19 @@ function refactorExpressionFieldsInGraph(
       }
 
       const nextValue = value.map((entry) => refactorExpression(entry))
-      if (nextValue.every((entry, index) => entry === value[index])) {
-        return
+      if (nextValue.some((entry, index) => entry !== value[index])) {
+        setConfigValue(key, nextValue)
       }
-
-      nextConfig[key] = nextValue
-      configChanged = true
     })
+
+    if (refactorConfigValue) {
+      Object.entries(nextConfig).forEach(([key, value]) => {
+        const nextValue = refactorConfigValue(key, value, refactorExpression)
+        if (nextValue !== value) {
+          setConfigValue(key, nextValue)
+        }
+      })
+    }
 
     if (!configChanged) {
       return node
@@ -96,12 +108,15 @@ function refactorExpressionFieldsInGraph(
   })
 }
 
+function getDefinition(registry: NodeRegistry, node: WorkflowNode) {
+  return registry.get(node.data.kind as NodeKind)
+}
+
 function getRefactorableConfigKeys(
   registry: NodeRegistry,
   node: WorkflowNode
 ): string[] {
-  const kind = node.data.kind as NodeKind
-  const definition = registry.get(kind)
+  const definition = getDefinition(registry, node)
   // A node whose kind is not registered has no declared fields, so nothing in
   // its config can be an expression to refactor.
   if (!definition) {

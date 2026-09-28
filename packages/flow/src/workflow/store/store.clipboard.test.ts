@@ -383,6 +383,88 @@ describe("workflow store clipboard actions", () => {
     ])
   })
 
+  it("rewrites pasted evaluator condition references when labels are auto-incremented", async () => {
+    const store = createWorkflowStore({
+      definitions: builtinBaseDefinitions,
+      initialGraph: createKeywordSampleGraph(builtinBaseDefinitions),
+    })
+    store.getState().addNode("setVariable", { x: 600, y: 160 })
+
+    const payload = exportSelectionClipboardJson(
+      [
+        {
+          id: "condition-copy-set-variable",
+          kind: "setVariable",
+          position: { x: 20, y: 20 },
+          label: "Setter",
+          config: {
+            variableName: "myVar",
+            valueExpression: "{{ $input.item.json }}",
+          },
+        },
+        {
+          id: "condition-copy-evaluator",
+          kind: "evaluator",
+          position: { x: 200, y: 20 },
+          label: "Evaluator",
+          config: {
+            label: "",
+            logicalOperator: "and",
+            caseSensitive: false,
+            conditions: [
+              {
+                id: "condition-1",
+                left: {
+                  type: "array",
+                  value: ["Moscow", '{{ $node("Setter").item.json.myVar }}'],
+                },
+                operator: "is equal to",
+                right: {
+                  type: "value",
+                  value: '{{ $node("Setter").item.json.myVar }}',
+                },
+              },
+            ],
+          },
+        },
+      ],
+      [
+        {
+          id: "condition-copy-connection",
+          sourceNodeId: "condition-copy-set-variable",
+          targetNodeId: "condition-copy-evaluator",
+          sourceHandle: null,
+          targetHandle: null,
+        },
+      ]
+    )
+    clipboardReadTextMock.mockResolvedValue(payload)
+
+    expect(await store.getState().pasteFromClipboard()).toBe(true)
+
+    const nextState = store.getState()
+    const pastedEvaluator = nextState.history.present.nodes.find(
+      (node) =>
+        nextState.selectedNodeIds.includes(node.id) &&
+        node.data.kind === "evaluator"
+    )
+
+    expect(pastedEvaluator?.data.config.conditions).toEqual([
+      {
+        id: "condition-1",
+        left: {
+          type: "array",
+          value: ["Moscow", '{{ $node("Setter 2").item.json.myVar }}'],
+        },
+        operator: "is equal to",
+        right: {
+          type: "value",
+          value: '{{ $node("Setter 2").item.json.myVar }}',
+        },
+      },
+    ])
+  })
+
   it("preserves setVariable and evaluator semantic config across clipboard roundtrip", async () => {
     const store = createWorkflowStore({
       definitions: builtinBaseDefinitions,

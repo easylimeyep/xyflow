@@ -13,6 +13,8 @@ export const evaluatorNodeStyles = tv({
     operandRow: "flex items-start gap-1",
     operandEditor: "min-w-0 flex-1 space-y-1",
     operandTypeSelect: "shrink-0",
+    // Wider than its trigger so expression rows have room to breathe.
+    arrayOperandPopover: "w-80",
     upstreamOperand:
       "flex h-8 min-w-0 items-center gap-1.5 rounded-md border border-dashed border-border bg-muted/40 px-2 py-1 text-[11px] text-muted-foreground",
     upstreamOperandIcon: "size-3 shrink-0",
