@@ -61,16 +61,58 @@ export function isEvaluatorCondition(
   )
 }
 
+type TemplateRewrite = (template: string, path?: string) => string
+
+/** Where an operand's templates sit: `conditions[<id>].left` or `.right`. */
+export function evaluatorOperandPath(
+  conditionId: string,
+  side: "left" | "right"
+): string {
+  return `conditions[${conditionId}].${side}`
+}
+
+const OPERAND_PATH = /^conditions\[(.+)\]\.(left|right)(?:\[(\d+)\])?$/
+
+const SIDE_NAMES = { left: "Left operand", right: "Right operand" } as const
+
+/**
+ * Names an operand path the way the node shows it: the condition by its
+ * one-based position, the side, and the entry of a list of values.
+ */
+export function describeEvaluatorExpressionField(
+  fieldPath: string,
+  config: Readonly<Record<string, unknown>>
+): string | undefined {
+  const parsed = OPERAND_PATH.exec(fieldPath)
+  if (!parsed || !Array.isArray(config.conditions)) {
+    return undefined
+  }
+  const [, conditionId, side, entry] = parsed
+  const position = config.conditions.findIndex(
+    (condition) =>
+      isEvaluatorCondition(condition) && condition.id === conditionId
+  )
+  if (position === -1) {
+    return undefined
+  }
+  const operand = SIDE_NAMES[side as keyof typeof SIDE_NAMES]
+  const suffix = entry === undefined ? "" : ` #${Number(entry) + 1}`
+  return `Condition ${position + 1} · ${operand}${suffix}`
+}
+
 function refactorOperand(
   operand: WorkflowOperandValue,
-  rewrite: (template: string) => string
+  path: string,
+  rewrite: TemplateRewrite
 ): WorkflowOperandValue {
   if (operand.type === "value") {
-    const value = rewrite(operand.value)
+    const value = rewrite(operand.value, path)
     return value === operand.value ? operand : createValueOperand(value)
   }
 
-  const value = operand.value.map(rewrite)
+  const value = operand.value.map((entry, index) =>
+    rewrite(entry, `${path}[${index}]`)
+  )
   return value.every((entry, index) => entry === operand.value[index])
     ? operand
     : { type: "array", value }
@@ -78,14 +120,24 @@ function refactorOperand(
 
 function refactorCondition(
   condition: EvaluatorCondition,
-  rewrite: (template: string) => string
+  rewrite: TemplateRewrite
 ): EvaluatorCondition {
   // An upstream operand carries no template of its own.
   const left =
     condition.left.type === "upstream"
       ? condition.left
-      : refactorOperand(condition.left, rewrite)
-  const right = condition.right && refactorOperand(condition.right, rewrite)
+      : refactorOperand(
+          condition.left,
+          evaluatorOperandPath(condition.id, "left"),
+          rewrite
+        )
+  const right =
+    condition.right &&
+    refactorOperand(
+      condition.right,
+      evaluatorOperandPath(condition.id, "right"),
+      rewrite
+    )
   if (left === condition.left && right === condition.right) {
     return condition
   }
@@ -109,9 +161,21 @@ export const refactorEvaluatorConfigValue: NodeConfigValueRefactor = (
     return value
   }
 
-  const conditions = value.map((entry) =>
-    isEvaluatorCondition(entry) ? refactorCondition(entry, rewrite) : entry
-  )
+  // A path names a condition by id, so it is only an identity while ids are
+  // unique. A repeated id (hand-edited or imported data) falls back to the
+  // positional identity rather than sharing one with its twin.
+  const seenIds = new Set<string>()
+  const conditions = value.map((entry) => {
+    if (!isEvaluatorCondition(entry)) {
+      return entry
+    }
+    const isRepeatedId = seenIds.has(entry.id)
+    seenIds.add(entry.id)
+    return refactorCondition(
+      entry,
+      isRepeatedId ? (template) => rewrite(template) : rewrite
+    )
+  })
   if (conditions.every((condition, index) => condition === value[index])) {
     return value
   }

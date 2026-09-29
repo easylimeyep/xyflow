@@ -5,10 +5,12 @@ import { Plus, Trash2Icon } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 
 import { inlineExpressionNodeStyles } from "../../../../styles/components/nodes"
-import { ExpressionInput } from "../../../components/expression-input"
+import { SearchMarkedExpressionInput } from "../../../components/workflow-search/search-field-mark"
 import type { ExpressionVariableOption } from "../../../types"
 
 interface KeywordExpressionListInputProps {
+  /** The inline node; each row carries the canvas-search mark of `template[i]`. */
+  nodeId: string
   value: string[]
   variables: ExpressionVariableOption[]
   isInteractive?: boolean
@@ -23,6 +25,7 @@ type LiveRowsDraft = {
 const EMPTY_KEYWORD_ROWS = [""]
 
 export function KeywordExpressionListInput({
+  nodeId,
   value,
   variables,
   isInteractive = true,
@@ -165,7 +168,9 @@ export function KeywordExpressionListInput({
             ) : null}
 
             <div className={styles.tokenRowInput()}>
-              <ExpressionInput
+              <SearchMarkedExpressionInput
+                nodeId={nodeId}
+                fieldKey={`template[${index}]`}
                 value={committedRowValue}
                 placeholder="token"
                 variables={variables}

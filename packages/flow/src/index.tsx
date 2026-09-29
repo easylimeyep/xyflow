@@ -7,10 +7,12 @@ export {
   WorkflowEditorCanvas,
   WorkflowEditorConfigPanel,
   WorkflowEditorPalette,
+  WorkflowEditorSearch,
   WorkflowEditorToolbar,
   WorkflowEditorValidationAlert,
   useWorkflowLayout,
   type WorkflowEditorProps,
+  type WorkflowEditorSearchProps,
   type WorkflowProviderProps,
   type WorkflowLayout,
 } from "./workflow/components/workflow-editor"

@@ -24,6 +24,11 @@ import type {
   WorkflowNode,
   WorkflowValidationSnapshot,
 } from "../types/types"
+import type {
+  SearchMatchOptions,
+  SearchMatchSource,
+  SearchSortTuple,
+} from "../search/matches"
 import type { ConnectionLike } from "../validation/validation"
 import type { WorkflowValidationStoreState } from "./validation"
 
@@ -150,6 +155,29 @@ export interface WorkflowRuntimeConfig {
   variables?: WorkflowRuntimeVariablesConfig
 }
 
+/**
+ * Canvas search UI state. Lives outside `history`: opening, typing and
+ * stepping never touch the graph or the undo stack. The match list itself is
+ * derived (see `selectSearchMatches`), never stored.
+ */
+export interface WorkflowSearchState {
+  isOpen: boolean
+  query: string
+  /** Key of the match the user last moved to; `null` means "the first". */
+  currentKey: string | null
+  /** Where that match sorted, so a removed match has a well-defined successor. */
+  currentSortTuple: SearchSortTuple | null
+  /** Whether the results panel under the bar is expanded. Survives closing. */
+  isResultsOpen: boolean
+  /** How the query is compared with the text. Survives closing. */
+  options: SearchMatchOptions
+  /** Which sources count as matches. Survives closing. */
+  sources: SearchSourceFilter
+}
+
+/** Per source, whether its occurrences count as matches. */
+export type SearchSourceFilter = Readonly<Record<SearchMatchSource, boolean>>
+
 export interface WorkflowStoreQueries {
   history: HistoryState<WorkflowGraphState>
   runtime: WorkflowRuntimeConfig
@@ -167,6 +195,7 @@ export interface WorkflowStoreQueries {
   edgeInsertPending: PendingEdgeInsert | null
   lastError: WorkflowError | null
   validation: WorkflowValidationStoreState
+  search: WorkflowSearchState
 }
 
 export interface WorkflowStoreGraphCommands {
@@ -203,6 +232,34 @@ export interface WorkflowStoreUICommands {
   confirmEdgeInsertNode: (kind: NodeKind) => void
 }
 
+export interface WorkflowStoreSearchCommands {
+  openSearch: () => void
+  /** Closes the search and clears the query, which removes every mark. */
+  closeSearch: () => void
+  setSearchQuery: (query: string) => void
+  /** Moves to the next match, wrapping from the last to the first. */
+  searchNext: () => void
+  /** Moves to the previous match, wrapping from the first to the last. */
+  searchPrev: () => void
+  /** Selects the node holding the current match. */
+  selectCurrentSearchNode: () => void
+  /**
+   * Stores the current match's key and sort position once it has been
+   * worked out from the latest graph. From then on it is kept by that key:
+   * an edit elsewhere cannot move it, and neither can undoing a removal of a
+   * match the user had already moved past.
+   */
+  syncSearchCurrentMatch: () => void
+  /** Makes the match with `key` current; an unknown key changes nothing. */
+  setSearchCurrentMatch: (key: string) => void
+  /** Expands or collapses the results panel. */
+  toggleSearchResults: () => void
+  setSearchOption: (name: keyof SearchMatchOptions, value: boolean) => void
+  setSearchSources: (sources: SearchSourceFilter) => void
+  /** Turns every source back on. */
+  resetSearchSources: () => void
+}
+
 export interface WorkflowStoreIOCommands {
   copySelectionToClipboard: () => Promise<boolean>
   pasteFromClipboard: (anchor?: XYPosition | null) => Promise<boolean>
@@ -221,6 +278,7 @@ export interface WorkflowStoreState
     WorkflowStoreGraphCommands,
     WorkflowStoreUICommands,
     WorkflowStoreIOCommands,
+    WorkflowStoreSearchCommands,
     WorkflowStoreHistoryCommands {}
 
 export interface WorkflowStoreInitialProps {

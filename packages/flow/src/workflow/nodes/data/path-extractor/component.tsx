@@ -14,6 +14,11 @@ import { useCallback, useRef, useState } from "react"
 
 import { setVariableNodeStyles } from "../../../../styles/components/nodes"
 import type { PathExtractorOutputType } from "../../../types/types"
+import {
+  SearchFieldRegistryProvider,
+  SearchMarkedTitle,
+  useNodeSearchMarks,
+} from "../../../components/workflow-search/search-field-mark"
 import { NodeShell } from "../../node-shell/node-shell"
 import {
   asText,
@@ -64,67 +69,71 @@ export function PathExtractorNode({ id, data, selected }: NodeProps) {
     })
   }, [draftPath, id, pathFromStore, updateNodeConfig])
 
+  const { fieldRegistry, ...searchMarks } = useNodeSearchMarks(id)
   return (
-    <NodeShell
-      nodeId={id}
-      title={label}
-      subtitle=""
-      selected={selected}
-      validationMessages={nodeValidationMessages}
-    >
-      <div className={styles.root()}>
-        <div className={styles.fieldGroup()}>
-          <Label className={styles.label()}>Path</Label>
-          <Input
-            value={shownPath}
-            placeholder="user.address.city"
-            onFocus={() => {
-              setDraftPath(pathFromStore)
-              setIsPathFocused(true)
-            }}
-            onChange={(event) => setDraftPath(event.target.value)}
-            onBlur={() => {
-              commitPath()
-              setIsPathFocused(false)
-            }}
-            onKeyDown={(event) => {
-              if (event.key !== "Enter") return
-              event.preventDefault()
-              commitPath()
-              setIsPathFocused(false)
-              event.currentTarget.blur()
-            }}
-          />
-        </div>
+    <SearchFieldRegistryProvider value={fieldRegistry}>
+      <NodeShell
+        nodeId={id}
+        title={<SearchMarkedTitle nodeId={id}>{label}</SearchMarkedTitle>}
+        subtitle=""
+        selected={selected}
+        {...searchMarks}
+        validationMessages={nodeValidationMessages}
+      >
+        <div className={styles.root()}>
+          <div className={styles.fieldGroup()}>
+            <Label className={styles.label()}>Path</Label>
+            <Input
+              value={shownPath}
+              placeholder="user.address.city"
+              onFocus={() => {
+                setDraftPath(pathFromStore)
+                setIsPathFocused(true)
+              }}
+              onChange={(event) => setDraftPath(event.target.value)}
+              onBlur={() => {
+                commitPath()
+                setIsPathFocused(false)
+              }}
+              onKeyDown={(event) => {
+                if (event.key !== "Enter") return
+                event.preventDefault()
+                commitPath()
+                setIsPathFocused(false)
+                event.currentTarget.blur()
+              }}
+            />
+          </div>
 
-        <div className={styles.fieldGroup()}>
-          <Label className={styles.label()}>Expected out</Label>
-          <Select
-            aria-label="Expected out"
-            isDisabled={!hasOutputTypeOptions}
-            placeholder={hasOutputTypeOptions ? undefined : outputType}
-            selectedKey={outputType}
-            onSelectionChange={(key) => {
-              updateNodeConfig(id, {
-                kind: "pathExtractor",
-                key: "outputType",
-                value: key as PathExtractorOutputType,
-              })
-            }}
-          >
-            <SelectTrigger aria-label="Expected out" size="sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {outputTypeOptions.map((option) => (
-                <SelectItem key={option.value} id={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className={styles.fieldGroup()}>
+            <Label className={styles.label()}>Expected out</Label>
+            <Select
+              aria-label="Expected out"
+              isDisabled={!hasOutputTypeOptions}
+              placeholder={hasOutputTypeOptions ? undefined : outputType}
+              selectedKey={outputType}
+              onSelectionChange={(key) => {
+                updateNodeConfig(id, {
+                  kind: "pathExtractor",
+                  key: "outputType",
+                  value: key as PathExtractorOutputType,
+                })
+              }}
+            >
+              <SelectTrigger aria-label="Expected out" size="sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {outputTypeOptions.map((option) => (
+                  <SelectItem key={option.value} id={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-      </div>
-    </NodeShell>
+      </NodeShell>
+    </SearchFieldRegistryProvider>
   )
 }

@@ -7,6 +7,7 @@ import {
   getHistoryHotkeyAction,
   getNodeEditHotkeyAction,
   isEscapeHotkey,
+  isSearchHotkey,
 } from "./hotkeys"
 
 function createKeyboardEvent(
@@ -174,5 +175,42 @@ describe("getNodeEditHotkeyAction", () => {
     input.dispatchEvent(event)
 
     expect(getNodeEditHotkeyAction(event)).toBeNull()
+  })
+})
+
+describe("isSearchHotkey", () => {
+  it.each([
+    ["ctrl+f", { key: "f", ctrlKey: true }],
+    ["cmd+f", { key: "f", metaKey: true }],
+    ["cmd+F with caps lock", { key: "F", metaKey: true }],
+  ])("matches %s", (_, init) => {
+    expect(isSearchHotkey(createKeyboardEvent("keydown", init))).toBe(true)
+  })
+
+  it.each([
+    ["plain f", { key: "f" }],
+    ["ctrl+shift+f", { key: "f", ctrlKey: true, shiftKey: true }],
+    ["ctrl+alt+f", { key: "f", ctrlKey: true, altKey: true }],
+    ["ctrl+g", { key: "g", ctrlKey: true }],
+    [
+      "an already handled ctrl+f",
+      { key: "f", ctrlKey: true, defaultPrevented: true },
+    ],
+  ])("ignores %s", (_, init) => {
+    expect(isSearchHotkey(createKeyboardEvent("keydown", init))).toBe(false)
+  })
+
+  it("fires from inside editable targets", () => {
+    const input = document.createElement("input")
+    document.body.append(input)
+    const event = new KeyboardEvent("keydown", {
+      key: "f",
+      ctrlKey: true,
+      bubbles: true,
+    })
+    input.dispatchEvent(event)
+
+    expect(isSearchHotkey(event)).toBe(true)
+    input.remove()
   })
 })

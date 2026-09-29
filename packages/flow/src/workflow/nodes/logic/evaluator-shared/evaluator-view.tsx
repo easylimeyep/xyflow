@@ -24,6 +24,12 @@ import {
   useVariableIdentifierField,
 } from "../../shared"
 import { useNodeStoreData } from "../../shared/use-node-store-data"
+import {
+  SearchFieldMark,
+  SearchFieldRegistryProvider,
+  SearchMarkedTitle,
+  useNodeSearchMarks,
+} from "../../../components/workflow-search/search-field-mark"
 import { ConditionRow, LogicalOperatorRow } from "./condition-row"
 import { createLeftOperand, type EvaluatorLeftOperandSource } from "./config"
 import { createDefaultCondition } from "./operands"
@@ -168,122 +174,132 @@ export function EvaluatorView({
   const showDragHandle =
     enableEvaluatorMultipleConditions && visibleConditions.length > 1
 
+  const { fieldRegistry, ...searchMarks } = useNodeSearchMarks(nodeId)
   return (
-    <NodeShell
-      nodeId={nodeId}
-      title={label}
-      subtitle={`${conditions.length} condition${conditions.length !== 1 ? "s" : ""}`}
-      selected={selected}
-      outputs={outputs}
-      validationMessages={nodeValidationMessages}
-    >
-      <div className={styles.root()}>
-        <div className="space-y-1">
-          <Label className={styles.label()}>Label</Label>
-          <Input
-            ref={resultLabelField.inputRef}
-            value={resultLabelField.shownValue}
-            placeholder="conditionMatched"
-            onFocus={resultLabelField.onFocus}
-            onChange={(event) => resultLabelField.onChange(event.target.value)}
-            onBlur={resultLabelField.onBlur}
-            onKeyDown={resultLabelField.onKeyDown}
-          />
-          {resultLabelField.errorText ? (
-            <p className="text-[11px] text-destructive">
-              {resultLabelField.errorText}
-            </p>
-          ) : null}
-        </div>
+    <SearchFieldRegistryProvider value={fieldRegistry}>
+      <NodeShell
+        nodeId={nodeId}
+        title={<SearchMarkedTitle nodeId={nodeId}>{label}</SearchMarkedTitle>}
+        subtitle={`${conditions.length} condition${conditions.length !== 1 ? "s" : ""}`}
+        selected={selected}
+        {...searchMarks}
+        outputs={outputs}
+        validationMessages={nodeValidationMessages}
+      >
+        <div className={styles.root()}>
+          <div className="space-y-1">
+            <Label className={styles.label()}>Label</Label>
+            <SearchFieldMark nodeId={nodeId} fieldKey="label">
+              <Input
+                ref={resultLabelField.inputRef}
+                value={resultLabelField.shownValue}
+                placeholder="conditionMatched"
+                onFocus={resultLabelField.onFocus}
+                onChange={(event) =>
+                  resultLabelField.onChange(event.target.value)
+                }
+                onBlur={resultLabelField.onBlur}
+                onKeyDown={resultLabelField.onKeyDown}
+              />
+            </SearchFieldMark>
+            {resultLabelField.errorText ? (
+              <p className="text-[11px] text-destructive">
+                {resultLabelField.errorText}
+              </p>
+            ) : null}
+          </div>
 
-        <label className={styles.optionToggleWrap()}>
-          <Checkbox
-            isSelected={isCaseSensitiveFromStore}
-            className={styles.optionToggle()}
-            onChange={(checked) =>
-              updateConfig("caseSensitive", checked === true)
-            }
-          />
-          <span className={styles.optionToggleLabel()}>Case sensitive</span>
-        </label>
+          <label className={styles.optionToggleWrap()}>
+            <Checkbox
+              isSelected={isCaseSensitiveFromStore}
+              className={styles.optionToggle()}
+              onChange={(checked) =>
+                updateConfig("caseSensitive", checked === true)
+              }
+            />
+            <span className={styles.optionToggleLabel()}>Case sensitive</span>
+          </label>
 
-        <div className={styles.conditionList()}>
-          <Sortable
-            value={visibleConditions}
-            onValueChange={handleReorder}
-            getItemValue={(c) => c.id}
-            orientation="vertical"
-          >
-            <SortableContent>
-              {visibleConditions.map((condition, index) => (
-                <SortableItem key={condition.id} value={condition.id}>
-                  {enableEvaluatorMultipleConditions && index > 0 && (
-                    <LogicalOperatorRow
-                      value={logicalOperator}
-                      isInteractive={index === 1}
-                      onChange={handleOperatorChange}
-                    />
-                  )}
-                  <ConditionRow
-                    condition={condition}
-                    variables={expressionVariables}
-                    variableTypes={expressionVariableTypes}
-                    operators={evaluatorOperators}
-                    canDelete={
-                      enableEvaluatorMultipleConditions &&
-                      visibleConditions.length > 1
-                    }
-                    showDragHandle={showDragHandle}
-                    leftOperandSource={leftOperandSource}
-                    upstreamNodeLabel={upstreamNodeLabel}
-                    onUpdate={handleUpdateCondition}
-                    onDelete={handleDeleteCondition}
-                  />
-                </SortableItem>
-              ))}
-            </SortableContent>
-
-            <SortableOverlay>
-              {({ value }) => {
-                const overlayCondition = visibleConditions.find(
-                  (c) => c.id === value
-                )
-                if (!overlayCondition) return null
-                return (
-                  <SortableItem value={overlayCondition.id}>
+          <div className={styles.conditionList()}>
+            <Sortable
+              value={visibleConditions}
+              onValueChange={handleReorder}
+              getItemValue={(c) => c.id}
+              orientation="vertical"
+            >
+              <SortableContent>
+                {visibleConditions.map((condition, index) => (
+                  <SortableItem key={condition.id} value={condition.id}>
+                    {enableEvaluatorMultipleConditions && index > 0 && (
+                      <LogicalOperatorRow
+                        value={logicalOperator}
+                        isInteractive={index === 1}
+                        onChange={handleOperatorChange}
+                      />
+                    )}
                     <ConditionRow
-                      condition={overlayCondition}
+                      nodeId={nodeId}
+                      condition={condition}
                       variables={expressionVariables}
                       variableTypes={expressionVariableTypes}
                       operators={evaluatorOperators}
-                      canDelete={false}
-                      showDragHandle={true}
+                      canDelete={
+                        enableEvaluatorMultipleConditions &&
+                        visibleConditions.length > 1
+                      }
+                      showDragHandle={showDragHandle}
                       leftOperandSource={leftOperandSource}
                       upstreamNodeLabel={upstreamNodeLabel}
-                      isOverlay
-                      onUpdate={() => undefined}
-                      onDelete={() => undefined}
+                      onUpdate={handleUpdateCondition}
+                      onDelete={handleDeleteCondition}
                     />
                   </SortableItem>
-                )
-              }}
-            </SortableOverlay>
-          </Sortable>
+                ))}
+              </SortableContent>
+
+              <SortableOverlay>
+                {({ value }) => {
+                  const overlayCondition = visibleConditions.find(
+                    (c) => c.id === value
+                  )
+                  if (!overlayCondition) return null
+                  return (
+                    <SortableItem value={overlayCondition.id}>
+                      <ConditionRow
+                        nodeId={nodeId}
+                        condition={overlayCondition}
+                        variables={expressionVariables}
+                        variableTypes={expressionVariableTypes}
+                        operators={evaluatorOperators}
+                        canDelete={false}
+                        showDragHandle={true}
+                        leftOperandSource={leftOperandSource}
+                        upstreamNodeLabel={upstreamNodeLabel}
+                        isOverlay
+                        onUpdate={() => undefined}
+                        onDelete={() => undefined}
+                      />
+                    </SortableItem>
+                  )
+                }}
+              </SortableOverlay>
+            </Sortable>
+          </div>
+
+          {enableEvaluatorMultipleConditions && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className={styles.addButton()}
+              onClick={handleAddCondition}
+            >
+              + Add Condition
+            </Button>
+          )}
+
+          {footer}
         </div>
-
-        {enableEvaluatorMultipleConditions && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className={styles.addButton()}
-            onClick={handleAddCondition}
-          >
-            + Add Condition
-          </Button>
-        )}
-
-        {footer}
-      </div>
-    </NodeShell>
+      </NodeShell>
+    </SearchFieldRegistryProvider>
   )
 }

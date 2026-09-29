@@ -54,6 +54,15 @@ const WORKFLOW_MIN_ZOOM = 0.1
 const WORKFLOW_MAX_ZOOM = 4
 const WORKFLOW_MINIMAP_NAVIGATION_DURATION_MS = 200
 const WORKFLOW_MINIMAP_MASK_STROKE_WIDTH = 2
+/**
+ * The lowest zoom at which a revealed node is comfortably readable. Revealing
+ * raises the zoom to this level when the user is further out, and never lowers
+ * a zoom the user chose above it.
+ */
+export const MIN_READABLE_ZOOM = 0.8
+
+/** Centers the viewport on a node without selecting it. */
+export type RevealNode = (nodeId: string) => void
 
 interface WorkflowCanvasProps {
   nodes: WorkflowNode[]
@@ -87,6 +96,12 @@ interface WorkflowCanvasProps {
    * etc.) opts in explicitly; nothing observes anything otherwise.
    */
   refitOnResize?: boolean
+  /**
+   * Receives the canvas's `revealNode` once it is mounted, and `null` when it
+   * unmounts. This is how parts rendered outside the React Flow provider (the
+   * search bar) move the viewport.
+   */
+  onRevealNodeChange?: (revealNode: RevealNode | null) => void
 }
 
 function WorkflowCanvasInner({
@@ -110,6 +125,7 @@ function WorkflowCanvasInner({
   anchorRefs,
   mode = "edit",
   refitOnResize = false,
+  onRevealNodeChange,
 }: WorkflowCanvasProps) {
   const isObserving = mode === "observe"
   const canvasRef = useRef<HTMLDivElement>(null)
@@ -378,6 +394,36 @@ function WorkflowCanvasInner({
     },
     [reactFlow]
   )
+  const revealNode = useCallback<RevealNode>(
+    (nodeId) => {
+      const node = reactFlow.getInternalNode(nodeId)
+      if (!node) {
+        return
+      }
+
+      const { x, y } = node.internals.positionAbsolute
+      const width = node.measured.width ?? node.width ?? 0
+      const height = node.measured.height ?? node.height ?? 0
+      const zoom = Math.min(
+        WORKFLOW_MAX_ZOOM,
+        Math.max(WORKFLOW_MIN_ZOOM, reactFlow.getZoom(), MIN_READABLE_ZOOM)
+      )
+
+      void reactFlow.setCenter(x + width / 2, y + height / 2, {
+        zoom,
+        duration: WORKFLOW_MINIMAP_NAVIGATION_DURATION_MS,
+      })
+    },
+    [reactFlow]
+  )
+  useEffect(() => {
+    if (!onRevealNodeChange) {
+      return
+    }
+
+    onRevealNodeChange(revealNode)
+    return () => onRevealNodeChange(null)
+  }, [onRevealNodeChange, revealNode])
   const controlsRef = useWorkflowEditorAnchorRef(anchorRefs, "controls")
   const zoomInRef = useWorkflowEditorAnchorRef(anchorRefs, "zoomIn")
   const zoomOutRef = useWorkflowEditorAnchorRef(anchorRefs, "zoomOut")

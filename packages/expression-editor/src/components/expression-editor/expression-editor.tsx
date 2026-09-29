@@ -117,6 +117,9 @@ export function ExpressionEditor({
       foldGutter: false,
       highlightActiveLine: false,
       lineNumbers: false,
+      // Leaves Mod+F unbound, so it reaches the host: the workflow editor
+      // opens its canvas-wide search from inside expression fields too.
+      searchKeymap: false,
     }),
     []
   )

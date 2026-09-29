@@ -154,6 +154,26 @@ export function isEscapeHotkey(event: KeyboardEvent): boolean {
   return event.key === "Escape"
 }
 
+/**
+ * `Mod+F` opens the canvas search. Unlike the editing hotkeys it also fires
+ * from inside inputs and expression fields: those are inside the editor too,
+ * and the expression editor leaves the key unbound for exactly this reason.
+ */
+export function isSearchHotkey(event: KeyboardEvent): boolean {
+  if (event.defaultPrevented) {
+    return false
+  }
+
+  const hasModifier = event.metaKey || event.ctrlKey
+  if (!hasModifier || event.altKey || event.shiftKey) {
+    return false
+  }
+
+  // `code` keeps the physical key working on non-Latin layouts, where `key`
+  // is another letter but the browser's own find still fires.
+  return event.key.toLowerCase() === "f" || event.code === "KeyF"
+}
+
 function isEditableEventTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) {
     return false

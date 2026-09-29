@@ -1,10 +1,22 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen } from "@testing-library/react"
+import {
+  cleanup,
+  fireEvent,
+  render as rtlRender,
+  screen,
+} from "@testing-library/react"
 import type { NodeProps } from "@xyflow/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { JsonSetterNode } from "./component"
+import type { ReactElement } from "react"
+import { WorkflowStoreProvider } from "../../../store"
+
+// Field-level search marks subscribe to the workflow store, so a node view
+// renders inside one; everything else it reads is still mocked in this file.
+const render = (ui: ReactElement) =>
+  rtlRender(ui, { wrapper: WorkflowStoreProvider })
 
 const mockUpdateNodeConfig = vi.fn()
 

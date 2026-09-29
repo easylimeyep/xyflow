@@ -19,6 +19,9 @@ import type {
   WorkflowEvaluatorOperatorCatalog,
   WorkflowTypedValue,
 } from "../../../types"
+import { useRegisterSearchField } from "../../../components/workflow-search/search-field-mark"
+import { useFieldSearchStatus } from "../../../store"
+import { evaluatorOperandPath } from "./config"
 import { OperandEditor } from "./operand-editor"
 import {
   getAllowedRightOperandTypes,
@@ -31,6 +34,8 @@ import type { EvaluatorLeftOperandSource } from "./config"
 const styles = evaluatorNodeStyles()
 
 interface ConditionRowProps {
+  /** The evaluator node, for the operands' canvas-search marks. */
+  nodeId: string
   condition: EvaluatorCondition
   variables: ExpressionVariableOption[]
   variableTypes: Record<string, string>
@@ -46,6 +51,7 @@ interface ConditionRowProps {
 }
 
 export function ConditionRow({
+  nodeId,
   condition,
   variables,
   variableTypes,
@@ -58,6 +64,18 @@ export function ConditionRow({
   onUpdate,
   onDelete,
 }: ConditionRowProps) {
+  // Array entries roll up to their operand, which stands in for them while
+  // the list is collapsed.
+  const leftSearchState = useFieldSearchStatus(
+    nodeId,
+    evaluatorOperandPath(condition.id, "left"),
+    { includeChildren: true }
+  )
+  const rightSearchState = useFieldSearchStatus(
+    nodeId,
+    evaluatorOperandPath(condition.id, "right"),
+    { includeChildren: true }
+  )
   const effectiveLeftOperand = useMemo(
     () => resolveEffectiveLeftOperandType(condition.left, variableTypes),
     [condition.left, variableTypes]
@@ -69,6 +87,18 @@ export function ConditionRow({
   )
   const allowedRightTypes = getAllowedRightOperandTypes(selectedOperator)
   const needsTarget = allowedRightTypes.length > 0
+  // An operand registers only while it is drawn: a left operand the row swaps
+  // for the upstream badge, or a right operand the operator does not use, has
+  // no field on screen to carry the current-match mark.
+  useRegisterSearchField(evaluatorOperandPath(condition.id, "left"), {
+    includeChildren: true,
+    enabled:
+      leftOperandSource !== "upstream" && condition.left.type !== "upstream",
+  })
+  useRegisterSearchField(evaluatorOperandPath(condition.id, "right"), {
+    includeChildren: true,
+    enabled: needsTarget && Boolean(condition.right),
+  })
 
   useEffect(() => {
     if (selectedOperator || activeOperators.length === 0) {
@@ -151,6 +181,7 @@ export function ConditionRow({
           <UpstreamOperand upstreamNodeLabel={upstreamNodeLabel} />
         ) : (
           <OperandEditor
+            searchState={leftSearchState}
             operand={condition.left}
             label="Left"
             placeholder="value"
@@ -183,6 +214,7 @@ export function ConditionRow({
 
         {needsTarget && condition.right ? (
           <OperandEditor
+            searchState={rightSearchState}
             operand={condition.right}
             label="Right"
             placeholder="target value"

@@ -17,6 +17,11 @@ import {
   useWorkflowStore,
   type WorkflowStoreState,
 } from "../../../store"
+import {
+  SearchFieldRegistryProvider,
+  SearchMarkedTitle,
+  useNodeSearchMarks,
+} from "../../../components/workflow-search/search-field-mark"
 import { NodeShell } from "../../node-shell/node-shell"
 import { useBaseNodeData } from "../../shared/use-base-node-data"
 
@@ -32,39 +37,43 @@ export function ResultNode({ id, data, selected }: NodeProps) {
   const category =
     typeof config.category === "string" ? config.category : "true"
 
+  const { fieldRegistry, ...searchMarks } = useNodeSearchMarks(id)
   return (
-    <NodeShell
-      nodeId={id}
-      title={label}
-      subtitle=""
-      selected={selected}
-      outputs={[]}
-      validationMessages={nodeValidationMessages}
-    >
-      <div className={styles.root()}>
-        <div className={styles.fieldGroup()}>
-          <label className={styles.label()}>Category</label>
-          <Select
-            aria-label="Category"
-            selectedKey={category}
-            onSelectionChange={(key) =>
-              updateNodeConfig(id, {
-                kind: "result",
-                key: "category",
-                value: key as "true" | "false",
-              })
-            }
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem id="true">true</SelectItem>
-              <SelectItem id="false">false</SelectItem>
-            </SelectContent>
-          </Select>
+    <SearchFieldRegistryProvider value={fieldRegistry}>
+      <NodeShell
+        nodeId={id}
+        title={<SearchMarkedTitle nodeId={id}>{label}</SearchMarkedTitle>}
+        subtitle=""
+        selected={selected}
+        {...searchMarks}
+        outputs={[]}
+        validationMessages={nodeValidationMessages}
+      >
+        <div className={styles.root()}>
+          <div className={styles.fieldGroup()}>
+            <label className={styles.label()}>Category</label>
+            <Select
+              aria-label="Category"
+              selectedKey={category}
+              onSelectionChange={(key) =>
+                updateNodeConfig(id, {
+                  kind: "result",
+                  key: "category",
+                  value: key as "true" | "false",
+                })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem id="true">true</SelectItem>
+                <SelectItem id="false">false</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-      </div>
-    </NodeShell>
+      </NodeShell>
+    </SearchFieldRegistryProvider>
   )
 }

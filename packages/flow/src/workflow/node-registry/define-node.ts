@@ -60,11 +60,17 @@ export type NodeVariableReader = (
  * Rewrites the expression templates nested inside one structured config value
  * (anything other than a string or a string array) during a variable rename.
  * Must return the value it was given when nothing changed.
+ *
+ * Pass each template's `path` — where it sits inside the value, stable across
+ * edits to its siblings (for example `conditions[<id>].left`). Canvas search
+ * uses it to keep a match's identity when an earlier entry is removed or
+ * reordered, and to mark the field holding it. Without a path the template is
+ * identified by its position in the walk, which shifts on such edits.
  */
 export type NodeConfigValueRefactor = (
   key: string,
   value: JsonValue,
-  rewrite: (template: string) => string
+  rewrite: (template: string, path?: string) => string
 ) => JsonValue
 
 export interface NodeDefinition<K extends string = string> {
@@ -104,6 +110,16 @@ export interface NodeDefinition<K extends string = string> {
    * rewritten; a key it does not own must come back unchanged.
    */
   refactorConfigValue?: NodeConfigValueRefactor
+  /**
+   * A readable name for an expression field that `refactorConfigValue`
+   * reaches, such as "Condition 2 · Left operand" for
+   * `conditions[<id>].left`. Shown where a search result names its field;
+   * `undefined` falls back to a generic name.
+   */
+  describeExpressionField?: (
+    fieldPath: string,
+    config: Readonly<Record<string, unknown>>
+  ) => string | undefined
   /**
    * A bespoke renderer for this kind.
    *

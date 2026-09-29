@@ -9,6 +9,8 @@ import { useCallback, useState } from "react"
 
 import { evaluatorNodeStyles } from "../../../../styles/components/nodes"
 import { ExpressionInput } from "../../../components/expression-input"
+import { searchFieldStyles } from "../../../../styles/components/nodes"
+import type { FieldSearchStatus } from "../../../store"
 import { WorkflowTypeSelect } from "../../../components/workflow-type-select/workflow-type-select"
 import type {
   ExpressionVariableOption,
@@ -38,6 +40,11 @@ interface OperandEditorProps {
   variableTypes: Record<string, string>
   allowedTypes?: WorkflowVariableType[]
   onChange: (nextOperand: WorkflowOperandValue) => void
+  /**
+   * This operand's canvas-search mark. An array operand carries it on the
+   * control that opens its values, since the values themselves are collapsed.
+   */
+  searchState?: FieldSearchStatus
 }
 
 export function OperandEditor({
@@ -48,6 +55,7 @@ export function OperandEditor({
   variableTypes,
   allowedTypes,
   onChange,
+  searchState = "none",
 }: OperandEditorProps) {
   return (
     <div className={styles.operandRow()}>
@@ -63,6 +71,7 @@ export function OperandEditor({
       <div className={styles.operandEditor()}>
         {operand.type === "value" ? (
           <OperandExpressionInput
+            searchState={searchState}
             value={operand.value}
             placeholder={placeholder}
             variables={variables}
@@ -70,14 +79,21 @@ export function OperandEditor({
             onChange={(value) => onChange(createValueOperand(value))}
           />
         ) : (
-          <ArrayOperandPopover
-            label={label}
-            placeholder={placeholder}
-            operand={operand}
-            variables={variables}
-            variableTypes={variableTypes}
-            onChange={onChange}
-          />
+          <div
+            className={searchFieldStyles({ searchState })}
+            data-field-search-state={
+              searchState === "none" ? undefined : searchState
+            }
+          >
+            <ArrayOperandPopover
+              label={label}
+              placeholder={placeholder}
+              operand={operand}
+              variables={variables}
+              variableTypes={variableTypes}
+              onChange={onChange}
+            />
+          </div>
         )}
       </div>
     </div>
@@ -92,6 +108,7 @@ interface OperandExpressionInputProps {
   ariaLabel?: string
   onChange: (nextValue: string) => void
   onLiveChange?: (nextValue: string) => void
+  searchState?: FieldSearchStatus
 }
 
 function OperandExpressionInput({
@@ -102,6 +119,7 @@ function OperandExpressionInput({
   ariaLabel,
   onChange,
   onLiveChange,
+  searchState,
 }: OperandExpressionInputProps) {
   const unresolvedVariableName = findUnresolvedVariable(value, variableTypes)
 
@@ -117,6 +135,7 @@ function OperandExpressionInput({
         variables={variables}
         onChange={onChange}
         onLiveChange={onLiveChange}
+        searchState={searchState}
       />
       {unresolvedVariableName ? (
         <UnresolvedVariableChip variableName={unresolvedVariableName} />
