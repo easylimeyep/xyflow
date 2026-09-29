@@ -15,7 +15,10 @@ import {
   XIcon,
 } from "lucide-react"
 
-import { workflowSearchStyles } from "../../../styles/components/panels"
+import {
+  workflowSearchStyles,
+  type WorkflowSearchPosition,
+} from "../../../styles/components/panels"
 import {
   selectCurrentSearchMatch,
   selectSearchCurrentIndex,
@@ -25,6 +28,8 @@ import {
   type WorkflowStoreState,
 } from "../../store"
 import { SearchResultsPanel } from "./search-results-panel"
+
+export type { WorkflowSearchPosition }
 
 export interface WorkflowSearchProps {
   /** Centers the canvas on a node; called whenever the current match moves. */
@@ -40,6 +45,12 @@ export interface WorkflowSearchProps {
    * it in flow for a host that gives it a place in its own layout.
    */
   placement?: "floating" | "inline"
+  /**
+   * Where a `floating` bar sits over the canvas: a corner, the middle of the
+   * top or bottom edge, or the middle of the left or right edge. Defaults to
+   * `top-right`. Along the bottom edge the results panel opens upwards.
+   */
+  position?: WorkflowSearchPosition
   /** Set while the floating node palette is open, so the bar moves clear of it. */
   besidePalette?: boolean
   /** Extra classes for the bar's root element, merged into the package's own. */
@@ -99,6 +110,7 @@ export function WorkflowSearch({
   onRevealNode,
   onRegisterFocus,
   placement,
+  position,
   besidePalette,
   className,
 }: WorkflowSearchProps) {
@@ -133,6 +145,7 @@ export function WorkflowSearch({
   const isEmpty = query.trim().length > 0 && !hasMatches
   const styles = workflowSearchStyles({
     placement,
+    position,
     besidePalette,
     empty: isEmpty,
   })
@@ -237,6 +250,9 @@ export function WorkflowSearch({
       role="search"
       aria-label="Search workflow"
       className={styles.root({ class: className })}
+      data-position={
+        placement === "inline" ? undefined : (position ?? "top-right")
+      }
       data-testid="workflow-search"
     >
       <div className={styles.bar()}>

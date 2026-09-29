@@ -16,6 +16,7 @@ export {
   type WorkflowProviderProps,
   type WorkflowLayout,
 } from "./workflow/components/workflow-editor"
+export type { WorkflowSearchPosition } from "./workflow/components/workflow-search"
 export { WORKFLOW_EDITOR_TOUR } from "./workflow/tour"
 export type {
   WorkflowEditorAnchor,

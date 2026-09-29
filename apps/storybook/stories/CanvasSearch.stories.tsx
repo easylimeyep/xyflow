@@ -8,6 +8,19 @@ const meta = {
   argTypes: {
     initialQuery: { control: "text" },
     showResults: { control: "boolean" },
+    position: {
+      control: "select",
+      options: [
+        "top-left",
+        "top-center",
+        "top-right",
+        "center-left",
+        "center-right",
+        "bottom-left",
+        "bottom-center",
+        "bottom-right",
+      ],
+    },
   },
 } satisfies Meta<typeof CanvasSearchExample>
 
@@ -20,6 +33,10 @@ export const SearchingAVariable: Story = {
 
 export const ResultsPanel: Story = {
   args: { initialQuery: "price", showResults: true },
+}
+
+export const ResultsPanelAtBottom: Story = {
+  args: { initialQuery: "price", showResults: true, position: "bottom-center" },
 }
 
 export const Closed: Story = {

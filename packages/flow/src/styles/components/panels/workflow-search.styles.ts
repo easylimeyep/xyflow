@@ -1,9 +1,32 @@
 import { tv } from "tailwind-variants"
 
+/** Where a floating search bar sits over the canvas. */
+export type WorkflowSearchPosition =
+  | "top-left"
+  | "top-center"
+  | "top-right"
+  | "center-left"
+  | "center-right"
+  | "bottom-left"
+  | "bottom-center"
+  | "bottom-right"
+
+const RIGHT_POSITIONS: WorkflowSearchPosition[] = [
+  "top-right",
+  "center-right",
+  "bottom-right",
+]
+
+const floatingPosition = (position: WorkflowSearchPosition, root: string) => ({
+  placement: "floating" as const,
+  position,
+  class: { root },
+})
+
 export const workflowSearchStyles = tv({
   slots: {
     root: [
-      "flex flex-col overflow-hidden rounded-md border bg-background/95 shadow-lg backdrop-blur",
+      "flex flex-col divide-y overflow-hidden rounded-md border bg-background/95 shadow-lg backdrop-blur",
       "focus-within:border-ring/60",
     ],
     bar: "flex items-center gap-1 p-1",
@@ -23,7 +46,7 @@ export const workflowSearchStyles = tv({
   variants: {
     placement: {
       floating: {
-        root: "absolute right-14 top-3 z-30 w-[min(440px,calc(100%-5rem))]",
+        root: "absolute z-30 w-[min(440px,calc(100%-5rem))]",
       },
       inline: {
         root: "w-full",
@@ -34,24 +57,80 @@ export const workflowSearchStyles = tv({
         counter: "text-destructive",
       },
     },
+    position: {
+      "top-left": {},
+      "top-center": {},
+      "top-right": {},
+      "center-left": {},
+      "center-right": {},
+      "bottom-left": {},
+      "bottom-center": {},
+      "bottom-right": {},
+    },
     besidePalette: {
       true: {},
     },
   },
   compoundVariants: [
+    floatingPosition("top-left", "top-3 left-3"),
+    floatingPosition("top-center", "top-3 left-1/2 -translate-x-1/2"),
+    // Clears the palette toggle pinned in the top-right corner.
+    floatingPosition("top-right", "top-3 right-14"),
+    // The whole block is centred, results included, so an open panel grows
+    // both ways and stays on the canvas instead of running off its bottom.
+    floatingPosition("center-left", "top-1/2 -translate-y-1/2 left-3"),
+    floatingPosition("center-right", "top-1/2 -translate-y-1/2 right-3"),
+    // Beside the minimap and the zoom controls stacked in that corner.
+    floatingPosition(
+      "bottom-left",
+      "bottom-3 left-[15rem] w-[min(440px,calc(100%-17rem))]"
+    ),
+    // Centred, but never so far left that it reaches over the minimap and the
+    // zoom controls in the bottom-left corner.
+    floatingPosition(
+      "bottom-center",
+      "bottom-3 left-[max(calc(15rem+220px),50%)] -translate-x-1/2"
+    ),
+    floatingPosition("bottom-right", "bottom-3 right-3"),
+    {
+      // Along the bottom edge the results open upwards, keeping the bar on
+      // the edge it was pinned to.
+      placement: "floating",
+      position: ["bottom-left", "bottom-center", "bottom-right"],
+      class: { root: "flex-col-reverse divide-y-reverse" },
+    },
     {
       // Clear the open floating palette (w-72 plus its m-4) when the canvas
       // is wide enough to hold both; a narrower canvas keeps the bar in the
       // corner, over the palette's heading, rather than squeezing it.
       placement: "floating",
+      position: RIGHT_POSITIONS,
       besidePalette: true,
       class: {
         root: "@2xl:right-[19.5rem] @2xl:w-[min(440px,calc(100%-21rem))]",
       },
     },
+    {
+      // Centred bars centre on the canvas left of the open palette instead.
+      placement: "floating",
+      position: "top-center",
+      besidePalette: true,
+      class: {
+        root: "@2xl:left-[calc((100%-19.5rem)/2)] @2xl:w-[min(440px,calc(100%-21rem))]",
+      },
+    },
+    {
+      placement: "floating",
+      position: "bottom-center",
+      besidePalette: true,
+      class: {
+        root: "@2xl:left-[max(calc(15rem+220px),calc((100%-19.5rem)/2))] @2xl:w-[min(440px,calc(100%-21rem))]",
+      },
+    },
   ],
   defaultVariants: {
     placement: "floating",
+    position: "top-right",
     empty: false,
     besidePalette: false,
   },
@@ -63,7 +142,7 @@ export const SEARCH_RESULT_HEADING_SIZE = 30
 
 export const searchResultsPanelStyles = tv({
   slots: {
-    panel: "flex flex-col border-t",
+    panel: "flex flex-col",
     filters: "flex items-center gap-1 px-2 py-1.5",
     filterItem: [
       "h-6 gap-1 px-2 text-[11px] text-muted-foreground",

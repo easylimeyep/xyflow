@@ -347,6 +347,29 @@ describe("WorkflowEditor search composition", () => {
     expect(notPrevented).toBe(true)
   })
 
+  it("floats at the top-right unless given a position", () => {
+    const { unmount } = renderEditor()
+    pressModF(screen.getByText("canvas-focus-target"))
+    expect(
+      screen.getByTestId("workflow-search").getAttribute("data-position")
+    ).toBe("top-right")
+    unmount()
+
+    render(
+      <WorkflowEditor initialGraph={graph} definitions={builtinBaseDefinitions}>
+        <WorkflowEditor.Body>
+          <WorkflowEditor.Canvas />
+          <WorkflowEditor.Search position="bottom-center" />
+        </WorkflowEditor.Body>
+      </WorkflowEditor>
+    )
+    pressModF(screen.getByText("canvas-focus-target"))
+
+    expect(
+      screen.getByTestId("workflow-search").getAttribute("data-position")
+    ).toBe("bottom-center")
+  })
+
   it("is exposed as WorkflowEditor.Search", () => {
     expect(WorkflowEditor.Search).toBeTypeOf("function")
   })

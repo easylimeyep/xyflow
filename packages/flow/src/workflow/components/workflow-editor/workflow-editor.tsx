@@ -58,7 +58,7 @@ import {
 import { WorkflowEditorConfigPanel as WorkflowEditorConfigPanelBase } from "../node-config-panel"
 import { NodePalette } from "../node-palette"
 import { WorkflowCanvas, type RevealNode } from "../workflow-canvas"
-import { WorkflowSearch } from "../workflow-search"
+import { WorkflowSearch, type WorkflowSearchPosition } from "../workflow-search"
 import type { WorkflowEditorAnchorRefs } from "../../tour"
 import { useWorkflowEditorAnchorRef } from "../../tour/anchors"
 
@@ -797,10 +797,16 @@ export function WorkflowEditorCanvas({
 
 export interface WorkflowEditorSearchProps {
   /**
-   * `floating` (default) pins the bar over the top-right of the canvas;
+   * `floating` (default) pins the bar over the canvas at `position`;
    * `inline` renders it in flow for a host that lays it out itself.
    */
   placement?: "floating" | "inline"
+  /**
+   * Where a floating bar sits: `top-left`, `top-center`, `top-right`
+   * (default), `center-left`, `center-right`, `bottom-left`, `bottom-center`
+   * or `bottom-right`. Along the bottom edge the results open upwards.
+   */
+  position?: WorkflowSearchPosition
   /** Extra classes for the search bar's root element, merged into the package's own. */
   className?: string
 }
@@ -811,6 +817,7 @@ export interface WorkflowEditorSearchProps {
  */
 export function WorkflowEditorSearch({
   placement,
+  position,
   className,
 }: WorkflowEditorSearchProps = {}) {
   const layout = useWorkflowEditorLayoutContext()
@@ -820,6 +827,7 @@ export function WorkflowEditorSearch({
       onRevealNode={layout?.revealNode}
       onRegisterFocus={layout?.setFocusSearch}
       placement={placement}
+      position={position}
       // The palette is withheld while observing, whatever its open flag says.
       besidePalette={layout?.mode === "edit" && layout.isPaletteOpen}
       className={className}

@@ -9,6 +9,7 @@ import {
   type InitialGraphInput,
   type InitialGraphNodeInput,
   type WorkflowEditorProps,
+  type WorkflowSearchPosition,
 } from "@flow/flow"
 
 import { ExamplePreview } from "./example-preview"
@@ -122,13 +123,17 @@ const code = `import { WorkflowEditor, builtinDefinitions } from "@flow/flow"
 // Cmd+F (Ctrl+F elsewhere). Enter / Shift+Enter step through every
 // occurrence; Escape closes. Click the "N / M" counter to list every match,
 // grouped by node, with case, whole-word and source filters.
-// In a custom layout, place it yourself:
+// In a custom layout, place it inside the canvas so it floats over it:
 export function Example() {
   return (
     <WorkflowEditor definitions={builtinDefinitions} initialGraph={graph}>
       <WorkflowEditor.Body>
-        <WorkflowEditor.Canvas />
-        <WorkflowEditor.Search />
+        <WorkflowEditor.Canvas>
+          {/* position: top-left | top-center | top-right (default) |
+              center-left | center-right | bottom-left | bottom-center |
+              bottom-right */}
+          <WorkflowEditor.Search position="top-right" />
+        </WorkflowEditor.Canvas>
       </WorkflowEditor.Body>
     </WorkflowEditor>
   )
@@ -177,11 +182,14 @@ export interface CanvasSearchExampleProps {
   initialQuery: string
   /** Expands the results panel under the bar on mount. */
   showResults?: boolean
+  /** Where the floating bar sits over the canvas. */
+  position?: WorkflowSearchPosition
 }
 
 export function CanvasSearchExample({
   initialQuery,
   showResults = false,
+  position = "top-right",
 }: CanvasSearchExampleProps) {
   const [graph, setGraph] = useState<
     WorkflowEditorProps["initialGraph"] | null
@@ -214,7 +222,7 @@ export function CanvasSearchExample({
         </div>
       ) : (
         <WorkflowEditor
-          key={`${initialQuery}|${showResults}`}
+          key={`${initialQuery}|${showResults}|${position}`}
           definitions={builtinDefinitions}
           initialGraph={graph}
         >
@@ -224,8 +232,9 @@ export function CanvasSearchExample({
             <WorkflowEditor.ValidationAlert />
             <WorkflowEditor.ConfigPanel />
             <WorkflowEditor.Palette />
-            <WorkflowEditor.Canvas />
-            <WorkflowEditor.Search />
+            <WorkflowEditor.Canvas>
+              <WorkflowEditor.Search position={position} />
+            </WorkflowEditor.Canvas>
           </WorkflowEditor.Body>
         </WorkflowEditor>
       )}
