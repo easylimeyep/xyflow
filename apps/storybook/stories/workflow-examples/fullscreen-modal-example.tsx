@@ -15,7 +15,7 @@ import {
   DialogTitle,
 } from "@flow/ui/components/dialog"
 
-import { ExamplePreview } from "./example-preview"
+import { ExampleFrame } from "./example-frame"
 
 const initialGraph = createInitialGraph(builtinDefinitions, {
   nodes: [
@@ -103,89 +103,11 @@ const initialGraph = createInitialGraph(builtinDefinitions, {
   },
 })
 
-const code = `import { useState } from "react"
-
-import {
-  WorkflowEditor,
-  builtinDefinitions,
-  createInitialGraph,
-} from "@flow/flow"
-import { Button } from "@flow/ui/components/button"
-import {
-  Dialog,
-  DialogDescription,
-  DialogTitle,
-} from "@flow/ui/components/dialog"
-
-const initialGraph = createInitialGraph(builtinDefinitions, {
-  nodes: [
-    { id: "demo-modal-inline-expression", kind: "inlineExpression", config: { template: ["lead"], isRoot: true, repeatable: false } },
-    { id: "demo-modal-extractor", kind: "extractor", label: "Email extractor", config: { tokenNumber: 1, extractExpression: "email", unlimited: false } },
-    { id: "demo-modal-evaluator", kind: "evaluator", label: "Has company domain", config: { conditions: [{ id: "demo-modal-evaluator-condition", left: { type: "value", value: "{{ email }}" }, operator: "contains", right: { type: "value", value: "@company.com" } }], logicalOperator: "and" } },
-    { id: "demo-modal-result-true", kind: "result", label: "Qualified", config: { category: "true" } },
-    { id: "demo-modal-result-false", kind: "result", label: "Needs review", config: { category: "false" } },
-  ],
-  edges: [
-    { id: "demo-modal-edge-inline-to-extractor", source: "demo-modal-inline-expression", target: "demo-modal-extractor" },
-    { id: "demo-modal-edge-extractor-to-evaluator", source: "demo-modal-extractor", target: "demo-modal-evaluator" },
-    { id: "demo-modal-edge-evaluator-to-true", source: "demo-modal-evaluator", sourceHandle: "evaluator-true", target: "demo-modal-result-true" },
-    { id: "demo-modal-edge-evaluator-to-false", source: "demo-modal-evaluator", sourceHandle: "evaluator-false", target: "demo-modal-result-false" },
-  ],
-  viewport: { x: 40, y: 40, zoom: 0.8 },
-  document: {
-    id: "workflow-demo-fullscreen-modal",
-    name: "Workflow Fullscreen Modal Demo",
-    metadata: { source: "docs-demo-fullscreen-modal" },
-  },
-})
-
-export function Example() {
-  const [open, setOpen] = useState(false)
-
-  return (
-    <>
-      <Button onPress={() => setOpen(true)}>Open fullscreen workflow</Button>
-
-      <Dialog
-        isOpen={open}
-        onOpenChange={setOpen}
-        showCloseButton={false}
-        className="top-0 left-0 h-svh w-screen max-w-none translate-x-0 translate-y-0 rounded-none border-0 p-0"
-      >
-          <DialogTitle className="sr-only">Fullscreen workflow modal</DialogTitle>
-          <DialogDescription className="sr-only">
-            Entire workflow editor rendered inside a fullscreen dialog.
-          </DialogDescription>
-
-          <div className="flex h-full min-h-0 flex-col bg-white">
-            <div className="flex items-center justify-between border-b border-gray-200 px-5 py-3">
-              <div>
-                <p className="text-sm font-semibold text-gray-950">Lead qualification workflow</p>
-                <p className="text-sm text-gray-600">The whole workflow editor is mounted inside the modal.</p>
-              </div>
-              <Button variant="outline" onPress={() => setOpen(false)}>Close</Button>
-            </div>
-
-            <div className="min-h-0 flex-1">
-              <WorkflowEditor
-                definitions={builtinDefinitions}
-                initialGraph={initialGraph}
-              />
-            </div>
-          </div>
-      </Dialog>
-    </>
-  )
-}`
-
 export function FullscreenModalExample() {
   const [open, setOpen] = useState(false)
 
   return (
-    <ExamplePreview
-      title="Fullscreen modal workflow"
-      code={code}
-    >
+    <ExampleFrame>
       <div className="flex h-full min-h-0 flex-1 items-center justify-center bg-[radial-gradient(circle_at_top,#f8fafc,transparent_55%),linear-gradient(180deg,#ffffff_0%,#f3f4f6_100%)] p-6">
         <div className="flex w-full max-w-2xl flex-col gap-6 rounded-[28px] border border-gray-200 bg-white/95 p-8 shadow-[0_30px_90px_rgba(15,23,42,0.12)] backdrop-blur">
           <div className="space-y-3">
@@ -249,6 +171,6 @@ export function FullscreenModalExample() {
           </div>
         </Dialog>
       </div>
-    </ExamplePreview>
+    </ExampleFrame>
   )
 }

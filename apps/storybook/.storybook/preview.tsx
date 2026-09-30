@@ -15,13 +15,6 @@ const preview: Preview = {
       },
     },
   },
-  decorators: [
-    (Story) => (
-      <div className="min-h-svh bg-gray-100 p-6">
-        <Story />
-      </div>
-    ),
-  ],
 }
 
 export default preview

@@ -9,7 +9,7 @@ import {
   type WorkflowEditorProps,
 } from "@flow/flow"
 
-import { ExamplePreview } from "./example-preview"
+import { ExampleFrame } from "./example-frame"
 
 const graphInput = {
   nodes: [
@@ -122,47 +122,6 @@ const graphInput = {
   },
 }
 
-const code = `import {
-  WorkflowEditor,
-  builtinDefinitions,
-  createInitialGraphElk,
-} from "@flow/flow"
-
-const initialGraph = await createInitialGraphElk(builtinDefinitions, {
-  nodes: [
-    { id: "demo-elk-inline-expression", kind: "inlineExpression", config: { template: ["lead"], isRoot: true, repeatable: false } },
-    { id: "demo-elk-extractor", kind: "extractor", config: { tokenNumber: 1, extractExpression: "email", unlimited: false } },
-    { id: "demo-elk-evaluator", kind: "evaluator", config: { conditions: [{ id: "demo-elk-evaluator-condition", left: { type: "value", value: "{{ email }}" }, operator: "contains", right: { type: "value", value: "@" } }], logicalOperator: "and" } },
-    { id: "demo-elk-true-result", kind: "result", label: "Valid Email", config: { category: "true" } },
-    { id: "demo-elk-false-result", kind: "result", label: "Needs Review", config: { category: "false" } },
-    // Standalone nodes with no edges — ELK still places them on the canvas.
-    { id: "demo-elk-standalone-set-variable", kind: "setVariable", label: "Unused Setter", config: { variableName: "draft", valueExpression: "{{ email }}" } },
-    { id: "demo-elk-standalone-extractor", kind: "extractor", label: "Unused Extractor", config: { tokenNumber: 2, extractExpression: "phone", unlimited: false } },
-    { id: "demo-elk-standalone-result", kind: "result", label: "Orphan Result", config: { category: "false" } },
-  ],
-  edges: [
-    { id: "demo-elk-edge-inline-to-extractor", source: "demo-elk-inline-expression", target: "demo-elk-extractor" },
-    { id: "demo-elk-edge-extractor-to-evaluator", source: "demo-elk-extractor", target: "demo-elk-evaluator" },
-    { id: "demo-elk-edge-evaluator-to-true-result", source: "demo-elk-evaluator", sourceHandle: "evaluator-true", target: "demo-elk-true-result" },
-    { id: "demo-elk-edge-evaluator-to-false-result", source: "demo-elk-evaluator", sourceHandle: "evaluator-false", target: "demo-elk-false-result" },
-  ],
-  viewport: { x: 40, y: 40, zoom: 0.8 },
-  document: {
-    id: "workflow-demo-elk-graph",
-    name: "Workflow ELK Demo",
-    metadata: { source: "docs-demo-elk" },
-  },
-})
-
-export function Example() {
-  return (
-    <WorkflowEditor
-      definitions={builtinDefinitions}
-      initialGraph={initialGraph}
-    />
-  )
-}`
-
 export function ElkGraphExample() {
   const [graph, setGraph] = useState<
     WorkflowEditorProps["initialGraph"] | null
@@ -185,10 +144,7 @@ export function ElkGraphExample() {
   }, [])
 
   return (
-    <ExamplePreview
-      title="With ELK graph"
-      code={code}
-    >
+    <ExampleFrame>
       {graph == null ? (
         <div className="flex min-h-0 flex-1 items-center justify-center bg-gray-50 text-sm text-gray-500">
           Computing ELK layout...
@@ -196,6 +152,6 @@ export function ElkGraphExample() {
       ) : (
         <WorkflowEditor definitions={builtinDefinitions} initialGraph={graph} />
       )}
-    </ExamplePreview>
+    </ExampleFrame>
   )
 }

@@ -7,7 +7,7 @@ import {
 } from "@flow/flow"
 import type { WorkflowNodeOptionsCatalog } from "@flow/flow"
 
-import { ExamplePreview } from "./example-preview"
+import { ExampleFrame } from "./example-frame"
 
 /**
  * Select-backed config keys a host replaces without forking a node: the key is
@@ -104,41 +104,9 @@ const initialGraph = createInitialGraph(builtinDefinitions, {
   },
 })
 
-const code = `import { WorkflowEditor, builtinDefinitions } from "@flow/flow"
-
-export function Example() {
-  return (
-    <WorkflowEditor
-      definitions={builtinDefinitions}
-      initialGraph={initialGraph}
-      runtime={{
-        // Keyed by node kind, then by the config key the select writes to.
-        // A kind or key left out keeps the vocabulary the node ships with;
-        // an empty array means "no choices" and disables that select.
-        nodeOptions: {
-          pathExtractor: {
-            outputType: [
-              { value: "raw", label: "raw payload" },
-              { value: "digest", label: "digest" },
-              { value: "rowset", label: "row set" },
-            ],
-          },
-          jsonEvaluator: {
-            matchType: [
-              { value: "any", label: "Хотя бы одно" },
-              { value: "all", label: "Все условия" },
-              { value: "at-least-two", label: "Минимум два" },
-            ],
-          },
-        },
-      }}
-    />
-  )
-}`
-
 export function CustomNodeOptionsExample() {
   return (
-    <ExamplePreview title="With custom node select options" code={code}>
+    <ExampleFrame>
       <WorkflowEditor
         definitions={builtinDefinitions}
         initialGraph={initialGraph}
@@ -146,6 +114,6 @@ export function CustomNodeOptionsExample() {
           nodeOptions,
         }}
       />
-    </ExamplePreview>
+    </ExampleFrame>
   )
 }

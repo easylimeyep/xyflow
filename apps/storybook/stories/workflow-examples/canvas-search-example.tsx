@@ -12,7 +12,7 @@ import {
   type WorkflowSearchPosition,
 } from "@flow/flow"
 
-import { ExamplePreview } from "./example-preview"
+import { ExampleFrame } from "./example-frame"
 
 const regions = ["north", "south", "east", "west", "central", "coast"] as const
 
@@ -117,28 +117,6 @@ const graphInput: InitialGraphInput = {
   },
 }
 
-const code = `import { WorkflowEditor, builtinDefinitions } from "@flow/flow"
-
-// Search is part of the default composition: focus the editor and press
-// Cmd+F (Ctrl+F elsewhere). Enter / Shift+Enter step through every
-// occurrence; Escape closes. Click the "N / M" counter to list every match,
-// grouped by node, with case, whole-word and source filters.
-// In a custom layout, place it inside the canvas so it floats over it:
-export function Example() {
-  return (
-    <WorkflowEditor definitions={builtinDefinitions} initialGraph={graph}>
-      <WorkflowEditor.Body>
-        <WorkflowEditor.Canvas>
-          {/* position: top-left | top-center | top-right (default) |
-              center-left | center-right | bottom-left | bottom-center |
-              bottom-right */}
-          <WorkflowEditor.Search position="top-right" />
-        </WorkflowEditor.Canvas>
-      </WorkflowEditor.Body>
-    </WorkflowEditor>
-  )
-}`
-
 /**
  * Opens the search with a query already typed, so the story shows marks, and
  * optionally expands the results panel under the bar.
@@ -212,10 +190,7 @@ export function CanvasSearchExample({
   }, [])
 
   return (
-    <ExamplePreview
-      title="Canvas search: press Cmd+F / Ctrl+F inside the editor"
-      code={code}
-    >
+    <ExampleFrame>
       {graph == null ? (
         <div className="flex min-h-0 flex-1 items-center justify-center bg-gray-50 text-sm text-gray-500">
           Computing ELK layout...
@@ -238,6 +213,6 @@ export function CanvasSearchExample({
           </WorkflowEditor.Body>
         </WorkflowEditor>
       )}
-    </ExamplePreview>
+    </ExampleFrame>
   )
 }
