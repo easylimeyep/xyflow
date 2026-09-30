@@ -5,7 +5,7 @@ import userEvent from "@testing-library/user-event"
 import type { ReactNode, Ref } from "react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import { WorkflowEditor } from "./workflow-editor"
+import { WorkflowEditor, useWorkflowLayout } from "./workflow-editor"
 import { exportSelectionClipboardJson } from "../../mappers"
 import type { WorkflowEditorAnchorRefs } from "../../tour"
 import type { DomainWorkflowNodeDTO } from "../../types"
@@ -191,6 +191,41 @@ function QuickAddControls() {
     >
       test-start-quick-add
     </button>
+  )
+}
+
+function EdgeInsertControls() {
+  const startEdgeInsertFromEdge = WorkflowEditor.use.store(
+    (state) => state.startEdgeInsertFromEdge
+  )
+  const firstEdgeId = WorkflowEditor.use.store(
+    (state) => state.history.present.edges[0]?.id
+  )
+
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        if (firstEdgeId) {
+          startEdgeInsertFromEdge(firstEdgeId)
+        }
+      }}
+    >
+      test-start-edge-insert
+    </button>
+  )
+}
+
+function LayoutProbe() {
+  const { isPaletteOpen, isPaletteVisible } = useWorkflowLayout()
+
+  return (
+    <>
+      <span data-testid="layout-palette-open">{String(isPaletteOpen)}</span>
+      <span data-testid="layout-palette-visible">
+        {String(isPaletteVisible)}
+      </span>
+    </>
   )
 }
 
@@ -579,21 +614,183 @@ describe("WorkflowEditor wiring", () => {
     )
   })
 
-  it("re-opens hidden palette when quick add starts", async () => {
-    const user = userEvent.setup()
-    renderCustomEditor(<QuickAddControls />)
+  describe("transient palette during insertion", () => {
+    async function closePalette(user: ReturnType<typeof userEvent.setup>) {
+      await user.click(
+        screen.getByRole("button", { name: "Hide node palette" })
+      )
+      expect(screen.getByTestId("palette-open").textContent).toBe("false")
+    }
 
-    expect(screen.getByTestId("palette-open").textContent).toBe("true")
-    await user.click(screen.getByRole("button", { name: "Hide node palette" }))
-    expect(screen.getByTestId("palette-open").textContent).toBe("false")
+    it("shows a closed palette for a quick add and hides it after a kind is picked", async () => {
+      const user = userEvent.setup()
+      renderCustomEditor(<QuickAddControls />)
+      await closePalette(user)
 
-    await user.click(
-      screen.getByRole("button", { name: "test-start-quick-add" })
-    )
-    expect(screen.getByTestId("palette-open").textContent).toBe("true")
-    expect(screen.getByTestId("palette-quick-add-active").textContent).toBe(
-      "true"
-    )
+      await user.click(
+        screen.getByRole("button", { name: "test-start-quick-add" })
+      )
+      expect(screen.getByTestId("palette-open").textContent).toBe("true")
+
+      await user.click(screen.getByRole("button", { name: "palette-add-node" }))
+      expect(screen.getByTestId("palette-open").textContent).toBe("false")
+    })
+
+    it("hides a transiently shown palette when the quick add is cancelled", async () => {
+      const user = userEvent.setup()
+      renderCustomEditor(<QuickAddControls />)
+      await closePalette(user)
+
+      await user.click(
+        screen.getByRole("button", { name: "test-start-quick-add" })
+      )
+      await user.keyboard("{Escape}")
+
+      expect(screen.getByTestId("palette-open").textContent).toBe("false")
+    })
+
+    it("shows a closed palette for an edge insert and hides it on cancel", async () => {
+      const user = userEvent.setup()
+      renderCustomEditor(
+        <>
+          <QuickAddControls />
+          <EdgeInsertControls />
+        </>
+      )
+      await closePalette(user)
+      // The sample graph has no edges; a completed quick-add wires one.
+      await user.click(
+        screen.getByRole("button", { name: "test-start-quick-add" })
+      )
+      await user.click(screen.getByRole("button", { name: "palette-add-node" }))
+      expect(screen.getByTestId("palette-open").textContent).toBe("false")
+
+      await user.click(
+        screen.getByRole("button", { name: "test-start-edge-insert" })
+      )
+      expect(screen.getByTestId("palette-open").textContent).toBe("true")
+
+      await user.click(
+        screen.getByRole("button", { name: "canvas-pane-click" })
+      )
+      expect(screen.getByTestId("palette-open").textContent).toBe("false")
+    })
+
+    it("hides a palette borrowed by an edge insert once a kind is picked or on Escape", async () => {
+      const user = userEvent.setup()
+      renderCustomEditor(
+        <>
+          <QuickAddControls />
+          <EdgeInsertControls />
+        </>
+      )
+      await closePalette(user)
+      // The sample graph has no edges; a completed quick-add wires one.
+      await user.click(
+        screen.getByRole("button", { name: "test-start-quick-add" })
+      )
+      await user.click(screen.getByRole("button", { name: "palette-add-node" }))
+
+      await user.click(
+        screen.getByRole("button", { name: "test-start-edge-insert" })
+      )
+      const beforePick = Number(
+        screen.getByTestId("canvas-node-count").textContent
+      )
+      await user.click(screen.getByRole("button", { name: "palette-add-node" }))
+      expect(Number(screen.getByTestId("canvas-node-count").textContent)).toBe(
+        beforePick + 1
+      )
+      expect(screen.getByTestId("palette-open").textContent).toBe("false")
+
+      await user.click(
+        screen.getByRole("button", { name: "test-start-edge-insert" })
+      )
+      expect(screen.getByTestId("palette-open").textContent).toBe("true")
+      await user.keyboard("{Escape}")
+      expect(screen.getByTestId("palette-open").textContent).toBe("false")
+    })
+
+    it("keeps an open palette open after a quick add", async () => {
+      const user = userEvent.setup()
+      renderCustomEditor(<QuickAddControls />)
+
+      await user.click(
+        screen.getByRole("button", { name: "test-start-quick-add" })
+      )
+      await user.click(screen.getByRole("button", { name: "palette-add-node" }))
+
+      expect(screen.getByTestId("palette-open").textContent).toBe("true")
+    })
+
+    it("shows a host-closed palette for the duration of a quick add", async () => {
+      const user = userEvent.setup()
+      render(
+        <WorkflowEditor
+          initialGraph={createKeywordSampleGraph(builtinBaseDefinitions)}
+          definitions={builtinBaseDefinitions}
+        >
+          <QuickAddControls />
+          <WorkflowEditor.Body>
+            <WorkflowEditor.Palette open={false} />
+            <WorkflowEditor.Canvas />
+          </WorkflowEditor.Body>
+        </WorkflowEditor>
+      )
+      expect(screen.getByTestId("palette-open").textContent).toBe("false")
+
+      await user.click(
+        screen.getByRole("button", { name: "test-start-quick-add" })
+      )
+      expect(screen.getByTestId("palette-open").textContent).toBe("true")
+
+      await user.keyboard("{Escape}")
+      expect(screen.getByTestId("palette-open").textContent).toBe("false")
+    })
+
+    it("reports intent and visibility separately through useWorkflowLayout", async () => {
+      const user = userEvent.setup()
+      renderCustomEditor(
+        <>
+          <QuickAddControls />
+          <LayoutProbe />
+        </>
+      )
+      await closePalette(user)
+
+      await user.click(
+        screen.getByRole("button", { name: "test-start-quick-add" })
+      )
+
+      expect(screen.getByTestId("layout-palette-open").textContent).toBe(
+        "false"
+      )
+      expect(screen.getByTestId("layout-palette-visible").textContent).toBe(
+        "true"
+      )
+    })
+
+    it("pins a transiently shown palette through the toggle without cancelling the quick add", async () => {
+      const user = userEvent.setup()
+      renderCustomEditor(<QuickAddControls />)
+      await closePalette(user)
+
+      await user.click(
+        screen.getByRole("button", { name: "test-start-quick-add" })
+      )
+      await user.click(
+        screen.getByRole("button", { name: "Show node palette" })
+      )
+      expect(screen.getByTestId("palette-quick-add-active").textContent).toBe(
+        "true"
+      )
+
+      await user.click(screen.getByRole("button", { name: "palette-add-node" }))
+      expect(screen.getByTestId("palette-open").textContent).toBe("true")
+      expect(
+        screen.getByRole("button", { name: "Hide node palette" })
+      ).toBeTruthy()
+    })
   })
 
   it("cancels quick add through escape without changing canvas graph", async () => {

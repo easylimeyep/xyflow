@@ -34,6 +34,15 @@ export const nodePaletteStyles = tv({
       inline: {},
     },
   },
+  compoundVariants: [
+    {
+      // A quick-add borrows the floating palette without moving the floating
+      // search (z-30) out of its way, so the palette covers it while picking.
+      placement: "floating",
+      quickAddActive: true,
+      class: { aside: "z-40" },
+    },
+  ],
   defaultVariants: {
     quickAddActive: false,
     placement: "floating",

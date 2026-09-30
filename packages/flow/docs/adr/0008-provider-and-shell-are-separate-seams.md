@@ -115,3 +115,20 @@ inferring it from where it happens to land in the row.
   one consumer inside the repo that visual review and the story suite cover —
   the same load-bearing role ADR-0007 assigned the e2e suite for anything that
   touches host layout.
+
+## Addendum: palette intent vs. visibility
+
+`isPaletteOpen` used to be forced to `true` whenever a quick-add or edge-insert
+started, so one quick-add silently reopened a palette the user had closed. The
+flag now means only the user's choice and changes only through
+`setIsPaletteOpen` (or a host's `WorkflowEditor.Palette open`). A pending
+insertion borrows the palette instead: `useWorkflowLayout()` also returns
+`isPaletteVisible`, which is `isPaletteOpen || quickAddActive`, so the hook
+shape is `{ isPaletteOpen, setIsPaletteOpen, isPaletteVisible, quickAddActive,
+mode }`.
+
+A toggle, built-in or host-owned, reads and writes `isPaletteOpen`. Clicking it
+while the palette is only borrowed therefore pins it open without cancelling
+the insertion. Reserving room for the palette, as the floating search does,
+follows `isPaletteOpen` too, so nothing shifts on each quick-add; the borrowed
+floating palette is stacked above the search instead.

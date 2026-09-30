@@ -370,6 +370,51 @@ describe("WorkflowEditor search composition", () => {
     ).toBe("bottom-center")
   })
 
+  it("keeps its place when a quick add borrows a closed palette", async () => {
+    const user = userEvent.setup()
+    function QuickAddTrigger() {
+      const startQuickAddFromOutput = WorkflowEditor.use.store(
+        (state) => state.startQuickAddFromOutput
+      )
+      return (
+        <button type="button" onClick={() => startQuickAddFromOutput("a")}>
+          test-start-quick-add
+        </button>
+      )
+    }
+    render(
+      <WorkflowEditor initialGraph={graph} definitions={builtinBaseDefinitions}>
+        <QuickAddTrigger />
+        <WorkflowEditor.Body>
+          <WorkflowEditor.Palette />
+          <WorkflowEditor.Canvas />
+          <WorkflowEditor.Search />
+        </WorkflowEditor.Body>
+      </WorkflowEditor>
+    )
+    pressModF(screen.getByText("canvas-focus-target"))
+    const searchClass = () =>
+      screen.getByTestId("workflow-search").className
+    const besideOpenPalette = searchClass()
+
+    await user.click(screen.getByRole("button", { name: "Hide node palette" }))
+    const clearOfPalette = searchClass()
+    expect(clearOfPalette).not.toBe(besideOpenPalette)
+
+    await user.click(
+      screen.getByRole("button", { name: "test-start-quick-add" })
+    )
+
+    const borrowedPalette = screen.getByRole("complementary", {
+      name: "Node palette",
+    })
+    expect(borrowedPalette).toHaveProperty("dataset.state", "open")
+    expect(searchClass()).toBe(clearOfPalette)
+    // The search stays put, so the borrowed palette covers it instead.
+    expect(searchClass()).toContain("z-30")
+    expect(borrowedPalette.className).toContain("z-40")
+  })
+
   it("is exposed as WorkflowEditor.Search", () => {
     expect(WorkflowEditor.Search).toBeTypeOf("function")
   })

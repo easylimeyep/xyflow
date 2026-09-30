@@ -65,6 +65,7 @@ import { useWorkflowEditorAnchorRef } from "../../tour/anchors"
 interface WorkflowEditorLayoutContextValue {
   isPaletteOpen: boolean
   setIsPaletteOpen: (nextOpen: boolean) => void
+  isPaletteVisible: boolean
   quickAddActive: boolean
   mode: WorkflowCanvasMode
   autoLayoutOnInit?: "after-measure"
@@ -94,10 +95,19 @@ function useWorkflowEditorLayoutContext() {
  * facts the built-in parts read instead of re-deriving them from the store.
  */
 export interface WorkflowLayout {
-  /** Whether the node palette is currently open. */
+  /**
+   * The user's open choice for the node palette, changed only by a toggle.
+   * A pending quick-add borrows the palette without touching it; read
+   * `isPaletteVisible` for what is on screen.
+   */
   isPaletteOpen: boolean
   /** Open or close the node palette. */
   setIsPaletteOpen: (open: boolean) => void
+  /**
+   * Whether the node palette is on screen: open by choice, or shown for the
+   * duration of a pending quick-add or edge-insert.
+   */
+  isPaletteVisible: boolean
   /** True while a quick-add or edge-insert is waiting for a node kind. */
   quickAddActive: boolean
   /** The editor's interaction mode. */
@@ -116,8 +126,20 @@ export function useWorkflowLayout(): WorkflowLayout {
     )
   }
 
-  const { isPaletteOpen, setIsPaletteOpen, quickAddActive, mode } = context
-  return { isPaletteOpen, setIsPaletteOpen, quickAddActive, mode }
+  const {
+    isPaletteOpen,
+    setIsPaletteOpen,
+    isPaletteVisible,
+    quickAddActive,
+    mode,
+  } = context
+  return {
+    isPaletteOpen,
+    setIsPaletteOpen,
+    isPaletteVisible,
+    quickAddActive,
+    mode,
+  }
 }
 
 function useUndoRedoHotkeys(
@@ -261,11 +283,9 @@ function WorkflowEditorLayoutProvider({
     cancelEdgeInsert()
   }, editingEnabled)
 
-  useEffect(() => {
-    if (quickAddActive) {
-      setIsPaletteOpen(true)
-    }
-  }, [quickAddActive])
+  // A pending insertion borrows the palette as its picker, so it is derived
+  // here rather than written into the user's open choice.
+  const isPaletteVisible = isPaletteOpen || quickAddActive
 
   // The canvas and the search bar hand their imperative entry points over
   // through refs: the search may render outside the React Flow provider, and
@@ -291,6 +311,7 @@ function WorkflowEditorLayoutProvider({
       value={{
         isPaletteOpen,
         setIsPaletteOpen,
+        isPaletteVisible,
         quickAddActive,
         mode,
         autoLayoutOnInit,
@@ -625,6 +646,9 @@ export function WorkflowEditorPalette({
     return null
   }
 
+  const quickAddActive =
+    layout?.quickAddActive ?? Boolean(quickAddPending || edgeInsertPending)
+
   const addNodeAtDefaultPosition = (kind: NodeKind) => {
     if (quickAddPending) {
       confirmQuickAddNode(kind)
@@ -642,10 +666,10 @@ export function WorkflowEditorPalette({
   return (
     <NodePalette
       onAddNode={addNodeAtDefaultPosition}
-      quickAddActive={
-        layout?.quickAddActive ?? Boolean(quickAddPending || edgeInsertPending)
-      }
-      isOpen={open ?? layout?.isPaletteOpen ?? true}
+      quickAddActive={quickAddActive}
+      // A host's `open` is its open choice, like the toggle's; a pending
+      // insertion shows the palette over it either way.
+      isOpen={(open ?? layout?.isPaletteOpen ?? true) || quickAddActive}
       anchorRefs={layout?.anchorRefs}
       className={className}
       placement={placement}

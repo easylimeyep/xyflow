@@ -68,20 +68,30 @@ const initialGraph = createInitialGraph(builtinDefinitions, {
 /**
  * A palette toggle the host owns, reading the same layout state the built-in
  * parts read via `useWorkflowLayout` — no store selectors, no prop drilling.
+ * The label follows the user's choice (`isPaletteOpen`); a quick-add can still
+ * show a closed palette for a moment (`isPaletteVisible`), and clicking then
+ * pins it open.
  */
 function PaletteToggle() {
-  const { isPaletteOpen, setIsPaletteOpen } = useWorkflowLayout()
+  const { isPaletteOpen, isPaletteVisible, setIsPaletteOpen } =
+    useWorkflowLayout()
+  const isBorrowed = isPaletteVisible && !isPaletteOpen
 
   return (
-    <Button
-      type="button"
-      variant="outline"
-      size="sm"
-      onClick={() => setIsPaletteOpen(!isPaletteOpen)}
-    >
-      <PanelLeftIcon />
-      {isPaletteOpen ? "Hide palette" : "Show palette"}
-    </Button>
+    <div className="flex items-center gap-2">
+      {isBorrowed ? (
+        <span className="text-xs text-gray-500">Shown for quick add</span>
+      ) : null}
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={() => setIsPaletteOpen(!isPaletteOpen)}
+      >
+        <PanelLeftIcon />
+        {isPaletteOpen ? "Hide palette" : "Show palette"}
+      </Button>
+    </div>
   )
 }
 
@@ -98,7 +108,11 @@ export function ProviderLayoutExample() {
             <PaletteToggle />
           </header>
           <div className="flex min-h-0">
-            <WorkflowEditor.Palette placement="inline" />
+            {/* Inline, the host decides what "closed" looks like. */}
+            <WorkflowEditor.Palette
+              placement="inline"
+              className="data-[state=closed]:hidden"
+            />
             <WorkflowEditor.Canvas />
             <WorkflowEditor.ConfigPanel side="right" />
           </div>
