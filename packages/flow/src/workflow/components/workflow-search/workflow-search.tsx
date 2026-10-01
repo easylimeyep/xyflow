@@ -27,7 +27,12 @@ import {
   useWorkflowShallowStore,
   type WorkflowStoreState,
 } from "../../store"
+import { SearchActionTooltip } from "./search-action-tooltip"
 import { SearchResultsPanel } from "./search-results-panel"
+
+const NEXT_MATCH_SHORTCUT = ["Enter"]
+const PREVIOUS_MATCH_SHORTCUT = ["Shift", "Enter"]
+const CLOSE_SHORTCUT = ["Esc"]
 
 export type { WorkflowSearchPosition }
 
@@ -266,82 +271,106 @@ export function WorkflowSearch({
           onChange={(event) => setSearchQuery(event.target.value)}
           onKeyDown={onKeyDown}
         />
-        <Toggle
-          size="sm"
-          className={styles.option()}
-          aria-label="Match case"
-          isSelected={matchCase}
-          onChange={(value) => setSearchOption("matchCase", value)}
+        <SearchActionTooltip label="Match case">
+          <Toggle
+            size="sm"
+            className={styles.option()}
+            aria-label="Match case"
+            isSelected={matchCase}
+            onChange={(value) => setSearchOption("matchCase", value)}
+          >
+            Aa
+          </Toggle>
+        </SearchActionTooltip>
+        <SearchActionTooltip label="Match whole word">
+          <Toggle
+            size="sm"
+            className={styles.option()}
+            aria-label="Match whole word"
+            isSelected={wholeWord}
+            onChange={(value) => setSearchOption("wholeWord", value)}
+          >
+            ab
+          </Toggle>
+        </SearchActionTooltip>
+        <SearchActionTooltip
+          label={isResultsOpen ? "Hide all matches" : "Show all matches"}
         >
-          Aa
-        </Toggle>
-        <Toggle
-          size="sm"
-          className={styles.option()}
-          aria-label="Match whole word"
-          isSelected={wholeWord}
-          onChange={(value) => setSearchOption("wholeWord", value)}
-        >
-          ab
-        </Toggle>
-        <Button
-          size="sm"
-          variant="ghost"
-          className={styles.counter()}
-          aria-expanded={isResultsOpen}
-          aria-controls={isResultsOpen ? panelId : undefined}
-          aria-label={describeCounter(counter, total, currentIndex, isFiltered)}
-          onPress={toggleSearchResults}
-          data-testid="workflow-search-counter"
-        >
-          {counter || <ListIcon aria-hidden />}
-          {isFiltered ? (
-            <span
-              className={styles.filterDot()}
-              aria-hidden
-              data-testid="workflow-search-filtered"
-            />
-          ) : null}
-        </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className={styles.counter()}
+            aria-expanded={isResultsOpen}
+            aria-controls={isResultsOpen ? panelId : undefined}
+            aria-label={describeCounter(
+              counter,
+              total,
+              currentIndex,
+              isFiltered
+            )}
+            onPress={toggleSearchResults}
+            data-testid="workflow-search-counter"
+          >
+            {counter || <ListIcon aria-hidden />}
+            {isFiltered ? (
+              <span
+                className={styles.filterDot()}
+                aria-hidden
+                data-testid="workflow-search-filtered"
+              />
+            ) : null}
+          </Button>
+        </SearchActionTooltip>
         <span className={styles.liveRegion()} aria-live="polite">
           {counter}
         </span>
         <span className={styles.divider()} aria-hidden />
-        <Button
-          size="icon-sm"
-          variant="ghost"
-          aria-label="Previous match"
-          isDisabled={!hasMatches}
-          onPress={searchPrev}
+        <SearchActionTooltip
+          label="Previous match"
+          shortcut={PREVIOUS_MATCH_SHORTCUT}
         >
-          <ChevronUpIcon />
-        </Button>
-        <Button
-          size="icon-sm"
-          variant="ghost"
-          aria-label="Next match"
-          isDisabled={!hasMatches}
-          onPress={searchNext}
-        >
-          <ChevronDownIcon />
-        </Button>
-        <Button
-          size="icon-sm"
-          variant="ghost"
-          aria-label="Select node"
-          isDisabled={!hasMatches}
-          onPress={selectCurrentSearchNode}
-        >
-          <CrosshairIcon />
-        </Button>
-        <Button
-          size="icon-sm"
-          variant="ghost"
-          aria-label="Close search"
-          onPress={close}
-        >
-          <XIcon />
-        </Button>
+          <Button
+            size="icon-sm"
+            variant="ghost"
+            aria-label="Previous match"
+            isDisabled={!hasMatches}
+            onPress={searchPrev}
+          >
+            <ChevronUpIcon />
+          </Button>
+        </SearchActionTooltip>
+        <SearchActionTooltip label="Next match" shortcut={NEXT_MATCH_SHORTCUT}>
+          <Button
+            size="icon-sm"
+            variant="ghost"
+            aria-label="Next match"
+            isDisabled={!hasMatches}
+            onPress={searchNext}
+          >
+            <ChevronDownIcon />
+          </Button>
+        </SearchActionTooltip>
+        <SearchActionTooltip label="Select node">
+          <Button
+            size="icon-sm"
+            variant="ghost"
+            aria-label="Select node"
+            isDisabled={!hasMatches}
+            onPress={selectCurrentSearchNode}
+          >
+            <CrosshairIcon />
+          </Button>
+        </SearchActionTooltip>
+        <SearchActionTooltip label="Close search" shortcut={CLOSE_SHORTCUT}>
+          <Button
+            size="icon-sm"
+            variant="ghost"
+            aria-label="Close search"
+            onPress={close}
+          >
+            <XIcon />
+          </Button>
+        </SearchActionTooltip>
       </div>
       {isResultsOpen ? (
         <SearchResultsPanel

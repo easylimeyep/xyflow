@@ -123,6 +123,19 @@ async function openAndSearch(query: string) {
 
 const counter = () => screen.getByTestId("workflow-search-counter").textContent
 
+/**
+ * Hovers a find-bar control the way a mouse reaches it: typing leaves the
+ * interaction modality on the keyboard, and the tooltip only opens on hover
+ * once a pointer has moved.
+ */
+async function hoverControl(
+  user: ReturnType<typeof userEvent.setup>,
+  control: Element
+) {
+  await user.hover(screen.getByTestId("workflow-search"))
+  await user.hover(control)
+}
+
 describe("WorkflowEditor search", () => {
   afterEach(() => {
     cleanup()
@@ -265,6 +278,33 @@ describe("WorkflowEditor search", () => {
 
     expect(screen.queryByTestId("workflow-search")).toBeNull()
   })
+
+  it.each([
+    ["Match case", "Match case"],
+    ["Match whole word", "Match whole word"],
+    ["Previous match", "Previous matchShiftEnter"],
+    ["Next match", "Next matchEnter"],
+    ["Select node", "Select node"],
+    ["Close search", "Close searchEsc"],
+  ])("explains the %s button in a tooltip", async (name, text) => {
+    renderEditor()
+    const user = await openAndSearch("price")
+
+    await hoverControl(user, screen.getByRole("button", { name }))
+
+    expect((await screen.findByRole("tooltip")).textContent).toBe(text)
+  })
+
+  it("explains what the counter toggles in a tooltip", async () => {
+    renderEditor()
+    const user = await openAndSearch("price")
+
+    await hoverControl(user, screen.getByTestId("workflow-search-counter"))
+
+    expect((await screen.findByRole("tooltip")).textContent).toBe(
+      "Show all matches"
+    )
+  })
 })
 
 describe("WorkflowEditor search focus", () => {
@@ -393,8 +433,7 @@ describe("WorkflowEditor search composition", () => {
       </WorkflowEditor>
     )
     pressModF(screen.getByText("canvas-focus-target"))
-    const searchClass = () =>
-      screen.getByTestId("workflow-search").className
+    const searchClass = () => screen.getByTestId("workflow-search").className
     const besideOpenPalette = searchClass()
 
     await user.click(screen.getByRole("button", { name: "Hide node palette" }))
