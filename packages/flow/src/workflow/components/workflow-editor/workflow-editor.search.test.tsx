@@ -410,6 +410,52 @@ describe("WorkflowEditor search composition", () => {
     ).toBe("bottom-center")
   })
 
+  it("unfolds inside a mounted toolbar unless given a position", async () => {
+    const user = userEvent.setup()
+    const { unmount } = render(
+      <WorkflowEditor initialGraph={graph} definitions={builtinBaseDefinitions}>
+        <WorkflowEditor.Body>
+          <WorkflowEditor.Canvas>
+            <WorkflowEditor.Toolbar />
+            <WorkflowEditor.Search />
+          </WorkflowEditor.Canvas>
+        </WorkflowEditor.Body>
+      </WorkflowEditor>
+    )
+    const toolbar = screen.getByTestId("editor-toolbar")
+
+    await user.click(screen.getByRole("button", { name: "Search" }))
+
+    const search = screen.getByTestId("workflow-search")
+    expect(toolbar.contains(search)).toBe(true)
+    expect(search.getAttribute("data-position")).toBeNull()
+    expect(screen.queryByRole("button", { name: "Undo" })).toBeNull()
+
+    await user.keyboard("{Escape}")
+    expect(screen.queryByTestId("workflow-search")).toBeNull()
+    expect(screen.getByRole("button", { name: "Undo" })).toBeTruthy()
+    unmount()
+
+    render(
+      <WorkflowEditor initialGraph={graph} definitions={builtinBaseDefinitions}>
+        <WorkflowEditor.Body>
+          <WorkflowEditor.Canvas>
+            <WorkflowEditor.Toolbar />
+            <WorkflowEditor.Search position="top-left" />
+          </WorkflowEditor.Canvas>
+        </WorkflowEditor.Body>
+      </WorkflowEditor>
+    )
+    pressModF(screen.getByText("canvas-focus-target"))
+
+    expect(
+      screen
+        .getByTestId("editor-toolbar")
+        .contains(screen.getByTestId("workflow-search"))
+    ).toBe(false)
+    expect(screen.getByRole("button", { name: "Undo" })).toBeTruthy()
+  })
+
   it("keeps its place when a quick add borrows a closed palette", async () => {
     const user = userEvent.setup()
     function QuickAddTrigger() {

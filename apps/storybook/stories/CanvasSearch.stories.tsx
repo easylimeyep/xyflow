@@ -35,6 +35,10 @@ export const ResultsPanel: Story = {
   args: { initialQuery: "price", showResults: true },
 }
 
+export const ResultsPanelTopRight: Story = {
+  args: { initialQuery: "price", showResults: true, position: "top-right" },
+}
+
 export const ResultsPanelAtBottom: Story = {
   args: { initialQuery: "price", showResults: true, position: "bottom-center" },
 }

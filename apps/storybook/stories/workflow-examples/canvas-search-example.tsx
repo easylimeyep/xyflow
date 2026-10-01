@@ -160,14 +160,17 @@ export interface CanvasSearchExampleProps {
   initialQuery: string
   /** Expands the results panel under the bar on mount. */
   showResults?: boolean
-  /** Where the floating bar sits over the canvas. */
+  /**
+   * Where the floating bar sits over the canvas; unset, it unfolds inside the
+   * editor toolbar.
+   */
   position?: WorkflowSearchPosition
 }
 
 export function CanvasSearchExample({
   initialQuery,
   showResults = false,
-  position = "top-right",
+  position,
 }: CanvasSearchExampleProps) {
   const [graph, setGraph] = useState<
     WorkflowEditorProps["initialGraph"] | null

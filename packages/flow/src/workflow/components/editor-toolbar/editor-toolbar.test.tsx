@@ -112,4 +112,32 @@ describe("EditorToolbar", () => {
     await user.click(toggle)
     expect(onOpenChange).toHaveBeenCalledWith(false)
   })
+
+  it("mounts the search host, hidden, whether or not search is offered", () => {
+    const searchHostRef = vi.fn()
+    renderToolbar({ searchHostRef })
+
+    const host = screen.getByTestId("editor-toolbar-search-host")
+    expect(searchHostRef).toHaveBeenCalledWith(host)
+    expect(host.hidden).toBe(true)
+  })
+
+  it("trades its actions for the embedded search while it is open", async () => {
+    const search = { isOpen: true, isEmbedded: true, onOpenChange: vi.fn() }
+    renderToolbar({ search })
+
+    const host = screen.getByTestId("editor-toolbar-search-host")
+    expect(host.hidden).toBe(false)
+    expect(screen.queryByRole("button", { name: "Undo" })).toBeNull()
+    expect(screen.queryByRole("button", { name: "Copy all nodes" })).toBeNull()
+  })
+
+  it("keeps its actions while an open search renders elsewhere", () => {
+    renderToolbar({
+      search: { isOpen: true, isEmbedded: false, onOpenChange: vi.fn() },
+    })
+
+    expect(screen.getByTestId("editor-toolbar-search-host").hidden).toBe(true)
+    expect(screen.getByRole("button", { name: "Undo" })).toBeTruthy()
+  })
 })

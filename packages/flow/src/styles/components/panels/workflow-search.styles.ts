@@ -51,6 +51,10 @@ export const workflowSearchStyles = tv({
       inline: {
         root: "w-full",
       },
+      // Rendered inside the editor toolbar, which supplies the surface.
+      toolbar: {
+        root: "w-[min(440px,calc(100cqw-2rem))] rounded-none border-0 bg-transparent shadow-none backdrop-blur-none",
+      },
     },
     empty: {
       true: {

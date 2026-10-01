@@ -12,6 +12,7 @@ import {
   type PropsWithChildren,
   type ReactNode,
 } from "react"
+import { createPortal } from "react-dom"
 
 import { useHistory } from "@ez-kit/zu-store"
 import type { XYPosition } from "@xyflow/react"
@@ -86,6 +87,12 @@ interface WorkflowEditorLayoutContextValue {
   /** True while a floating `WorkflowEditor.Toolbar` holds the top edge. */
   hasFloatingToolbar: boolean
   setHasFloatingToolbar: (hasToolbar: boolean) => void
+  /** The element inside a mounted `WorkflowEditor.Toolbar` that can hold the search bar. */
+  toolbarSearchHost: HTMLElement | null
+  setToolbarSearchHost: (host: HTMLElement | null) => void
+  /** True while `WorkflowEditor.Search` renders into `toolbarSearchHost`. */
+  isSearchInToolbar: boolean
+  setIsSearchInToolbar: (isInToolbar: boolean) => void
   setFocusSearch: (focus: (() => void) | null) => void
 }
 
@@ -308,6 +315,9 @@ function WorkflowEditorLayoutProvider({
   const focusSearchRef = useRef<(() => void) | null>(null)
   const [isSearchAvailable, setIsSearchAvailable] = useState(false)
   const [hasFloatingToolbar, setHasFloatingToolbar] = useState(false)
+  const [toolbarSearchHost, setToolbarSearchHost] =
+    useState<HTMLElement | null>(null)
+  const [isSearchInToolbar, setIsSearchInToolbar] = useState(false)
   const setFocusSearch = useCallback((next: (() => void) | null) => {
     focusSearchRef.current = next
     setIsSearchAvailable(next != null)
@@ -336,6 +346,10 @@ function WorkflowEditorLayoutProvider({
         isSearchAvailable,
         hasFloatingToolbar,
         setHasFloatingToolbar,
+        toolbarSearchHost,
+        setToolbarSearchHost,
+        isSearchInToolbar,
+        setIsSearchInToolbar,
         setFocusSearch,
       }}
     >
@@ -575,12 +589,14 @@ export function WorkflowEditorToolbar({
         isOpen: isSearchOpen,
         onOpenChange: (isOpen: boolean) =>
           isOpen ? openSearch() : closeSearch(),
+        isEmbedded: layout.isSearchInToolbar,
       }
     : undefined
 
   return (
     <EditorToolbar
       anchorRef={toolbarRef}
+      searchHostRef={layout?.setToolbarSearchHost}
       placement={placement}
       showHistory={layout?.mode !== "observe"}
       search={search}
@@ -880,9 +896,13 @@ export interface WorkflowEditorSearchProps {
    */
   placement?: "floating" | "inline"
   /**
-   * Where a floating bar sits: `top-left`, `top-center`, `top-right`
-   * (default), `center-left`, `center-right`, `bottom-left`, `bottom-center`
-   * or `bottom-right`. Along the bottom edge the results open upwards.
+   * Where a floating bar sits: `top-left`, `top-center`, `top-right`,
+   * `center-left`, `center-right`, `bottom-left`, `bottom-center` or
+   * `bottom-right`. Along the bottom edge the results open upwards.
+   *
+   * Left unset, the bar unfolds inside a mounted `WorkflowEditor.Toolbar`,
+   * taking the place of its actions while open, and falls back to
+   * `top-right` without one.
    */
   position?: WorkflowSearchPosition
   /** Extra classes for the search bar's root element, merged into the package's own. */
@@ -899,12 +919,25 @@ export function WorkflowEditorSearch({
   className,
 }: WorkflowEditorSearchProps = {}) {
   const layout = useWorkflowEditorLayoutContext()
+  const toolbarHost =
+    placement !== "inline" && position == null
+      ? (layout?.toolbarSearchHost ?? null)
+      : null
+  const setIsSearchInToolbar = layout?.setIsSearchInToolbar
+  const isInToolbar = toolbarHost != null
+  useEffect(() => {
+    if (!isInToolbar || !setIsSearchInToolbar) {
+      return
+    }
+    setIsSearchInToolbar(true)
+    return () => setIsSearchInToolbar(false)
+  }, [isInToolbar, setIsSearchInToolbar])
 
-  return (
+  const search = (
     <WorkflowSearch
       onRevealNode={layout?.revealNode}
       onRegisterFocus={layout?.setFocusSearch}
-      placement={placement}
+      placement={toolbarHost ? "toolbar" : placement}
       position={position}
       // The palette is withheld while observing, whatever its open flag says.
       besidePalette={layout?.mode === "edit" && layout.isPaletteOpen}
@@ -912,6 +945,8 @@ export function WorkflowEditorSearch({
       className={className}
     />
   )
+
+  return toolbarHost ? createPortal(search, toolbarHost) : search
 }
 
 export interface WorkflowEditorConfigPanelProps {

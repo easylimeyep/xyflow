@@ -47,9 +47,10 @@ export interface WorkflowSearchProps {
   onRegisterFocus?: (focus: (() => void) | null) => void
   /**
    * `floating` pins the bar over the top-right of the canvas; `inline` renders
-   * it in flow for a host that gives it a place in its own layout.
+   * it in flow for a host that gives it a place in its own layout; `toolbar`
+   * drops its own surface, for a bar rendered inside the editor toolbar.
    */
-  placement?: "floating" | "inline"
+  placement?: "floating" | "inline" | "toolbar"
   /**
    * Where a `floating` bar sits over the canvas: a corner, the middle of the
    * top or bottom edge, or the middle of the left or right edge. Defaults to
@@ -260,7 +261,9 @@ export function WorkflowSearch({
       aria-label="Search workflow"
       className={styles.root({ class: className })}
       data-position={
-        placement === "inline" ? undefined : (position ?? "top-right")
+        placement === "inline" || placement === "toolbar"
+          ? undefined
+          : (position ?? "top-right")
       }
       data-testid="workflow-search"
     >
