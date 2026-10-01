@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest"
 
 import type { EvaluatorCondition, JsonValue } from "../../../types"
-import { refactorEvaluatorConfigValue } from "./config"
+import {
+  describeEvaluatorExpressionField,
+  refactorEvaluatorConfigValue,
+} from "./config"
 
 /** Conditions as the config holds them: plain JSON. */
 function asConfig(conditions: EvaluatorCondition[]): JsonValue {
@@ -144,5 +147,37 @@ describe("refactorEvaluatorConfigValue", () => {
     ["conditions", [{ broken: true }]],
   ])("leaves key %j with value %j untouched", (key, value) => {
     expect(refactorEvaluatorConfigValue(key, value, renameCity)).toBe(value)
+  })
+})
+
+describe("describeEvaluatorExpressionField", () => {
+  const condition = (id: string) => ({
+    id,
+    left: { type: "value", value: "{{ a }}" },
+    operator: "is equal to",
+    right: { type: "value", value: "1" },
+  })
+  const config = { conditions: [condition("c1"), condition("c2")] }
+
+  it("names the condition by position and the side", () => {
+    expect(
+      describeEvaluatorExpressionField("conditions[c2].left", config)
+    ).toBe("Condition 2 · Left operand")
+    expect(
+      describeEvaluatorExpressionField("conditions[c1].right", config)
+    ).toBe("Condition 1 · Right operand")
+  })
+
+  it("numbers an entry of a list of values from one", () => {
+    expect(
+      describeEvaluatorExpressionField("conditions[c1].right[1]", config)
+    ).toBe("Condition 1 · Right operand #2")
+  })
+
+  it("returns undefined for an unknown condition or a foreign path", () => {
+    expect(
+      describeEvaluatorExpressionField("conditions[gone].left", config)
+    ).toBeUndefined()
+    expect(describeEvaluatorExpressionField("label", config)).toBeUndefined()
   })
 })

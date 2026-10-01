@@ -7,7 +7,7 @@ import { ArchiveIcon, ClipboardListIcon, UserCheckIcon } from "lucide-react"
 import { WorkflowEditor, createInitialGraph, defineNode } from "@flow/flow"
 import type { NodeDefinition } from "@flow/flow"
 
-import { ExamplePreview } from "./example-preview"
+import { ExampleFrame } from "./example-frame"
 
 type ReviewConfig = { assignee?: unknown; priority?: unknown }
 
@@ -48,7 +48,7 @@ function HumanReviewNode({ data, selected }: NodeProps) {
       <div className="flex items-center justify-between px-3 py-2.5">
         <span className="text-xs text-gray-600">{assignee}</span>
         <span
-          className="rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide"
+          className="rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wide uppercase"
           style={{
             background:
               priority === "high"
@@ -68,7 +68,7 @@ function HumanReviewNode({ data, selected }: NodeProps) {
         </span>
       </div>
 
-      <span className="pointer-events-none absolute right-3 top-[34%] -translate-y-1/2 text-[10px] font-medium text-emerald-600">
+      <span className="pointer-events-none absolute top-[34%] right-3 -translate-y-1/2 text-[10px] font-medium text-emerald-600">
         approve
       </span>
       <Handle
@@ -84,7 +84,7 @@ function HumanReviewNode({ data, selected }: NodeProps) {
         }}
       />
 
-      <span className="pointer-events-none absolute right-3 top-[68%] -translate-y-1/2 text-[10px] font-medium text-rose-600">
+      <span className="pointer-events-none absolute top-[68%] right-3 -translate-y-1/2 text-[10px] font-medium text-rose-600">
         reject
       </span>
       <Handle
@@ -223,75 +223,10 @@ const initialGraph = createInitialGraph(definitions, {
   },
 })
 
-const code = `import { Handle, Position, type NodeProps } from "@xyflow/react"
-import { WorkflowEditor, createInitialGraph, defineNode } from "@flow/flow"
-import { UserCheckIcon } from "lucide-react"
-
-// A fully hand-rendered node. \`view\` opts the kind out of DefaultNodeRenderer;
-// the component draws its own card and wires its own Handles. Handle ids must
-// match the sourceHandle used on the edges.
-function HumanReviewNode({ data, selected }: NodeProps) {
-  const config = (data as { config?: { assignee?: string; priority?: string } }).config ?? {}
-  const label = (data as { label?: string }).label ?? "Human review"
-  return (
-    <div className="relative w-[260px] rounded-xl border bg-white shadow-sm"
-         style={{ borderColor: selected ? "#6366f1" : "#e5e7eb" }}>
-      <Handle type="target" position={Position.Left} style={{ background: "#6366f1" }} />
-      <div className="rounded-t-xl bg-indigo-50 px-3 py-2 text-sm font-semibold text-indigo-950">{label}</div>
-      <div className="px-3 py-2.5 text-xs text-gray-600">{config.assignee || "Unassigned"} · {config.priority ?? "normal"}</div>
-      <Handle id="review-approve" type="source" position={Position.Right} style={{ top: "38%", background: "#10b981" }} />
-      <Handle id="review-reject" type="source" position={Position.Right} style={{ top: "72%", background: "#f43f5e" }} />
-    </div>
-  )
-}
-
-const humanReview = defineNode({
-  kind: "humanReview",
-  title: "Human review",
-  description: "A person approves or rejects the submission.",
-  icon: UserCheckIcon,
-  category: "control",
-  view: HumanReviewNode, // <- the only thing a custom-rendered node needs
-  fields: [
-    { key: "assignee", label: "Assignee", type: "text" },
-    { key: "priority", label: "Priority", type: "select", options: [
-      { label: "Low", value: "low" },
-      { label: "Normal", value: "normal" },
-      { label: "High", value: "high" },
-    ] },
-  ],
-  buildDefaultConfig: () => ({ assignee: "", priority: "normal" }),
-  outputPaths: ["approved", "rejected"],
-  allowedTargets: ["archive"],
-})
-
-// ...intakeForm and archive defined with the default renderer, then:
-const definitions = [intakeForm, humanReview, archive]
-const initialGraph = createInitialGraph(definitions, {
-  nodes: [
-    { id: "intake", kind: "intakeForm", config: { formId: "lead-signup" } },
-    { id: "review", kind: "humanReview", label: "Manager review", config: { assignee: "Alex", priority: "high" } },
-    { id: "approved", kind: "archive", label: "Approved", config: { store: "approved" } },
-    { id: "rejected", kind: "archive", label: "Rejected", config: { store: "rejected" } },
-  ],
-  edges: [
-    { id: "e1", source: "intake", target: "review" },
-    { id: "e2", source: "review", sourceHandle: "review-approve", target: "approved" },
-    { id: "e3", source: "review", sourceHandle: "review-reject", target: "rejected" },
-  ],
-})
-
-export function Example() {
-  return <WorkflowEditor definitions={definitions} initialGraph={initialGraph} />
-}`
-
 export function CustomViewExample() {
   return (
-    <ExamplePreview
-      title="Custom node renderer (view)"
-      code={code}
-    >
+    <ExampleFrame>
       <WorkflowEditor definitions={definitions} initialGraph={initialGraph} />
-    </ExamplePreview>
+    </ExampleFrame>
   )
 }

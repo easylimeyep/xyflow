@@ -9,6 +9,7 @@ import {
   EVALUATOR_OUTPUTS,
   readEvaluatorVariable,
   refactorEvaluatorConfigValue,
+  describeEvaluatorExpressionField,
   validateEvaluatorConfigValue,
 } from "../evaluator-shared/config"
 import { isSelectConfigValue } from "../../shared/node-data-utils"
@@ -30,6 +31,7 @@ export const jsonEvaluator = defineNode({
   }),
   renameConfigKey: "label",
   refactorConfigValue: refactorEvaluatorConfigValue,
+  describeExpressionField: describeEvaluatorExpressionField,
   subtitle: evaluatorSubtitle,
   outputs: EVALUATOR_OUTPUTS,
   // A JSON payload routes to several consumers per outcome; the plain

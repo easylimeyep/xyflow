@@ -10,7 +10,7 @@ import {
 } from "@flow/flow"
 import type { InitialGraphInput, WorkflowEditorProps } from "@flow/flow"
 
-import { ExamplePreview } from "./example-preview"
+import { ExampleFrame } from "./example-frame"
 
 export type VariableScopeMode = "upstream" | "global"
 
@@ -91,25 +91,6 @@ const graphInput: InitialGraphInput = {
   },
 }
 
-const code = `import {
-  WorkflowEditor,
-  builtinDefinitions,
-  graphScope,
-} from "@flow/flow"
-
-// Every variable on the canvas is offered, connected or not.
-// Omit \`variables.scope\` (or pass \`upstreamScope\`) to offer only
-// what the graph routes into the node.
-export function Example() {
-  return (
-    <WorkflowEditor
-      definitions={builtinDefinitions}
-      initialGraph={initialGraph}
-      runtime={{ variables: { scope: graphScope } }}
-    />
-  )
-}`
-
 interface VariableScopeExampleProps {
   scope: VariableScopeMode
 }
@@ -136,14 +117,7 @@ export function VariableScopeExample({ scope }: VariableScopeExampleProps) {
   }, [])
 
   return (
-    <ExamplePreview
-      title={
-        scope === "global"
-          ? "Global variable scope: every variable on the canvas"
-          : "Upstream variable scope: only what flows into the node"
-      }
-      code={code}
-    >
+    <ExampleFrame>
       {graph == null ? (
         <div className="flex min-h-0 flex-1 items-center justify-center bg-gray-50 text-sm text-gray-500">
           Computing ELK layout...
@@ -158,6 +132,6 @@ export function VariableScopeExample({ scope }: VariableScopeExampleProps) {
           runtime={{ variables: { scope: SCOPES[scope] } }}
         />
       )}
-    </ExamplePreview>
+    </ExampleFrame>
   )
 }

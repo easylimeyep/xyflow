@@ -6,7 +6,7 @@ import {
   createInitialGraph,
 } from "@flow/flow"
 
-import { ExamplePreview } from "./example-preview"
+import { ExampleFrame } from "./example-frame"
 
 /**
  * The JSON vocabulary the package ships with: `pathExtractor` resolves a value
@@ -128,64 +128,13 @@ const initialGraph = createInitialGraph(builtinDefinitions, {
   },
 })
 
-const code = `import {
-  WorkflowEditor,
-  builtinDefinitions,
-  createInitialGraph,
-} from "@flow/flow"
-
-const initialGraph = createInitialGraph(builtinDefinitions, {
-  nodes: [
-    { id: "input", kind: "inlineExpression", config: { template: ["payload"], isRoot: true, repeatable: false } },
-    // Resolve a value out of the payload by path; \`outputType\` says what shape
-    // the next node should expect.
-    { id: "city", kind: "pathExtractor", label: "City", config: { path: "lead.address.city", outputType: "value" } },
-    { id: "tags", kind: "pathExtractor", label: "Tags", config: { path: "lead.tags", outputType: "arrayValue" } },
-    // The JSON setter stores a variable like the Setter; \`appendInput\` is a
-    // flag for the backend.
-    { id: "save-tags", kind: "jsonSetter", label: "Save tags", config: { variableName: "leadTags", variableType: "array", valueExpression: "", clear: false, appendInput: true } },
-    // The JSON evaluator stores no left operand: every condition compares the
-    // previous node's output, and \`matchType\` decides how many must hold.
-    { id: "rules", kind: "jsonEvaluator", label: "Lead rules", config: {
-      conditions: [
-        { id: "c1", left: { type: "upstream" }, operator: "is equal to", right: { type: "value", value: "Moscow" } },
-        { id: "c2", left: { type: "upstream" }, operator: "contains", right: { type: "array", value: ["priority", "enterprise"] } },
-      ],
-      logicalOperator: "and",
-      matchType: "all",
-    } },
-    { id: "qualified", kind: "result", label: "Qualified", config: { category: "true" } },
-    { id: "rejected", kind: "result", label: "Rejected", config: { category: "false" } },
-  ],
-  edges: [
-    { id: "e1", source: "input", target: "city" },
-    { id: "e2", source: "city", target: "tags" },
-    { id: "e3", source: "tags", target: "save-tags" },
-    { id: "e3b", source: "save-tags", target: "rules" },
-    { id: "e4", source: "rules", sourceHandle: "evaluator-true", target: "qualified" },
-    { id: "e5", source: "rules", sourceHandle: "evaluator-false", target: "rejected" },
-  ],
-})
-
-export function Example() {
-  return (
-    <WorkflowEditor
-      definitions={builtinDefinitions}
-      initialGraph={initialGraph}
-    />
-  )
-}`
-
 export function JsonNodesExample() {
   return (
-    <ExamplePreview
-      title="JSON nodes: path extractor + JSON evaluator"
-      code={code}
-    >
+    <ExampleFrame>
       <WorkflowEditor
         definitions={builtinDefinitions}
         initialGraph={initialGraph}
       />
-    </ExamplePreview>
+    </ExampleFrame>
   )
 }

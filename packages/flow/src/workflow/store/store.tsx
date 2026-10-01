@@ -9,6 +9,13 @@ import { createNodeRegistry } from "../node-registry/registry"
 import type { WorkflowGraphState } from "../types/types"
 import { cloneGraphState } from "./helpers"
 import { normalizeWorkflowRuntimeConfig } from "./runtime"
+import {
+  selectFieldSearchStatus,
+  selectNodeSearchStatus,
+  type FieldSearchStatus,
+  type FieldSearchStatusOptions,
+  type NodeSearchStatus,
+} from "./search-selectors"
 import { selectSelectedNode, selectSelectedNodeIds } from "./selectors"
 import {
   createConnectionSlice,
@@ -19,6 +26,7 @@ import {
   createIoSlice,
   createLayoutSlice,
   createNodeCrudSlice,
+  createSearchSlice,
   createSelectionSlice,
 } from "./slices"
 import type {
@@ -35,6 +43,7 @@ export type {
   WorkflowExportDomainMapper,
   WorkflowStoreInitialProps,
   WorkflowRuntimeConfig,
+  WorkflowSearchState,
   WorkflowStoreState,
 } from "./types"
 export type { WorkflowValidationStoreState } from "./validation"
@@ -89,6 +98,7 @@ export function createWorkflowStore(
           ...createGraphSlice(set, get, api),
           ...createHistorySlice(set, get, api),
           ...createIoSlice(set, get, api),
+          ...createSearchSlice(set, get, api),
         }) as WorkflowStoreState,
       { limit: HISTORY_LIMIT, partialize: workflowHistorySlice }
     )
@@ -157,4 +167,24 @@ export function useWorkflowActions() {
     startEdgeInsertFromEdge: state.startEdgeInsertFromEdge,
     cancelEdgeInsert: state.cancelEdgeInsert,
   }))
+}
+
+/**
+ * This node's place in the canvas search. A string, so a node re-renders only
+ * when its own status flips — never because the current match moved elsewhere.
+ */
+export function useNodeSearchStatus(nodeId: string): NodeSearchStatus {
+  return useWorkflowStore((state) => selectNodeSearchStatus(state, nodeId))
+}
+
+/** One field's place in the canvas search; see `selectFieldSearchStatus`. */
+export function useFieldSearchStatus(
+  nodeId: string,
+  fieldKey: string,
+  options?: FieldSearchStatusOptions
+): FieldSearchStatus {
+  const includeChildren = options?.includeChildren ?? false
+  return useWorkflowStore((state) =>
+    selectFieldSearchStatus(state, nodeId, fieldKey, { includeChildren })
+  )
 }

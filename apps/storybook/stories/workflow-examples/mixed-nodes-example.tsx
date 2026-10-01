@@ -10,7 +10,7 @@ import {
 } from "@flow/flow"
 import type { NodeDefinition } from "@flow/flow"
 
-import { ExamplePreview } from "./example-preview"
+import { ExampleFrame } from "./example-frame"
 
 /** A consumer-defined kind that sits between the built-in nodes. */
 const enrich = defineNode({
@@ -147,69 +147,10 @@ const initialGraph = createInitialGraph(definitions, {
   },
 })
 
-const code = `import { WorkflowEditor, builtinDefinitions, createInitialGraph, defineNode } from "@flow/flow"
-import { SparklesIcon } from "lucide-react"
-
-// A new consumer kind that sits between the package's built-in nodes.
-const enrich = defineNode({
-  kind: "enrich",
-  title: "AI enrich",
-  description: "Ask a model to enrich the incoming payload.",
-  icon: SparklesIcon,
-  category: "data",
-  fields: [
-    { key: "provider", label: "Provider", type: "select", options: [
-      { label: "GigaChat", value: "gigachat" },
-      { label: "OpenAI", value: "openai" },
-    ] },
-    { key: "instruction", label: "Instruction", type: "textarea" },
-  ],
-  buildDefaultConfig: () => ({ provider: "gigachat", instruction: "" }),
-  subtitle: (config) => (config.instruction ? String(config.instruction) : "No instruction"),
-  outputPaths: ["result"],
-  allowedTargets: ["evaluator", "setVariable", "result"],
-})
-
-// Override a built-in by re-declaring its kind: widen allowedTargets so the
-// root keyword node can hand off to our custom kind. The registry replaces the
-// original in place and keeps its bespoke renderer.
-const inline = builtinDefinitions.find((d) => d.kind === "inlineExpression")!
-const inlineWithHandoff = defineNode({
-  ...inline,
-  allowedTargets: [...inline.allowedTargets, "enrich"],
-})
-
-const definitions = [...builtinDefinitions, inlineWithHandoff, enrich]
-
-const initialGraph = createInitialGraph(definitions, {
-  nodes: [
-    { id: "input", kind: "inlineExpression", config: { template: ["lead"], isRoot: true, repeatable: false } },
-    { id: "enrich", kind: "enrich", label: "Score lead", config: { provider: "gigachat", instruction: "Classify {{ lead }} as hot, warm, or cold" } },
-    { id: "eval", kind: "evaluator", label: "Is hot?", config: { conditions: [
-      { id: "c1", left: { type: "value", value: "{{ result }}" }, operator: "is equal to", right: { type: "value", value: "hot" } },
-    ], logicalOperator: "and" } },
-    { id: "hot", kind: "result", label: "Route to sales", config: { category: "true" } },
-    { id: "cold", kind: "result", label: "Nurture", config: { category: "false" } },
-  ],
-  edges: [
-    { id: "e1", source: "input", target: "enrich" },
-    { id: "e2", source: "enrich", target: "eval" },
-    { id: "e3", source: "eval", sourceHandle: "evaluator-true", target: "hot" },
-    { id: "e4", source: "eval", sourceHandle: "evaluator-false", target: "cold" },
-  ],
-})
-
-export function Example() {
-  return <WorkflowEditor definitions={definitions} initialGraph={initialGraph} />
-}`
-
 export function MixedNodesExample() {
   return (
-    <ExamplePreview
-      title="Built-ins + custom nodes"
-      code={code}
-    >
+    <ExampleFrame>
       <WorkflowEditor definitions={definitions} initialGraph={initialGraph} />
-    </ExamplePreview>
+    </ExampleFrame>
   )
 }

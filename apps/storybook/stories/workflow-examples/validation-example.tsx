@@ -10,7 +10,7 @@ import {
 } from "@flow/flow"
 import { Button } from "@flow/ui/components/button"
 
-import { ExamplePreview } from "./example-preview"
+import { ExampleFrame } from "./example-frame"
 
 const initialGraph = createInitialGraph(builtinDefinitions, {
   nodes: [
@@ -165,119 +165,11 @@ function useMockGlobalValidationQuery() {
   }
 }
 
-const code = `import {
-  WorkflowEditor,
-  builtinDefinitions,
-  createInitialGraph,
-  type WorkflowValidationSnapshot,
-} from "@flow/flow"
-
-const initialGraph = createInitialGraph(builtinDefinitions, {
-  nodes: [
-    { id: "validation-keyword", kind: "inlineExpression", config: { template: ["lead"], isRoot: true } },
-    { id: "validation-evaluator", kind: "evaluator", config: { conditions: [{ id: "condition", left: { type: "value", value: "{{ leadScore }}" }, operator: "is greater than", right: { type: "value", value: "50" } }], logicalOperator: "and" } },
-    { id: "validation-result", kind: "result", config: { category: "true" } },
-  ],
-  edges: [{ id: "keyword-to-evaluator", source: "validation-keyword", target: "validation-evaluator" }],
-})
-
-function useWorkflowValidationQuery(): { data: WorkflowValidationSnapshot | null } {
-  return {
-    data: {
-      workflowId: "workflow-validation-demo",
-      workflowVersion: 7,
-      revision: "validation-1",
-      global: [
-        {
-          code: "WORKFLOW_HAS_UNREACHABLE_RESULT",
-          message: "Workflow has a Result node that is not reachable yet.",
-          severity: "error",
-        },
-      ],
-      nodes: [
-        {
-          nodeId: "validation-evaluator",
-          code: "MISSING_FALSE_BRANCH",
-          message: "Evaluator node must have a false branch.",
-          severity: "error",
-        },
-        {
-          nodeId: "validation-evaluator",
-          code: "UNKNOWN_VARIABLE",
-          message: "Variable \`leadScore\` is not available here.",
-          severity: "warning",
-          fieldPath: "config.conditions.0.left.value",
-        },
-      ],
-    },
-  }
-}
-
-export function Example() {
-  const validationQuery = useWorkflowValidationQuery()
-
-  return (
-    <WorkflowEditor
-      definitions={builtinDefinitions}
-      initialGraph={initialGraph}
-      validation={validationQuery.data}
-    />
-  )
-}`
-
-const globalOnlyCode = `import {
-  WorkflowEditor,
-  builtinDefinitions,
-  createInitialGraph,
-  type WorkflowValidationSnapshot,
-} from "@flow/flow"
-
-const initialGraph = createInitialGraph(builtinDefinitions, {
-  nodes: [
-    { id: "validation-keyword", kind: "inlineExpression", config: { template: ["lead"], isRoot: true } },
-    { id: "validation-evaluator", kind: "evaluator", config: { conditions: [{ id: "condition", left: { type: "value", value: "{{ leadScore }}" }, operator: "is greater than", right: { type: "value", value: "50" } }], logicalOperator: "and" } },
-    { id: "validation-result", kind: "result", config: { category: "true" } },
-  ],
-  edges: [{ id: "keyword-to-evaluator", source: "validation-keyword", target: "validation-evaluator" }],
-})
-
-function useWorkflowValidationQuery(): { data: WorkflowValidationSnapshot | null } {
-  return {
-    data: {
-      workflowId: "workflow-validation-demo",
-      workflowVersion: 7,
-      revision: "global-validation-1",
-      global: [
-        {
-          code: "WORKFLOW_NOT_READY",
-          message: "Workflow is not ready to publish yet.",
-          severity: "error",
-        },
-      ],
-    },
-  }
-}
-
-export function Example() {
-  const validationQuery = useWorkflowValidationQuery()
-
-  return (
-    <WorkflowEditor
-      definitions={builtinDefinitions}
-      initialGraph={initialGraph}
-      validation={validationQuery.data}
-    />
-  )
-}`
-
 export function ValidationExample() {
   const validationQuery = useMockValidationQuery()
 
   return (
-    <ExamplePreview
-      title="With validation"
-      code={code}
-    >
+    <ExampleFrame>
       <div className="flex items-center gap-2 border-b border-gray-200 bg-white px-3 py-2">
         <Button
           type="button"
@@ -309,7 +201,7 @@ export function ValidationExample() {
         initialGraph={initialGraph}
         validation={validationQuery.data}
       />
-    </ExamplePreview>
+    </ExampleFrame>
   )
 }
 
@@ -317,10 +209,7 @@ export function GlobalValidationExample() {
   const validationQuery = useMockGlobalValidationQuery()
 
   return (
-    <ExamplePreview
-      title="With global validation"
-      code={globalOnlyCode}
-    >
+    <ExampleFrame>
       <div className="flex items-center gap-2 border-b border-gray-200 bg-white px-3 py-2">
         <Button
           type="button"
@@ -352,6 +241,6 @@ export function GlobalValidationExample() {
         initialGraph={initialGraph}
         validation={validationQuery.data}
       />
-    </ExamplePreview>
+    </ExampleFrame>
   )
 }

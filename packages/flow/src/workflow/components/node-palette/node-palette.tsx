@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useLayoutEffect, useRef } from "react"
 
 import {
   ActionBar,
@@ -44,23 +44,39 @@ export function NodePalette({
   const entries = useNodeDefinitions()
   const containerRef = useRef<HTMLElement | null>(null)
   const wasOpenRef = useRef(isOpen)
+  // Where focus was before the palette took it, so hiding hands it back
+  // instead of stranding it in a hidden aside — the floating search's rule.
+  const returnFocusRef = useRef<HTMLElement | null>(null)
   const styles = nodePaletteStyles({ quickAddActive, placement })
 
-  useEffect(() => {
-    if (!isOpen) {
-      return
-    }
-
-    if (wasOpenRef.current === isOpen && !quickAddActive) {
-      return
-    }
-
-    containerRef.current?.focus()
-  }, [isOpen, quickAddActive])
-
-  useEffect(() => {
+  // A layout effect: a host hiding the closed palette with `display: none`
+  // would otherwise have the browser drop focus to the body before we look.
+  useLayoutEffect(() => {
+    const wasOpen = wasOpenRef.current
     wasOpenRef.current = isOpen
-  }, [isOpen])
+    const container = containerRef.current
+
+    if (!isOpen) {
+      if (wasOpen && container?.contains(document.activeElement)) {
+        const returnFocus = returnFocusRef.current?.isConnected
+          ? returnFocusRef.current
+          : container.closest<HTMLElement>("[data-workflow-editor-root]")
+        returnFocus?.focus()
+      }
+      returnFocusRef.current = null
+      return
+    }
+
+    if (wasOpen && !quickAddActive) {
+      return
+    }
+
+    const active = document.activeElement
+    if (active instanceof HTMLElement && !container?.contains(active)) {
+      returnFocusRef.current = active
+    }
+    container?.focus()
+  }, [isOpen, quickAddActive])
 
   return (
     <>
@@ -106,9 +122,15 @@ export function NodePalette({
                     element
                   )
                 }
-                draggable
+                // A pending insertion already chose where the node goes; the
+                // palette is only its kind picker, so cards are click-only.
+                draggable={!quickAddActive}
                 className={styles.card()}
                 onDragStart={(event) => {
+                  if (quickAddActive) {
+                    event.preventDefault()
+                    return
+                  }
                   event.dataTransfer.effectAllowed = "move"
                   event.dataTransfer.setData(
                     WORKFLOW_NODE_KIND_MIME,

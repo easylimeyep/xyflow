@@ -17,80 +17,10 @@ import {
 } from "@flow/flow"
 import { Button } from "@flow/ui/components/button"
 
-import { ExamplePreview } from "./example-preview"
+import { ExampleFrame } from "./example-frame"
 
 type RcTourStep = NonNullable<TourProps["steps"]>[number]
 const tourPopupClassName = "fixed w-max max-w-[calc(100vw-2rem)]"
-
-const code = `import { useMemo, useRef, useState } from "react"
-import Tour, { type TourProps } from "@rc-component/tour"
-import {
-  WORKFLOW_EDITOR_TOUR,
-  WorkflowEditor,
-  builtinDefinitions,
-  type WorkflowEditorAnchorElements,
-  type WorkflowTourAnchor,
-} from "@flow/flow"
-
-type RcTourStep = NonNullable<TourProps["steps"]>[number]
-
-function resolveWorkflowTourAnchor(
-  anchor: WorkflowTourAnchor,
-  anchors: WorkflowEditorAnchorElements
-) {
-  if (anchor.type === "paletteItem") {
-    return anchors.paletteItems?.[anchor.kind] ?? null
-  }
-
-  return anchors[anchor.id] ?? null
-}
-
-export function Example() {
-  const anchorRefs = useRef<WorkflowEditorAnchorElements>({})
-  const [open, setOpen] = useState(false)
-  const [current, setCurrent] = useState(0)
-  const tourSteps = useMemo(
-    () =>
-      WORKFLOW_EDITOR_TOUR.map((step) => ({
-        className: "fixed w-max max-w-[calc(100vw-2rem)]",
-        title: step.title,
-        description: step.body,
-        placement: step.placement,
-        target: (() =>
-          resolveWorkflowTourAnchor(
-            step.anchor,
-            anchorRefs.current
-          )) as RcTourStep["target"],
-      })) satisfies TourProps["steps"],
-    []
-  )
-
-  return (
-    <>
-      <button
-        type="button"
-        onClick={() => {
-          setCurrent(0)
-          setOpen(true)
-        }}
-      >
-        Start tour
-      </button>
-      <WorkflowEditor
-        definitions={builtinDefinitions}
-        anchorRefs={anchorRefs}
-      />
-      <Tour
-        open={open}
-        current={current}
-        steps={tourSteps}
-        onChange={setCurrent}
-        onClose={() => setOpen(false)}
-        onFinish={() => setOpen(false)}
-      />
-    </>
-  )
-}`
 
 function resolveWorkflowTourAnchor(
   anchor: WorkflowTourAnchor,
@@ -186,10 +116,7 @@ export function TourAnchorsExample() {
   }
 
   return (
-    <ExamplePreview
-      title="rc-tour workflow tour"
-      code={code}
-    >
+    <ExampleFrame>
       <div className="flex items-center justify-between border-b border-gray-200 bg-white px-3 py-2">
         <div className="text-xs text-gray-600">
           Default workflow tour rendered by the app, not by the flow package.
@@ -224,6 +151,6 @@ export function TourAnchorsExample() {
         gap={{ offset: 6, radius: 8 }}
         rootClassName="workflow-tour-example"
       />
-    </ExamplePreview>
+    </ExampleFrame>
   )
 }

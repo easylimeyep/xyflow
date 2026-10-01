@@ -8,6 +8,12 @@ import { Label } from "@flow/ui/components/label"
 import { useCallback, useRef, useState } from "react"
 
 import { setVariableNodeStyles } from "../../../../styles/components/nodes"
+import {
+  SearchFieldMark,
+  SearchFieldRegistryProvider,
+  SearchMarkedTitle,
+  useNodeSearchMarks,
+} from "../../../components/workflow-search/search-field-mark"
 import { WorkflowTypeSelect } from "../../../components/workflow-type-select/workflow-type-select"
 import { NodeShell } from "../../node-shell/node-shell"
 import {
@@ -83,111 +89,117 @@ export function ExtractorNode({ id, data, selected }: NodeProps) {
     return true
   }, [draftTokenNumber, id, tokenNumberFromStore, updateNodeConfig])
 
+  const { fieldRegistry, ...searchMarks } = useNodeSearchMarks(id)
   return (
-    <NodeShell
-      nodeId={id}
-      title={label}
-      subtitle=""
-      selected={selected}
-      validationMessages={nodeValidationMessages}
-    >
-      <div className={styles.root()}>
-        <div className={styles.labelTypeRow()}>
-          <div className={styles.labelTypeField()}>
-            <Label className={styles.label()}>Label</Label>
-            <Input
-              ref={variableLabelField.inputRef}
-              value={variableLabelField.shownValue}
-              placeholder="myVar"
-              onFocus={variableLabelField.onFocus}
-              onChange={(event) =>
-                variableLabelField.onChange(event.target.value)
-              }
-              onBlur={variableLabelField.onBlur}
-              onKeyDown={variableLabelField.onKeyDown}
-            />
-            {variableLabelField.errorText ? (
-              <p className={styles.errorText()}>
-                {variableLabelField.errorText}
-              </p>
-            ) : null}
-          </div>
+    <SearchFieldRegistryProvider value={fieldRegistry}>
+      <NodeShell
+        nodeId={id}
+        title={<SearchMarkedTitle nodeId={id}>{label}</SearchMarkedTitle>}
+        subtitle=""
+        selected={selected}
+        {...searchMarks}
+        validationMessages={nodeValidationMessages}
+      >
+        <div className={styles.root()}>
+          <div className={styles.labelTypeRow()}>
+            <div className={styles.labelTypeField()}>
+              <Label className={styles.label()}>Label</Label>
+              <SearchFieldMark nodeId={id} fieldKey="extractExpression">
+                <Input
+                  ref={variableLabelField.inputRef}
+                  value={variableLabelField.shownValue}
+                  placeholder="myVar"
+                  onFocus={variableLabelField.onFocus}
+                  onChange={(event) =>
+                    variableLabelField.onChange(event.target.value)
+                  }
+                  onBlur={variableLabelField.onBlur}
+                  onKeyDown={variableLabelField.onKeyDown}
+                />
+              </SearchFieldMark>
+              {variableLabelField.errorText ? (
+                <p className={styles.errorText()}>
+                  {variableLabelField.errorText}
+                </p>
+              ) : null}
+            </div>
 
-          <div className={styles.labelTypeSelectField()}>
-            <Label className={styles.label()}>Type</Label>
-            <WorkflowTypeSelect
-              ariaLabel="Variable type"
-              value={variableTypeFromStore}
-              onChange={(value) => {
-                updateNodeConfig(id, {
-                  kind: "extractor",
-                  key: "variableType",
-                  value,
-                })
-              }}
-            />
-          </div>
-        </div>
-
-        <div className={styles.fieldGroup()}>
-          <Label className={styles.label()}>Token Number</Label>
-          <Input
-            type="number"
-            min={1}
-            step={1}
-            ref={tokenInputRef}
-            value={shownTokenNumber}
-            placeholder="1"
-            onFocus={() => {
-              setDraftTokenNumber(String(tokenNumberFromStore))
-              setIsTokenNumberFocused(true)
-            }}
-            onChange={(event) => {
-              setDraftTokenNumber(event.target.value)
-              if (tokenNumberError) setTokenNumberError(null)
-            }}
-            onBlur={() => {
-              if (commitTokenNumber()) {
-                setIsTokenNumberFocused(false)
-                return
-              }
-              window.requestAnimationFrame(() => {
-                tokenInputRef.current?.focus()
-              })
-            }}
-            onKeyDown={(event) => {
-              if (event.key !== "Enter") return
-              event.preventDefault()
-              if (commitTokenNumber()) {
-                setIsTokenNumberFocused(false)
-                event.currentTarget.blur()
-              }
-            }}
-          />
-          {tokenNumberError ? (
-            <p className={styles.errorText()}>{tokenNumberError}</p>
-          ) : null}
-        </div>
-
-        <FieldGroup>
-          <Field>
-            <FieldLabel htmlFor={unlimitedId}>Unlimited</FieldLabel>
-            <div>
-              <Checkbox
-                id={unlimitedId}
-                isSelected={unlimitedFromStore}
-                onChange={(checked) => {
+            <div className={styles.labelTypeSelectField()}>
+              <Label className={styles.label()}>Type</Label>
+              <WorkflowTypeSelect
+                ariaLabel="Variable type"
+                value={variableTypeFromStore}
+                onChange={(value) => {
                   updateNodeConfig(id, {
                     kind: "extractor",
-                    key: "unlimited",
-                    value: checked === true,
+                    key: "variableType",
+                    value,
                   })
                 }}
               />
             </div>
-          </Field>
-        </FieldGroup>
-      </div>
-    </NodeShell>
+          </div>
+
+          <div className={styles.fieldGroup()}>
+            <Label className={styles.label()}>Token Number</Label>
+            <Input
+              type="number"
+              min={1}
+              step={1}
+              ref={tokenInputRef}
+              value={shownTokenNumber}
+              placeholder="1"
+              onFocus={() => {
+                setDraftTokenNumber(String(tokenNumberFromStore))
+                setIsTokenNumberFocused(true)
+              }}
+              onChange={(event) => {
+                setDraftTokenNumber(event.target.value)
+                if (tokenNumberError) setTokenNumberError(null)
+              }}
+              onBlur={() => {
+                if (commitTokenNumber()) {
+                  setIsTokenNumberFocused(false)
+                  return
+                }
+                window.requestAnimationFrame(() => {
+                  tokenInputRef.current?.focus()
+                })
+              }}
+              onKeyDown={(event) => {
+                if (event.key !== "Enter") return
+                event.preventDefault()
+                if (commitTokenNumber()) {
+                  setIsTokenNumberFocused(false)
+                  event.currentTarget.blur()
+                }
+              }}
+            />
+            {tokenNumberError ? (
+              <p className={styles.errorText()}>{tokenNumberError}</p>
+            ) : null}
+          </div>
+
+          <FieldGroup>
+            <Field>
+              <FieldLabel htmlFor={unlimitedId}>Unlimited</FieldLabel>
+              <div>
+                <Checkbox
+                  id={unlimitedId}
+                  isSelected={unlimitedFromStore}
+                  onChange={(checked) => {
+                    updateNodeConfig(id, {
+                      kind: "extractor",
+                      key: "unlimited",
+                      value: checked === true,
+                    })
+                  }}
+                />
+              </div>
+            </Field>
+          </FieldGroup>
+        </div>
+      </NodeShell>
+    </SearchFieldRegistryProvider>
   )
 }

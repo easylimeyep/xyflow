@@ -9,7 +9,7 @@ import {
 } from "@flow/flow"
 import { Button } from "@flow/ui/components/button"
 
-import { ExamplePreview } from "./example-preview"
+import { ExampleFrame } from "./example-frame"
 
 const initialGraph = createInitialGraph(builtinDefinitions, {
   nodes: [
@@ -98,73 +98,6 @@ const initialGraph = createInitialGraph(builtinDefinitions, {
   },
 })
 
-const code = `import {
-  WorkflowEditor,
-  builtinDefinitions,
-  createInitialGraph,
-  exportDomainWorkflowForBackend,
-  useNodeRegistry,
-} from "@flow/flow"
-
-const initialGraph = createInitialGraph(builtinDefinitions, {
-  nodes: [
-    { id: "backend-transform-root-a", kind: "inlineExpression", label: "Root A", config: { template: ["lead"], isRoot: true, repeatable: false } },
-    { id: "backend-transform-root-b", kind: "inlineExpression", label: "Root B", config: { template: ["account"], isRoot: true, repeatable: false } },
-    { id: "backend-transform-evaluator", kind: "evaluator", label: "Eligibility", config: { conditions: [{ id: "backend-transform-condition", left: { type: "value", value: "{{ lead.email }}" }, operator: "contains", right: { type: "value", value: "@company.com" } }], logicalOperator: "and" } },
-    { id: "backend-transform-success", kind: "result", label: "Qualified", config: { category: "true" } },
-    { id: "backend-transform-failure", kind: "result", label: "Rejected", config: { category: "false" } },
-  ],
-  edges: [
-    { id: "backend-transform-edge-root-a-evaluator", source: "backend-transform-root-a", target: "backend-transform-evaluator" },
-    { id: "backend-transform-edge-root-b-evaluator", source: "backend-transform-root-b", target: "backend-transform-evaluator" },
-    { id: "backend-transform-edge-evaluator-success", source: "backend-transform-evaluator", sourceHandle: "evaluator-true", target: "backend-transform-success" },
-    { id: "backend-transform-edge-evaluator-failure", source: "backend-transform-evaluator", sourceHandle: "evaluator-false", target: "backend-transform-failure" },
-  ],
-  viewport: { x: 64, y: 80, zoom: 0.75 },
-  document: {
-    id: "workflow-demo-backend-transform",
-    name: "Backend Transform Demo",
-    metadata: { source: "docs-demo-backend-transform" },
-  },
-})
-
-function TransformButton() {
-  const exportDomain = WorkflowEditor.use.store((state) => state.exportDomain)
-  const registry = useNodeRegistry()
-
-  return (
-    <Button
-      type="button"
-      variant="outline"
-      onClick={() => {
-        const backendWorkflow = exportDomainWorkflowForBackend(registry, exportDomain())
-        console.log("Backend workflow transform", backendWorkflow)
-      }}
-    >
-      Transform
-    </Button>
-  )
-}
-
-export function Example() {
-  return (
-    <WorkflowEditor
-      definitions={builtinDefinitions}
-      initialGraph={initialGraph}
-    >
-      <div className="flex items-center justify-between gap-3 border-b border-gray-200 bg-white px-4 py-3">
-        <WorkflowEditor.Toolbar />
-        <TransformButton />
-      </div>
-      <WorkflowEditor.Body>
-        <WorkflowEditor.Palette />
-        <WorkflowEditor.Canvas />
-        <WorkflowEditor.ConfigPanel />
-      </WorkflowEditor.Body>
-    </WorkflowEditor>
-  )
-}`
-
 function TransformButton() {
   const exportDomain = WorkflowEditor.use.store((state) => state.exportDomain)
   const registry = useNodeRegistry()
@@ -188,7 +121,7 @@ function TransformButton() {
 
 export function BackendTransformExample() {
   return (
-    <ExamplePreview title="With backend transform" code={code}>
+    <ExampleFrame>
       <WorkflowEditor
         definitions={builtinDefinitions}
         initialGraph={initialGraph}
@@ -203,6 +136,6 @@ export function BackendTransformExample() {
           <WorkflowEditor.ConfigPanel side="right" />
         </WorkflowEditor.Body>
       </WorkflowEditor>
-    </ExamplePreview>
+    </ExampleFrame>
   )
 }

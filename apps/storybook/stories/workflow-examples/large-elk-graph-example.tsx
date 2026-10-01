@@ -9,7 +9,7 @@ import {
   type InitialGraphNodeInput,
 } from "@flow/flow"
 
-import { ExamplePreview } from "./example-preview"
+import { ExampleFrame } from "./example-frame"
 
 const laneNames = [
   "email",
@@ -418,58 +418,14 @@ const graphInput = {
 
 const initialGraph = createInitialGraph(builtinDefinitions, graphInput)
 
-const code = `import {
-  WorkflowEditor,
-  builtinDefinitions,
-  createInitialGraph,
-} from "@flow/flow"
-
-const laneNames = ["email", "phone", "country", "budget", "intent", "company", "role", "source", "timeline", "consent"]
-
-const initialGraph = createInitialGraph(builtinDefinitions, {
-  nodes: [
-    { id: "large-elk-root-keyword", kind: "inlineExpression", label: "Keyword Root", config: { template: ["lead"], isRoot: true, repeatable: false } },
-    ...laneNames.flatMap((name, index) => [
-      { id: \`large-elk-extract-\${name}\`, kind: "extractor", label: \`Extract \${name}\`, config: { tokenNumber: index + 1, extractExpression: name, unlimited: false } },
-      { id: \`large-elk-set-\${name}\`, kind: "setVariable", label: \`Set \${name}\`, config: { variableName: name, valueExpression: \`{{ \${name} }}\` } },
-    ]),
-    { id: "large-elk-aggregate-keyword", kind: "inlineExpression", label: "Aggregate Signals", config: { template: ["{{ email }}", "{{ phone }}", "{{ country }}", "{{ intent }}"], isRoot: false, repeatable: true } },
-    // Additional scoring, decision, true-path, and false-path nodes bring this graph to 40 nodes.
-    { id: "large-elk-result-true", kind: "result", label: "result true", config: { category: "true" } },
-    { id: "large-elk-result-false", kind: "result", label: "result false", config: { category: "false" } },
-  ],
-  edges: [
-    ...laneNames.flatMap((name) => [
-      { id: \`large-elk-edge-root-to-extract-\${name}\`, source: "large-elk-root-keyword", target: \`large-elk-extract-\${name}\` },
-      { id: \`large-elk-edge-extract-to-set-\${name}\`, source: \`large-elk-extract-\${name}\`, target: \`large-elk-set-\${name}\` },
-      { id: \`large-elk-edge-set-\${name}-to-aggregate\`, source: \`large-elk-set-\${name}\`, target: "large-elk-aggregate-keyword" },
-    ]),
-    // The Aggregate Signals keyword receives 10 incoming edges, then the workflow ends in result true/result false paths.
-  ],
-  viewport: { x: 40, y: 40, zoom: 0.55 },
-})
-
-export function Example() {
-  return (
-    <WorkflowEditor
-      definitions={builtinDefinitions}
-      initialGraph={initialGraph}
-      autoLayoutOnInit="after-measure"
-    />
-  )
-}`
-
 export function LargeElkGraphExample() {
   return (
-    <ExamplePreview
-      title="Large ELK graph"
-      code={code}
-    >
+    <ExampleFrame>
       <WorkflowEditor
         definitions={builtinDefinitions}
         initialGraph={initialGraph}
         autoLayoutOnInit="after-measure"
       />
-    </ExamplePreview>
+    </ExampleFrame>
   )
 }

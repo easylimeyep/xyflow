@@ -61,10 +61,37 @@ export const nodeShellStyles = tv({
         statusDot: "bg-muted-foreground/50",
       },
     },
+    // Declared after the others so its ring wins over the selection ring:
+    // while searching, "which node am I on" is the question being asked.
+    searchState: {
+      none: {},
+      match: {
+        panel: "ring-2 ring-amber-400/60",
+      },
+      current: {
+        panel: "shadow-lg ring-[3px] ring-primary",
+      },
+    },
+    // The strong mark belongs to the field the search is on; the node holding
+    // it then only needs an outline to stand apart at low zoom.
+    currentField: {
+      true: {},
+    },
   },
+  compoundVariants: [
+    {
+      searchState: "current",
+      currentField: true,
+      class: {
+        panel: "shadow-md ring-2 ring-primary/60",
+      },
+    },
+  ],
   defaultVariants: {
     selected: false,
     validation: false,
     status: "none",
+    searchState: "none",
+    currentField: false,
   },
 })

@@ -7,7 +7,7 @@ import {
   type WorkflowRuntimeOverlay,
 } from "@flow/flow"
 
-import { ExamplePreview } from "./example-preview"
+import { ExampleFrame } from "./example-frame"
 
 const initialGraph = createInitialGraph(builtinDefinitions, {
   nodes: [
@@ -124,53 +124,15 @@ const overlay: WorkflowRuntimeOverlay = {
   ],
 }
 
-const code = `import {
-  WorkflowEditor,
-  builtinDefinitions,
-  createInitialGraph,
-  type WorkflowRuntimeOverlay,
-} from "@flow/flow"
-
-// Runtime status is computed by YOUR engine and handed in as a prop.
-const overlay: WorkflowRuntimeOverlay = {
-  nodes: {
-    "obs-input": { status: "done" },
-    "obs-transform": { status: "running", iteration: { current: 2, total: 3 } },
-    "obs-branch": { status: "failed", error: "…" },
-    "obs-pass": { status: "waiting" },
-    "obs-skip": { status: "skipped" },
-  },
-  activeEdgeIds: ["obs-edge-extract-transform"],
-  traversedEdgeIds: [
-    "obs-edge-input-extract",
-    "obs-edge-extract-transform",
-    "obs-edge-transform-branch",
-  ],
-}
-
-export function Example() {
-  return (
-    <WorkflowEditor
-      definitions={builtinDefinitions}
-      initialGraph={initialGraph}
-      mode="observe"
-      overlay={overlay}
-    />
-  )
-}`
-
 export function ObservationExample() {
   return (
-    <ExamplePreview
-      title="Runtime observation"
-      code={code}
-    >
+    <ExampleFrame>
       <WorkflowEditor
         definitions={builtinDefinitions}
         initialGraph={initialGraph}
         mode="observe"
         overlay={overlay}
       />
-    </ExamplePreview>
+    </ExampleFrame>
   )
 }

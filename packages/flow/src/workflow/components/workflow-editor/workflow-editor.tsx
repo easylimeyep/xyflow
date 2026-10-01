@@ -7,6 +7,8 @@ import {
   useEffect,
   useRef,
   useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type PointerEvent as ReactPointerEvent,
   type PropsWithChildren,
   type ReactNode,
 } from "react"
@@ -50,22 +52,33 @@ import {
   createHistoryHotkeyHandler,
   createNodeEditHotkeyHandler,
   isEscapeHotkey,
+  isSearchHotkey,
 } from "../hotkeys"
 import { WorkflowEditorConfigPanel as WorkflowEditorConfigPanelBase } from "../node-config-panel"
 import { NodePalette } from "../node-palette"
-import { WorkflowCanvas } from "../workflow-canvas"
+import { WorkflowCanvas, type RevealNode } from "../workflow-canvas"
+import { WorkflowSearch, type WorkflowSearchPosition } from "../workflow-search"
 import type { WorkflowEditorAnchorRefs } from "../../tour"
 import { useWorkflowEditorAnchorRef } from "../../tour/anchors"
 
 interface WorkflowEditorLayoutContextValue {
   isPaletteOpen: boolean
   setIsPaletteOpen: (nextOpen: boolean) => void
+  isPaletteVisible: boolean
   quickAddActive: boolean
   mode: WorkflowCanvasMode
   autoLayoutOnInit?: "after-measure"
   anchorRefs?: WorkflowEditorAnchorRefs
   getLastPointerFlowPosition: () => XYPosition | null
   setLastPointerFlowPosition: (position: XYPosition) => void
+  /** Centers the mounted canvas on a node; a no-op while no canvas is mounted. */
+  revealNode: RevealNode
+  setRevealNode: (revealNode: RevealNode | null) => void
+  /** Focuses and selects the search query; a no-op without a search part. */
+  focusSearch: () => void
+  /** True while a search part is mounted to receive Mod+F. */
+  hasSearch: () => boolean
+  setFocusSearch: (focus: (() => void) | null) => void
 }
 
 const WorkflowEditorLayoutContext =
@@ -81,10 +94,19 @@ function useWorkflowEditorLayoutContext() {
  * facts the built-in parts read instead of re-deriving them from the store.
  */
 export interface WorkflowLayout {
-  /** Whether the node palette is currently open. */
+  /**
+   * The user's open choice for the node palette, changed only by a toggle.
+   * A pending quick-add borrows the palette without touching it; read
+   * `isPaletteVisible` for what is on screen.
+   */
   isPaletteOpen: boolean
   /** Open or close the node palette. */
   setIsPaletteOpen: (open: boolean) => void
+  /**
+   * Whether the node palette is on screen: open by choice, or shown for the
+   * duration of a pending quick-add or edge-insert.
+   */
+  isPaletteVisible: boolean
   /** True while a quick-add or edge-insert is waiting for a node kind. */
   quickAddActive: boolean
   /** The editor's interaction mode. */
@@ -103,8 +125,20 @@ export function useWorkflowLayout(): WorkflowLayout {
     )
   }
 
-  const { isPaletteOpen, setIsPaletteOpen, quickAddActive, mode } = context
-  return { isPaletteOpen, setIsPaletteOpen, quickAddActive, mode }
+  const {
+    isPaletteOpen,
+    setIsPaletteOpen,
+    isPaletteVisible,
+    quickAddActive,
+    mode,
+  } = context
+  return {
+    isPaletteOpen,
+    setIsPaletteOpen,
+    isPaletteVisible,
+    quickAddActive,
+    mode,
+  }
 }
 
 function useUndoRedoHotkeys(
@@ -248,23 +282,46 @@ function WorkflowEditorLayoutProvider({
     cancelEdgeInsert()
   }, editingEnabled)
 
-  useEffect(() => {
-    if (quickAddActive) {
-      setIsPaletteOpen(true)
-    }
-  }, [quickAddActive])
+  // A pending insertion borrows the palette as its picker, so it is derived
+  // here rather than written into the user's open choice.
+  const isPaletteVisible = isPaletteOpen || quickAddActive
+
+  // The canvas and the search bar hand their imperative entry points over
+  // through refs: the search may render outside the React Flow provider, and
+  // neither registration should re-render the parts reading this context.
+  const revealNodeRef = useRef<RevealNode | null>(null)
+  const setRevealNode = useCallback((next: RevealNode | null) => {
+    revealNodeRef.current = next
+  }, [])
+  const revealNode = useCallback((nodeId: string) => {
+    revealNodeRef.current?.(nodeId)
+  }, [])
+  const focusSearchRef = useRef<(() => void) | null>(null)
+  const setFocusSearch = useCallback((next: (() => void) | null) => {
+    focusSearchRef.current = next
+  }, [])
+  const focusSearch = useCallback(() => {
+    focusSearchRef.current?.()
+  }, [])
+  const hasSearch = useCallback(() => focusSearchRef.current != null, [])
 
   return (
     <WorkflowEditorLayoutContext.Provider
       value={{
         isPaletteOpen,
         setIsPaletteOpen,
+        isPaletteVisible,
         quickAddActive,
         mode,
         autoLayoutOnInit,
         anchorRefs,
         getLastPointerFlowPosition,
         setLastPointerFlowPosition,
+        revealNode,
+        setRevealNode,
+        focusSearch,
+        hasSearch,
+        setFocusSearch,
       }}
     >
       {children}
@@ -305,7 +362,9 @@ function DefaultWorkflowEditorComposition() {
         <WorkflowEditorValidationAlert />
         <WorkflowEditorConfigPanel />
         <WorkflowEditorPalette />
-        <WorkflowEditorCanvas />
+        <WorkflowEditorCanvas>
+          <WorkflowEditorSearch />
+        </WorkflowEditorCanvas>
       </WorkflowEditorBody>
     </>
   )
@@ -364,15 +423,66 @@ export function WorkflowProvider({
 
 function WorkflowEditorRoot(props: WorkflowEditorProps = {}) {
   const { children, ...providerProps } = props
-  const styles = workflowEditorStyles()
-  const rootRef = useWorkflowEditorAnchorRef(providerProps.anchorRefs, "root")
 
   return (
     <WorkflowProvider {...providerProps}>
-      <div ref={rootRef} className={styles.root()}>
+      <WorkflowEditorShell anchorRefs={providerProps.anchorRefs}>
         {children == null ? <DefaultWorkflowEditorComposition /> : children}
-      </div>
+      </WorkflowEditorShell>
     </WorkflowProvider>
+  )
+}
+
+/**
+ * The editor's root element. `Mod+F` is bound here rather than on `window`, so
+ * it opens the canvas search only while focus is inside this editor and leaves
+ * the browser's own find alone everywhere else. It is bound in every mode:
+ * searching reads the graph and never changes it.
+ */
+function WorkflowEditorShell({
+  anchorRefs,
+  children,
+}: PropsWithChildren<{ anchorRefs?: WorkflowEditorAnchorRefs }>) {
+  const styles = workflowEditorStyles()
+  const rootRef = useWorkflowEditorAnchorRef(anchorRefs, "root")
+  const layout = useWorkflowEditorLayoutContext()
+  const storeApi = useWorkflowStoreApi()
+  const onKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    // A composition without a search part leaves the key to the browser.
+    if (!isSearchHotkey(event.nativeEvent) || !layout?.hasSearch()) {
+      return
+    }
+
+    event.preventDefault()
+    if (storeApi.getState().search.isOpen) {
+      layout.focusSearch()
+      return
+    }
+    storeApi.getState().openSearch()
+  }
+  // The pane, the canvas region and the editor chrome are not focusable, so a
+  // click on empty canvas would otherwise leave focus on the body — outside
+  // the editor, where Mod+F never reaches `onKeyDown`. Pulling focus to the
+  // root keeps "focus is inside the editor" true for any click inside it; a
+  // focusable target (an input, a node) still takes focus itself afterwards.
+  const onPointerDownCapture = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const root = event.currentTarget
+    if (!root.contains(document.activeElement)) {
+      root.focus({ preventScroll: true })
+    }
+  }
+
+  return (
+    <div
+      ref={rootRef}
+      className={styles.root()}
+      tabIndex={-1}
+      data-workflow-editor-root=""
+      onKeyDown={onKeyDown}
+      onPointerDownCapture={onPointerDownCapture}
+    >
+      {children}
+    </div>
   )
 }
 
@@ -529,6 +639,9 @@ export function WorkflowEditorPalette({
     return null
   }
 
+  const quickAddActive =
+    layout?.quickAddActive ?? Boolean(quickAddPending || edgeInsertPending)
+
   const addNodeAtDefaultPosition = (kind: NodeKind) => {
     if (quickAddPending) {
       confirmQuickAddNode(kind)
@@ -546,10 +659,10 @@ export function WorkflowEditorPalette({
   return (
     <NodePalette
       onAddNode={addNodeAtDefaultPosition}
-      quickAddActive={
-        layout?.quickAddActive ?? Boolean(quickAddPending || edgeInsertPending)
-      }
-      isOpen={open ?? layout?.isPaletteOpen ?? true}
+      quickAddActive={quickAddActive}
+      // A host's `open` is its open choice, like the toggle's; a pending
+      // insertion shows the palette over it either way.
+      isOpen={(open ?? layout?.isPaletteOpen ?? true) || quickAddActive}
       anchorRefs={layout?.anchorRefs}
       className={className}
       placement={placement}
@@ -566,11 +679,17 @@ export interface WorkflowEditorCanvasProps {
    * canvas (resizable panes, collapsible sidebars, etc.) opts in.
    */
   refitOnResize?: boolean
+  /**
+   * Rendered over the canvas, inside its box: floating parts such as
+   * `WorkflowEditor.Search` position against the canvas rather than the body.
+   */
+  children?: ReactNode
 }
 
 export function WorkflowEditorCanvas({
   className,
   refitOnResize,
+  children,
 }: WorkflowEditorCanvasProps = {}) {
   const layout = useWorkflowEditorLayoutContext()
   const styles = workflowEditorStyles()
@@ -690,8 +809,50 @@ export function WorkflowEditorCanvas({
         anchorRefs={layout?.anchorRefs}
         mode={layout?.mode ?? "edit"}
         refitOnResize={refitOnResize}
+        onRevealNodeChange={layout?.setRevealNode}
       />
+      {children}
     </div>
+  )
+}
+
+export interface WorkflowEditorSearchProps {
+  /**
+   * `floating` (default) pins the bar over the canvas at `position`;
+   * `inline` renders it in flow for a host that lays it out itself.
+   */
+  placement?: "floating" | "inline"
+  /**
+   * Where a floating bar sits: `top-left`, `top-center`, `top-right`
+   * (default), `center-left`, `center-right`, `bottom-left`, `bottom-center`
+   * or `bottom-right`. Along the bottom edge the results open upwards.
+   */
+  position?: WorkflowSearchPosition
+  /** Extra classes for the search bar's root element, merged into the package's own. */
+  className?: string
+}
+
+/**
+ * The canvas find bar. Opens with `Mod+F` inside the editor, in both edit and
+ * observe modes, and reveals each match on whichever canvas is mounted.
+ */
+export function WorkflowEditorSearch({
+  placement,
+  position,
+  className,
+}: WorkflowEditorSearchProps = {}) {
+  const layout = useWorkflowEditorLayoutContext()
+
+  return (
+    <WorkflowSearch
+      onRevealNode={layout?.revealNode}
+      onRegisterFocus={layout?.setFocusSearch}
+      placement={placement}
+      position={position}
+      // The palette is withheld while observing, whatever its open flag says.
+      besidePalette={layout?.mode === "edit" && layout.isPaletteOpen}
+      className={className}
+    />
   )
 }
 
@@ -734,6 +895,7 @@ export const WorkflowEditor = Object.assign(WorkflowEditorRoot, {
   Palette: WorkflowEditorPalette,
   Canvas: WorkflowEditorCanvas,
   ConfigPanel: WorkflowEditorConfigPanel,
+  Search: WorkflowEditorSearch,
   use: {
     store: useWorkflowStore,
     shallowStore: useWorkflowShallowStore,

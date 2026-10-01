@@ -10,6 +10,7 @@ import {
   nodeShellStyles,
 } from "../../../styles/components/nodes"
 import { useNodeRuntimeState } from "../../runtime"
+import type { NodeSearchStatus } from "../../store"
 import type { OutputHandle } from "../../node-registry/define-node"
 import type {
   NodeRuntimeStatus,
@@ -21,9 +22,20 @@ const DEFAULT_OUTPUTS: OutputHandle[] = [{}]
 
 interface NodeShellProps {
   nodeId: string
-  title: string
+  /**
+   * The node title. A view passes a `SearchMarkedTitle` here so the title
+   * carries its own canvas-search mark.
+   */
+  title: ReactNode
   subtitle: string
   selected?: boolean
+  /** Where this node stands in the canvas search; `none` when not a match. */
+  searchState?: NodeSearchStatus
+  /**
+   * True when the current match in this node is marked on a field; the node
+   * then shows an outline and leaves the strong mark to that field.
+   */
+  hasCurrentSearchField?: boolean
   showTarget?: boolean
   outputs?: OutputHandle[]
   headerAccessory?: ReactNode
@@ -35,6 +47,8 @@ export function NodeShell({
   nodeId,
   title,
   selected = false,
+  searchState = "none",
+  hasCurrentSearchField = false,
   showTarget = true,
   outputs = DEFAULT_OUTPUTS,
   headerAccessory,
@@ -48,6 +62,8 @@ export function NodeShell({
     selected,
     validation: hasValidation,
     status,
+    searchState,
+    currentField: hasCurrentSearchField,
   })
   const handleStyles = nodeHandlesStyles({ kind: "target" })
   const iteration = runtime?.iteration
@@ -60,6 +76,7 @@ export function NodeShell({
       data-node-id={nodeId}
       data-validation={hasValidation ? "true" : "false"}
       data-node-status={runtime ? runtime.status : undefined}
+      data-search-state={searchState === "none" ? undefined : searchState}
     >
       <div className={styles.panel()}>
         {showTarget ? (

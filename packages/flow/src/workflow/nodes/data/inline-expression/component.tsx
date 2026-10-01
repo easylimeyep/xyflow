@@ -5,6 +5,11 @@ import { Checkbox } from "@flow/ui/components/checkbox"
 import { Label } from "@flow/ui/components/label"
 
 import { inlineExpressionNodeStyles } from "../../../../styles/components/nodes"
+import {
+  SearchFieldRegistryProvider,
+  SearchMarkedTitle,
+  useNodeSearchMarks,
+} from "../../../components/workflow-search/search-field-mark"
 import { NodeShell } from "../../node-shell/node-shell"
 import { asStringArray, useBaseNodeData } from "../../shared"
 import { useNodeStoreData } from "../../shared/use-node-store-data"
@@ -28,79 +33,84 @@ export function InlineExpressionNode({
   const isInteractive = draggable || selectable || isConnectable
   const styles = inlineExpressionNodeStyles()
 
+  const { fieldRegistry, ...searchMarks } = useNodeSearchMarks(id)
   return (
-    <NodeShell
-      nodeId={id}
-      title={label}
-      subtitle="Template with {{ }} references"
-      selected={selected}
-      showTarget={!isRootFromStore}
-      validationMessages={nodeValidationMessages}
-      headerAccessory={
-        <label className={styles.rootToggleWrap()}>
-          <Checkbox
-            isSelected={isRootFromStore}
-            className={styles.rootToggle()}
-            onChange={(checked) => {
-              updateNodeConfig(id, {
-                kind: "inlineExpression",
-                key: "isRoot",
-                value: checked === true,
-              })
-            }}
-          />
-          <span className={styles.rootToggleLabel()}>Root</span>
-        </label>
-      }
-    >
-      <div className={styles.editField()}>
-        <div className={styles.fieldHeader()}>
-          <Label className={styles.label()}>Tokens</Label>
+    <SearchFieldRegistryProvider value={fieldRegistry}>
+      <NodeShell
+        nodeId={id}
+        title={<SearchMarkedTitle nodeId={id}>{label}</SearchMarkedTitle>}
+        subtitle="Template with {{ }} references"
+        selected={selected}
+        {...searchMarks}
+        showTarget={!isRootFromStore}
+        validationMessages={nodeValidationMessages}
+        headerAccessory={
           <label className={styles.rootToggleWrap()}>
             <Checkbox
-              isSelected={isCaseSensitiveFromStore}
+              isSelected={isRootFromStore}
               className={styles.rootToggle()}
               onChange={(checked) => {
                 updateNodeConfig(id, {
                   kind: "inlineExpression",
-                  key: "caseSensitive",
+                  key: "isRoot",
                   value: checked === true,
                 })
               }}
             />
-            <span className={styles.rootToggleLabel()}>Case sensitive</span>
+            <span className={styles.rootToggleLabel()}>Root</span>
           </label>
-        </div>
-        <KeywordExpressionListInput
-          value={templateFromStore}
-          variables={expressionVariables}
-          isInteractive={isInteractive}
-          onChange={(nextValue) => {
-            updateNodeConfig(id, {
-              kind: "inlineExpression",
-              key: "template",
-              value: nextValue,
-            })
-          }}
-        />
-        <p className={styles.helperText()}>
-          Press Enter or blur to commit one history step.
-        </p>
-        <label className={styles.rootToggleWrap()}>
-          <Checkbox
-            isSelected={isRepeatableFromStore}
-            className={styles.rootToggle()}
-            onChange={(checked) => {
+        }
+      >
+        <div className={styles.editField()}>
+          <div className={styles.fieldHeader()}>
+            <Label className={styles.label()}>Tokens</Label>
+            <label className={styles.rootToggleWrap()}>
+              <Checkbox
+                isSelected={isCaseSensitiveFromStore}
+                className={styles.rootToggle()}
+                onChange={(checked) => {
+                  updateNodeConfig(id, {
+                    kind: "inlineExpression",
+                    key: "caseSensitive",
+                    value: checked === true,
+                  })
+                }}
+              />
+              <span className={styles.rootToggleLabel()}>Case sensitive</span>
+            </label>
+          </div>
+          <KeywordExpressionListInput
+            nodeId={id}
+            value={templateFromStore}
+            variables={expressionVariables}
+            isInteractive={isInteractive}
+            onChange={(nextValue) => {
               updateNodeConfig(id, {
                 kind: "inlineExpression",
-                key: "repeatable",
-                value: checked === true,
+                key: "template",
+                value: nextValue,
               })
             }}
           />
-          <span className={styles.rootToggleLabel()}>Repeatable</span>
-        </label>
-      </div>
-    </NodeShell>
+          <p className={styles.helperText()}>
+            Press Enter or blur to commit one history step.
+          </p>
+          <label className={styles.rootToggleWrap()}>
+            <Checkbox
+              isSelected={isRepeatableFromStore}
+              className={styles.rootToggle()}
+              onChange={(checked) => {
+                updateNodeConfig(id, {
+                  kind: "inlineExpression",
+                  key: "repeatable",
+                  value: checked === true,
+                })
+              }}
+            />
+            <span className={styles.rootToggleLabel()}>Repeatable</span>
+          </label>
+        </div>
+      </NodeShell>
+    </SearchFieldRegistryProvider>
   )
 }

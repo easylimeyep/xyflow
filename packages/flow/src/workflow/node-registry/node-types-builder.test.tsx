@@ -1,15 +1,20 @@
 // @vitest-environment jsdom
 
-import { render, screen } from "@testing-library/react"
+import { act, cleanup, render, screen } from "@testing-library/react"
 import type { NodeProps } from "@xyflow/react"
 import { CircleIcon } from "lucide-react"
-import { describe, expect, it, vi } from "vitest"
+import { useEffect } from "react"
+import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { defineNode } from "./define-node"
 import type { NodeDefinition } from "./define-node"
 import { buildNodeTypes } from "./node-types-builder"
 import type { WorkflowNodeData } from "../types/types"
-import { WorkflowStoreProvider } from "../store"
+import {
+  useWorkflowStoreApi,
+  WorkflowStoreProvider,
+  type WorkflowStoreState,
+} from "../store"
 
 vi.mock("@xyflow/react", () => ({
   Handle: () => null,
@@ -73,6 +78,10 @@ function nodeProps(data: WorkflowNodeData): NodeProps {
 }
 
 describe("buildNodeTypes", () => {
+  afterEach(() => {
+    cleanup()
+  })
+
   it("renders a definition's own view when it declares one", () => {
     const types = buildNodeTypes([withView])
     const Rendered = types.withView
@@ -110,5 +119,89 @@ describe("buildNodeTypes", () => {
       </WorkflowStoreProvider>
     )
     expect(screen.getByText("Without view")).toBeInstanceOf(HTMLElement)
+  })
+
+  it("marks a generic-renderer node that matches the canvas search", () => {
+    const Rendered = buildNodeTypes([withoutView]).withoutView!
+    let getState: (() => WorkflowStoreState) | null = null
+    function CaptureApi() {
+      const storeApi = useWorkflowStoreApi()
+      useEffect(() => {
+        getState = storeApi.getState
+      }, [storeApi])
+      return null
+    }
+    const data = { kind: "withoutView", label: "Needle", config: {} }
+    render(
+      <WorkflowStoreProvider
+        definitions={[withoutView]}
+        initialGraph={{
+          nodes: [{ id: "test-node", position: { x: 0, y: 0 }, data }],
+          edges: [],
+          viewport: { x: 0, y: 0, zoom: 1 },
+          document: { id: "doc", name: "Doc", version: 1, metadata: {} },
+        }}
+      >
+        <CaptureApi />
+        <Rendered {...nodeProps(data)} />
+      </WorkflowStoreProvider>
+    )
+
+    act(() => {
+      getState!().openSearch()
+      getState!().setSearchQuery("needle")
+    })
+
+    expect(screen.getByTestId("workflow-node").dataset.searchState).toBe(
+      "current"
+    )
+  })
+
+  it("keeps the strong mark on a generic-renderer node whose match is in a field", () => {
+    const withExpression = defineNode({
+      ...withoutView,
+      kind: "withExpression",
+      fields: [
+        { key: "body", label: "Body", type: "textarea", ui: "expression" },
+      ],
+      buildDefaultConfig: () => ({ body: "" }),
+    })
+    const Rendered = buildNodeTypes([withExpression]).withExpression!
+    let getState: (() => WorkflowStoreState) | null = null
+    function CaptureApi() {
+      const storeApi = useWorkflowStoreApi()
+      useEffect(() => {
+        getState = storeApi.getState
+      }, [storeApi])
+      return null
+    }
+    const data = {
+      kind: "withExpression",
+      label: "Host",
+      config: { body: "{{ needle }}" },
+    }
+    render(
+      <WorkflowStoreProvider
+        definitions={[withExpression]}
+        initialGraph={{
+          nodes: [{ id: "test-node", position: { x: 0, y: 0 }, data }],
+          edges: [],
+          viewport: { x: 0, y: 0, zoom: 1 },
+          document: { id: "doc", name: "Doc", version: 1, metadata: {} },
+        }}
+      >
+        <CaptureApi />
+        <Rendered {...nodeProps(data)} />
+      </WorkflowStoreProvider>
+    )
+
+    act(() => {
+      getState!().openSearch()
+      getState!().setSearchQuery("needle")
+    })
+
+    const node = screen.getByTestId("workflow-node")
+    expect(node.dataset.searchState).toBe("current")
+    expect(node.firstElementChild?.className).toContain("ring-[3px]")
   })
 })

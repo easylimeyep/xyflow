@@ -14,7 +14,11 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import { WORKFLOW_NODE_KIND_MIME } from "../../dnd"
 import { createKeywordSampleGraph } from "../../default-graph"
 import { createWorkflowNode } from "../../node-registry/node-factory"
-import { WorkflowCanvas } from "./workflow-canvas"
+import {
+  MIN_READABLE_ZOOM,
+  WorkflowCanvas,
+  type RevealNode,
+} from "./workflow-canvas"
 import type { WorkflowEditorAnchorRefs } from "../../tour"
 import { builtinBaseDefinitions } from "../../node-registry/builtin-base-definitions"
 import { createNodeRegistry } from "../../node-registry/registry"
@@ -97,6 +101,15 @@ const zoomInSpy = vi.fn()
 const zoomOutSpy = vi.fn()
 const setCenterSpy = vi.fn()
 const getViewportSpy = vi.fn(() => ({ x: 24, y: 48, zoom: 1.75 }))
+const getZoomSpy = vi.fn(() => 1.75)
+const getInternalNodeSpy = vi.fn((nodeId: string) =>
+  nodeId === "revealed"
+    ? {
+        internals: { positionAbsolute: { x: 100, y: 200 } },
+        measured: { width: 260, height: 80 },
+      }
+    : undefined
+)
 const nodesInitializedMock = vi.fn(() => true)
 
 vi.mock("../workflow-edge", () => {
@@ -191,6 +204,8 @@ vi.mock("@xyflow/react", () => {
       zoomIn: zoomInSpy,
       zoomOut: zoomOutSpy,
       getViewport: getViewportSpy,
+      getZoom: getZoomSpy,
+      getInternalNode: getInternalNodeSpy,
       setCenter: setCenterSpy,
       screenToFlowPosition: ({ x, y }: { x: number; y: number }) => {
         const safeX = Number.isFinite(x) ? x : 10
@@ -1104,5 +1119,80 @@ describe("WorkflowCanvas", () => {
 
     expect(TestResizeObserver.latest).toBeUndefined()
     expect(fitViewSpy).not.toHaveBeenCalled()
+  })
+})
+
+describe("WorkflowCanvas revealNode", () => {
+  afterEach(() => {
+    cleanup()
+    vi.clearAllMocks()
+  })
+
+  function renderWithReveal() {
+    let reveal: RevealNode | null = null
+    const onRevealNodeChange = vi.fn((next: RevealNode | null) => {
+      reveal = next
+    })
+    const view = render(
+      <WorkflowCanvas
+        nodes={initialWorkflowGraph.nodes}
+        edges={initialWorkflowGraph.edges}
+        viewport={initialWorkflowGraph.viewport}
+        onNodesChange={vi.fn()}
+        onEdgesChange={vi.fn()}
+        onConnect={vi.fn()}
+        onViewportChange={vi.fn()}
+        onSelectNodes={vi.fn()}
+        onPaneClick={vi.fn()}
+        onAddNodeAt={vi.fn()}
+        onStartInsertFromEdge={vi.fn()}
+        onDeleteEdge={vi.fn()}
+        onPointerFlowPosition={vi.fn()}
+        edgeInsertPendingId={null}
+        onRevealNodeChange={onRevealNodeChange}
+      />,
+      { wrapper: CanvasStoreWrapper }
+    )
+    return { reveal: () => reveal, onRevealNodeChange, view }
+  }
+
+  it("raises the zoom to the readable minimum when zoomed further out", () => {
+    getZoomSpy.mockReturnValueOnce(0.3)
+    const { reveal } = renderWithReveal()
+
+    reveal()?.("revealed")
+
+    expect(setCenterSpy).toHaveBeenCalledWith(230, 240, {
+      zoom: MIN_READABLE_ZOOM,
+      duration: 200,
+    })
+  })
+
+  it("keeps a zoom that is already above the readable minimum", () => {
+    getZoomSpy.mockReturnValueOnce(1.75)
+    const { reveal } = renderWithReveal()
+
+    reveal()?.("revealed")
+
+    expect(setCenterSpy).toHaveBeenCalledWith(230, 240, {
+      zoom: 1.75,
+      duration: 200,
+    })
+  })
+
+  it("does nothing for an unknown node", () => {
+    const { reveal } = renderWithReveal()
+
+    reveal()?.("missing")
+
+    expect(setCenterSpy).not.toHaveBeenCalled()
+  })
+
+  it("withdraws revealNode on unmount", () => {
+    const { onRevealNodeChange, view } = renderWithReveal()
+
+    view.unmount()
+
+    expect(onRevealNodeChange).toHaveBeenLastCalledWith(null)
   })
 })
