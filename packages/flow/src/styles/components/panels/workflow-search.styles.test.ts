@@ -15,7 +15,10 @@ describe("workflowSearchStyles positions", () => {
     ["top-center", ["top-3", "left-1/2", "-translate-x-1/2"]],
     ["center-left", ["top-1/2", "-translate-y-1/2", "left-3"]],
     ["center-right", ["top-1/2", "-translate-y-1/2", "right-3"]],
-    ["bottom-center", ["bottom-3", "left-[max(calc(15rem+220px),50%)]", "-translate-x-1/2"]],
+    [
+      "bottom-center",
+      ["bottom-3", "left-[max(calc(15rem+220px),50%)]", "-translate-x-1/2"],
+    ],
     ["bottom-right", ["bottom-3", "right-3"]],
   ] as const)("places %s", (position, classes) => {
     expect(rootOf({ position })).toEqual(expect.arrayContaining([...classes]))
@@ -48,5 +51,16 @@ describe("workflowSearchStyles positions", () => {
     expect(
       rootOf({ placement: "inline", position: "bottom-left" })
     ).not.toContain("bottom-3")
+  })
+
+  it("opens below the floating toolbar only along the top edge", () => {
+    for (const position of ["top-left", "top-center", "top-right"] as const) {
+      const root = rootOf({ position, belowToolbar: true })
+      expect(root).toContain("top-16")
+      expect(root).not.toContain("top-3")
+    }
+    expect(
+      rootOf({ position: "bottom-right", belowToolbar: true })
+    ).not.toContain("top-16")
   })
 })

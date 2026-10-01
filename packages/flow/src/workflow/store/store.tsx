@@ -159,6 +159,7 @@ export function useWorkflowActions() {
     measuredInitialAutoLayout: state.measuredInitialAutoLayout,
     setSelectedNodes: state.setSelectedNodes,
     copySelectionToClipboard: state.copySelectionToClipboard,
+    copyAllToClipboard: state.copyAllToClipboard,
     pasteFromClipboard: state.pasteFromClipboard,
     importFromJson: state.importFromJson,
     exportDomain: state.exportDomain,

@@ -70,6 +70,9 @@ export const workflowSearchStyles = tv({
     besidePalette: {
       true: {},
     },
+    belowToolbar: {
+      true: {},
+    },
   },
   compoundVariants: [
     floatingPosition("top-left", "top-3 left-3"),
@@ -127,12 +130,21 @@ export const workflowSearchStyles = tv({
         root: "@2xl:left-[max(calc(15rem+220px),calc((100%-19.5rem)/2))] @2xl:w-[min(440px,calc(100%-21rem))]",
       },
     },
+    {
+      // The floating editor toolbar holds the middle of the top edge, so bars
+      // pinned to that edge open below it rather than over it.
+      placement: "floating",
+      position: ["top-left", "top-center", "top-right"],
+      belowToolbar: true,
+      class: { root: "top-16" },
+    },
   ],
   defaultVariants: {
     placement: "floating",
     position: "top-right",
     empty: false,
     besidePalette: false,
+    belowToolbar: false,
   },
 })
 

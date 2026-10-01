@@ -78,6 +78,14 @@ interface WorkflowEditorLayoutContextValue {
   focusSearch: () => void
   /** True while a search part is mounted to receive Mod+F. */
   hasSearch: () => boolean
+  /**
+   * The same fact as `hasSearch`, as render state: it flips only when a search
+   * part mounts or unmounts, so parts that offer search can show or hide it.
+   */
+  isSearchAvailable: boolean
+  /** True while a floating `WorkflowEditor.Toolbar` holds the top edge. */
+  hasFloatingToolbar: boolean
+  setHasFloatingToolbar: (hasToolbar: boolean) => void
   setFocusSearch: (focus: (() => void) | null) => void
 }
 
@@ -288,7 +296,8 @@ function WorkflowEditorLayoutProvider({
 
   // The canvas and the search bar hand their imperative entry points over
   // through refs: the search may render outside the React Flow provider, and
-  // neither registration should re-render the parts reading this context.
+  // a registration re-renders the parts reading this context only when it
+  // changes whether a search part exists at all.
   const revealNodeRef = useRef<RevealNode | null>(null)
   const setRevealNode = useCallback((next: RevealNode | null) => {
     revealNodeRef.current = next
@@ -297,8 +306,11 @@ function WorkflowEditorLayoutProvider({
     revealNodeRef.current?.(nodeId)
   }, [])
   const focusSearchRef = useRef<(() => void) | null>(null)
+  const [isSearchAvailable, setIsSearchAvailable] = useState(false)
+  const [hasFloatingToolbar, setHasFloatingToolbar] = useState(false)
   const setFocusSearch = useCallback((next: (() => void) | null) => {
     focusSearchRef.current = next
+    setIsSearchAvailable(next != null)
   }, [])
   const focusSearch = useCallback(() => {
     focusSearchRef.current?.()
@@ -321,6 +333,9 @@ function WorkflowEditorLayoutProvider({
         setRevealNode,
         focusSearch,
         hasSearch,
+        isSearchAvailable,
+        hasFloatingToolbar,
+        setHasFloatingToolbar,
         setFocusSearch,
       }}
     >
@@ -356,17 +371,15 @@ export type WorkflowEditorProps = WorkflowProviderProps
 
 function DefaultWorkflowEditorComposition() {
   return (
-    <>
-      <WorkflowEditorToolbar />
-      <WorkflowEditorBody>
-        <WorkflowEditorValidationAlert />
-        <WorkflowEditorConfigPanel />
-        <WorkflowEditorPalette />
-        <WorkflowEditorCanvas>
-          <WorkflowEditorSearch />
-        </WorkflowEditorCanvas>
-      </WorkflowEditorBody>
-    </>
+    <WorkflowEditorBody>
+      <WorkflowEditorValidationAlert />
+      <WorkflowEditorConfigPanel />
+      <WorkflowEditorPalette />
+      <WorkflowEditorCanvas>
+        <WorkflowEditorToolbar />
+        <WorkflowEditorSearch />
+      </WorkflowEditorCanvas>
+    </WorkflowEditorBody>
   )
 }
 
@@ -501,11 +514,23 @@ function WorkflowValidationSync({
 }
 
 export interface WorkflowEditorToolbarProps {
+  /**
+   * `floating` (default) pins the bar over the middle of the top edge of its
+   * positioned container — the canvas, when rendered inside
+   * `WorkflowEditor.Canvas`. `inline` renders it in flow for a host that lays
+   * it out itself.
+   */
+  placement?: "floating" | "inline"
   /** Extra classes for the toolbar's root element, merged into the package's own. */
   className?: string
 }
 
+/**
+ * The editor's action bar: undo/redo, copying every node, and a toggle
+ * for `WorkflowEditor.Search` while one is mounted.
+ */
 export function WorkflowEditorToolbar({
+  placement,
   className,
 }: WorkflowEditorToolbarProps = {}) {
   const layout = useWorkflowEditorLayoutContext()
@@ -514,27 +539,59 @@ export function WorkflowEditorToolbar({
   // subscribe to history alone — a graph edit that records nothing leaves the
   // toolbar untouched.
   const { canUndo, canRedo } = useHistory(useWorkflowStoreApi())
-  const { lastError, setLastError, undo, redo, exportDomain, importFromJson } =
-    useWorkflowShallowStore((state: WorkflowStoreState) => ({
-      lastError: selectLastErrorMessage(state),
-      setLastError: state.setLastError,
-      undo: state.undo,
-      redo: state.redo,
-      exportDomain: state.exportDomain,
-      importFromJson: state.importFromJson,
-    }))
+  const {
+    lastError,
+    setLastError,
+    undo,
+    redo,
+    copyAllToClipboard,
+    hasNodes,
+    isSearchOpen,
+    openSearch,
+    closeSearch,
+  } = useWorkflowShallowStore((state: WorkflowStoreState) => ({
+    lastError: selectLastErrorMessage(state),
+    setLastError: state.setLastError,
+    undo: state.undo,
+    redo: state.redo,
+    copyAllToClipboard: state.copyAllToClipboard,
+    hasNodes: selectPresentNodes(state).length > 0,
+    isSearchOpen: state.search.isOpen,
+    openSearch: state.openSearch,
+    closeSearch: state.closeSearch,
+  }))
+  const setHasFloatingToolbar = layout?.setHasFloatingToolbar
+  const isFloating = placement !== "inline"
+  useEffect(() => {
+    if (!isFloating || !setHasFloatingToolbar) {
+      return
+    }
+    setHasFloatingToolbar(true)
+    return () => setHasFloatingToolbar(false)
+  }, [isFloating, setHasFloatingToolbar])
+
+  const search = layout?.isSearchAvailable
+    ? {
+        isOpen: isSearchOpen,
+        onOpenChange: (isOpen: boolean) =>
+          isOpen ? openSearch() : closeSearch(),
+      }
+    : undefined
 
   return (
     <EditorToolbar
       anchorRef={toolbarRef}
+      placement={placement}
+      showHistory={layout?.mode !== "observe"}
+      search={search}
       canUndo={canUndo}
       canRedo={canRedo}
       lastError={lastError}
       onUndo={undo}
       onRedo={redo}
       onClearError={() => setLastError(null)}
-      onExportDomain={exportDomain}
-      onImportJson={importFromJson}
+      canCopyAll={hasNodes}
+      onCopyAll={copyAllToClipboard}
       className={className}
     />
   )
@@ -851,6 +908,7 @@ export function WorkflowEditorSearch({
       position={position}
       // The palette is withheld while observing, whatever its open flag says.
       besidePalette={layout?.mode === "edit" && layout.isPaletteOpen}
+      belowToolbar={layout?.hasFloatingToolbar}
       className={className}
     />
   )

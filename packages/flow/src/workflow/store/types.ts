@@ -266,6 +266,8 @@ export interface WorkflowStoreSearchCommands {
 
 export interface WorkflowStoreIOCommands {
   copySelectionToClipboard: () => Promise<boolean>
+  /** Copies the whole graph in the same format as `copySelectionToClipboard`. */
+  copyAllToClipboard: () => Promise<boolean>
   pasteFromClipboard: (anchor?: XYPosition | null) => Promise<boolean>
   importFromJson: (rawJson: string) => boolean
   exportDomain: () => DomainWorkflowDTO

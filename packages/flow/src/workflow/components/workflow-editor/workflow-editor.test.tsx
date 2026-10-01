@@ -30,6 +30,7 @@ vi.mock("../editor-toolbar", () => ({
     lastError,
     onUndo,
     onRedo,
+    search,
   }: {
     anchorRef?: Ref<HTMLDivElement>
     canUndo: boolean
@@ -37,6 +38,7 @@ vi.mock("../editor-toolbar", () => ({
     lastError: string | null
     onUndo: () => void
     onRedo: () => void
+    search?: { isOpen: boolean; onOpenChange: (isOpen: boolean) => void }
   }) => (
     <div ref={anchorRef}>
       <span data-testid="toolbar-can-undo">{String(canUndo)}</span>
@@ -48,6 +50,17 @@ vi.mock("../editor-toolbar", () => ({
       <button type="button" onClick={onRedo}>
         toolbar-redo
       </button>
+      <span data-testid="toolbar-search">
+        {search ? String(search.isOpen) : "none"}
+      </span>
+      {search ? (
+        <button
+          type="button"
+          onClick={() => search.onOpenChange(!search.isOpen)}
+        >
+          toolbar-search
+        </button>
+      ) : null}
     </div>
   ),
 }))
@@ -466,6 +479,25 @@ describe("WorkflowEditor wiring", () => {
     expect(Number(screen.getByTestId("canvas-node-count").textContent)).toBe(
       beforeCount
     )
+  })
+
+  it("offers the search toggle only while a search part is mounted", () => {
+    renderCustomEditor()
+    expect(screen.getByTestId("toolbar-search").textContent).toBe("none")
+  })
+
+  it("opens and closes the canvas search from the toolbar toggle", async () => {
+    const user = userEvent.setup()
+    render(<WorkflowEditor definitions={builtinBaseDefinitions} />)
+
+    expect(screen.getByTestId("toolbar-search").textContent).toBe("false")
+
+    await user.click(screen.getByRole("button", { name: "toolbar-search" }))
+    expect(screen.getByTestId("toolbar-search").textContent).toBe("true")
+    expect(screen.getByRole("search", { name: "Search workflow" })).toBeTruthy()
+
+    await user.click(screen.getByRole("button", { name: "toolbar-search" }))
+    expect(screen.getByTestId("toolbar-search").textContent).toBe("false")
   })
 
   it("updates toolbar canUndo/canRedo across undo-redo history steps", async () => {

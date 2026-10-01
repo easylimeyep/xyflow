@@ -58,6 +58,8 @@ export interface WorkflowSearchProps {
   position?: WorkflowSearchPosition
   /** Set while the floating node palette is open, so the bar moves clear of it. */
   besidePalette?: boolean
+  /** Set while the floating editor toolbar is mounted, so a bar on the top edge opens below it. */
+  belowToolbar?: boolean
   /** Extra classes for the bar's root element, merged into the package's own. */
   className?: string
 }
@@ -117,6 +119,7 @@ export function WorkflowSearch({
   placement,
   position,
   besidePalette,
+  belowToolbar,
   className,
 }: WorkflowSearchProps) {
   const {
@@ -152,6 +155,7 @@ export function WorkflowSearch({
     placement,
     position,
     besidePalette,
+    belowToolbar,
     empty: isEmpty,
   })
 

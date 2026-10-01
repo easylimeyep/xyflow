@@ -202,12 +202,12 @@ export function CanvasSearchExample({
           initialGraph={graph}
         >
           <SearchPreset query={initialQuery} showResults={showResults} />
-          <WorkflowEditor.Toolbar />
           <WorkflowEditor.Body>
             <WorkflowEditor.ValidationAlert />
             <WorkflowEditor.ConfigPanel />
             <WorkflowEditor.Palette />
             <WorkflowEditor.Canvas>
+              <WorkflowEditor.Toolbar />
               <WorkflowEditor.Search position={position} />
             </WorkflowEditor.Canvas>
           </WorkflowEditor.Body>

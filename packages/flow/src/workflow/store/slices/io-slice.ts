@@ -36,42 +36,20 @@ import type { WorkflowSliceCreator } from "../types"
 const VARIABLE_LABEL_KINDS = new Set(["extractor", "setVariable"])
 
 export const createIoSlice: WorkflowSliceCreator = (set, get, api) => ({
-  copySelectionToClipboard: async () => {
-    const state = get()
-    const currentGraph = state.graph
-    const selectedNodeIdSet = new Set(state.selectedNodeIds)
-    const selectedNodes = currentGraph.nodes.filter((node) =>
-      selectedNodeIdSet.has(node.id)
-    )
-    if (selectedNodes.length === 0) {
-      return false
-    }
-
-    const selectedConnections = currentGraph.edges
-      .filter(
-        (edge) =>
-          selectedNodeIdSet.has(edge.source) &&
-          selectedNodeIdSet.has(edge.target)
-      )
-      .map(asDomainConnectionDTO)
-    const payload = exportSelectionClipboardJson(
-      selectedNodes.map((node) => asDomainNodeDTO(state.registry, node)),
-      selectedConnections
-    )
-    const copied = await writeTextToClipboard(payload)
-    if (!copied) {
-      set({
-        lastError: createWorkflowError(
-          "CLIPBOARD_WRITE_FAILED",
-          "Failed to copy selected nodes."
-        ),
-      })
-      return false
-    }
-
-    set({ lastError: null })
-    return true
-  },
+  copySelectionToClipboard: () =>
+    copyNodesToClipboard(
+      get,
+      set,
+      new Set(get().selectedNodeIds),
+      "Failed to copy selected nodes."
+    ),
+  copyAllToClipboard: () =>
+    copyNodesToClipboard(
+      get,
+      set,
+      new Set(get().graph.nodes.map((node) => node.id)),
+      "Failed to copy workflow."
+    ),
   pasteFromClipboard: async (pasteAnchor = null) => {
     const clipboardText = await readTextFromClipboard()
     if (!clipboardText) {
@@ -206,6 +184,42 @@ export const createIoSlice: WorkflowSliceCreator = (set, get, api) => ({
     return nextPayload
   },
 })
+
+/**
+ * Writes the given nodes, and the connections between them, to the clipboard
+ * in the selection format `pasteFromClipboard` reads back. Returns `false`
+ * without touching the clipboard when there is nothing to copy.
+ */
+async function copyNodesToClipboard(
+  get: Parameters<WorkflowSliceCreator>[1],
+  set: Parameters<WorkflowSliceCreator>[0],
+  nodeIds: ReadonlySet<string>,
+  failureMessage: string
+): Promise<boolean> {
+  const state = get()
+  const nodes = state.graph.nodes.filter((node) => nodeIds.has(node.id))
+  if (nodes.length === 0) {
+    return false
+  }
+
+  const connections = state.graph.edges
+    .filter((edge) => nodeIds.has(edge.source) && nodeIds.has(edge.target))
+    .map(asDomainConnectionDTO)
+  const payload = exportSelectionClipboardJson(
+    nodes.map((node) => asDomainNodeDTO(state.registry, node)),
+    connections
+  )
+  const copied = await writeTextToClipboard(payload)
+  if (!copied) {
+    set({
+      lastError: createWorkflowError("CLIPBOARD_WRITE_FAILED", failureMessage),
+    })
+    return false
+  }
+
+  set({ lastError: null })
+  return true
+}
 
 function buildPastedNodes(
   registry: NodeRegistry,

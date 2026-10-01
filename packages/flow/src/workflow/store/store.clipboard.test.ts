@@ -88,6 +88,64 @@ describe("workflow store clipboard actions", () => {
     expect(parsed.value?.connections.length).toBeGreaterThan(0)
   })
 
+  it("copies every node and connection in the selection format, ignoring the selection", async () => {
+    const store = createWorkflowStore({
+      definitions: builtinBaseDefinitions,
+      initialGraph: createKeywordSampleGraph(builtinBaseDefinitions),
+    })
+    const { nodes, edges } = store.getState().graph
+    store.getState().setSelectedNodes([nodes[0]!.id])
+
+    const copied = await store.getState().copyAllToClipboard()
+
+    expect(copied).toBe(true)
+    const rawPayload = clipboardWriteTextMock.mock.calls[0]?.[0]
+    const parsed = parseSelectionClipboardJson(registry, rawPayload)
+    expect(parsed.success).toBe(true)
+    expect(parsed.value?.nodes).toHaveLength(nodes.length)
+    expect(parsed.value?.connections).toHaveLength(edges.length)
+    expect(store.getState().selectedNodeIds).toEqual([nodes[0]!.id])
+  })
+
+  it("pastes everything copied with copyAllToClipboard back as new nodes", async () => {
+    const store = createWorkflowStore({
+      definitions: builtinBaseDefinitions,
+      initialGraph: createKeywordSampleGraph(builtinBaseDefinitions),
+    })
+    const nodeCount = store.getState().graph.nodes.length
+    await store.getState().copyAllToClipboard()
+    clipboardReadTextMock.mockResolvedValue(
+      clipboardWriteTextMock.mock.calls[0]?.[0]
+    )
+
+    const pasted = await store.getState().pasteFromClipboard({ x: 0, y: 0 })
+
+    expect(pasted).toBe(true)
+    expect(store.getState().graph.nodes).toHaveLength(nodeCount * 2)
+  })
+
+  it("does not write to the clipboard when the graph is empty", async () => {
+    const store = createWorkflowStore({ definitions: builtinBaseDefinitions })
+
+    const copied = await store.getState().copyAllToClipboard()
+
+    expect(copied).toBe(false)
+    expect(clipboardWriteTextMock).not.toHaveBeenCalled()
+  })
+
+  it("reports a failed write when copying everything", async () => {
+    const store = createWorkflowStore({
+      definitions: builtinBaseDefinitions,
+      initialGraph: createKeywordSampleGraph(builtinBaseDefinitions),
+    })
+    clipboardWriteTextMock.mockRejectedValue(new Error("denied"))
+
+    const copied = await store.getState().copyAllToClipboard()
+
+    expect(copied).toBe(false)
+    expect(store.getState().lastError?.message).toBe("Failed to copy workflow.")
+  })
+
   it("pastes nodes at explicit anchor and ensures unique label/variable names", async () => {
     const store = createWorkflowStore({
       definitions: builtinBaseDefinitions,

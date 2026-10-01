@@ -1,88 +1,115 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen } from "@testing-library/react"
+import { cleanup, render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 
-import { EditorToolbar } from "./editor-toolbar"
-import type { DomainWorkflowDTO } from "../../types"
+import { EditorToolbar, type EditorToolbarProps } from "./editor-toolbar"
 
-const exportPayload: DomainWorkflowDTO = {
-  id: "wf-1",
-  name: "Workflow",
-  version: 1,
-  metadata: {},
-  nodes: [],
-  connections: [],
-  viewport: { x: 0, y: 0, zoom: 1 },
+function renderToolbar(overrides: Partial<EditorToolbarProps> = {}) {
+  const props: EditorToolbarProps = {
+    canUndo: true,
+    canRedo: true,
+    lastError: null,
+    onUndo: vi.fn(),
+    onRedo: vi.fn(),
+    onClearError: vi.fn(),
+    canCopyAll: true,
+    onCopyAll: vi.fn().mockResolvedValue(true),
+    ...overrides,
+  }
+  render(<EditorToolbar {...props} />)
+  return props
 }
 
 describe("EditorToolbar", () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-    Object.defineProperty(globalThis.navigator, "clipboard", {
-      value: { writeText: vi.fn().mockResolvedValue(undefined) },
-      configurable: true,
-    })
-  })
-
   afterEach(() => {
     cleanup()
   })
 
-  it("exports domain json to clipboard and shows status", async () => {
+  it("runs undo and redo, and disables them when the history is empty", async () => {
     const user = userEvent.setup()
-    render(
-      <EditorToolbar
-        canUndo
-        canRedo
-        lastError={null}
-        onUndo={vi.fn()}
-        onRedo={vi.fn()}
-        onClearError={vi.fn()}
-        onExportDomain={() => exportPayload}
-        onImportJson={vi.fn().mockReturnValue(true)}
-      />
-    )
+    const props = renderToolbar({ canRedo: false })
 
-    await user.click(screen.getByRole("button", { name: "Export Domain" }))
+    await user.click(screen.getByRole("button", { name: "Undo" }))
+    expect(props.onUndo).toHaveBeenCalledOnce()
     expect(
-      screen.queryByText("Domain JSON copied.") ??
-        screen.queryByText("Failed to copy domain JSON.")
-    ).not.toBeNull()
+      screen.getByRole("button", { name: "Redo" }).hasAttribute("disabled")
+    ).toBe(true)
   })
 
-  it("applies import and renders success/failure statuses", async () => {
+  it("hides undo and redo when showHistory is false", () => {
+    renderToolbar({ showHistory: false })
+
+    expect(screen.queryByRole("button", { name: "Undo" })).toBeNull()
+    expect(screen.queryByRole("button", { name: "Redo" })).toBeNull()
+  })
+
+  it("copies all nodes and reports it", async () => {
     const user = userEvent.setup()
-    const onImportJson = vi
-      .fn<(rawJson: string) => boolean>()
-      .mockReturnValueOnce(true)
-      .mockReturnValueOnce(false)
+    const props = renderToolbar()
 
-    render(
-      <EditorToolbar
-        canUndo
-        canRedo
-        lastError={null}
-        onUndo={vi.fn()}
-        onRedo={vi.fn()}
-        onClearError={vi.fn()}
-        onExportDomain={() => exportPayload}
-        onImportJson={onImportJson}
-      />
-    )
+    await user.click(screen.getByRole("button", { name: "Copy all nodes" }))
 
-    await user.click(screen.getAllByRole("button", { name: "Import JSON" })[0]!)
-    fireEvent.change(
-      screen.getByPlaceholderText("Paste domain workflow JSON"),
-      {
-        target: { value: '{"nodes":[],"edges":[]}' },
-      }
-    )
-    await user.click(screen.getByRole("button", { name: "Apply Import" }))
-    expect(screen.queryByText("Workflow imported.")).not.toBeNull()
+    expect(props.onCopyAll).toHaveBeenCalledOnce()
+    expect(await screen.findByText("All nodes copied.")).toBeTruthy()
 
-    await user.click(screen.getByRole("button", { name: "Apply Import" }))
-    expect(screen.queryByText("Import failed.")).not.toBeNull()
+    await user.click(screen.getByRole("button", { name: "Dismiss" }))
+    expect(screen.queryByText("All nodes copied.")).toBeNull()
+    expect(props.onClearError).toHaveBeenCalledOnce()
+  })
+
+  it("leaves a failed copy to the store error", async () => {
+    const user = userEvent.setup()
+    renderToolbar({ onCopyAll: vi.fn().mockResolvedValue(false) })
+
+    await user.click(screen.getByRole("button", { name: "Copy all nodes" }))
+
+    expect(screen.queryByRole("status")).toBeNull()
+  })
+
+  it("disables copying when there are no nodes", () => {
+    renderToolbar({ canCopyAll: false })
+
+    expect(
+      screen
+        .getByRole("button", { name: "Copy all nodes" })
+        .hasAttribute("disabled")
+    ).toBe(true)
+  })
+
+  it("shows the store error over its own status", () => {
+    renderToolbar({ lastError: "Cannot connect these ports." })
+
+    expect(screen.getByText("Cannot connect these ports.")).toBeTruthy()
+  })
+
+  it("renders the search toggle only when search is offered", () => {
+    renderToolbar()
+    expect(screen.queryByRole("button", { name: "Search" })).toBeNull()
+  })
+
+  it("toggles search open and closed", async () => {
+    const user = userEvent.setup()
+    const onOpenChange = vi.fn()
+    renderToolbar({ search: { isOpen: false, onOpenChange } })
+
+    const toggle = screen.getByRole("button", { name: "Search" })
+    expect(toggle.getAttribute("aria-pressed")).toBe("false")
+
+    await user.click(toggle)
+    expect(onOpenChange).toHaveBeenCalledWith(true)
+  })
+
+  it("marks the search toggle pressed while search is open", async () => {
+    const user = userEvent.setup()
+    const onOpenChange = vi.fn()
+    renderToolbar({ search: { isOpen: true, onOpenChange } })
+
+    const toggle = screen.getByRole("button", { name: "Search" })
+    expect(toggle.getAttribute("aria-pressed")).toBe("true")
+
+    await user.click(toggle)
+    expect(onOpenChange).toHaveBeenCalledWith(false)
   })
 })

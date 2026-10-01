@@ -97,10 +97,11 @@ export default function ObservePage() {
         mode="observe"
         overlay={overlay}
       >
-        <WorkflowEditor.Toolbar />
         <WorkflowEditor.Body>
           <WorkflowEditor.ValidationAlert />
-          <WorkflowEditor.Canvas />
+          <WorkflowEditor.Canvas>
+            <WorkflowEditor.Toolbar />
+          </WorkflowEditor.Canvas>
           <WorkflowEditor.ConfigPanel />
         </WorkflowEditor.Body>
         <GraphProbe />

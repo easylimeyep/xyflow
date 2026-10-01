@@ -104,7 +104,7 @@ export function ProviderLayoutExample() {
       >
         <div className="grid h-full grid-rows-[auto_1fr]">
           <header className="flex items-center justify-between gap-3 border-b border-gray-200 bg-white px-4 py-2">
-            <WorkflowEditor.Toolbar />
+            <WorkflowEditor.Toolbar placement="inline" />
             <PaletteToggle />
           </header>
           <div className="flex min-h-0">
