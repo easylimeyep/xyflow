@@ -9,6 +9,7 @@ import {
 } from "@testing-library/react"
 import { readFileSync } from "node:fs"
 import type { MouseEvent, ReactNode } from "react"
+import { createPortal } from "react-dom"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { WORKFLOW_NODE_KIND_MIME } from "../../dnd"
@@ -148,6 +149,40 @@ vi.mock("@xyflow/react", () => {
       Full: "full",
       Partial: "partial",
     },
+    Position: {
+      Top: "top",
+      Right: "right",
+      Bottom: "bottom",
+      Left: "left",
+    },
+    NodeToolbar: ({
+      children,
+      nodeId,
+      isVisible,
+      position,
+      align,
+    }: {
+      children: ReactNode
+      nodeId: string | string[]
+      isVisible?: boolean
+      position?: string
+      align?: string
+    }) =>
+      // Portaled out of the canvas box, so the tests also cover presses that
+      // reach the canvas through the React tree but not through the DOM.
+      isVisible
+        ? createPortal(
+            <div
+              data-testid="rf-node-toolbar"
+              data-node-ids={([] as string[]).concat(nodeId).join(",")}
+              data-position={position}
+              data-align={align}
+            >
+              {children}
+            </div>,
+            document.body
+          )
+        : null,
     Background: () => null,
     Panel: ({
       children,
@@ -225,6 +260,10 @@ vi.mock("@xyflow/react", () => {
       onConnect,
       onMoveEnd,
       onMouseMove,
+      onNodeDragStart,
+      onNodeDragStop,
+      onSelectionDragStart,
+      onSelectionDragStop,
       isValidConnection,
       defaultViewport,
       viewport,
@@ -258,6 +297,10 @@ vi.mock("@xyflow/react", () => {
         viewport: { x: number; y: number; zoom: number }
       ) => void
       onMouseMove: (event: { clientX: number; clientY: number }) => void
+      onNodeDragStart?: () => void
+      onNodeDragStop?: () => void
+      onSelectionDragStart?: () => void
+      onSelectionDragStop?: () => void
       isValidConnection: (connection: {
         source: string
         target: string
@@ -336,6 +379,26 @@ vi.mock("@xyflow/react", () => {
             }
           />
           <button type="button" data-testid="rf-pane" onClick={onPaneClick} />
+          <button
+            type="button"
+            data-testid="rf-node-drag-start"
+            onClick={() => onNodeDragStart?.()}
+          />
+          <button
+            type="button"
+            data-testid="rf-node-drag-stop"
+            onClick={() => onNodeDragStop?.()}
+          />
+          <button
+            type="button"
+            data-testid="rf-selection-drag-start"
+            onClick={() => onSelectionDragStart?.()}
+          />
+          <button
+            type="button"
+            data-testid="rf-selection-drag-stop"
+            onClick={() => onSelectionDragStop?.()}
+          />
           <button
             type="button"
             data-testid="rf-move"
@@ -434,8 +497,11 @@ describe("WorkflowCanvas", () => {
     await waitFor(() => {
       expect(onSelectNodes).toHaveBeenCalledWith(["selected-node"])
     })
+    // The node props still carry no selection (the mock store never writes
+    // back), so the same select change is a real change again. The router
+    // compares against the nodes, not against what it emitted last.
     fireEvent.click(screen.getByTestId("rf-select"))
-    expect(onSelectNodes).toHaveBeenCalledTimes(1)
+    expect(onSelectNodes).toHaveBeenCalledTimes(2)
 
     fireEvent.click(screen.getByTestId("rf-pane"))
     expect(onPaneClick).toHaveBeenCalledTimes(1)
@@ -1194,5 +1260,282 @@ describe("WorkflowCanvas revealNode", () => {
     view.unmount()
 
     expect(onRevealNodeChange).toHaveBeenLastCalledWith(null)
+  })
+})
+
+describe("WorkflowCanvas selection toolbar", () => {
+  afterEach(() => {
+    cleanup()
+  })
+
+  function renderWithSelection(
+    selectedIds: string[],
+    options: {
+      mode?: "edit" | "observe"
+      onPaneClick?: () => void
+      onSelectNodes?: (nodeIds: string[]) => void
+    } = {}
+  ) {
+    const nodes = [fixtureSource, fixtureTarget].map((node) => ({
+      ...node,
+      selected: selectedIds.includes(node.id),
+    }))
+
+    return render(
+      <WorkflowCanvas
+        nodes={nodes}
+        edges={[]}
+        viewport={initialWorkflowGraph.viewport}
+        onNodesChange={vi.fn()}
+        onEdgesChange={vi.fn()}
+        onConnect={vi.fn()}
+        onViewportChange={vi.fn()}
+        onSelectNodes={options.onSelectNodes ?? vi.fn()}
+        onPaneClick={options.onPaneClick ?? vi.fn()}
+        onAddNodeAt={vi.fn()}
+        onStartInsertFromEdge={vi.fn()}
+        onDeleteEdge={vi.fn()}
+        onPointerFlowPosition={vi.fn()}
+        edgeInsertPendingId={null}
+        mode={options.mode}
+      />,
+      { wrapper: CanvasStoreWrapper }
+    )
+  }
+
+  it("is hidden when no node is selected", () => {
+    renderWithSelection([])
+
+    expect(screen.queryByTestId("rf-node-toolbar")).toBeNull()
+    expect(screen.queryByTestId("selection-toolbar")).toBeNull()
+  })
+
+  it("is hidden for a single selected node, which has the context menu", () => {
+    renderWithSelection([fixtureSource.id])
+
+    expect(screen.queryByTestId("selection-toolbar")).toBeNull()
+  })
+
+  it("anchors the toolbar to the top-right of the selection", () => {
+    renderWithSelection([fixtureSource.id, fixtureTarget.id])
+
+    const toolbar = screen.getByTestId("rf-node-toolbar")
+    expect(toolbar.getAttribute("data-node-ids")).toBe(
+      `${fixtureSource.id},${fixtureTarget.id}`
+    )
+    expect(toolbar.getAttribute("data-position")).toBe("top")
+    expect(toolbar.getAttribute("data-align")).toBe("end")
+    expect(
+      screen.getByRole("group", { name: "Selection actions" })
+    ).toBeTruthy()
+  })
+
+  it("renders exactly one toolbar for the whole multi-node selection", () => {
+    renderWithSelection([fixtureSource.id, fixtureTarget.id])
+
+    const toolbars = screen.getAllByTestId("rf-node-toolbar")
+    expect(toolbars).toHaveLength(1)
+    expect(toolbars[0]?.getAttribute("data-node-ids")).toBe(
+      `${fixtureSource.id},${fixtureTarget.id}`
+    )
+    expect(screen.getAllByTestId("selection-toolbar")).toHaveLength(1)
+  })
+
+  it("is hidden in observe mode", () => {
+    renderWithSelection([fixtureSource.id, fixtureTarget.id], {
+      mode: "observe",
+    })
+
+    expect(screen.queryByTestId("selection-toolbar")).toBeNull()
+  })
+
+  it.each([
+    ["node", "rf-node-drag-start", "rf-node-drag-stop"],
+    ["selection", "rf-selection-drag-start", "rf-selection-drag-stop"],
+  ])("hides during a %s drag and returns after it", (_, start, stop) => {
+    renderWithSelection([fixtureSource.id, fixtureTarget.id])
+
+    fireEvent.click(screen.getByTestId(start))
+    expect(screen.queryByTestId("selection-toolbar")).toBeNull()
+
+    fireEvent.click(screen.getByTestId(stop))
+    expect(screen.getByTestId("selection-toolbar")).toBeTruthy()
+  })
+
+  it("marks the toolbar so React Flow does not pan or drag from it", () => {
+    renderWithSelection([fixtureSource.id, fixtureTarget.id])
+
+    const toolbar = screen.getByTestId("selection-toolbar")
+    expect(toolbar.classList.contains("nodrag")).toBe(true)
+    expect(toolbar.classList.contains("nopan")).toBe(true)
+  })
+
+  it("shows again after switching to observe mid-drag and back", () => {
+    const view = renderWithSelection([fixtureSource.id, fixtureTarget.id])
+    fireEvent.click(screen.getByTestId("rf-node-drag-start"))
+    expect(screen.queryByTestId("selection-toolbar")).toBeNull()
+
+    const nodes = [
+      { ...fixtureSource, selected: true },
+      { ...fixtureTarget, selected: true },
+    ]
+    const rerenderIn = (mode: "edit" | "observe") =>
+      view.rerender(
+        <WorkflowCanvas
+          nodes={nodes}
+          edges={[]}
+          viewport={initialWorkflowGraph.viewport}
+          onNodesChange={vi.fn()}
+          onEdgesChange={vi.fn()}
+          onConnect={vi.fn()}
+          onViewportChange={vi.fn()}
+          onSelectNodes={vi.fn()}
+          onPaneClick={vi.fn()}
+          onAddNodeAt={vi.fn()}
+          onStartInsertFromEdge={vi.fn()}
+          onDeleteEdge={vi.fn()}
+          onPointerFlowPosition={vi.fn()}
+          edgeInsertPendingId={null}
+          mode={mode}
+        />
+      )
+    rerenderIn("observe")
+    rerenderIn("edit")
+
+    expect(screen.getByTestId("selection-toolbar")).toBeTruthy()
+  })
+
+  it("hands focus back to the canvas after a toolbar command", () => {
+    renderWithSelection([fixtureSource.id, fixtureTarget.id])
+    const deleteButton = screen.getByRole("button", { name: "Delete" })
+    deleteButton.focus()
+
+    fireEvent.click(deleteButton)
+
+    expect(
+      (document.activeElement as HTMLElement).hasAttribute(
+        "data-workflow-canvas-focus-target"
+      )
+    ).toBe(true)
+  })
+})
+
+describe("WorkflowCanvas focus", () => {
+  afterEach(() => {
+    cleanup()
+  })
+
+  function renderCanvas() {
+    render(
+      <WorkflowCanvas
+        nodes={[fixtureSource, fixtureTarget]}
+        edges={[]}
+        viewport={initialWorkflowGraph.viewport}
+        onNodesChange={vi.fn()}
+        onEdgesChange={vi.fn()}
+        onConnect={vi.fn()}
+        onViewportChange={vi.fn()}
+        onSelectNodes={vi.fn()}
+        onPaneClick={vi.fn()}
+        onAddNodeAt={vi.fn()}
+        onStartInsertFromEdge={vi.fn()}
+        onDeleteEdge={vi.fn()}
+        onPointerFlowPosition={vi.fn()}
+        edgeInsertPendingId={null}
+      />,
+      { wrapper: CanvasStoreWrapper }
+    )
+    const focusTarget = document.querySelector<HTMLElement>(
+      "[data-workflow-canvas-focus-target]"
+    )
+    if (!focusTarget) {
+      throw new Error("canvas focus target is missing")
+    }
+    return focusTarget
+  }
+
+  function appendOutsideInput() {
+    const input = document.createElement("input")
+    input.setAttribute("aria-label", "config field")
+    document.body.append(input)
+    return input
+  }
+
+  it("is programmatically focusable but not in the tab order", () => {
+    const focusTarget = renderCanvas()
+
+    expect(focusTarget.getAttribute("tabindex")).toBe("-1")
+  })
+
+  it("takes focus from a field when a node body is pressed", () => {
+    const focusTarget = renderCanvas()
+    const configField = appendOutsideInput()
+    configField.focus()
+    expect(document.activeElement).toBe(configField)
+
+    fireEvent.pointerDown(screen.getByTestId("rf-selection-mode"))
+
+    expect(document.activeElement).toBe(focusTarget)
+    configField.remove()
+  })
+
+  it("leaves focus alone when an input inside a node is pressed", () => {
+    const focusTarget = renderCanvas()
+    const nodeField = document.createElement("input")
+    focusTarget.append(nodeField)
+    nodeField.focus()
+
+    fireEvent.pointerDown(nodeField)
+
+    expect(document.activeElement).toBe(nodeField)
+  })
+
+  it("ignores presses from overlays portaled outside the canvas box", () => {
+    const configField = appendOutsideInput()
+    render(
+      <WorkflowCanvas
+        nodes={[
+          { ...fixtureSource, selected: true },
+          { ...fixtureTarget, selected: true },
+        ]}
+        edges={[]}
+        viewport={initialWorkflowGraph.viewport}
+        onNodesChange={vi.fn()}
+        onEdgesChange={vi.fn()}
+        onConnect={vi.fn()}
+        onViewportChange={vi.fn()}
+        onSelectNodes={vi.fn()}
+        onPaneClick={vi.fn()}
+        onAddNodeAt={vi.fn()}
+        onStartInsertFromEdge={vi.fn()}
+        onDeleteEdge={vi.fn()}
+        onPointerFlowPosition={vi.fn()}
+        edgeInsertPendingId={null}
+      />,
+      { wrapper: CanvasStoreWrapper }
+    )
+    configField.focus()
+    const portaledToolbar = screen.getByTestId("selection-toolbar")
+    expect(
+      document
+        .querySelector("[data-workflow-canvas-focus-target]")
+        ?.contains(portaledToolbar)
+    ).toBe(false)
+
+    fireEvent.pointerDown(portaledToolbar)
+
+    expect(document.activeElement).toBe(configField)
+    configField.remove()
+  })
+
+  it("leaves focus alone when a canvas control is pressed", () => {
+    const focusTarget = renderCanvas()
+    const configField = appendOutsideInput()
+    configField.focus()
+
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Zoom in" }))
+
+    expect(document.activeElement).not.toBe(focusTarget)
+    configField.remove()
   })
 })

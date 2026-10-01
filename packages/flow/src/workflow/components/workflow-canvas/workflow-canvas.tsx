@@ -13,7 +13,9 @@ import { useEventCallback } from "@flow/ui/hooks/use-event-callback"
 import {
   Background,
   MiniMap,
+  NodeToolbar,
   Panel,
+  Position,
   ReactFlow,
   ReactFlowProvider,
   SelectionMode,
@@ -45,6 +47,8 @@ import type {
 
 import { validateConnection } from "../../validation"
 import { WorkflowEdgeComponent } from "../workflow-edge"
+import { SelectionToolbar, useSelectionToolbar } from "../selection-toolbar"
+import { isInteractiveEventTarget } from "../hotkeys"
 import { useNodeChangeRouter } from "./use-node-change-router"
 import { WORKFLOW_ELK_PADDING } from "../../layout"
 import type { WorkflowEditorAnchorRefs } from "../../tour"
@@ -155,11 +159,41 @@ function WorkflowCanvasInner({
     nodes.every(
       (node) => node.measured?.width != null && node.measured.height != null
     )
+  const selectionToolbar = useSelectionToolbar(nodes, isObserving)
   const onReactFlowNodesChange = useNodeChangeRouter({
     nodes,
     onStructuralChanges: onNodesChange,
     onSelectionChange: onSelectNodes,
   })
+
+  // A host dialog that traps focus (react-aria `FocusScope contain`) hands
+  // focus back to the last focused field when the user clicks the canvas,
+  // which is not focusable. The editing hotkeys skip editable targets, so
+  // copy/duplicate/delete would look dead. Taking focus here keeps them
+  // reachable; presses on fields and controls keep their own focus.
+  const onCanvasPointerDownCapture = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      const container = event.currentTarget
+      // React events follow the component tree, so presses inside overlays
+      // portaled out of a node (menus, selects, popovers) arrive here too.
+      // Only presses that land inside the canvas box belong to the canvas.
+      const isInsideCanvas =
+        event.target instanceof Node && container.contains(event.target)
+      if (
+        !isInsideCanvas ||
+        initialLayoutPending ||
+        isInteractiveEventTarget(event.target)
+      ) {
+        return
+      }
+
+      container.focus({ preventScroll: true })
+    },
+    [initialLayoutPending]
+  )
+  const focusCanvas = useCallback(() => {
+    canvasRef.current?.focus({ preventScroll: true })
+  }, [])
 
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault()
@@ -437,6 +471,9 @@ function WorkflowCanvasInner({
         ref={canvasRef}
         className={styles.flow()}
         aria-hidden={initialLayoutPending}
+        tabIndex={-1}
+        data-workflow-canvas-focus-target=""
+        onPointerDownCapture={onCanvasPointerDownCapture}
       >
         <ReactFlow
           nodes={nodes}
@@ -466,8 +503,20 @@ function WorkflowCanvasInner({
           onDragOver={isObserving ? undefined : onDragOver}
           onDrop={isObserving ? undefined : onDrop}
           onMouseMove={onMouseMove}
+          onNodeDragStart={selectionToolbar.onDragStart}
+          onNodeDragStop={selectionToolbar.onDragStop}
+          onSelectionDragStart={selectionToolbar.onDragStart}
+          onSelectionDragStop={selectionToolbar.onDragStop}
           connectionLineStyle={{ strokeWidth: 2, stroke: "var(--border)" }}
         >
+          <NodeToolbar
+            nodeId={selectionToolbar.selectedNodeIds}
+            isVisible={selectionToolbar.isVisible}
+            position={Position.Top}
+            align="end"
+          >
+            <SelectionToolbar onAfterCommand={focusCanvas} />
+          </NodeToolbar>
           <MiniMap
             pannable
             zoomable={false}

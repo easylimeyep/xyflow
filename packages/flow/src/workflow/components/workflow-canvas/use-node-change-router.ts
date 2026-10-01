@@ -23,21 +23,25 @@ export function useNodeChangeRouter({
   onStructuralChanges,
   onSelectionChange,
 }: UseNodeChangeRouterOptions) {
-  const lastSelectionSignatureRef = useRef<string | null>(null)
   const nodesRef = useRef(nodes)
 
   useEffect(() => {
     nodesRef.current = nodes
   }, [nodes])
 
+  // Compared against the selection the nodes carry now, not against the last
+  // selection this router emitted: the store also changes the selection on
+  // its own (delete, duplicate, paste, undo), and a remembered signature would
+  // then swallow a click that re-selects the same node.
   const emitSelection = useCallback(
-    (nodeIds: string[]) => {
-      const nextSignature = [...nodeIds].sort().join("\u0000")
-      if (nextSignature === lastSelectionSignatureRef.current) {
+    (nodeIds: string[], currentNodeIds: ReadonlySet<string>) => {
+      const isUnchanged =
+        nodeIds.length === currentNodeIds.size &&
+        nodeIds.every((nodeId) => currentNodeIds.has(nodeId))
+      if (isUnchanged) {
         return
       }
 
-      lastSelectionSignatureRef.current = nextSignature
       onSelectionChange(nodeIds)
     },
     [onSelectionChange]
@@ -46,6 +50,9 @@ export function useNodeChangeRouter({
   return useCallback(
     (changes: NodeChange<WorkflowNode>[]) => {
       const nonSelectionChanges: NodeChange<WorkflowNode>[] = []
+      // Built only when a select change arrives, so drag frames (position
+      // changes only) do not scan the nodes.
+      let currentSelectedNodeIds: ReadonlySet<string> | null = null
       let nextSelectedNodeIdsSet: Set<string> | null = null
 
       changes.forEach((change) => {
@@ -54,12 +61,9 @@ export function useNodeChangeRouter({
           return
         }
 
-        if (!nextSelectedNodeIdsSet) {
-          nextSelectedNodeIdsSet = new Set(
-            nodesRef.current
-              .filter((node) => Boolean(node.selected))
-              .map((node) => node.id)
-          )
+        if (!currentSelectedNodeIds || !nextSelectedNodeIdsSet) {
+          currentSelectedNodeIds = readSelectedNodeIds(nodesRef.current)
+          nextSelectedNodeIdsSet = new Set(currentSelectedNodeIds)
         }
 
         if (change.selected) {
@@ -69,8 +73,8 @@ export function useNodeChangeRouter({
         nextSelectedNodeIdsSet.delete(change.id)
       })
 
-      if (nextSelectedNodeIdsSet) {
-        emitSelection([...nextSelectedNodeIdsSet])
+      if (nextSelectedNodeIdsSet && currentSelectedNodeIds) {
+        emitSelection([...nextSelectedNodeIdsSet], currentSelectedNodeIds)
       }
 
       if (nonSelectionChanges.length > 0) {
@@ -78,5 +82,11 @@ export function useNodeChangeRouter({
       }
     },
     [emitSelection, onStructuralChanges]
+  )
+}
+
+function readSelectedNodeIds(nodes: readonly WorkflowNode[]): Set<string> {
+  return new Set(
+    nodes.filter((node) => Boolean(node.selected)).map((node) => node.id)
   )
 }

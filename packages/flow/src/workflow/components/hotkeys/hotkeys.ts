@@ -174,12 +174,47 @@ export function isSearchHotkey(event: KeyboardEvent): boolean {
   return event.key.toLowerCase() === "f" || event.code === "KeyF"
 }
 
-function isEditableEventTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) {
+const EDITABLE_TAG_NAMES = new Set(["INPUT", "TEXTAREA", "SELECT"])
+
+/**
+ * Controls that take a pointer press for themselves. Focusable containers
+ * such as React Flow's node wrappers are deliberately not listed: a press on
+ * a node body is a canvas interaction, not a control interaction.
+ */
+const INTERACTIVE_CONTROL_SELECTOR = [
+  "button",
+  "a[href]",
+  "label",
+  "summary",
+  '[role="button"]',
+  '[role="checkbox"]',
+  '[role="combobox"]',
+  '[role="gridcell"]',
+  '[role="link"]',
+  '[role="listbox"]',
+  '[role="menuitem"]',
+  '[role="menuitemcheckbox"]',
+  '[role="menuitemradio"]',
+  '[role="option"]',
+  '[role="radio"]',
+  '[role="slider"]',
+  '[role="spinbutton"]',
+  '[role="switch"]',
+  '[role="tab"]',
+  '[role="treeitem"]',
+].join(", ")
+
+/**
+ * True for text fields, selects, contenteditable regions and the expression
+ * editor. The editing hotkeys leave these targets alone so typing keeps its
+ * native meaning.
+ */
+export function isEditableEventTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof Element)) {
     return false
   }
 
-  if (target.isContentEditable) {
+  if (target instanceof HTMLElement && target.isContentEditable) {
     return true
   }
 
@@ -187,6 +222,20 @@ function isEditableEventTarget(target: EventTarget | null): boolean {
     return true
   }
 
-  const tagName = target.tagName
-  return tagName === "INPUT" || tagName === "TEXTAREA" || tagName === "SELECT"
+  return EDITABLE_TAG_NAMES.has(target.tagName)
+}
+
+/**
+ * True when a pointer press on `target` belongs to an editable field or to a
+ * control (button, link, menu item, ...) rather than to the canvas around it.
+ */
+export function isInteractiveEventTarget(target: EventTarget | null): boolean {
+  if (isEditableEventTarget(target)) {
+    return true
+  }
+
+  return (
+    target instanceof Element &&
+    target.closest(INTERACTIVE_CONTROL_SELECTOR) !== null
+  )
 }

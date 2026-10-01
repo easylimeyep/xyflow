@@ -27,7 +27,7 @@ import {
   useWorkflowShallowStore,
   type WorkflowStoreState,
 } from "../../store"
-import { SearchActionTooltip } from "./search-action-tooltip"
+import { ActionTooltip } from "../action-tooltip"
 import { SearchResultsPanel } from "./search-results-panel"
 
 const NEXT_MATCH_SHORTCUT = ["Enter"]
@@ -271,7 +271,7 @@ export function WorkflowSearch({
           onChange={(event) => setSearchQuery(event.target.value)}
           onKeyDown={onKeyDown}
         />
-        <SearchActionTooltip label="Match case">
+        <ActionTooltip label="Match case">
           <Toggle
             size="sm"
             className={styles.option()}
@@ -281,8 +281,8 @@ export function WorkflowSearch({
           >
             Aa
           </Toggle>
-        </SearchActionTooltip>
-        <SearchActionTooltip label="Match whole word">
+        </ActionTooltip>
+        <ActionTooltip label="Match whole word">
           <Toggle
             size="sm"
             className={styles.option()}
@@ -292,8 +292,8 @@ export function WorkflowSearch({
           >
             ab
           </Toggle>
-        </SearchActionTooltip>
-        <SearchActionTooltip
+        </ActionTooltip>
+        <ActionTooltip
           label={isResultsOpen ? "Hide all matches" : "Show all matches"}
         >
           <Button
@@ -320,12 +320,12 @@ export function WorkflowSearch({
               />
             ) : null}
           </Button>
-        </SearchActionTooltip>
+        </ActionTooltip>
         <span className={styles.liveRegion()} aria-live="polite">
           {counter}
         </span>
         <span className={styles.divider()} aria-hidden />
-        <SearchActionTooltip
+        <ActionTooltip
           label="Previous match"
           shortcut={PREVIOUS_MATCH_SHORTCUT}
         >
@@ -338,8 +338,8 @@ export function WorkflowSearch({
           >
             <ChevronUpIcon />
           </Button>
-        </SearchActionTooltip>
-        <SearchActionTooltip label="Next match" shortcut={NEXT_MATCH_SHORTCUT}>
+        </ActionTooltip>
+        <ActionTooltip label="Next match" shortcut={NEXT_MATCH_SHORTCUT}>
           <Button
             size="icon-sm"
             variant="ghost"
@@ -349,8 +349,8 @@ export function WorkflowSearch({
           >
             <ChevronDownIcon />
           </Button>
-        </SearchActionTooltip>
-        <SearchActionTooltip label="Select node">
+        </ActionTooltip>
+        <ActionTooltip label="Select node">
           <Button
             size="icon-sm"
             variant="ghost"
@@ -360,8 +360,8 @@ export function WorkflowSearch({
           >
             <CrosshairIcon />
           </Button>
-        </SearchActionTooltip>
-        <SearchActionTooltip label="Close search" shortcut={CLOSE_SHORTCUT}>
+        </ActionTooltip>
+        <ActionTooltip label="Close search" shortcut={CLOSE_SHORTCUT}>
           <Button
             size="icon-sm"
             variant="ghost"
@@ -370,7 +370,7 @@ export function WorkflowSearch({
           >
             <XIcon />
           </Button>
-        </SearchActionTooltip>
+        </ActionTooltip>
       </div>
       {isResultsOpen ? (
         <SearchResultsPanel

@@ -5,21 +5,21 @@ import type { ReactElement } from "react"
 import { Kbd, KbdGroup } from "@flow/ui/components/kbd"
 import { Tooltip, TooltipTrigger } from "@flow/ui/components/tooltip"
 
-export interface SearchActionTooltipProps {
+export interface ActionTooltipProps {
   /** What the control does, shown as the tooltip's text. */
   label: string
-  /** Keys that do the same from the query field, e.g. `["Shift", "Enter"]`. */
+  /** Keys that trigger the same action, e.g. `["Shift", "Enter"]`. */
   shortcut?: readonly string[]
   /** The single control the tooltip describes. */
   children: ReactElement
 }
 
-/** A hover/focus tooltip naming a find-bar control and its key binding. */
-export function SearchActionTooltip({
+/** A hover/focus tooltip naming an icon control and its key binding. */
+export function ActionTooltip({
   label,
   shortcut,
   children,
-}: SearchActionTooltipProps) {
+}: ActionTooltipProps) {
   return (
     <TooltipTrigger>
       {children}
