@@ -5,6 +5,7 @@ import {
   builtinDefinitions,
   createInitialGraph,
   exportDomainWorkflowForBackend,
+  useNodeRegistry,
 } from "@flow/flow"
 import { Button } from "@flow/ui/components/button"
 
@@ -102,6 +103,7 @@ const code = `import {
   builtinDefinitions,
   createInitialGraph,
   exportDomainWorkflowForBackend,
+  useNodeRegistry,
 } from "@flow/flow"
 
 const initialGraph = createInitialGraph(builtinDefinitions, {
@@ -128,13 +130,14 @@ const initialGraph = createInitialGraph(builtinDefinitions, {
 
 function TransformButton() {
   const exportDomain = WorkflowEditor.use.store((state) => state.exportDomain)
+  const registry = useNodeRegistry()
 
   return (
     <Button
       type="button"
       variant="outline"
       onClick={() => {
-        const backendWorkflow = exportDomainWorkflowForBackend(exportDomain())
+        const backendWorkflow = exportDomainWorkflowForBackend(registry, exportDomain())
         console.log("Backend workflow transform", backendWorkflow)
       }}
     >
@@ -164,13 +167,17 @@ export function Example() {
 
 function TransformButton() {
   const exportDomain = WorkflowEditor.use.store((state) => state.exportDomain)
+  const registry = useNodeRegistry()
 
   return (
     <Button
       type="button"
       variant="outline"
       onClick={() => {
-        const backendWorkflow = exportDomainWorkflowForBackend(exportDomain())
+        const backendWorkflow = exportDomainWorkflowForBackend(
+          registry,
+          exportDomain()
+        )
         console.log("Backend workflow transform", backendWorkflow)
       }}
     >
@@ -181,10 +188,7 @@ function TransformButton() {
 
 export function BackendTransformExample() {
   return (
-    <ExamplePreview
-      title="With backend transform"
-      code={code}
-    >
+    <ExamplePreview title="With backend transform" code={code}>
       <WorkflowEditor
         definitions={builtinDefinitions}
         initialGraph={initialGraph}

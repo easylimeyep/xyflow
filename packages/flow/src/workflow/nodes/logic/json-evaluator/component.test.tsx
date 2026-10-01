@@ -1,6 +1,12 @@
 // @vitest-environment jsdom
 
-import { cleanup, render, screen } from "@testing-library/react"
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import type { NodeProps } from "@xyflow/react"
 import type { ReactNode } from "react"
@@ -16,6 +22,7 @@ const mockEvaluatorOperators: WorkflowEvaluatorOperatorCatalog = {
   value: [
     { id: "is equal to", value: "is equal to", allowTypes: ["value"] },
     { id: "is empty", value: "is empty", allowTypes: ["none"] },
+    { id: "is one of", value: "is one of", allowTypes: ["array"] },
   ],
   array: [{ id: "contains", value: "contains", allowTypes: ["value"] }],
 }
@@ -62,19 +69,23 @@ vi.mock("../../shared/use-node-select-options", async (importOriginal) => {
 })
 
 vi.mock("../../../components/expression-input", () => ({
+  // Mirrors the real contract: typing reports live when a live listener is
+  // given, and commits on its own otherwise.
   ExpressionInput: ({
     value,
     placeholder,
     onChange,
+    onLiveChange,
   }: {
     value: string
     placeholder?: string
     onChange: (value: string) => void
+    onLiveChange?: (value: string) => void
   }) => (
     <input
       aria-label={placeholder ?? "expression-input"}
       value={value}
-      onChange={(event) => onChange(event.target.value)}
+      onChange={(event) => (onLiveChange ?? onChange)(event.target.value)}
     />
   ),
 }))
@@ -230,5 +241,48 @@ describe("JsonEvaluatorNode", () => {
 
     expect(screen.getByText("1 condition")).toBeDefined()
     expect(mockUpdateNodeConfig).not.toHaveBeenCalled()
+  })
+
+  it("edits right array operand rows as expressions", () => {
+    render(
+      <JsonEvaluatorNode
+        {...createNodeProps({
+          conditions: [
+            {
+              id: "condition-1",
+              left: { type: "upstream" },
+              operator: "is one of",
+              right: { type: "array", value: ["Moscow"] },
+            },
+          ],
+        })}
+      />
+    )
+
+    fireEvent.click(screen.getByLabelText("Edit Right array values"))
+    fireEvent.click(screen.getByRole("button", { name: /Add value/i }))
+    fireEvent.change(
+      within(
+        screen.getByRole("group", { name: "Right array value 2" })
+      ).getByRole("textbox"),
+      { target: { value: "{{ city }}" } }
+    )
+    fireEvent.click(screen.getByLabelText("Edit Right array values"))
+
+    expect(mockUpdateNodeConfig).toHaveBeenLastCalledWith(
+      "json-evaluator-node-1",
+      {
+        kind: "jsonEvaluator",
+        key: "conditions",
+        value: [
+          {
+            id: "condition-1",
+            left: { type: "upstream" },
+            operator: "is one of",
+            right: { type: "array", value: ["Moscow", "{{ city }}"] },
+          },
+        ],
+      }
+    )
   })
 })

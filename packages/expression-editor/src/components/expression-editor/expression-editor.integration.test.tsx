@@ -159,6 +159,9 @@ vi.mock("@codemirror/view", () => ({
   },
 }))
 
+// Every change handler CodeMirror has been handed, in render order.
+const codeMirrorChangeHandlers: unknown[] = []
+
 vi.mock("@uiw/react-codemirror", () => {
   function MockCodeMirror({
     value,
@@ -182,6 +185,7 @@ vi.mock("@uiw/react-codemirror", () => {
     extensions?: unknown
     basicSetup?: { lineNumbers?: boolean }
   }) {
+    codeMirrorChangeHandlers.push(onChange)
     const textareaRef = useRef<HTMLTextAreaElement | null>(null)
     const docRef = useRef(value)
     const [docValue, setDocValue] = useState(value)
@@ -396,6 +400,36 @@ describe("ExpressionEditor integration", () => {
       />
     )
   }
+
+  it("reports live changes to the latest listener without a new change handler", () => {
+    const firstListener = vi.fn()
+    const latestListener = vi.fn()
+    const { rerender } = render(
+      <ExpressionEditor
+        value=""
+        variables={[]}
+        onCommit={() => undefined}
+        onLiveChange={firstListener}
+      />
+    )
+    const handlerBeforeRerender = codeMirrorChangeHandlers.at(-1)
+
+    rerender(
+      <ExpressionEditor
+        value=""
+        variables={[]}
+        onCommit={() => undefined}
+        onLiveChange={latestListener}
+      />
+    )
+    fireEvent.change(screen.getByLabelText("expression-editor"), {
+      target: { value: "a", selectionStart: 1, selectionEnd: 1 },
+    })
+
+    expect(codeMirrorChangeHandlers.at(-1)).toBe(handlerBeforeRerender)
+    expect(firstListener).not.toHaveBeenCalled()
+    expect(latestListener).toHaveBeenCalledWith("a")
+  })
 
   it("does not call onCommit while typing before blur", () => {
     const onCommit = vi.fn()

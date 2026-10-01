@@ -10,7 +10,7 @@ import { createWorkflowError } from "../../types/errors"
 import type { WorkflowNode } from "../../types/types"
 import type { ConnectionLike } from "../../validation/validation"
 import {
-  hasOutgoingConnection,
+  isOutputSaturated,
   shouldCommitNodeHistory,
   shouldSquashPreviousEdgeRemovalWithNodeRemoval,
 } from "../collection-diff"
@@ -43,10 +43,12 @@ export const createGraphSlice: WorkflowSliceCreator = (set, get, api) => ({
     }
 
     if (
-      hasOutgoingConnection(
+      isOutputSaturated(
+        get().registry,
         currentGraph.edges,
-        pending.sourceNodeId,
-        pending.sourceHandle
+        sourceNode.id,
+        pending.sourceHandle,
+        () => sourceNode.data.kind
       )
     ) {
       set({

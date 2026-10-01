@@ -1,9 +1,10 @@
 "use client"
 
-import { ArrayInputPopover } from "@flow/ui/components/array-input-popover"
-import { Badge } from "@flow/ui/components/badge"
-import { Tooltip, TooltipTrigger } from "@flow/ui/components/tooltip"
-import { AlertTriangle } from "lucide-react"
+import {
+  ArrayInputPopover,
+  type ArrayInputEntryMeta,
+  type ArrayInputEntryProps,
+} from "@flow/ui/components/array-input-popover"
 import { useCallback, useState } from "react"
 
 import { evaluatorNodeStyles } from "../../../../styles/components/nodes"
@@ -18,9 +19,13 @@ import {
   areStringArraysEqual,
   createArrayOperand,
   createValueOperand,
+  findUnresolvedVariable,
+  isVariableReference,
   normalizeArrayValues,
   switchOperandType,
+  unresolvedVariableMessage,
 } from "./operands"
+import { UnresolvedVariableChip } from "./unresolved-variable-chip"
 
 const styles = evaluatorNodeStyles()
 const ARRAY_PREVIEW_LIMIT = 3
@@ -30,8 +35,8 @@ interface OperandEditorProps {
   label: string
   placeholder: string
   variables: ExpressionVariableOption[]
+  variableTypes: Record<string, string>
   allowedTypes?: WorkflowVariableType[]
-  unresolvedVariableName?: string
   onChange: (nextOperand: WorkflowOperandValue) => void
 }
 
@@ -40,8 +45,8 @@ export function OperandEditor({
   label,
   placeholder,
   variables,
+  variableTypes,
   allowedTypes,
-  unresolvedVariableName,
   onChange,
 }: OperandEditorProps) {
   return (
@@ -57,35 +62,20 @@ export function OperandEditor({
 
       <div className={styles.operandEditor()}>
         {operand.type === "value" ? (
-          <div className="relative">
-            <ExpressionInput
-              value={operand.value}
-              placeholder={placeholder}
-              variables={variables}
-              onChange={(value) => onChange(createValueOperand(value))}
-            />
-            {unresolvedVariableName ? (
-              <div className="absolute top-1 right-1 z-10">
-                <TooltipTrigger>
-                  <Badge
-                    variant="outline"
-                    className="z-10 h-5 border-yellow-500/80 bg-yellow-200 px-1.5 text-[10px] text-yellow-900 dark:text-yellow-200"
-                  >
-                    <AlertTriangle className="mr-1 h-3 w-3" />
-                    Unknown
-                  </Badge>
-                  <Tooltip>
-                    {`Could not resolve variable "{{ ${unresolvedVariableName} }}" from upstream nodes.`}
-                  </Tooltip>
-                </TooltipTrigger>
-              </div>
-            ) : null}
-          </div>
+          <OperandExpressionInput
+            value={operand.value}
+            placeholder={placeholder}
+            variables={variables}
+            variableTypes={variableTypes}
+            onChange={(value) => onChange(createValueOperand(value))}
+          />
         ) : (
           <ArrayOperandPopover
             label={label}
             placeholder={placeholder}
             operand={operand}
+            variables={variables}
+            variableTypes={variableTypes}
             onChange={onChange}
           />
         )}
@@ -94,10 +84,53 @@ export function OperandEditor({
   )
 }
 
+interface OperandExpressionInputProps {
+  value: string
+  placeholder: string
+  variables: ExpressionVariableOption[]
+  variableTypes: Record<string, string>
+  ariaLabel?: string
+  onChange: (nextValue: string) => void
+  onLiveChange?: (nextValue: string) => void
+}
+
+function OperandExpressionInput({
+  value,
+  placeholder,
+  variables,
+  variableTypes,
+  ariaLabel,
+  onChange,
+  onLiveChange,
+}: OperandExpressionInputProps) {
+  const unresolvedVariableName = findUnresolvedVariable(value, variableTypes)
+
+  return (
+    <div
+      className="relative"
+      role={ariaLabel ? "group" : undefined}
+      aria-label={ariaLabel}
+    >
+      <ExpressionInput
+        value={value}
+        placeholder={placeholder}
+        variables={variables}
+        onChange={onChange}
+        onLiveChange={onLiveChange}
+      />
+      {unresolvedVariableName ? (
+        <UnresolvedVariableChip variableName={unresolvedVariableName} />
+      ) : null}
+    </div>
+  )
+}
+
 interface ArrayOperandPopoverProps {
   operand: Extract<WorkflowOperandValue, { type: "array" }>
   label: string
   placeholder: string
+  variables: ExpressionVariableOption[]
+  variableTypes: Record<string, string>
   onChange: (nextOperand: WorkflowOperandValue) => void
 }
 
@@ -105,6 +138,8 @@ function ArrayOperandPopover({
   operand,
   label,
   placeholder,
+  variables,
+  variableTypes,
   onChange,
 }: ArrayOperandPopoverProps) {
   const [open, setOpen] = useState(false)
@@ -139,6 +174,34 @@ function ArrayOperandPopover({
     setOpen(false)
   }
 
+  // Live edits feed the draft too, so closing the popover while a row still
+  // has focus keeps what was typed into it.
+  const renderEntry = ({
+    value,
+    ariaLabel,
+    onChange,
+  }: ArrayInputEntryProps) => (
+    <OperandExpressionInput
+      value={value}
+      placeholder={placeholder}
+      variables={variables}
+      variableTypes={variableTypes}
+      ariaLabel={ariaLabel}
+      onChange={onChange}
+      onLiveChange={onChange}
+    />
+  )
+
+  const getEntryMeta = (value: string): ArrayInputEntryMeta => {
+    const unresolvedVariableName = findUnresolvedVariable(value, variableTypes)
+    return {
+      variant: isVariableReference(value) ? "variable" : "literal",
+      warning: unresolvedVariableName
+        ? unresolvedVariableMessage(unresolvedVariableName)
+        : undefined,
+    }
+  }
+
   return (
     <ArrayInputPopover
       open={open}
@@ -146,6 +209,9 @@ function ArrayOperandPopover({
       label={label}
       placeholder={placeholder}
       previewLimit={ARRAY_PREVIEW_LIMIT}
+      popoverClassName={styles.arrayOperandPopover()}
+      renderEntry={renderEntry}
+      getEntryMeta={getEntryMeta}
       onOpenChange={handleOpenChange}
       onValuesChange={(nextValues) =>
         setDraftValues(normalizeArrayValues(nextValues))

@@ -1,4 +1,4 @@
-import { hasOutgoingConnection } from "../helpers"
+import { isOutputSaturated } from "../helpers"
 import type { WorkflowSliceCreator } from "../types"
 
 export const createIntentSlice: WorkflowSliceCreator = (set, get) => ({
@@ -14,7 +14,13 @@ export const createIntentSlice: WorkflowSliceCreator = (set, get) => ({
     if (!sourceNode) return
     const normalizedHandle = sourceHandle ?? null
     if (
-      hasOutgoingConnection(currentGraph.edges, sourceNodeId, normalizedHandle)
+      isOutputSaturated(
+        get().registry,
+        currentGraph.edges,
+        sourceNodeId,
+        normalizedHandle,
+        () => sourceNode.data.kind
+      )
     ) {
       return
     }

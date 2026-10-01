@@ -62,6 +62,13 @@ export function ExpressionEditor({
     }
   }, [onCommit, value])
 
+  // Read through a ref so a parent passing a fresh listener each render does
+  // not hand CodeMirror a new change handler, which would make it reconfigure.
+  const liveChangeRef = useRef(onLiveChange)
+  useEffect(() => {
+    liveChangeRef.current = onLiveChange
+  }, [onLiveChange])
+
   const groupedVariables = useMemo(
     () => groupVariablesBySection(variables),
     [variables]
@@ -187,7 +194,7 @@ export function ExpressionEditor({
   const handleChange = useCallback(
     (nextValue: string, viewUpdate: ViewUpdate) => {
       setLiveValue(nextValue)
-      onLiveChange?.(nextValue)
+      liveChangeRef.current?.(nextValue)
 
       if (pickerOpen) {
         return
@@ -207,7 +214,7 @@ export function ExpressionEditor({
         setPickerOpen(true)
       }
     },
-    [onLiveChange, pickerOpen]
+    [pickerOpen]
   )
 
   return (

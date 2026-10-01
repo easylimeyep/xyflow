@@ -62,6 +62,33 @@ const graphInput = {
         category: "false" as const,
       },
     },
+    {
+      id: "demo-elk-standalone-set-variable",
+      kind: "setVariable" as const,
+      label: "Unused Setter",
+      config: {
+        variableName: "draft",
+        valueExpression: "{{ email }}",
+      },
+    },
+    {
+      id: "demo-elk-standalone-extractor",
+      kind: "extractor" as const,
+      label: "Unused Extractor",
+      config: {
+        tokenNumber: 2,
+        extractExpression: "phone",
+        unlimited: false,
+      },
+    },
+    {
+      id: "demo-elk-standalone-result",
+      kind: "result" as const,
+      label: "Orphan Result",
+      config: {
+        category: "false" as const,
+      },
+    },
   ],
   edges: [
     {
@@ -108,6 +135,10 @@ const initialGraph = await createInitialGraphElk(builtinDefinitions, {
     { id: "demo-elk-evaluator", kind: "evaluator", config: { conditions: [{ id: "demo-elk-evaluator-condition", left: { type: "value", value: "{{ email }}" }, operator: "contains", right: { type: "value", value: "@" } }], logicalOperator: "and" } },
     { id: "demo-elk-true-result", kind: "result", label: "Valid Email", config: { category: "true" } },
     { id: "demo-elk-false-result", kind: "result", label: "Needs Review", config: { category: "false" } },
+    // Standalone nodes with no edges — ELK still places them on the canvas.
+    { id: "demo-elk-standalone-set-variable", kind: "setVariable", label: "Unused Setter", config: { variableName: "draft", valueExpression: "{{ email }}" } },
+    { id: "demo-elk-standalone-extractor", kind: "extractor", label: "Unused Extractor", config: { tokenNumber: 2, extractExpression: "phone", unlimited: false } },
+    { id: "demo-elk-standalone-result", kind: "result", label: "Orphan Result", config: { category: "false" } },
   ],
   edges: [
     { id: "demo-elk-edge-inline-to-extractor", source: "demo-elk-inline-expression", target: "demo-elk-extractor" },

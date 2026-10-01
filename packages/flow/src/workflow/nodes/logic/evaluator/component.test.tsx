@@ -1,6 +1,12 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen } from "@testing-library/react"
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import type { NodeProps } from "@xyflow/react"
 import type { ReactNode } from "react"
@@ -62,6 +68,13 @@ async function selectOption(triggerLabel: string, optionName: string) {
   await user.click(await screen.findByRole("option", { name: optionName }))
 }
 
+/** The editable input of one array row, found through the row's group label. */
+function arrayRow(label: string): HTMLInputElement {
+  return within(screen.getByRole("group", { name: label })).getByRole(
+    "textbox"
+  ) as HTMLInputElement
+}
+
 function closeArrayPopover(label: string) {
   fireEvent.click(screen.getByLabelText(label))
 }
@@ -89,19 +102,26 @@ vi.mock("@flow/ui/components/sortable", () => ({
 }))
 
 vi.mock("../../../components/expression-input", () => ({
+  // Mirrors the real contract: typing reports live when a live listener is
+  // given, and commits on its own otherwise; blur commits.
   ExpressionInput: ({
     value,
     placeholder,
     onChange,
+    onLiveChange,
   }: {
     value: string
     placeholder?: string
     onChange: (value: string) => void
+    onLiveChange?: (value: string) => void
   }) => (
     <input
       aria-label={placeholder ?? "expression-input"}
       value={value}
-      onChange={(event) => onChange(event.target.value)}
+      onChange={(event) => (onLiveChange ?? onChange)(event.target.value)}
+      onBlur={(event) => {
+        if (event.target.value !== value) onChange(event.target.value)
+      }}
     />
   ),
 }))
@@ -517,7 +537,7 @@ describe("EvaluatorNode", () => {
     ).toBe("Left operand type: array")
     fireEvent.click(screen.getByLabelText("Edit Left array values"))
 
-    fireEvent.change(screen.getByLabelText("Left array value 1"), {
+    fireEvent.change(arrayRow("Left array value 1"), {
       target: { value: "New York value" },
     })
     expect(screen.getByText("New York value")).toBeDefined()
@@ -540,7 +560,7 @@ describe("EvaluatorNode", () => {
 
     fireEvent.click(screen.getByLabelText("Edit Left array values"))
     fireEvent.click(screen.getByRole("button", { name: /Add value/i }))
-    fireEvent.change(screen.getByLabelText("Left array value 2"), {
+    fireEvent.change(arrayRow("Left array value 2"), {
       target: { value: "second value" },
     })
     closeArrayPopover("Edit Left array values")
@@ -651,9 +671,7 @@ describe("EvaluatorNode", () => {
 
     fireEvent.click(screen.getByLabelText("Edit Left array values"))
     fireEvent.click(screen.getByLabelText("Delete Left array value 1"))
-    expect(
-      (screen.getByLabelText("Left array value 1") as HTMLInputElement).value
-    ).toBe("")
+    expect(arrayRow("Left array value 1").value).toBe("")
     closeArrayPopover("Edit Left array values")
 
     expect(mockUpdateNodeConfig).toHaveBeenLastCalledWith("evaluator-node-1", {
@@ -998,5 +1016,110 @@ describe("EvaluatorNode", () => {
         stringCondition("condition-2", "{{ second }}", "is empty"),
       ],
     })
+  })
+
+  it("warns about an unresolved right value operand without touching operators", () => {
+    mockExpressionVariableTypes = { city: "value" }
+
+    render(
+      <EvaluatorNode
+        {...createNodeProps({
+          config: {
+            conditions: [
+              stringCondition(
+                "condition-1",
+                "{{ city }}",
+                "is equal to",
+                "{{ missing }}"
+              ),
+            ],
+            label: "",
+            logicalOperator: "and",
+            caseSensitive: false,
+          },
+        })}
+      />
+    )
+
+    // The left operand resolves, so the one chip belongs to the right operand.
+    expect(screen.getAllByText("Unknown")).toHaveLength(1)
+    expect(mockUpdateNodeConfig).not.toHaveBeenCalled()
+  })
+
+  it("previews array rows as variables, literals, and unresolved variables", () => {
+    mockExpressionVariableTypes = { city: "value", id: "value" }
+
+    render(
+      <EvaluatorNode
+        {...createNodeProps({
+          config: {
+            conditions: [
+              {
+                id: "condition-1",
+                left: { type: "value", value: "{{ city }}" },
+                operator: "is equal to",
+                right: {
+                  type: "array",
+                  value: ["{{ city }}", "prefix-{{ id }}", "{{ missing }}"],
+                },
+              },
+            ],
+            label: "",
+            logicalOperator: "and",
+            caseSensitive: false,
+          },
+        })}
+      />
+    )
+
+    const variantOf = (text: string) =>
+      screen
+        .getByText(text)
+        .closest("[data-entry-variant]")
+        ?.getAttribute("data-entry-variant")
+
+    expect(variantOf("{{ city }}")).toBe("variable")
+    expect(variantOf("prefix-{{ id }}")).toBe("literal")
+    expect(variantOf("{{ missing }}")).toBe("variable")
+    expect(
+      screen.getAllByLabelText(
+        'Could not resolve variable "{{ missing }}" from upstream nodes.'
+      )
+    ).toHaveLength(1)
+  })
+
+  it("marks an unresolved row inside the open array popover", () => {
+    render(
+      <EvaluatorNode
+        {...createNodeProps({
+          config: {
+            conditions: [
+              {
+                id: "condition-1",
+                left: { type: "array", value: ["Moscow", "{{ missing }}"] },
+                operator: "is equal to",
+                right: { type: "value", value: "Moscow" },
+              },
+            ],
+            label: "",
+            logicalOperator: "and",
+            caseSensitive: false,
+          },
+        })}
+      />
+    )
+
+    fireEvent.click(screen.getByLabelText("Edit Left array values"))
+
+    expect(
+      within(
+        screen.getByRole("group", { name: "Left array value 2" })
+      ).getByText("Unknown")
+    ).toBeDefined()
+    expect(
+      within(
+        screen.getByRole("group", { name: "Left array value 1" })
+      ).queryByText("Unknown")
+    ).toBeNull()
   })
 })

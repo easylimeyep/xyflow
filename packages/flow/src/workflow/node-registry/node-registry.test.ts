@@ -31,6 +31,20 @@ describe("workflow node registry", () => {
     ])
   })
 
+  it("lets every built-in that targets the Setter also target the JSON Setter", () => {
+    const setterSources = registry
+      .list()
+      .filter((definition) => definition.allowedTargets.includes("setVariable"))
+
+    expect(setterSources.length).toBeGreaterThan(0)
+    for (const definition of setterSources) {
+      expect(definition.allowedTargets).toContain("jsonSetter")
+    }
+    expect(registry.get("jsonSetter")!.allowedTargets).toEqual(
+      registry.get("setVariable")!.allowedTargets
+    )
+  })
+
   it("creates set variable node with default config", () => {
     const node = createWorkflowNode(registry, "setVariable", { x: 0, y: 0 })
 

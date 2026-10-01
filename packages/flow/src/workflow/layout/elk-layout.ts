@@ -83,6 +83,7 @@ function getEstimatedNodeHeight(node: WorkflowNode): number {
     case "extractor":
       return EXTRACTOR_LAYOUT_HEIGHT
     case "setVariable":
+    case "jsonSetter":
     case "inlineExpression":
     case "result":
       return COMPACT_CONFIG_NODE_LAYOUT_HEIGHT
@@ -338,7 +339,13 @@ export function applyEvaluatorShortcutClearance(
 
     const siblingPathNodeIds = new Set<string>()
     outgoing.forEach((siblingEdge) => {
-      if (siblingEdge.id === shortcutEdge.id) {
+      // Only the opposite branch runs alongside the shortcut. A fan-out kind
+      // can put several edges on the shortcut's own branch; those share its
+      // lane and need no clearance from it.
+      if (
+        siblingEdge.id === shortcutEdge.id ||
+        siblingEdge.sourceHandle === shortcutEdge.sourceHandle
+      ) {
         return
       }
 

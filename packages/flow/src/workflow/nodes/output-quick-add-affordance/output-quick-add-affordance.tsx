@@ -8,11 +8,14 @@ import {
 } from "../../../styles/components/nodes"
 
 import {
+  selectNodeRegistry,
   selectPresentEdges,
+  selectPresentNodes,
   selectQuickAddPending,
   useWorkflowShallowStore,
   type WorkflowStoreState,
 } from "../../store"
+import { isOutputSaturated } from "../../store/collection-diff"
 import { useRuntimeMode } from "../../runtime"
 import { Button } from "@flow/ui/components/button"
 
@@ -33,13 +36,17 @@ export function OutputQuickAddAffordance({
 }: OutputQuickAddAffordanceProps) {
   const normalizedHandle = sourceHandle ?? null
   const mode = useRuntimeMode()
-  const { startQuickAddFromOutput, hasOutgoing, isPending } =
+  const { startQuickAddFromOutput, isSaturated, isPending } =
     useWorkflowShallowStore((state: WorkflowStoreState) => ({
       startQuickAddFromOutput: state.startQuickAddFromOutput,
-      hasOutgoing: selectPresentEdges(state).some(
-        (edge) =>
-          edge.source === nodeId &&
-          (edge.sourceHandle ?? null) === normalizedHandle
+      isSaturated: isOutputSaturated(
+        selectNodeRegistry(state),
+        selectPresentEdges(state),
+        nodeId,
+        normalizedHandle,
+        () =>
+          selectPresentNodes(state).find((node) => node.id === nodeId)?.data
+            .kind
       ),
       isPending: (() => {
         const pending = selectQuickAddPending(state)
@@ -71,7 +78,7 @@ export function OutputQuickAddAffordance({
         position={Position.Right}
         className={handleStyles.handleBase()}
       />
-      {!hasOutgoing && mode === "edit" ? (
+      {!isSaturated && mode === "edit" ? (
         <div className={styles.quickAddRoot()}>
           <div className={styles.quickAddLine()} />
           <Button

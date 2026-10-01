@@ -111,6 +111,32 @@ function parseSingleVariableTemplate(value: string): string | undefined {
   return templateMatch?.[1]
 }
 
+/** Whether the whole value is one bare variable reference, e.g. `{{ city }}`. */
+export function isVariableReference(value: string): boolean {
+  return parseSingleVariableTemplate(value) !== undefined
+}
+
+/**
+ * The variable a value points at when no reachable upstream node provides it.
+ * Only a value that is entirely one bare reference is checked: mixed text and
+ * member access are left alone, since their resolution is not ours to judge.
+ */
+export function findUnresolvedVariable(
+  value: string,
+  variableTypes: Record<string, string>
+): string | undefined {
+  const variableName = parseSingleVariableTemplate(value)
+  if (!variableName || variableTypes[variableName]) {
+    return undefined
+  }
+
+  return variableName
+}
+
+export function unresolvedVariableMessage(variableName: string): string {
+  return `Could not resolve variable "{{ ${variableName} }}" from upstream nodes.`
+}
+
 /**
  * `variableTypes` carries opaque tags: the catalog transports whatever a node
  * definition reported without interpreting it. Narrowing is this evaluator's
@@ -121,7 +147,6 @@ export function resolveEffectiveLeftOperandType(
   variableTypes: Record<string, string>
 ): {
   type: WorkflowVariableType
-  unresolvedVariableName?: string
 } {
   if (left.type === "array") {
     return { type: "array" }
@@ -133,14 +158,12 @@ export function resolveEffectiveLeftOperandType(
     return { type: "value" }
   }
 
+  // An unresolved reference falls back to a single value; the operand editor
+  // warns about it on its own.
   const variableName = parseSingleVariableTemplate(left.value)
-  if (!variableName) {
-    return { type: "value" }
-  }
-
-  const variableType = variableTypes[variableName]
+  const variableType = variableName ? variableTypes[variableName] : undefined
   if (!variableType) {
-    return { type: "value", unresolvedVariableName: variableName }
+    return { type: "value" }
   }
 
   // A tag this evaluator does not recognise is NOT an unresolved reference:

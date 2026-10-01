@@ -30,11 +30,13 @@ vi.mock("@xyflow/react", () => {
   }
 })
 
-function createEvaluatorGraph(): {
+function createEvaluatorGraph(
+  kind: "evaluator" | "jsonEvaluator" = "evaluator"
+): {
   graph: WorkflowGraphState
   evaluatorId: string
 } {
-  const evaluator = createWorkflowNode(registry, "evaluator", { x: 0, y: 0 })
+  const evaluator = createWorkflowNode(registry, kind, { x: 0, y: 0 })
   const result = createWorkflowNode(registry, "result", { x: 320, y: 0 })
 
   return {
@@ -111,6 +113,25 @@ describe("OutputQuickAddAffordance", () => {
     expect(
       screen.getByRole("button", {
         name: `Quick add from ${evaluatorId}:evaluator-false`,
+      })
+    ).not.toBeNull()
+  })
+
+  it("keeps quick add on a connected jsonEvaluator branch", () => {
+    const { evaluatorId, graph } = createEvaluatorGraph("jsonEvaluator")
+
+    renderWithStore(
+      <OutputQuickAddAffordance
+        nodeId={evaluatorId}
+        sourceHandle="evaluator-true"
+        label="true"
+      />,
+      graph
+    )
+
+    expect(
+      screen.getByRole("button", {
+        name: `Quick add from ${evaluatorId}:evaluator-true`,
       })
     ).not.toBeNull()
   })

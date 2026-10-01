@@ -21,6 +21,7 @@ export {
   evaluator,
   jsonEvaluator,
   setVariable,
+  jsonSetter,
   inlineExpression,
   extractor,
   pathExtractor,

@@ -8,6 +8,7 @@ import {
   EVALUATOR_ALLOWED_TARGETS,
   EVALUATOR_OUTPUTS,
   readEvaluatorVariable,
+  refactorEvaluatorConfigValue,
   validateEvaluatorConfigValue,
 } from "../evaluator-shared/config"
 import { isSelectConfigValue } from "../../shared/node-data-utils"
@@ -28,8 +29,12 @@ export const jsonEvaluator = defineNode({
     matchType: "any" satisfies EvaluatorMatchType,
   }),
   renameConfigKey: "label",
+  refactorConfigValue: refactorEvaluatorConfigValue,
   subtitle: evaluatorSubtitle,
   outputs: EVALUATOR_OUTPUTS,
+  // A JSON payload routes to several consumers per outcome; the plain
+  // evaluator keeps its one-target-per-branch contract.
+  multipleBranchTargets: true,
   variable: readEvaluatorVariable,
   validateConfigValue: (key, value) =>
     key === "matchType"

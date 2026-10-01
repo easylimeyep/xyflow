@@ -1,15 +1,32 @@
 "use client"
 
 import * as React from "react"
-import { Plus, Trash2 } from "lucide-react"
+import { AlertTriangle, Plus, Trash2 } from "lucide-react"
 
 import { Badge } from "@flow/ui/components/badge"
 import { Button } from "@flow/ui/components/button"
 import { Input } from "@flow/ui/components/input"
 import { Popover, PopoverTrigger } from "@flow/ui/components/popover"
+import { Tooltip, TooltipTrigger } from "@flow/ui/components/tooltip"
 import { cn } from "@flow/ui/lib/utils"
 
 const DEFAULT_PREVIEW_LIMIT = 3
+
+/** Everything a custom row editor needs to edit one entry. */
+interface ArrayInputEntryProps {
+  value: string
+  index: number
+  /** Accessible name for the row, e.g. "Left array value 1". */
+  ariaLabel: string
+  onChange: (nextValue: string) => void
+}
+
+/** How the closed trigger previews one entry. */
+interface ArrayInputEntryMeta {
+  variant?: "literal" | "variable"
+  /** Shown as a warning icon on the badge, with this text as its tooltip. */
+  warning?: string
+}
 
 interface ArrayInputPopoverProps {
   open: boolean
@@ -18,6 +35,10 @@ interface ArrayInputPopoverProps {
   placeholder: string
   previewLimit?: number
   className?: string
+  popoverClassName?: string
+  /** Replaces the plain text input of every row. */
+  renderEntry?: (entry: ArrayInputEntryProps) => React.ReactNode
+  getEntryMeta?: (value: string) => ArrayInputEntryMeta
   onOpenChange: (open: boolean) => void
   onValuesChange: (values: string[]) => void
 }
@@ -29,6 +50,9 @@ function ArrayInputPopover({
   placeholder,
   previewLimit = DEFAULT_PREVIEW_LIMIT,
   className,
+  popoverClassName,
+  renderEntry,
+  getEntryMeta,
   onOpenChange,
   onValuesChange,
 }: ArrayInputPopoverProps) {
@@ -71,14 +95,11 @@ function ArrayInputPopover({
           <>
             <span className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
               {visiblePreviewValues.map((value, index) => (
-                <Badge
+                <PreviewBadge
                   key={`${value}-${index}`}
-                  variant="outline"
-                  className="h-4 max-w-[4.5rem] min-w-0 px-1.5 text-[0.625rem]"
-                  title={value}
-                >
-                  <span className="min-w-0 truncate">{value}</span>
-                </Badge>
+                  value={value}
+                  meta={getEntryMeta?.(value)}
+                />
               ))}
             </span>
             {hiddenPreviewCount > 0 ? (
@@ -96,21 +117,35 @@ function ArrayInputPopover({
           </span>
         )}
       </Button>
-      <Popover placement="bottom start" className="w-56 gap-1 p-2">
+      <Popover
+        placement="bottom start"
+        className={cn("w-56 gap-1 p-2", popoverClassName)}
+      >
         <div className="space-y-1">
           {values.map((entry, index) => (
             <div
               key={index}
               className="group/operand-row relative flex items-center gap-1"
             >
-              <Input
-                aria-label={`${label} array value ${index + 1}`}
-                className="min-w-0 flex-1"
-                value={entry}
-                onChange={(event) =>
-                  updateArrayEntry(index, event.target.value)
-                }
-              />
+              {renderEntry ? (
+                <div className="min-w-0 flex-1">
+                  {renderEntry({
+                    value: entry,
+                    index,
+                    ariaLabel: `${label} array value ${index + 1}`,
+                    onChange: (nextValue) => updateArrayEntry(index, nextValue),
+                  })}
+                </div>
+              ) : (
+                <Input
+                  aria-label={`${label} array value ${index + 1}`}
+                  className="min-w-0 flex-1"
+                  value={entry}
+                  onChange={(event) =>
+                    updateArrayEntry(index, event.target.value)
+                  }
+                />
+              )}
               <button
                 type="button"
                 aria-label={`Delete ${label} array value ${index + 1}`}
@@ -137,4 +172,50 @@ function ArrayInputPopover({
   )
 }
 
-export { ArrayInputPopover, type ArrayInputPopoverProps }
+interface PreviewBadgeProps {
+  value: string
+  meta?: ArrayInputEntryMeta
+}
+
+function PreviewBadge({ value, meta }: PreviewBadgeProps) {
+  const isVariable = meta?.variant === "variable"
+  const badge = (
+    <Badge
+      variant={isVariable ? "secondary" : "outline"}
+      data-entry-variant={isVariable ? "variable" : "literal"}
+      className={cn(
+        "h-4 max-w-[4.5rem] min-w-0 px-1.5 text-[0.625rem]",
+        isVariable && "font-mono text-primary",
+        meta?.warning &&
+          "border-yellow-500/80 bg-yellow-200 text-yellow-900 dark:text-yellow-200"
+      )}
+      title={meta?.warning ? undefined : value}
+    >
+      {meta?.warning ? (
+        <AlertTriangle
+          aria-label={meta.warning}
+          className="size-2.5 shrink-0"
+        />
+      ) : null}
+      <span className="min-w-0 truncate">{value}</span>
+    </Badge>
+  )
+
+  if (!meta?.warning) {
+    return badge
+  }
+
+  return (
+    <TooltipTrigger>
+      {badge}
+      <Tooltip>{meta.warning}</Tooltip>
+    </TooltipTrigger>
+  )
+}
+
+export {
+  ArrayInputPopover,
+  type ArrayInputEntryMeta,
+  type ArrayInputEntryProps,
+  type ArrayInputPopoverProps,
+}

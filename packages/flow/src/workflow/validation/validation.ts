@@ -1,6 +1,9 @@
 import type { Connection } from "@xyflow/react"
 
-import { getAllowedTargets } from "../node-registry/node-graph-rules"
+import {
+  allowsMultipleBranchTargets,
+  getAllowedTargets,
+} from "../node-registry/node-graph-rules"
 import type { NodeKind, NodeRegistry } from "../node-registry/registry"
 import {
   EVALUATOR_FALSE_HANDLE,
@@ -92,6 +95,7 @@ export function validateConnection(
 
   if (
     isBranchingKind(sourceKind) &&
+    !allowsMultipleBranchTargets(registry, sourceKind) &&
     edges.some(
       (edge) =>
         edge.source === connection.source &&

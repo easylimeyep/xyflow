@@ -1536,6 +1536,62 @@ describe("workflow store", () => {
     expect(edgeFromFalse).toBeDefined()
   })
 
+  it("quick-adds several targets from one jsonEvaluator branch", () => {
+    const state = store.getState()
+    state.addNode("jsonEvaluator", { x: 700, y: 160 })
+    const evaluatorNode = store
+      .getState()
+      .graph.nodes.find(
+        (node: WorkflowNode) => node.data.kind === "jsonEvaluator"
+      )
+    if (!evaluatorNode) {
+      throw new Error("jsonEvaluator node not found")
+    }
+
+    store.getState().startQuickAddFromOutput(evaluatorNode.id, "evaluator-true")
+    store.getState().confirmQuickAddNode("extractor")
+    store.getState().startQuickAddFromOutput(evaluatorNode.id, "evaluator-true")
+    store.getState().confirmQuickAddNode("setVariable")
+
+    const trueEdges = store
+      .getState()
+      .graph.edges.filter(
+        (edge) =>
+          edge.source === evaluatorNode.id &&
+          edge.sourceHandle === "evaluator-true"
+      )
+    expect(trueEdges).toHaveLength(2)
+    expect(store.getState().lastError).toBeNull()
+  })
+
+  it("keeps a plain evaluator branch to a single quick-added target", () => {
+    const state = store.getState()
+    state.addNode("evaluator", { x: 700, y: 160 })
+    const evaluatorNode = store
+      .getState()
+      .graph.nodes.find(
+        (node: WorkflowNode) => node.data.kind === "evaluator"
+      )
+    if (!evaluatorNode) {
+      throw new Error("evaluator node not found")
+    }
+
+    store.getState().startQuickAddFromOutput(evaluatorNode.id, "evaluator-true")
+    store.getState().confirmQuickAddNode("extractor")
+    store.getState().startQuickAddFromOutput(evaluatorNode.id, "evaluator-true")
+
+    expect(store.getState().quickAddPending).toBeNull()
+    expect(
+      store
+        .getState()
+        .graph.edges.filter(
+          (edge) =>
+            edge.source === evaluatorNode.id &&
+            edge.sourceHandle === "evaluator-true"
+        )
+    ).toHaveLength(1)
+  })
+
   it("restores quick-add node and edge in a single undo after node deletion", () => {
     const state = store.getState()
     const sourceNode = findRootKeywordNode(state.graph.nodes)
@@ -1951,6 +2007,7 @@ describe("workflow store", () => {
     ).toBe(false)
 
     const backend = exportDomainWorkflowForBackend(
+      registry,
       exportDomainDto(registry, nextState.graph)
     )
     const insertedBackendNode = backend.nodes.find(
