@@ -1,12 +1,14 @@
 // @vitest-environment jsdom
 
-import { describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it } from "vitest"
 
 import {
   getClipboardHotkeyAction,
   getHistoryHotkeyAction,
   getNodeEditHotkeyAction,
+  isEditableEventTarget,
   isEscapeHotkey,
+  isInteractiveEventTarget,
   isSearchHotkey,
 } from "./hotkeys"
 
@@ -212,5 +214,84 @@ describe("isSearchHotkey", () => {
 
     expect(isSearchHotkey(event)).toBe(true)
     input.remove()
+  })
+})
+
+afterEach(() => {
+  document.body.innerHTML = ""
+})
+
+function mount(html: string, selector: string): Element {
+  const host = document.createElement("div")
+  host.innerHTML = html
+  document.body.append(host)
+  const target = host.querySelector(selector)
+  if (!target) {
+    throw new Error(`No element matches ${selector}`)
+  }
+  return target
+}
+
+describe("isEditableEventTarget", () => {
+  it.each([
+    ["an input", "<input />", "input"],
+    ["a textarea", "<textarea></textarea>", "textarea"],
+    ["a select", "<select></select>", "select"],
+    [
+      "an expression editor line",
+      '<div class="cm-editor"><div class="cm-line">x</div></div>',
+      ".cm-line",
+    ],
+  ])("is true for %s", (_, html, selector) => {
+    expect(isEditableEventTarget(mount(html, selector))).toBe(true)
+  })
+
+  it.each([
+    ["a button", "<button>Go</button>", "button"],
+    ["a plain div", "<div>node body</div>", "div"],
+  ])("is false for %s", (_, html, selector) => {
+    expect(isEditableEventTarget(mount(html, selector))).toBe(false)
+  })
+
+  it("is false for a missing target", () => {
+    expect(isEditableEventTarget(null)).toBe(false)
+  })
+})
+
+describe("isInteractiveEventTarget", () => {
+  it.each([
+    ["an input", "<input />", "input"],
+    [
+      "an expression editor line",
+      '<div class="cm-editor"><div class="cm-line">x</div></div>',
+      ".cm-line",
+    ],
+    ["a button", "<button>Go</button>", "button"],
+    ["an icon inside a button", "<button><svg></svg></button>", "svg"],
+    ["a link", '<a href="#x">Link</a>', "a"],
+    ["a role=button element", '<div role="button">Go</div>', "div"],
+    [
+      "the visual box of a label-wrapped checkbox",
+      '<label><input type="checkbox" hidden /><span class="box"></span></label>',
+      ".box",
+    ],
+    ["a menu checkbox item", '<div role="menuitemcheckbox">On</div>', "div"],
+  ])("is true for %s", (_, html, selector) => {
+    expect(isInteractiveEventTarget(mount(html, selector))).toBe(true)
+  })
+
+  it.each([
+    ["a plain div", "<div>node body</div>", "div"],
+    [
+      "a focusable node wrapper",
+      '<div tabindex="0"><span>label</span></div>',
+      "span",
+    ],
+  ])("is false for %s", (_, html, selector) => {
+    expect(isInteractiveEventTarget(mount(html, selector))).toBe(false)
+  })
+
+  it("is false for a missing target", () => {
+    expect(isInteractiveEventTarget(null)).toBe(false)
   })
 })

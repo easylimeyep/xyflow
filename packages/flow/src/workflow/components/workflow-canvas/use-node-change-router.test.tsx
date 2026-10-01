@@ -160,4 +160,56 @@ describe("useNodeChangeRouter", () => {
     expect(onSelectionChange).toHaveBeenCalledWith([nodeB.id])
     expect(onStructuralChanges).not.toHaveBeenCalled()
   })
+  it("selects a node again after the selection was cleared outside the router", () => {
+    // Click A, then Delete (store clears the selection), then undo brings A
+    // back unselected: clicking A must select it again.
+    const onSelectionChange = vi.fn()
+    let route: ((changes: NodeChange<WorkflowNode>[]) => void) | null = null
+    const nodeA = createWorkflowNode(registry, "inlineExpression", {
+      x: 0,
+      y: 0,
+    })
+    const harness = (nodes: WorkflowNode[]) => (
+      <Harness
+        nodes={nodes}
+        onStructuralChanges={vi.fn()}
+        onSelectionChange={onSelectionChange}
+        onRouter={(router) => {
+          route = router
+        }}
+      />
+    )
+    const { rerender } = render(harness([{ ...nodeA, selected: false }]))
+
+    route!([{ id: nodeA.id, type: "select", selected: true }])
+    rerender(harness([{ ...nodeA, selected: true }]))
+    rerender(harness([{ ...nodeA, selected: false }]))
+    route!([{ id: nodeA.id, type: "select", selected: true }])
+
+    expect(onSelectionChange).toHaveBeenNthCalledWith(1, [nodeA.id])
+    expect(onSelectionChange).toHaveBeenNthCalledWith(2, [nodeA.id])
+  })
+
+  it("does not re-emit a selection the nodes already have", () => {
+    const onSelectionChange = vi.fn()
+    let route: ((changes: NodeChange<WorkflowNode>[]) => void) | null = null
+    const nodeA = createWorkflowNode(registry, "inlineExpression", {
+      x: 0,
+      y: 0,
+    })
+    render(
+      <Harness
+        nodes={[{ ...nodeA, selected: true }]}
+        onStructuralChanges={vi.fn()}
+        onSelectionChange={onSelectionChange}
+        onRouter={(router) => {
+          route = router
+        }}
+      />
+    )
+
+    route!([{ id: nodeA.id, type: "select", selected: true }])
+
+    expect(onSelectionChange).not.toHaveBeenCalled()
+  })
 })
