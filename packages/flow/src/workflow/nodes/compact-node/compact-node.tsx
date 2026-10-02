@@ -14,6 +14,7 @@ import {
   compactNodeStyles,
   nodeHandlesStyles,
 } from "../../../styles/components/nodes"
+import { LARGE_GRAPH_MIN_NODES } from "../../large-graph"
 import { getEstimatedNodeHeight } from "../../layout/node-size-estimate"
 import { resolveWorkflowLayoutPorts } from "../../layout/elk-ports"
 import type { NodeDefinition } from "../../node-registry/define-node"
@@ -41,6 +42,12 @@ export const COMPACT_NODE_MAX_ZOOM = 0.4
 const VIEWPORT_MARGIN_RATIO = 0.5
 
 function isOutsideViewport(state: ReactFlowState, nodeId: string): boolean {
+  // A small graph keeps every node in full: mounting them all is cheap, and
+  // panning never reveals a compact card.
+  if (state.nodeLookup.size <= LARGE_GRAPH_MIN_NODES) {
+    return false
+  }
+
   const node = state.nodeLookup.get(nodeId)
   // Until the pane is measured there is no viewport to compare against.
   if (!node || state.width === 0 || state.height === 0) {
@@ -63,7 +70,8 @@ function isOutsideViewport(state: ReactFlowState, nodeId: string): boolean {
 
 /**
  * True when the node should draw its compact card: the canvas is zoomed out
- * too far to read it, or it sits well away from the viewport. Hundreds of full
+ * too far to read it, or, on a large graph, it sits well away from the
+ * viewport. Hundreds of full
  * views mounting at once — on the first render, or when zooming in past the
  * threshold — is what freezes the page on a large graph.
  */

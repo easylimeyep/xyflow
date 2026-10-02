@@ -29,8 +29,7 @@ const edgeStrokeHighlighted = {
   strokeWidth: 2.5,
 }
 
-const toolbarVisibleStyles = workflowEdgeStyles({ showToolbar: true })
-const toolbarHiddenStyles = workflowEdgeStyles({ showToolbar: false })
+const styles = workflowEdgeStyles()
 
 export function WorkflowEdgeComponent({
   id,
@@ -62,7 +61,6 @@ export function WorkflowEdgeComponent({
   })
   const showToolbar =
     interactive && (isHovered || isToolbarHovered || isInsertPending)
-  const styles = showToolbar ? toolbarVisibleStyles : toolbarHiddenStyles
   const highlightEdge =
     selected || isHovered || isToolbarHovered || isInsertPending
   const baseStroke = highlightEdge ? edgeStrokeHighlighted : edgeStrokeDefault
@@ -98,13 +96,15 @@ export function WorkflowEdgeComponent({
         <path d={edgePath} fill="none" stroke="transparent" strokeWidth={20} />
       </g>
 
-      {interactive ? (
+      {/* Mounted only while needed: a large graph would otherwise keep a
+          hidden toolbar per edge, and every label portal re-runs its store
+          selector on each pan frame. */}
+      {showToolbar ? (
         <EdgeLabelRenderer>
           <div
             className={styles.toolbarContainer()}
             style={{
               transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
-              pointerEvents: showToolbar ? "all" : "none",
             }}
           >
             <div

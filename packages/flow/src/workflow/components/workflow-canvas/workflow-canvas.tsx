@@ -51,6 +51,7 @@ import { SelectionToolbar, useSelectionToolbar } from "../selection-toolbar"
 import { isInteractiveEventTarget } from "../hotkeys"
 import { useNodeChangeRouter } from "./use-node-change-router"
 import { WORKFLOW_ELK_PADDING } from "../../layout"
+import { LARGE_GRAPH_MIN_NODES } from "../../large-graph"
 import type { WorkflowEditorAnchorRefs } from "../../tour"
 import { useWorkflowEditorAnchorRef } from "../../tour/anchors"
 
@@ -159,6 +160,10 @@ function WorkflowCanvasInner({
     nodes.every(
       (node) => node.measured?.width != null && node.measured.height != null
     )
+  // The measured initial layout waits for every node to report its size, and
+  // a culled node never mounts to report one.
+  const shouldCullToViewport =
+    nodes.length > LARGE_GRAPH_MIN_NODES && !initialLayoutPending
   const selectionToolbar = useSelectionToolbar(nodes, isObserving)
   const onReactFlowNodesChange = useNodeChangeRouter({
     nodes,
@@ -481,6 +486,7 @@ function WorkflowCanvasInner({
           nodeTypes={workflowNodeTypes}
           edgeTypes={edgeTypes}
           proOptions={{ hideAttribution: true }}
+          onlyRenderVisibleElements={shouldCullToViewport}
           defaultViewport={viewport}
           minZoom={WORKFLOW_MIN_ZOOM}
           maxZoom={WORKFLOW_MAX_ZOOM}

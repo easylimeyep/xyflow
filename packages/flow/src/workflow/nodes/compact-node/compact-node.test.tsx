@@ -11,6 +11,7 @@ import { buildNodeTypes } from "../../node-registry/node-types-builder"
 import { createNodeRegistry } from "../../node-registry/registry"
 import { WorkflowStoreProvider } from "../../store"
 import type { WorkflowNode } from "../../types"
+import { LARGE_GRAPH_MIN_NODES } from "../../large-graph"
 import { COMPACT_NODE_MAX_ZOOM } from "./compact-node"
 
 interface FakeInternalNode {
@@ -100,6 +101,13 @@ function renderNode(node: WorkflowNode, selected = false) {
       <View {...nodeProps(node, selected)} />
     </WorkflowStoreProvider>
   )
+}
+
+/** Fills the lookup past the large-graph threshold with nodes at the origin. */
+function makeGraphLarge() {
+  for (let index = 0; index < LARGE_GRAPH_MIN_NODES; index += 1) {
+    placeNode(`filler-${index}`, { x: 0, y: 0 })
+  }
 }
 
 function zoomTo(zoom: number) {
@@ -239,16 +247,28 @@ describe("compact nodes at low zoom", () => {
     const node = createWorkflowNode(registry, "setVariable", { x: 0, y: 0 })
     flowState.width = 1000
     flowState.height = 800
+    makeGraphLarge()
     placeNode(node.id, { x: 5000, y: 5000 })
     renderNode(node)
 
     expect(screen.getByTestId("workflow-node-compact")).toBeTruthy()
   })
 
+  it("keeps a node far outside the viewport in full on a small graph", () => {
+    const node = createWorkflowNode(registry, "setVariable", { x: 0, y: 0 })
+    flowState.width = 1000
+    flowState.height = 800
+    placeNode(node.id, { x: 5000, y: 5000 })
+    renderNode(node)
+
+    expect(screen.getByTestId("full-node")).toBeTruthy()
+  })
+
   it("renders a node near the viewport in full", () => {
     const node = createWorkflowNode(registry, "setVariable", { x: 0, y: 0 })
     flowState.width = 1000
     flowState.height = 800
+    makeGraphLarge()
     // Just past the right edge: inside the margin kept around the viewport.
     placeNode(node.id, { x: 1100, y: 100 })
     renderNode(node)

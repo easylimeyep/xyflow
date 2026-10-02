@@ -2,7 +2,9 @@ import { tv } from "tailwind-variants"
 
 export const workflowEdgeStyles = tv({
   slots: {
-    toolbarContainer: "absolute z-20 transition-opacity",
+    // Fades in from `@starting-style`, since the toolbar mounts on hover.
+    toolbarContainer:
+      "pointer-events-auto absolute z-20 transition-opacity starting:opacity-0",
     toolbar:
       "nodrag nopan inline-flex items-center gap-1 rounded-md border bg-background/95 p-1 shadow-sm",
     actionButton:
@@ -15,14 +17,6 @@ export const workflowEdgeStyles = tv({
     edgePath: "[stroke:var(--border)] [stroke-width:2]",
   },
   variants: {
-    showToolbar: {
-      true: {
-        toolbarContainer: "opacity-100",
-      },
-      false: {
-        toolbarContainer: "opacity-0",
-      },
-    },
     // An edge can be both traversed and active (e.g. inside a loop). `active`
     // is declared after `traversed`, so its stroke/width win when both apply.
     traversed: {
@@ -37,7 +31,6 @@ export const workflowEdgeStyles = tv({
     },
   },
   defaultVariants: {
-    showToolbar: false,
     traversed: false,
     active: false,
   },
