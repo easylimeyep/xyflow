@@ -94,9 +94,10 @@ describe("OperandEditor array rows with the real expression editor", () => {
     render(<ArrayOperandHarness onChange={handleChange} />)
 
     fireEvent.click(screen.getByLabelText("Edit Left array values"))
-    const row = within(
-      screen.getByRole("group", { name: "Left array value 1" })
-    ).getByLabelText("expression row")
+    const group = screen.getByRole("group", { name: "Left array value 1" })
+    // Rows draw a static preview until pressed, like every canvas field.
+    fireEvent.pointerDown(within(group).getByRole("textbox"))
+    const row = within(group).getByLabelText("expression row")
     fireEvent.change(row, { target: { value: "Paris-live" } })
 
     expect(handleChange).not.toHaveBeenCalled()

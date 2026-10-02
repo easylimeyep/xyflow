@@ -130,7 +130,7 @@ describe("field search marks in node views", () => {
     const { container, next } = renderSearched(setter, SetVariableNode, "price")
     const title = screen.getByText("Calc price")
     const variableInput = screen.getByDisplayValue("price")
-    const valueEditor = container.querySelector(".cm-editor")
+    const valueEditor = container.querySelector("[data-expression-preview]")
 
     expect(markOf(title)).toBe("current")
     expect(markOf(variableInput)).toBe("match")
@@ -164,7 +164,9 @@ describe("field search marks in node views", () => {
     )
     inline.data.config.template = ["{{ a }}", "{{ price }}"]
     const { container } = renderSearched(inline, InlineExpressionNode, "price")
-    const [first, second] = container.querySelectorAll(".cm-editor")
+    const [first, second] = container.querySelectorAll(
+      "[data-expression-preview]"
+    )
 
     expect(markOf(first!)).toBeUndefined()
     expect(markOf(second!)).toBe("current")

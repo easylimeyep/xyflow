@@ -242,6 +242,11 @@ describe("isEditableEventTarget", () => {
       '<div class="cm-editor"><div class="cm-line">x</div></div>',
       ".cm-line",
     ],
+    [
+      "an expression field's preview",
+      '<div data-expression-preview=""><div class="text">x</div></div>',
+      ".text",
+    ],
   ])("is true for %s", (_, html, selector) => {
     expect(isEditableEventTarget(mount(html, selector))).toBe(true)
   })
