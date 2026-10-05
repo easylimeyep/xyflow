@@ -18,6 +18,16 @@ export const nodePaletteStyles = tv({
     textWrap: "flex flex-col items-start gap-1",
     title: "text-lg font-medium",
     description: "text-left text-xs text-muted-foreground",
+    // The drag ghost. It stays rendered but parked above the viewport, since a
+    // browser only rasterizes rendered elements; `fixed` gives it its own paint
+    // layer so nothing around it (the list's scrollbar) is captured with it.
+    // No transform for parking — it can shift where the browser samples.
+    preview: [
+      "pointer-events-none fixed -top-[1000px] left-0 flex w-48 items-center gap-2",
+      "rounded-md border bg-background px-3 py-2 shadow-sm",
+    ],
+    previewIcon: "size-4 shrink-0 text-muted-foreground",
+    previewTitle: "truncate text-sm font-medium",
   },
   variants: {
     quickAddActive: {

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, render, screen } from "@testing-library/react"
+import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
@@ -8,6 +8,7 @@ import { evaluator } from "../../nodes/logic/evaluator/definition"
 import { result } from "../../nodes/logic/result/definition"
 import { setVariable } from "../../nodes/data/set-variable/definition"
 import { builtinBaseDefinitions } from "../../node-registry/builtin-base-definitions"
+import { WORKFLOW_NODE_KIND_MIME } from "../../dnd"
 import { WorkflowStoreProvider } from "../../store"
 import type { WorkflowEditorAnchorRefs } from "../../tour"
 import { NodePalette } from "./node-palette"
@@ -185,7 +186,9 @@ describe("NodePalette focus when it hides", () => {
     return (
       <WorkflowStoreProvider definitions={[result]}>
         <div data-workflow-editor-root="" tabIndex={-1} data-testid="root">
-          {showTrigger ? <button type="button">quick-add-trigger</button> : null}
+          {showTrigger ? (
+            <button type="button">quick-add-trigger</button>
+          ) : null}
           <button type="button">palette-toggle</button>
           <NodePalette
             onAddNode={vi.fn()}
@@ -250,5 +253,97 @@ describe("NodePalette focus when it hides", () => {
     view.rerender(<Harness isOpen />)
 
     expect(document.activeElement).toBe(card())
+  })
+})
+
+describe("NodePalette drag preview", () => {
+  afterEach(() => {
+    cleanup()
+  })
+
+  /** jsdom has no real DataTransfer; drag start only needs these members. */
+  function createDataTransfer(withDragImage = true) {
+    return {
+      effectAllowed: "none",
+      setData: vi.fn(),
+      ...(withDragImage ? { setDragImage: vi.fn() } : {}),
+    }
+  }
+
+  const card = (title: string) =>
+    screen.getByRole("button", { name: `Add ${title} node` }).parentElement!
+  const preview = () =>
+    document.querySelector<HTMLElement>("[data-palette-drag-preview]")
+
+  function renderPalette(quickAddActive = false) {
+    return render(
+      <WorkflowStoreProvider definitions={[evaluator, result]}>
+        <NodePalette onAddNode={vi.fn()} quickAddActive={quickAddActive} />
+      </WorkflowStoreProvider>
+    )
+  }
+
+  it("renders a hidden preview outside the scrolling list", () => {
+    renderPalette()
+
+    const element = preview()
+    expect(element).toBeInstanceOf(HTMLElement)
+    expect(element?.getAttribute("aria-hidden")).toBe("true")
+    expect(card(result.title).parentElement?.contains(element)).toBe(false)
+    expect(
+      screen
+        .getByRole("complementary", { name: "Node palette" })
+        .contains(element)
+    ).toBe(false)
+  })
+
+  it("uses the preview of the dragged kind as the drag image", () => {
+    renderPalette()
+    const dataTransfer = createDataTransfer()
+
+    fireEvent.dragStart(card(result.title), { dataTransfer })
+
+    expect(dataTransfer.setDragImage).toHaveBeenCalledWith(preview(), 0, 0)
+    expect(preview()?.textContent).toContain(result.title)
+    expect(preview()?.textContent).not.toContain(evaluator.title)
+    expect(dataTransfer.setData).toHaveBeenCalledWith(
+      WORKFLOW_NODE_KIND_MIME,
+      result.kind
+    )
+    expect(dataTransfer.effectAllowed).toBe("move")
+  })
+
+  it("empties the preview when the drag ends", () => {
+    renderPalette()
+
+    fireEvent.dragStart(card(result.title), {
+      dataTransfer: createDataTransfer(),
+    })
+    fireEvent.dragEnd(card(result.title))
+
+    expect(preview()?.textContent).toBe("")
+  })
+
+  it("still starts the drag when setDragImage is unavailable", () => {
+    renderPalette()
+    const dataTransfer = createDataTransfer(false)
+
+    expect(() =>
+      fireEvent.dragStart(card(result.title), { dataTransfer })
+    ).not.toThrow()
+    expect(dataTransfer.setData).toHaveBeenCalledWith(
+      WORKFLOW_NODE_KIND_MIME,
+      result.kind
+    )
+  })
+
+  it("neither sets a drag image nor data during a quick-add", () => {
+    renderPalette(true)
+    const dataTransfer = createDataTransfer()
+
+    fireEvent.dragStart(card(result.title), { dataTransfer })
+
+    expect(dataTransfer.setDragImage).not.toHaveBeenCalled()
+    expect(dataTransfer.setData).not.toHaveBeenCalled()
   })
 })
