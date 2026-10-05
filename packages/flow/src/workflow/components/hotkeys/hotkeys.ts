@@ -2,6 +2,23 @@ export type HistoryHotkeyAction = "undo" | "redo"
 export type ClipboardHotkeyAction = "copy" | "paste"
 export type NodeEditHotkeyAction = "duplicate" | "delete"
 
+const LATIN_LETTER = /^[a-z]$/
+
+/**
+ * Whether the event is the given Latin letter key. A Latin `key` wins, so
+ * layouts like Dvorak keep their own letters. On non-Latin layouts (Russian)
+ * `key` is another script's letter, so the physical key in `code` decides —
+ * the same key the browser's own shortcuts answer to there.
+ */
+function isLetterHotkey(event: KeyboardEvent, letter: string): boolean {
+  const key = event.key.toLowerCase()
+  if (LATIN_LETTER.test(key)) {
+    return key === letter
+  }
+
+  return event.code === `Key${letter.toUpperCase()}`
+}
+
 export function getHistoryHotkeyAction(
   event: KeyboardEvent
 ): HistoryHotkeyAction | null {
@@ -18,12 +35,11 @@ export function getHistoryHotkeyAction(
     return null
   }
 
-  const key = event.key.toLowerCase()
-  if (key === "y") {
+  if (isLetterHotkey(event, "y")) {
     return "redo"
   }
 
-  if (key === "z") {
+  if (isLetterHotkey(event, "z")) {
     return event.shiftKey ? "redo" : "undo"
   }
 
@@ -65,12 +81,11 @@ export function getClipboardHotkeyAction(
     return null
   }
 
-  const key = event.key.toLowerCase()
-  if (key === "c") {
+  if (isLetterHotkey(event, "c")) {
     return "copy"
   }
 
-  if (key === "v") {
+  if (isLetterHotkey(event, "v")) {
     return "paste"
   }
 
@@ -108,14 +123,13 @@ export function getNodeEditHotkeyAction(
     return null
   }
 
-  const key = event.key.toLowerCase()
   const hasModifier = event.metaKey || event.ctrlKey
 
-  if (hasModifier && key === "d") {
+  if (hasModifier && isLetterHotkey(event, "d")) {
     return "duplicate"
   }
 
-  if (!hasModifier && key === "backspace") {
+  if (!hasModifier && event.key.toLowerCase() === "backspace") {
     return "delete"
   }
 
@@ -169,9 +183,7 @@ export function isSearchHotkey(event: KeyboardEvent): boolean {
     return false
   }
 
-  // `code` keeps the physical key working on non-Latin layouts, where `key`
-  // is another letter but the browser's own find still fires.
-  return event.key.toLowerCase() === "f" || event.code === "KeyF"
+  return isLetterHotkey(event, "f")
 }
 
 /** Marks the search bar's own query input; its selection never seeds the query. */

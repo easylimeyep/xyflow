@@ -181,6 +181,66 @@ describe("getNodeEditHotkeyAction", () => {
   })
 })
 
+describe("letter hotkeys on a non-Latin layout", () => {
+  // On the Russian layout the physical C/V/Z/Y/D keys report Cyrillic `key`s.
+  it.each([
+    ["cmd+c", "copy", { key: "с", code: "KeyC", metaKey: true }],
+    ["ctrl+v", "paste", { key: "м", code: "KeyV", ctrlKey: true }],
+  ] as const)("maps %s to %s", (_, action, init) => {
+    expect(getClipboardHotkeyAction(createKeyboardEvent("keydown", init))).toBe(
+      action
+    )
+  })
+
+  it.each([
+    ["cmd+z", "undo", { key: "я", code: "KeyZ", metaKey: true }],
+    [
+      "cmd+shift+z",
+      "redo",
+      { key: "Я", code: "KeyZ", metaKey: true, shiftKey: true },
+    ],
+    ["ctrl+y", "redo", { key: "н", code: "KeyY", ctrlKey: true }],
+  ] as const)("maps %s to %s", (_, action, init) => {
+    expect(getHistoryHotkeyAction(createKeyboardEvent("keydown", init))).toBe(
+      action
+    )
+  })
+
+  it("maps cmd+d to duplicate", () => {
+    const event = createKeyboardEvent("keydown", {
+      key: "в",
+      code: "KeyD",
+      metaKey: true,
+    })
+    expect(getNodeEditHotkeyAction(event)).toBe("duplicate")
+  })
+
+  it("matches cmd+f", () => {
+    const event = createKeyboardEvent("keydown", {
+      key: "а",
+      code: "KeyF",
+      metaKey: true,
+    })
+    expect(isSearchHotkey(event)).toBe(true)
+  })
+
+  it("follows the typed Latin letter over the physical key", () => {
+    // Dvorak: the physical KeyI types "c", the physical KeyC types "j".
+    const copy = createKeyboardEvent("keydown", {
+      key: "c",
+      code: "KeyI",
+      metaKey: true,
+    })
+    const notCopy = createKeyboardEvent("keydown", {
+      key: "j",
+      code: "KeyC",
+      metaKey: true,
+    })
+    expect(getClipboardHotkeyAction(copy)).toBe("copy")
+    expect(getClipboardHotkeyAction(notCopy)).toBeNull()
+  })
+})
+
 describe("isSearchHotkey", () => {
   it.each([
     ["ctrl+f", { key: "f", ctrlKey: true }],
