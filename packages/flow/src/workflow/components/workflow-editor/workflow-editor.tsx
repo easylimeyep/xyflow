@@ -12,7 +12,7 @@ import {
   type PropsWithChildren,
   type ReactNode,
 } from "react"
-import { createPortal } from "react-dom"
+import { createPortal, flushSync } from "react-dom"
 
 import { useHistory } from "@ez-kit/zu-store"
 import type { XYPosition } from "@xyflow/react"
@@ -54,6 +54,7 @@ import {
   createNodeEditHotkeyHandler,
   isEscapeHotkey,
   isSearchHotkey,
+  readSearchSeed,
 } from "../hotkeys"
 import { WorkflowEditorConfigPanel as WorkflowEditorConfigPanelBase } from "../node-config-panel"
 import { NodePalette } from "../node-palette"
@@ -481,11 +482,20 @@ function WorkflowEditorShell({
     }
 
     event.preventDefault()
-    if (storeApi.getState().search.isOpen) {
+    const { search, setSearchQuery, openSearch } = storeApi.getState()
+    // Text selected in the focused field becomes the query, as in a text
+    // editor's find bar, replacing the query of a search already open. The
+    // input must show it before `focusSearch` selects it, or rendering the
+    // new value afterwards drops the selection.
+    const seed = readSearchSeed(document.activeElement, event.currentTarget)
+    if (seed !== null) {
+      flushSync(() => setSearchQuery(seed))
+    }
+    if (search.isOpen) {
       layout.focusSearch()
       return
     }
-    storeApi.getState().openSearch()
+    openSearch()
   }
   // The pane, the canvas region and the editor chrome are not focusable, so a
   // click on empty canvas would otherwise leave focus on the body — outside

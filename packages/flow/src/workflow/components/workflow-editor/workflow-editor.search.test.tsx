@@ -46,6 +46,7 @@ vi.mock("../workflow-canvas", () => ({
         <div data-testid="canvas-pane">pane</div>
         <button type="button">canvas-focus-target</button>
         <input aria-label="expression-field" />
+        <input aria-label="label-field" defaultValue="Calc price" />
       </div>
     )
   },
@@ -304,6 +305,83 @@ describe("WorkflowEditor search", () => {
     expect((await screen.findByRole("tooltip")).textContent).toBe(
       "Show all matches"
     )
+  })
+})
+
+describe("WorkflowEditor search seeding", () => {
+  afterEach(() => {
+    cleanup()
+    revealSpy.mockClear()
+  })
+
+  /** Focuses `field`, selects `[start, end)` in it and presses Mod+F there. */
+  function pressModFWithSelection(
+    field: HTMLInputElement,
+    start: number,
+    end: number
+  ) {
+    field.focus()
+    field.setSelectionRange(start, end)
+    pressModF(field)
+  }
+
+  const searchInput = () =>
+    screen.getByLabelText<HTMLInputElement>("Search nodes and variables")
+
+  function expectWholeQuerySelected(query: string) {
+    const input = searchInput()
+    expect(input.value).toBe(query)
+    expect(document.activeElement).toBe(input)
+    expect(input.selectionStart).toBe(0)
+    expect(input.selectionEnd).toBe(query.length)
+  }
+
+  it("opens with the text selected in a field as the query", () => {
+    renderEditor()
+
+    pressModFWithSelection(
+      screen.getByLabelText<HTMLInputElement>("label-field"),
+      0,
+      4
+    )
+
+    expectWholeQuerySelected("Calc")
+  })
+
+  it("replaces the query of an open search with the selection", async () => {
+    renderEditor()
+    await openAndSearch("other")
+
+    pressModFWithSelection(
+      screen.getByLabelText<HTMLInputElement>("label-field"),
+      5,
+      10
+    )
+
+    expectWholeQuerySelected("price")
+    expect(counter()).toBe("1 / 3")
+  })
+
+  it("keeps the query of an open search without a selection", async () => {
+    renderEditor()
+    await openAndSearch("other")
+
+    pressModFWithSelection(
+      screen.getByLabelText<HTMLInputElement>("label-field"),
+      2,
+      2
+    )
+
+    expectWholeQuerySelected("other")
+  })
+
+  it("ignores a selection inside the search input itself", async () => {
+    renderEditor()
+    await openAndSearch("price total")
+
+    pressModFWithSelection(searchInput(), 6, 11)
+
+    expectWholeQuerySelected("price total")
   })
 })
 

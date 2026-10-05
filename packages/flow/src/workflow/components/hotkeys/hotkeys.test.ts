@@ -10,6 +10,7 @@ import {
   isEscapeHotkey,
   isInteractiveEventTarget,
   isSearchHotkey,
+  readSearchSeed,
 } from "./hotkeys"
 
 function createKeyboardEvent(
@@ -298,5 +299,120 @@ describe("isInteractiveEventTarget", () => {
 
   it("is false for a missing target", () => {
     expect(isInteractiveEventTarget(null)).toBe(false)
+  })
+})
+
+describe("readSearchSeed", () => {
+  function mountRoot(html: string): HTMLElement {
+    const root = document.createElement("div")
+    root.innerHTML = html
+    document.body.append(root)
+    return root
+  }
+
+  function selectInput(
+    root: HTMLElement,
+    selector: string,
+    start: number,
+    end: number
+  ): HTMLInputElement | HTMLTextAreaElement {
+    const field = root.querySelector<HTMLInputElement | HTMLTextAreaElement>(
+      selector
+    )!
+    field.focus()
+    field.setSelectionRange(start, end)
+    return field
+  }
+
+  function selectText(node: Node, start: number, end: number) {
+    const range = document.createRange()
+    range.setStart(node, start)
+    range.setEnd(node, end)
+    const selection = window.getSelection()!
+    selection.removeAllRanges()
+    selection.addRange(range)
+  }
+
+  afterEach(() => {
+    window.getSelection()?.removeAllRanges()
+  })
+
+  it("reads the selected part of a text input", () => {
+    const root = mountRoot('<input value="Calc price" />')
+    const input = selectInput(root, "input", 0, 4)
+    expect(readSearchSeed(input, root)).toBe("Calc")
+  })
+
+  it("reads the selected part of a text area", () => {
+    const root = mountRoot("<textarea>total price</textarea>")
+    const area = selectInput(root, "textarea", 6, 11)
+    expect(readSearchSeed(area, root)).toBe("price")
+  })
+
+  it("reads the document selection inside a focused editable region", () => {
+    const root = mountRoot(
+      '<div contenteditable="true" tabindex="0">{{ price }}</div>'
+    )
+    const editable = root.querySelector<HTMLElement>("[contenteditable]")!
+    editable.focus()
+    selectText(editable.firstChild!, 3, 8)
+    expect(readSearchSeed(editable, root)).toBe("price")
+  })
+
+  it("ignores a document selection outside the focused element", () => {
+    const root = mountRoot(
+      '<div contenteditable="true" tabindex="0">{{ rate }}</div><p>price</p>'
+    )
+    const editable = root.querySelector<HTMLElement>("[contenteditable]")!
+    editable.focus()
+    selectText(root.querySelector("p")!.firstChild!, 0, 5)
+    expect(readSearchSeed(editable, root)).toBeNull()
+  })
+
+  it("ignores a focused element outside the root", () => {
+    const root = mountRoot("<span>editor</span>")
+    const outside = mountRoot('<input value="price" />')
+    const input = selectInput(outside, "input", 0, 5)
+    expect(readSearchSeed(input, root)).toBeNull()
+  })
+
+  it("ignores a missing focused element", () => {
+    const root = mountRoot("<span>editor</span>")
+    expect(readSearchSeed(null, root)).toBeNull()
+  })
+
+  it.each([
+    ["an empty selection", "price", 2, 2],
+    ["a whitespace-only selection", "a   b", 1, 4],
+  ])("ignores %s", (_, value, start, end) => {
+    const root = mountRoot(`<input value="${value}" />`)
+    const input = selectInput(root, "input", start, end)
+    expect(readSearchSeed(input, root)).toBeNull()
+  })
+
+  it.each([
+    ["a line feed", "price\ntotal"],
+    ["a carriage return", "price\rtotal"],
+  ])("ignores a selection spanning %s", (_, text) => {
+    const root = mountRoot("<textarea></textarea>")
+    const area = root.querySelector("textarea")!
+    area.value = text
+    area.focus()
+    area.setSelectionRange(0, text.length)
+    expect(readSearchSeed(area, root)).toBeNull()
+  })
+
+  it("keeps the selected text as is", () => {
+    const root = mountRoot('<input value="= {{ price }} " />')
+    const input = selectInput(root, "input", 2, 14)
+    expect(readSearchSeed(input, root)).toBe("{{ price }} ")
+  })
+
+  it("ignores a selection inside the search input itself", () => {
+    const root = mountRoot(
+      '<input data-workflow-search-input="" value="price total" />'
+    )
+    const input = selectInput(root, "input", 6, 11)
+    expect(readSearchSeed(input, root)).toBeNull()
   })
 })

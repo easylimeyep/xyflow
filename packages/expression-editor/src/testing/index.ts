@@ -29,3 +29,14 @@ export function appendExpressionText(root: ParentNode, text: string): void {
 export function blurExpressionEditor(root: ParentNode): void {
   getExpressionEditorView(root).contentDOM.blur()
 }
+
+/** Focuses the mounted editor and selects `[from, to)` of its value. */
+export function selectExpressionText(
+  root: ParentNode,
+  from: number,
+  to: number
+): void {
+  const view = getExpressionEditorView(root)
+  view.focus()
+  view.dispatch({ selection: { anchor: from, head: to } })
+}

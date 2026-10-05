@@ -271,6 +271,8 @@ export function WorkflowSearch({
         <SearchIcon className={styles.icon()} aria-hidden />
         <Input
           ref={inputRef}
+          // Lets `Mod+F` tell the query's own selection from a seed.
+          data-workflow-search-input=""
           aria-label="Search nodes and variables"
           placeholder="Find in workflow"
           className={styles.input()}

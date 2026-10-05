@@ -174,6 +174,60 @@ export function isSearchHotkey(event: KeyboardEvent): boolean {
   return event.key.toLowerCase() === "f" || event.code === "KeyF"
 }
 
+/** Marks the search bar's own query input; its selection never seeds the query. */
+const SEARCH_INPUT_SELECTOR = "[data-workflow-search-input]"
+
+const LINE_BREAK = /[\r\n]/
+
+/** The text selected in `element`, or `""` when it holds no selection. */
+function readSelectedText(element: Element): string {
+  if (
+    element instanceof HTMLInputElement ||
+    element instanceof HTMLTextAreaElement
+  ) {
+    const { selectionStart, selectionEnd, value } = element
+    // Inputs without a text selection API (number, checkbox, ...) report null.
+    return selectionStart == null || selectionEnd == null
+      ? ""
+      : value.slice(selectionStart, selectionEnd)
+  }
+
+  // A content-editable field such as the expression editor keeps its
+  // selection in the document; it counts only while it sits inside the field.
+  const selection = element.ownerDocument.defaultView?.getSelection()
+  if (
+    !selection ||
+    selection.rangeCount === 0 ||
+    !element.contains(selection.anchorNode) ||
+    !element.contains(selection.focusNode)
+  ) {
+    return ""
+  }
+  return selection.toString()
+}
+
+/**
+ * The query `Mod+F` seeds the search with: the text selected in the focused
+ * element inside `root`, taken as is. Returns `null` when there is nothing to
+ * seed: no selection, only whitespace, several lines, or a selection inside
+ * the search bar's own input.
+ */
+export function readSearchSeed(
+  activeElement: Element | null,
+  root: Element
+): string | null {
+  if (
+    !activeElement ||
+    !root.contains(activeElement) ||
+    activeElement.closest(SEARCH_INPUT_SELECTOR)
+  ) {
+    return null
+  }
+
+  const text = readSelectedText(activeElement)
+  return text.trim() === "" || LINE_BREAK.test(text) ? null : text
+}
+
 const EDITABLE_TAG_NAMES = new Set(["INPUT", "TEXTAREA", "SELECT"])
 
 /**
