@@ -1,6 +1,7 @@
 "use client"
 
-import { useLayoutEffect, useRef } from "react"
+import { useLayoutEffect, useRef, useState } from "react"
+import { flushSync } from "react-dom"
 
 import {
   ActionBar,
@@ -9,6 +10,7 @@ import {
 } from "@flow/ui/components/action-bar"
 import { Badge } from "@flow/ui/components/badge"
 import { WORKFLOW_NODE_KIND_MIME } from "../../dnd"
+import type { NodeDefinition } from "../../node-registry/define-node"
 import type { NodeKind } from "../../node-registry/registry"
 import { useNodeDefinitions } from "../../node-registry/use-node-definitions"
 import { nodePaletteStyles } from "../../../styles/components/panels"
@@ -48,6 +50,13 @@ export function NodePalette({
   // instead of stranding it in a hidden aside — the floating search's rule.
   const returnFocusRef = useRef<HTMLElement | null>(null)
   const styles = nodePaletteStyles({ quickAddActive, placement })
+  // The kind being dragged, shown by the drag preview. Without a drag image of
+  // our own the browser snapshots the card through the scrolling list's layer,
+  // and the list's overlay scrollbar ends up in the ghost.
+  const [draggedDefinition, setDraggedDefinition] =
+    useState<NodeDefinition | null>(null)
+  const previewRef = useRef<HTMLDivElement | null>(null)
+  const PreviewIcon = draggedDefinition?.icon
 
   // A layout effect: a host hiding the closed palette with `display: none`
   // would otherwise have the browser drop focus to the body before we look.
@@ -136,7 +145,16 @@ export function NodePalette({
                     WORKFLOW_NODE_KIND_MIME,
                     definition.kind
                   )
+                  // The browser snapshots the drag image before this handler
+                  // returns, so the preview must hold this kind already.
+                  flushSync(() => setDraggedDefinition(definition))
+                  // (0, 0): the pointer holds the preview's top-left corner,
+                  // the point a canvas drop places the new node at.
+                  if (previewRef.current) {
+                    event.dataTransfer.setDragImage?.(previewRef.current, 0, 0)
+                  }
                 }}
+                onDragEnd={() => setDraggedDefinition(null)}
               >
                 <button
                   type="button"
@@ -159,6 +177,21 @@ export function NodePalette({
           })}
         </div>
       </aside>
+      <div
+        ref={previewRef}
+        aria-hidden
+        data-palette-drag-preview=""
+        className={styles.preview()}
+      >
+        {PreviewIcon ? (
+          <>
+            <PreviewIcon className={styles.previewIcon()} />
+            <span className={styles.previewTitle()}>
+              {draggedDefinition?.title}
+            </span>
+          </>
+        ) : null}
+      </div>
     </>
   )
 }
