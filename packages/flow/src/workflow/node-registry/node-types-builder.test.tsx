@@ -22,6 +22,9 @@ vi.mock("@xyflow/react", () => ({
     Left: "left",
     Right: "right",
   },
+  // A readable zoom, so nodes render their full views.
+  useStore: (selector: (state: unknown) => unknown) =>
+    selector({ transform: [0, 0, 1], nodeLookup: new Map() }),
 }))
 
 vi.mock(

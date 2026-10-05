@@ -39,6 +39,9 @@ export function ExpressionInput({
         variables={variables}
         onCommit={(nextValue) => onChange(nextValue)}
         onLiveChange={onLiveChange}
+        // A canvas can hold hundreds of these; a live CodeMirror for each one
+        // blocks the first render of a large graph for seconds.
+        mountOnFocus
       />
     </div>
   )

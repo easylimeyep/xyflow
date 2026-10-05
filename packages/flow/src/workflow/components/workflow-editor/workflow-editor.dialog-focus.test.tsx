@@ -22,6 +22,8 @@ import {
 import type { WorkflowGraphState } from "../../types"
 import { WorkflowEditor } from "./workflow-editor"
 
+vi.mock("../workflow-minimap", () => ({ WorkflowMiniMap: () => null }))
+
 // The real React Flow needs a measuring DOM jsdom does not have. This suite
 // keeps the real canvas wrapper (where the focus handling lives) and swaps
 // only the React Flow surface for a node body and the overlay children.
@@ -41,7 +43,6 @@ vi.mock("@xyflow/react", async (importOriginal) => ({
     children: ReactNode
     isVisible?: boolean
   }) => (isVisible ? <div>{children}</div> : null),
-  MiniMap: () => null,
   Background: () => null,
   Panel: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   useReactFlow: () => ({

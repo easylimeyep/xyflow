@@ -24,13 +24,7 @@ import {
   WORKFLOW_ELK_PORT_CONSTRAINTS,
   workflowElkLayoutOptions,
 } from "./elk-options"
-
-const EXTRACTOR_LAYOUT_HEIGHT = 195
-const COMPACT_CONFIG_NODE_LAYOUT_HEIGHT = 116
-const EVALUATOR_LAYOUT_BASE_HEIGHT = 116
-const EVALUATOR_LAYOUT_CONDITION_HEIGHT = 56
-/** The JSON Evaluator's extra match-type select. */
-const JSON_EVALUATOR_MATCH_TYPE_HEIGHT = 52
+import { getEstimatedNodeHeight } from "./node-size-estimate"
 
 export interface ElkPort {
   id: string
@@ -77,34 +71,6 @@ const defaultElkLayoutEngine: ElkLayoutEngine = new ELK()
 const EVALUATOR_SHORTCUT_CLEARANCE = 80
 const EVALUATOR_TRUE_HANDLE_RATIO = 0.34
 const EVALUATOR_FALSE_HANDLE_RATIO = 0.72
-
-function getEstimatedNodeHeight(node: WorkflowNode): number {
-  switch (node.data.kind) {
-    case "extractor":
-      return EXTRACTOR_LAYOUT_HEIGHT
-    case "setVariable":
-    case "jsonSetter":
-    case "inlineExpression":
-    case "result":
-      return COMPACT_CONFIG_NODE_LAYOUT_HEIGHT
-    case "evaluator":
-    case "jsonEvaluator": {
-      const conditionCount = Array.isArray(node.data.config.conditions)
-        ? Math.max(1, node.data.config.conditions.length)
-        : 1
-
-      return (
-        EVALUATOR_LAYOUT_BASE_HEIGHT +
-        conditionCount * EVALUATOR_LAYOUT_CONDITION_HEIGHT +
-        (node.data.kind === "jsonEvaluator"
-          ? JSON_EVALUATOR_MATCH_TYPE_HEIGHT
-          : 0)
-      )
-    }
-    default:
-      return DEFAULT_NODE_HEIGHT
-  }
-}
 
 function getNodeWidth(node: WorkflowNode): number {
   return node.measured?.width ?? node.width ?? DEFAULT_NODE_WIDTH

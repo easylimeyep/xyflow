@@ -63,6 +63,35 @@
   background: var(--flow-editor-selection-match);
 }
 
+/*
+ * A static stand-in for the editor (`ExpressionPreview`) on screens with many
+ * fields. It copies the box CodeMirror draws — 12px monospace at a 1.4 line
+ * height, 4px vertical padding, 6px/2px line padding, 26px minimum height — so
+ * swapping one for the other does not move anything around it.
+ */
+.expression-preview {
+  min-height: 26px;
+  overflow: hidden;
+  cursor: text;
+  outline: none;
+  font-size: 12px;
+  line-height: 1.4;
+  background: var(--flow-editor-bg);
+  color: var(--flow-editor-fg);
+}
+
+.expression-preview-content {
+  padding: 4px 2px 4px 6px;
+  white-space: pre;
+  font-family:
+    ui-monospace, SFMono-Regular, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+}
+
+.expression-preview[data-empty] .expression-preview-content {
+  color: var(--flow-editor-muted);
+}
+
 .cm-expression-delimiter {
   color: var(--flow-editor-muted);
 }

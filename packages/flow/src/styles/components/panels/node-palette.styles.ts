@@ -3,12 +3,14 @@ import { tv } from "tailwind-variants"
 export const nodePaletteStyles = tv({
   slots: {
     aside: [
-      "space-y-2 bg-background p-3 outline-none rounded-lg border",
+      // A column whose list takes the remaining height and scrolls, so a long
+      // registry stays inside the aside's frame instead of spilling past it.
+      "flex min-h-0 flex-col gap-2 bg-background p-3 outline-none rounded-lg border",
       "transition-all duration-200 ease-in-out",
       "data-[state=closed]:pointer-events-none",
     ],
-    heading: "text-sm font-semibold",
-    list: "flex flex-col gap-2",
+    heading: "shrink-0 text-sm font-semibold",
+    list: "flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain",
     card: "rounded-md border px-3 py-2 text-left transition-colors hover:bg-muted",
     cardButton: "align-center flex w-full gap-2",
     iconWrap: "flex items-center justify-center",

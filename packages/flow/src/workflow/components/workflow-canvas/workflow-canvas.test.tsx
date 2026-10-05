@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -23,6 +24,7 @@ import {
 import type { WorkflowEditorAnchorRefs } from "../../tour"
 import { builtinBaseDefinitions } from "../../node-registry/builtin-base-definitions"
 import { createNodeRegistry } from "../../node-registry/registry"
+import { LARGE_GRAPH_MIN_NODES } from "../../large-graph"
 import { WorkflowStoreProvider } from "../../store"
 
 /**
@@ -140,6 +142,27 @@ vi.mock("../workflow-edge", () => {
   }
 })
 
+vi.mock("../workflow-minimap", () => ({
+  WorkflowMiniMap: ({
+    onClick,
+  }: {
+    onClick?: (event: MouseEvent, position: { x: number; y: number }) => void
+  }) => (
+    <div data-testid="rf-minimap">
+      <button
+        type="button"
+        data-testid="rf-minimap-click"
+        onClick={(event) => onClick?.(event, { x: 420, y: 240 })}
+      />
+      <button
+        type="button"
+        data-testid="rf-minimap-node-click"
+        onClick={(event) => onClick?.(event, { x: 320, y: 180 })}
+      />
+    </div>
+  ),
+}))
+
 vi.mock("@xyflow/react", () => {
   return {
     ReactFlowProvider: ({ children }: { children: ReactNode }) => (
@@ -198,42 +221,6 @@ vi.mock("@xyflow/react", () => {
         {children}
       </div>
     ),
-    MiniMap: ({
-      onClick,
-      pannable,
-      zoomable,
-      maskStrokeColor,
-      maskStrokeWidth,
-    }: {
-      onClick?: (event: MouseEvent, position: { x: number; y: number }) => void
-      pannable?: boolean
-      zoomable?: boolean
-      maskStrokeColor?: string
-      maskStrokeWidth?: number
-    }) => (
-      <div data-testid="rf-minimap">
-        <span data-testid="rf-minimap-pannable">
-          {String(Boolean(pannable))}
-        </span>
-        <span data-testid="rf-minimap-zoomable">{String(zoomable)}</span>
-        <span data-testid="rf-minimap-mask-stroke-color">
-          {maskStrokeColor}
-        </span>
-        <span data-testid="rf-minimap-mask-stroke-width">
-          {String(maskStrokeWidth)}
-        </span>
-        <button
-          type="button"
-          data-testid="rf-minimap-click"
-          onClick={(event) => onClick?.(event, { x: 420, y: 240 })}
-        />
-        <button
-          type="button"
-          data-testid="rf-minimap-node-click"
-          onClick={(event) => onClick?.(event, { x: 320, y: 180 })}
-        />
-      </div>
-    ),
     useReactFlow: () => ({
       fitView: fitViewSpy,
       zoomIn: zoomInSpy,
@@ -280,6 +267,7 @@ vi.mock("@xyflow/react", () => {
       deleteKeyCode,
       minZoom,
       maxZoom,
+      onlyRenderVisibleElements,
     }: {
       children: ReactNode
       onDrop?: (event: React.DragEvent<HTMLDivElement>) => void
@@ -330,8 +318,9 @@ vi.mock("@xyflow/react", () => {
       deleteKeyCode?: string[] | null
       minZoom?: number
       maxZoom?: number
+      onlyRenderVisibleElements?: boolean
     }) => {
-      reactFlowRenderSpy({ edgeTypes })
+      reactFlowRenderSpy({ edgeTypes, onlyRenderVisibleElements })
       return (
         <div data-testid="rf-root" onDrop={onDrop}>
           <span data-testid="rf-nodes-draggable">{String(nodesDraggable)}</span>
@@ -527,7 +516,7 @@ describe("WorkflowCanvas", () => {
     expect(screen.getByTestId("rf-max-zoom").textContent).toBe("4")
   })
 
-  it("configures mini map navigation, viewport styling, and click centering", () => {
+  it("centers the viewport on a mini map click without selecting a node", () => {
     const onSelectNodes = vi.fn()
 
     render(
@@ -549,15 +538,6 @@ describe("WorkflowCanvas", () => {
         onAutoLayout={vi.fn(async () => true)}
       />,
       { wrapper: CanvasStoreWrapper }
-    )
-
-    expect(screen.getByTestId("rf-minimap-pannable").textContent).toBe("true")
-    expect(screen.getByTestId("rf-minimap-zoomable").textContent).toBe("false")
-    expect(screen.getByTestId("rf-minimap-mask-stroke-color").textContent).toBe(
-      "var(--primary)"
-    )
-    expect(screen.getByTestId("rf-minimap-mask-stroke-width").textContent).toBe(
-      "2"
     )
 
     fireEvent.click(screen.getByTestId("rf-minimap-click"))
@@ -1537,5 +1517,92 @@ describe("WorkflowCanvas focus", () => {
 
     expect(document.activeElement).not.toBe(focusTarget)
     configField.remove()
+  })
+})
+
+describe("WorkflowCanvas viewport culling", () => {
+  afterEach(() => {
+    cleanup()
+    reactFlowRenderSpy.mockClear()
+    nodesInitializedMock.mockReset()
+    nodesInitializedMock.mockReturnValue(true)
+  })
+
+  function createMeasuredNodes(count: number) {
+    return Array.from({ length: count }, (_, index) => ({
+      ...createWorkflowNode(registry, "inlineExpression", {
+        x: index * 300,
+        y: 0,
+      }),
+      measured: { width: 260, height: 116 },
+    }))
+  }
+
+  function renderCanvas(
+    nodes: ReturnType<typeof createMeasuredNodes>,
+    props: Partial<Parameters<typeof WorkflowCanvas>[0]> = {}
+  ) {
+    return render(
+      <WorkflowCanvas
+        nodes={nodes}
+        edges={[]}
+        viewport={initialWorkflowGraph.viewport}
+        onNodesChange={vi.fn()}
+        onEdgesChange={vi.fn()}
+        onConnect={vi.fn()}
+        onViewportChange={vi.fn()}
+        onSelectNodes={vi.fn()}
+        onPaneClick={vi.fn()}
+        onAddNodeAt={vi.fn()}
+        onStartInsertFromEdge={vi.fn()}
+        onDeleteEdge={vi.fn()}
+        onPointerFlowPosition={vi.fn()}
+        edgeInsertPendingId={null}
+        {...props}
+      />,
+      { wrapper: CanvasStoreWrapper }
+    )
+  }
+
+  function lastOnlyRenderVisibleElements() {
+    return reactFlowRenderSpy.mock.calls.at(-1)?.[0]
+      ?.onlyRenderVisibleElements as boolean | undefined
+  }
+
+  it("renders every element of a graph up to the threshold", () => {
+    renderCanvas(createMeasuredNodes(LARGE_GRAPH_MIN_NODES))
+
+    expect(lastOnlyRenderVisibleElements()).toBe(false)
+  })
+
+  it("renders only visible elements of a graph past the threshold", () => {
+    renderCanvas(createMeasuredNodes(LARGE_GRAPH_MIN_NODES + 1))
+
+    expect(lastOnlyRenderVisibleElements()).toBe(true)
+  })
+
+  it("keeps every element while the measured initial layout is pending", async () => {
+    let finishLayout: (didLayout: boolean) => void = () => {}
+    const onMeasuredInitialAutoLayout = vi.fn(
+      () =>
+        new Promise<boolean>((resolve) => {
+          finishLayout = resolve
+        })
+    )
+
+    renderCanvas(createMeasuredNodes(LARGE_GRAPH_MIN_NODES + 1), {
+      autoLayoutOnInit: "after-measure",
+      onMeasuredInitialAutoLayout,
+    })
+
+    // Culled nodes are never measured, so the layout would wait for them
+    // forever.
+    expect(lastOnlyRenderVisibleElements()).toBe(false)
+
+    await act(async () => {
+      finishLayout(false)
+    })
+
+    expect(lastOnlyRenderVisibleElements()).toBe(true)
   })
 })

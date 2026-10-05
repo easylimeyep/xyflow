@@ -218,7 +218,8 @@ export function isEditableEventTarget(target: EventTarget | null): boolean {
     return true
   }
 
-  if (target.closest(".cm-editor")) {
+  // An expression field's preview stands in for its editor until focused.
+  if (target.closest(".cm-editor, [data-expression-preview]")) {
     return true
   }
 

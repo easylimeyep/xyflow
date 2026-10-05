@@ -71,6 +71,21 @@ describe("expression editor stylesheet", () => {
     expect(knownVariableRule).toMatch(/var\(--primary\)/)
   })
 
+  it("draws the editor preview in the editor's own box", () => {
+    const previewRule = stylesheet.match(
+      /\.expression-preview\s*\{[^}]*\}/
+    )?.[0]
+    const contentRule = stylesheet.match(
+      /\.expression-preview-content\s*\{[^}]*\}/
+    )?.[0]
+
+    expect(previewRule).toMatch(/font-size:\s*12px/)
+    expect(previewRule).toMatch(/line-height:\s*1\.4/)
+    expect(previewRule).toMatch(/min-height:\s*26px/)
+    expect(contentRule).toMatch(/white-space:\s*pre/)
+    expect(contentRule).toMatch(/padding:\s*4px 2px 4px 6px/)
+  })
+
   it("does not configure CodeMirror with JavaScript syntax highlighting", () => {
     expect(expressionEditorSource).not.toContain("@codemirror/lang-javascript")
     expect(expressionEditorSource).not.toMatch(/\bjavascript\s*\(/)

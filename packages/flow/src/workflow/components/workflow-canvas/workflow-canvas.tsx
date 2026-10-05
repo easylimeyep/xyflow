@@ -12,7 +12,6 @@ import {
 import { useEventCallback } from "@flow/ui/hooks/use-event-callback"
 import {
   Background,
-  MiniMap,
   NodeToolbar,
   Panel,
   Position,
@@ -47,17 +46,18 @@ import type {
 
 import { validateConnection } from "../../validation"
 import { WorkflowEdgeComponent } from "../workflow-edge"
+import { WorkflowMiniMap } from "../workflow-minimap"
 import { SelectionToolbar, useSelectionToolbar } from "../selection-toolbar"
 import { isInteractiveEventTarget } from "../hotkeys"
 import { useNodeChangeRouter } from "./use-node-change-router"
 import { WORKFLOW_ELK_PADDING } from "../../layout"
+import { LARGE_GRAPH_MIN_NODES } from "../../large-graph"
 import type { WorkflowEditorAnchorRefs } from "../../tour"
 import { useWorkflowEditorAnchorRef } from "../../tour/anchors"
 
 const WORKFLOW_MIN_ZOOM = 0.1
 const WORKFLOW_MAX_ZOOM = 4
 const WORKFLOW_MINIMAP_NAVIGATION_DURATION_MS = 200
-const WORKFLOW_MINIMAP_MASK_STROKE_WIDTH = 2
 /**
  * The lowest zoom at which a revealed node is comfortably readable. Revealing
  * raises the zoom to this level when the user is further out, and never lowers
@@ -159,6 +159,10 @@ function WorkflowCanvasInner({
     nodes.every(
       (node) => node.measured?.width != null && node.measured.height != null
     )
+  // The measured initial layout waits for every node to report its size, and
+  // a culled node never mounts to report one.
+  const shouldCullToViewport =
+    nodes.length > LARGE_GRAPH_MIN_NODES && !initialLayoutPending
   const selectionToolbar = useSelectionToolbar(nodes, isObserving)
   const onReactFlowNodesChange = useNodeChangeRouter({
     nodes,
@@ -481,6 +485,7 @@ function WorkflowCanvasInner({
           nodeTypes={workflowNodeTypes}
           edgeTypes={edgeTypes}
           proOptions={{ hideAttribution: true }}
+          onlyRenderVisibleElements={shouldCullToViewport}
           defaultViewport={viewport}
           minZoom={WORKFLOW_MIN_ZOOM}
           maxZoom={WORKFLOW_MAX_ZOOM}
@@ -517,13 +522,7 @@ function WorkflowCanvasInner({
           >
             <SelectionToolbar onAfterCommand={focusCanvas} />
           </NodeToolbar>
-          <MiniMap
-            pannable
-            zoomable={false}
-            onClick={handleMiniMapClick}
-            maskStrokeColor="var(--primary)"
-            maskStrokeWidth={WORKFLOW_MINIMAP_MASK_STROKE_WIDTH}
-          />
+          <WorkflowMiniMap onClick={handleMiniMapClick} />
           <Panel
             ref={controlsRef}
             className="react-flow__controls horizontal"

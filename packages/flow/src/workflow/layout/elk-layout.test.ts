@@ -233,6 +233,8 @@ describe("workflow ELK layout adapter", () => {
       "result true"
     )
 
+    // Measured, so the expected lanes do not follow the estimate.
+    evaluator.measured = { width: 260, height: 172 }
     score.measured = { width: 260, height: 120 }
     summary.measured = { width: 260, height: 120 }
     result.measured = { width: 260, height: 100 }

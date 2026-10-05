@@ -102,6 +102,7 @@ describe("WorkflowEdgeComponent", () => {
     expect(screen.getByTestId("base-edge-edge-1").getAttribute("d")).toBe(
       "M 10 20 C 30 20 50 60 70 60"
     )
+    fireEvent.mouseEnter(screen.getByTestId("workflow-edge-edge-1"))
     const toolbarContainer = screen.getByRole("button", {
       name: "Insert node on edge edge-1",
     }).parentElement?.parentElement
@@ -163,15 +164,69 @@ describe("WorkflowEdgeComponent", () => {
     )
 
     const edgeGroup = screen.getByTestId("workflow-edge-edge-1")
+    fireEvent.mouseEnter(edgeGroup)
     const toolbar = screen.getByRole("button", {
       name: "Insert node on edge edge-1",
     }).parentElement
 
-    fireEvent.mouseEnter(edgeGroup)
     fireEvent.mouseEnter(toolbar!)
     fireEvent.mouseLeave(edgeGroup)
 
     expectBaseEdgeStyle("var(--primary)", "2.5")
+  })
+
+  it("does not render the toolbar until the edge is hovered", () => {
+    render(
+      <svg>
+        <WorkflowEdgeComponent {...edgeProps} />
+      </svg>
+    )
+
+    expect(
+      screen.queryByRole("button", { name: "Insert node on edge edge-1" })
+    ).toBeNull()
+
+    fireEvent.mouseEnter(screen.getByTestId("workflow-edge-edge-1"))
+
+    expect(
+      screen.getByRole("button", { name: "Insert node on edge edge-1" })
+    ).toBeTruthy()
+    expect(
+      screen.getByRole("button", { name: "Delete edge edge-1" })
+    ).toBeTruthy()
+  })
+
+  it("drops the toolbar once the pointer leaves both the edge and the toolbar", () => {
+    render(
+      <svg>
+        <WorkflowEdgeComponent {...edgeProps} />
+      </svg>
+    )
+    const edgeGroup = screen.getByTestId("workflow-edge-edge-1")
+
+    fireEvent.mouseEnter(edgeGroup)
+    const toolbar = screen.getByRole("button", {
+      name: "Insert node on edge edge-1",
+    }).parentElement
+    fireEvent.mouseEnter(toolbar!)
+    fireEvent.mouseLeave(edgeGroup)
+    fireEvent.mouseLeave(toolbar!)
+
+    expect(
+      screen.queryByRole("button", { name: "Insert node on edge edge-1" })
+    ).toBeNull()
+  })
+
+  it("keeps the toolbar while an insert from the edge is pending", () => {
+    render(
+      <svg>
+        <WorkflowEdgeComponent {...edgeProps} isInsertPending />
+      </svg>
+    )
+
+    expect(
+      screen.getByRole("button", { name: "Insert node on edge edge-1" })
+    ).toBeTruthy()
   })
 
   it("uses the active primary stroke for selected and insert-pending edges", () => {
