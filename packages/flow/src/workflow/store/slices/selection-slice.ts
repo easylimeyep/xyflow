@@ -42,6 +42,10 @@ export const createSelectionSlice: WorkflowSliceCreator = (set, _get, api) => ({
   },
   setSelectedNode: (nodeId) => {
     const nextSelectedNodeIds = nodeId ? [nodeId] : []
-    set((state) => applySelection(state, nextSelectedNodeIds))
+    // Selecting exactly one node replaces the whole selection, groups too.
+    set((state) => ({
+      ...applySelection(state, nextSelectedNodeIds),
+      ...(state.selectedGroupIds.length > 0 ? { selectedGroupIds: [] } : {}),
+    }))
   },
 })

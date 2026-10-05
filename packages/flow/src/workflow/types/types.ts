@@ -218,6 +218,8 @@ export interface BaseWorkflowNodeData {
   kind: string
   label: string
   config: JsonObject
+  /** The group this node belongs to, if any. */
+  groupId?: string
 }
 
 export type WorkflowNodeData = BaseWorkflowNodeData
@@ -232,9 +234,48 @@ export interface WorkflowEdgeData {
 
 export type WorkflowEdge = Edge<WorkflowEdgeData>
 
+/**
+ * The colors a group frame can take. They are tokens, not hex values: each one
+ * maps to a light and a dark style, so a group stays legible in both themes.
+ */
+export const WORKFLOW_GROUP_COLORS = [
+  "gray",
+  "blue",
+  "green",
+  "yellow",
+  "orange",
+  "red",
+  "purple",
+  "pink",
+] as const
+
+export type WorkflowGroupColor = (typeof WORKFLOW_GROUP_COLORS)[number]
+
+export const DEFAULT_WORKFLOW_GROUP_COLOR: WorkflowGroupColor = "blue"
+
+/**
+ * A named, colored frame around related nodes. It is purely visual: no ports,
+ * no connections, no effect on execution. Membership is stored on the node as
+ * `data.groupId`, which keeps "at most one group per node" structural.
+ *
+ * The rectangle is stored, not derived from members: a group may be empty, and
+ * a collapsed group must remember the size it expands back to.
+ */
+export interface WorkflowGroup {
+  id: string
+  label: string
+  color: KnownOr<WorkflowGroupColor>
+  x: number
+  y: number
+  width: number
+  height: number
+  collapsed: boolean
+}
+
 export interface WorkflowGraphState {
   nodes: WorkflowNode[]
   edges: WorkflowEdge[]
+  groups: WorkflowGroup[]
   viewport: Viewport
   document: {
     id: string
@@ -300,6 +341,20 @@ export interface DomainWorkflowConnectionDTO {
   targetHandle: string | null
 }
 
+/** A group in domain JSON. `nodeIds` replaces the per-node `data.groupId`. */
+export interface DomainWorkflowGroupDTO {
+  id: string
+  label: string
+  color: KnownOr<WorkflowGroupColor>
+  x: number
+  y: number
+  width: number
+  height: number
+  collapsed: boolean
+  /** Member node ids, sorted ascending; may be empty. */
+  nodeIds: string[]
+}
+
 export interface DomainWorkflowDTO {
   id: string
   name: string
@@ -307,6 +362,11 @@ export interface DomainWorkflowDTO {
   metadata: JsonObject
   nodes: DomainWorkflowNodeDTO[]
   connections: DomainWorkflowConnectionDTO[]
+  /**
+   * Optional on input — documents written before groups existed have none, and
+   * read as an empty list. Export always writes it.
+   */
+  groups?: DomainWorkflowGroupDTO[]
   viewport: Viewport
 }
 
@@ -316,6 +376,22 @@ export interface BackendWorkflowDTO {
   version: number
   metadata: JsonObject
   nodes: BackendWorkflowNodeDTO[]
+  /** Visual groups; they never affect node order, numbering, or execution. */
+  groups: BackendWorkflowGroupDTO[]
+}
+
+/** A group in the backend payload; `nodeIds` are the exported numeric node ids. */
+export interface BackendWorkflowGroupDTO {
+  id: string
+  label: string
+  color: KnownOr<WorkflowGroupColor>
+  x: number
+  y: number
+  width: number
+  height: number
+  collapsed: boolean
+  /** Sorted ascending. */
+  nodeIds: number[]
 }
 
 export interface BackendRegularWorkflowNodeDTO {

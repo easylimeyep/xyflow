@@ -475,6 +475,118 @@ describe("workflow mappers", () => {
     expect(parsed.value?.nodes[1]?.position).toEqual({ x: 80, y: 40 })
   })
 
+  it("carries whole groups through the clipboard with relative rectangles", () => {
+    const [first, second] = [
+      createWorkflowNode(registry, "result", { x: 500, y: 300 }),
+      createWorkflowNode(registry, "result", { x: 800, y: 300 }),
+    ].map(
+      (node) =>
+        internalToDomain(registry, {
+          ...initialWorkflowGraph,
+          nodes: [node],
+        }).nodes[0]!
+    )
+    const raw = exportSelectionClipboardJson(
+      [first!, second!],
+      [],
+      [
+        {
+          id: "g1",
+          label: "Parse",
+          color: "green",
+          x: 450,
+          y: 220,
+          width: 700,
+          height: 300,
+          collapsed: true,
+          nodeIds: [first!.id, second!.id],
+        },
+      ]
+    )
+    const parsed = parseSelectionClipboardJson(registry, raw)
+
+    expect(parsed.success).toBe(true)
+    expect(parsed.value?.groups).toEqual([
+      {
+        id: "g1",
+        label: "Parse",
+        color: "green",
+        x: 0,
+        y: 0,
+        width: 700,
+        height: 300,
+        collapsed: true,
+        nodeIds: [first!.id, second!.id],
+      },
+    ])
+    expect(parsed.value?.nodes[0]?.position).toEqual({ x: 50, y: 80 })
+  })
+
+  it("carries an empty group through the clipboard", () => {
+    const raw = exportSelectionClipboardJson(
+      [],
+      [],
+      [
+        {
+          id: "g1",
+          label: "Empty",
+          color: "red",
+          x: 100,
+          y: 100,
+          width: 300,
+          height: 200,
+          collapsed: false,
+          nodeIds: [],
+        },
+      ]
+    )
+    const parsed = parseSelectionClipboardJson(registry, raw)
+
+    expect(parsed.success).toBe(true)
+    expect(parsed.value?.nodes).toEqual([])
+    expect(parsed.value?.groups).toMatchObject([
+      { label: "Empty", color: "red", x: 0, y: 0, width: 300, height: 200 },
+    ])
+  })
+
+  it("drops member ids of nodes that were not copied", () => {
+    const node = internalToDomain(registry, initialWorkflowGraph).nodes[0]!
+    const raw = exportSelectionClipboardJson(
+      [node],
+      [],
+      [
+        {
+          id: "g1",
+          label: "G",
+          color: "blue",
+          x: 0,
+          y: 0,
+          width: 300,
+          height: 200,
+          collapsed: false,
+          nodeIds: [node.id, "not-copied"],
+        },
+      ]
+    )
+    expect(
+      parseSelectionClipboardJson(registry, raw).value?.groups?.[0]?.nodeIds
+    ).toEqual([node.id])
+  })
+
+  it("reads a clipboard payload without groups", () => {
+    const node = internalToDomain(registry, initialWorkflowGraph).nodes[0]!
+    const parsed = parseSelectionClipboardJson(
+      registry,
+      JSON.stringify({
+        kind: "workflow-selection-v1",
+        nodes: [node],
+        connections: [],
+      })
+    )
+    expect(parsed.success).toBe(true)
+    expect(parsed.value?.groups).toEqual([])
+  })
+
   it("rejects selection clipboard json with external connections", () => {
     const node = internalToDomain(registry, initialWorkflowGraph).nodes[0]
     if (!node) {

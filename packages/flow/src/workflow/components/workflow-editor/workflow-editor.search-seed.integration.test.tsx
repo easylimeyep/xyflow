@@ -41,6 +41,7 @@ function inline(id: string, y: number, template: string[]): WorkflowNode {
 const graph: WorkflowGraphState = {
   nodes: [inline("a", 0, ["{{ price }}"]), inline("b", 100, ["{{ rate }}"])],
   edges: [],
+  groups: [],
   viewport: { x: 0, y: 0, zoom: 1 },
   document: { id: "doc", name: "Doc", version: 1, metadata: {} },
 }

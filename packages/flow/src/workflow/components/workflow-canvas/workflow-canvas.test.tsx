@@ -9,7 +9,7 @@ import {
   waitFor,
 } from "@testing-library/react"
 import { readFileSync } from "node:fs"
-import type { MouseEvent, ReactNode } from "react"
+import { useEffect, type MouseEvent, type ReactNode } from "react"
 import { createPortal } from "react-dom"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
@@ -25,7 +25,7 @@ import type { WorkflowEditorAnchorRefs } from "../../tour"
 import { builtinBaseDefinitions } from "../../node-registry/builtin-base-definitions"
 import { createNodeRegistry } from "../../node-registry/registry"
 import { LARGE_GRAPH_MIN_NODES } from "../../large-graph"
-import { WorkflowStoreProvider } from "../../store"
+import { WorkflowStoreProvider, useWorkflowStore } from "../../store"
 
 /**
  * jsdom has no `ResizeObserver`. This stub stands in for it so a test can
@@ -55,6 +55,14 @@ const registry = createNodeRegistry(builtinBaseDefinitions)
  * own registry, so every render needs a provider carrying the same
  * definitions the fixtures below are built from.
  */
+function SelectStoreNodes({ nodeIds }: { nodeIds: string[] }) {
+  const setSelectedNodes = useWorkflowStore((state) => state.setSelectedNodes)
+  useEffect(() => {
+    setSelectedNodes(nodeIds)
+  }, [nodeIds, setSelectedNodes])
+  return null
+}
+
 function CanvasStoreWrapper({ children }: { children: ReactNode }) {
   return (
     <WorkflowStoreProvider definitions={builtinBaseDefinitions}>
@@ -163,8 +171,13 @@ vi.mock("../workflow-minimap", () => ({
   ),
 }))
 
-vi.mock("@xyflow/react", () => {
+vi.mock("@xyflow/react", async (importOriginal) => {
+  // The store behind the selection toolbar applies changes for real.
+  const actual = await importOriginal<typeof import("@xyflow/react")>()
   return {
+    applyNodeChanges: actual.applyNodeChanges,
+    applyEdgeChanges: actual.applyEdgeChanges,
+    addEdge: actual.addEdge,
     ReactFlowProvider: ({ children }: { children: ReactNode }) => (
       <>{children}</>
     ),
@@ -184,12 +197,14 @@ vi.mock("@xyflow/react", () => {
       isVisible,
       position,
       align,
+      style,
     }: {
       children: ReactNode
       nodeId: string | string[]
       isVisible?: boolean
       position?: string
       align?: string
+      style?: { zIndex?: number }
     }) =>
       // Portaled out of the canvas box, so the tests also cover presses that
       // reach the canvas through the React tree but not through the DOM.
@@ -200,6 +215,7 @@ vi.mock("@xyflow/react", () => {
               data-node-ids={([] as string[]).concat(nodeId).join(",")}
               data-position={position}
               data-align={align}
+              data-z-index={style?.zIndex}
             >
               {children}
             </div>,
@@ -238,9 +254,15 @@ vi.mock("@xyflow/react", () => {
     useStore: (
       selector: (state: { transform: [number, number, number] }) => unknown
     ) => selector({ transform: [0, 0, 1] }),
+    useStoreApi: () => ({
+      subscribe: () => () => {},
+      getState: () => ({ nodesSelectionActive: false }),
+      setState: () => {},
+    }),
     useNodesInitialized: () => nodesInitializedMock(),
     ReactFlow: ({
       children,
+      nodes,
       onDrop,
       onPaneClick,
       onNodesChange,
@@ -270,6 +292,7 @@ vi.mock("@xyflow/react", () => {
       onlyRenderVisibleElements,
     }: {
       children: ReactNode
+      nodes?: Array<{ id: string; type?: string; hidden?: boolean }>
       onDrop?: (event: React.DragEvent<HTMLDivElement>) => void
       onPaneClick: () => void
       onNodesChange: (
@@ -285,7 +308,7 @@ vi.mock("@xyflow/react", () => {
         viewport: { x: number; y: number; zoom: number }
       ) => void
       onMouseMove: (event: { clientX: number; clientY: number }) => void
-      onNodeDragStart?: () => void
+      onNodeDragStart?: (event: unknown, node: { id: string }) => void
       onNodeDragStop?: () => void
       onSelectionDragStart?: () => void
       onSelectionDragStop?: () => void
@@ -320,7 +343,7 @@ vi.mock("@xyflow/react", () => {
       maxZoom?: number
       onlyRenderVisibleElements?: boolean
     }) => {
-      reactFlowRenderSpy({ edgeTypes, onlyRenderVisibleElements })
+      reactFlowRenderSpy({ edgeTypes, onlyRenderVisibleElements, nodes })
       return (
         <div data-testid="rf-root" onDrop={onDrop}>
           <span data-testid="rf-nodes-draggable">{String(nodesDraggable)}</span>
@@ -371,7 +394,9 @@ vi.mock("@xyflow/react", () => {
           <button
             type="button"
             data-testid="rf-node-drag-start"
-            onClick={() => onNodeDragStart?.()}
+            onClick={(event) =>
+              onNodeDragStart?.(event, { id: "dragged-node" })
+            }
           />
           <button
             type="button"
@@ -1279,7 +1304,19 @@ describe("WorkflowCanvas selection toolbar", () => {
         edgeInsertPendingId={null}
         mode={options.mode}
       />,
-      { wrapper: CanvasStoreWrapper }
+      {
+        // The toolbar offers the commands for the store's selection, so the
+        // store holds the same nodes, selected the same way.
+        wrapper: ({ children }: { children: ReactNode }) => (
+          <WorkflowStoreProvider
+            definitions={builtinBaseDefinitions}
+            initialGraph={{ ...initialWorkflowGraph, nodes, edges: [] }}
+          >
+            <SelectStoreNodes nodeIds={selectedIds} />
+            {children}
+          </WorkflowStoreProvider>
+        ),
+      }
     )
   }
 
@@ -1604,5 +1641,85 @@ describe("WorkflowCanvas viewport culling", () => {
     })
 
     expect(lastOnlyRenderVisibleElements()).toBe(true)
+  })
+})
+
+describe("WorkflowCanvas groups", () => {
+  afterEach(() => {
+    cleanup()
+  })
+
+  function renderWithGroup(
+    collapsed: boolean,
+    selectedGroupIds: string[] = []
+  ) {
+    const member = {
+      ...fixtureSource,
+      data: { ...fixtureSource.data, groupId: "g" },
+    }
+    reactFlowRenderSpy.mockClear()
+    render(
+      <WorkflowCanvas
+        nodes={[member, fixtureTarget]}
+        edges={[]}
+        groups={[
+          {
+            id: "g",
+            label: "Parse",
+            color: "green",
+            x: -40,
+            y: 0,
+            width: 400,
+            height: 300,
+            collapsed,
+          },
+        ]}
+        selectedGroupIds={selectedGroupIds}
+        viewport={initialWorkflowGraph.viewport}
+        onNodesChange={vi.fn()}
+        onEdgesChange={vi.fn()}
+        onConnect={vi.fn()}
+        onViewportChange={vi.fn()}
+        onSelectNodes={vi.fn()}
+        onPaneClick={vi.fn()}
+        onAddNodeAt={vi.fn()}
+        onStartInsertFromEdge={vi.fn()}
+        onDeleteEdge={vi.fn()}
+        onPointerFlowPosition={vi.fn()}
+        edgeInsertPendingId={null}
+      />,
+      { wrapper: CanvasStoreWrapper }
+    )
+    const lastCall = reactFlowRenderSpy.mock.calls.at(-1)?.[0] as {
+      nodes: Array<{ id: string; type?: string; hidden?: boolean }>
+    }
+    return lastCall.nodes
+  }
+
+  it("passes a frame for an expanded group ahead of the nodes", () => {
+    const nodes = renderWithGroup(false)
+    expect(nodes.map((n) => [n.id, n.type])).toEqual([
+      ["group-frame:g", "groupFrame"],
+      [fixtureSource.id, fixtureSource.type],
+      [fixtureTarget.id, fixtureTarget.type],
+    ])
+  })
+
+  it("passes a card and hides the members of a collapsed group", () => {
+    const nodes = renderWithGroup(true)
+    expect(nodes[0]?.type).toBe("groupCard")
+    expect(nodes.find((n) => n.id === fixtureSource.id)?.hidden).toBe(true)
+  })
+
+  it("lifts the group toolbar above the pane", () => {
+    renderWithGroup(false, ["g"])
+    const toolbar = screen.getByTestId("rf-node-toolbar")
+    expect(toolbar.getAttribute("data-node-ids")).toBe("group-frame:g")
+    expect(Number(toolbar.getAttribute("data-z-index"))).toBeGreaterThan(1000)
+  })
+
+  it("keeps Delete away from React Flow while a group is selected", () => {
+    renderWithGroup(false, ["g"])
+    expect(screen.getByTestId("rf-delete-key").textContent).toBe("null")
   })
 })

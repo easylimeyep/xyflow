@@ -21,9 +21,11 @@ import type {
   WorkflowEvaluatorOperatorCatalog,
   WorkflowEdge,
   WorkflowGraphState,
+  WorkflowGroup,
   WorkflowNode,
   WorkflowValidationSnapshot,
 } from "../types/types"
+import type { Rect } from "../groups/group-geometry"
 import type {
   SearchMatchOptions,
   SearchMatchSource,
@@ -194,6 +196,11 @@ export interface WorkflowStoreQueries {
   expressionCatalogCache: Map<string, ExpressionVariableOption[]>
   expressionVariableTypesCache: Map<string, Record<string, string>>
   selectedNodeIds: string[]
+  /**
+   * Selected groups. Outside the graph on purpose: a group frame is a derived
+   * canvas node, so its selection has no `selected` flag to live on.
+   */
+  selectedGroupIds: string[]
   nodeDragOriginGraph: WorkflowGraphState | null
   quickAddPending: PendingQuickAdd | null
   edgeInsertPending: PendingEdgeInsert | null
@@ -236,6 +243,27 @@ export interface WorkflowStoreUICommands {
   confirmEdgeInsertNode: (kind: NodeKind) => void
 }
 
+/**
+ * Group editing. Every action that changes the graph commits one undo step and
+ * reports failures through `lastError`.
+ */
+export interface WorkflowStoreGroupCommands {
+  /** Groups the given (default: selected) nodes; returns the new group's id. */
+  groupNodes: (nodeIds?: string[]) => string | null
+  /** Ungroups the given group (default: the one selected group). */
+  ungroup: (groupId?: string) => boolean
+  /** Deletes the groups with their members and the members' edges. */
+  deleteGroups: (groupIds?: string[]) => boolean
+  /** Deletes the selected groups and nodes together, in one step. */
+  deleteSelection: () => boolean
+  renameGroup: (groupId: string, label: string) => boolean
+  recolorGroup: (groupId: string, color: WorkflowGroup["color"]) => void
+  resizeGroup: (groupId: string, rect: Rect) => void
+  fitGroupToContents: (groupId: string) => void
+  setGroupCollapsed: (groupId: string, collapsed: boolean) => void
+  setSelectedGroups: (groupIds: string[]) => void
+}
+
 export interface WorkflowStoreSearchCommands {
   openSearch: () => void
   /** Closes the search and clears the query, which removes every mark. */
@@ -245,7 +273,7 @@ export interface WorkflowStoreSearchCommands {
   searchNext: () => void
   /** Moves to the previous match, wrapping from the first to the last. */
   searchPrev: () => void
-  /** Selects the node holding the current match. */
+  /** Selects the node holding the current match, or its group. */
   selectCurrentSearchNode: () => void
   /**
    * Stores the current match's key and sort position once it has been
@@ -284,6 +312,7 @@ export interface WorkflowStoreState
     WorkflowStoreGraphCommands,
     WorkflowStoreUICommands,
     WorkflowStoreIOCommands,
+    WorkflowStoreGroupCommands,
     WorkflowStoreSearchCommands,
     WorkflowStoreHistoryCommands {}
 

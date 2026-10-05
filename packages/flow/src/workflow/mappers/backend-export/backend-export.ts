@@ -16,6 +16,7 @@ import {
   EVALUATOR_TRUE_HANDLE,
   isBranchingKind,
 } from "../../types/branching"
+import { attachBackendGroups, toBackendGroups } from "./backend-groups"
 
 type IncomingByTarget = Map<string, DomainWorkflowConnectionDTO[]>
 type OutgoingBySource = Map<string, DomainWorkflowConnectionDTO[]>
@@ -506,7 +507,7 @@ function mapDomainWorkflowToBackend(
 ): BackendWorkflowDTO {
   const backendIdByDomainId = buildBackendIdByDomainId(orderedNodes)
 
-  return {
+  const withoutGroups = {
     id: dto.id,
     name: dto.name,
     version: dto.version,
@@ -526,6 +527,11 @@ function mapDomainWorkflowToBackend(
         : mapSingleTargetEvaluatorNode(node, outgoing, backendIdByDomainId)
     }),
   }
+
+  return attachBackendGroups(
+    withoutGroups,
+    toBackendGroups(dto.groups ?? [], backendIdByDomainId)
+  )
 }
 
 /**

@@ -21,6 +21,7 @@ import {
 } from "../../../styles/components/panels"
 import {
   selectCurrentSearchMatch,
+  selectCurrentSearchRevealId,
   selectSearchCurrentIndex,
   selectSearchIsFiltered,
   selectSearchTotal,
@@ -72,7 +73,7 @@ function selectSearchView(state: WorkflowStoreState) {
     total: selectSearchTotal(state),
     currentIndex: selectSearchCurrentIndex(state),
     currentKey: selectCurrentSearchMatch(state)?.key ?? null,
-    currentNodeId: selectCurrentSearchMatch(state)?.nodeId ?? null,
+    currentNodeId: selectCurrentSearchRevealId(state),
     isResultsOpen: state.search.isResultsOpen,
     isFiltered: selectSearchIsFiltered(state),
     matchCase: state.search.options.matchCase,

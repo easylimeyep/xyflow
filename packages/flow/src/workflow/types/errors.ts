@@ -18,6 +18,9 @@ export type WorkflowErrorCode =
   | "INVALID_NODE_CONFIG_KEY"
   | "INVALID_NODE_CONFIG_VALUE"
   | "AUTO_LAYOUT_FAILED"
+  | "GROUP_NOT_FOUND"
+  | "INVALID_GROUP_SELECTION"
+  | "INVALID_GROUP_LABEL"
 
 export interface WorkflowError {
   code: WorkflowErrorCode

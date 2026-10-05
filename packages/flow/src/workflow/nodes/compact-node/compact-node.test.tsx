@@ -86,14 +86,18 @@ function nodeProps(node: WorkflowNode, selected = false): NodeProps {
   }
 }
 
+/** Workflow nodes the store holds beside the rendered one. */
+let fillerNodes: WorkflowNode[] = []
+
 function renderNode(node: WorkflowNode, selected = false) {
   const View = nodeTypes[node.data.kind]!
   return render(
     <WorkflowStoreProvider
       definitions={builtinBaseDefinitions}
       initialGraph={{
-        nodes: [node],
+        nodes: [node, ...fillerNodes],
         edges: [],
+        groups: [],
         viewport: { x: 0, y: 0, zoom: 1 },
         document: { id: "doc", name: "Doc", version: 1, metadata: {} },
       }}
@@ -103,11 +107,16 @@ function renderNode(node: WorkflowNode, selected = false) {
   )
 }
 
-/** Fills the lookup past the large-graph threshold with nodes at the origin. */
+/**
+ * Fills the workflow past the large-graph threshold with nodes at the origin,
+ * and React Flow's lookup with them.
+ */
 function makeGraphLarge() {
-  for (let index = 0; index < LARGE_GRAPH_MIN_NODES; index += 1) {
-    placeNode(`filler-${index}`, { x: 0, y: 0 })
-  }
+  fillerNodes = Array.from({ length: LARGE_GRAPH_MIN_NODES }, (_, index) => ({
+    ...createWorkflowNode(registry, "result", { x: 0, y: 0 }),
+    id: `filler-${index}`,
+  }))
+  fillerNodes.forEach((filler) => placeNode(filler.id, { x: 0, y: 0 }))
 }
 
 function zoomTo(zoom: number) {
@@ -120,6 +129,7 @@ describe("compact nodes at low zoom", () => {
     flowState.width = 0
     flowState.height = 0
     flowState.nodeLookup = new Map()
+    fillerNodes = []
   })
 
   afterEach(() => {
@@ -222,6 +232,7 @@ describe("compact nodes at low zoom", () => {
           initialGraph={{
             nodes: [node],
             edges: [],
+            groups: [],
             viewport: { x: 0, y: 0, zoom: 1 },
             document: { id: "doc", name: "Doc", version: 1, metadata: {} },
           }}
@@ -252,6 +263,19 @@ describe("compact nodes at low zoom", () => {
     renderNode(node)
 
     expect(screen.getByTestId("workflow-node-compact")).toBeTruthy()
+  })
+
+  it("does not count group frames toward the large-graph threshold", () => {
+    const node = createWorkflowNode(registry, "setVariable", { x: 0, y: 0 })
+    flowState.width = 1000
+    flowState.height = 800
+    for (let index = 0; index < LARGE_GRAPH_MIN_NODES; index += 1) {
+      placeNode(`group-frame:g${index}`, { x: 0, y: 0 })
+    }
+    placeNode(node.id, { x: 5000, y: 5000 })
+    renderNode(node)
+
+    expect(screen.getByTestId("full-node")).toBeTruthy()
   })
 
   it("keeps a node far outside the viewport in full on a small graph", () => {

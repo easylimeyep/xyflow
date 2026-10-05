@@ -1,7 +1,11 @@
 import { forEachExpressionField } from "../expression/refactor/expression-fields"
 import type { NodeRegistry } from "../node-registry/registry"
-import type { WorkflowNode } from "../types/types"
-import { locateVariableDefinition, type SearchMatch } from "./matches"
+import type { WorkflowGroup, WorkflowNode } from "../types/types"
+import {
+  locateVariableDefinition,
+  type GroupSearchMatch,
+  type NodeSearchMatch,
+} from "./matches"
 
 /** Characters of context kept on each side of the matched text. */
 export const SNIPPET_CONTEXT = 24
@@ -89,7 +93,7 @@ function describeReferenceField(
 function fieldNameOf(
   registry: NodeRegistry,
   node: WorkflowNode,
-  match: SearchMatch
+  match: NodeSearchMatch
 ): string {
   switch (match.source) {
     case "label":
@@ -109,7 +113,7 @@ function fieldNameOf(
 function searchedTextOf(
   registry: NodeRegistry,
   node: WorkflowNode,
-  match: SearchMatch
+  match: NodeSearchMatch
 ): string {
   switch (match.source) {
     case "label":
@@ -147,7 +151,7 @@ export function buildSnippet(
 export function describeSearchMatch(
   registry: NodeRegistry,
   node: WorkflowNode,
-  match: SearchMatch
+  match: NodeSearchMatch
 ): SearchMatchDescription {
   return {
     fieldName: fieldNameOf(registry, node, match),
@@ -156,5 +160,16 @@ export function describeSearchMatch(
       match.start,
       match.end
     ),
+  }
+}
+
+/** What a results row shows for a match in a group's label. */
+export function describeGroupSearchMatch(
+  group: WorkflowGroup,
+  match: GroupSearchMatch
+): SearchMatchDescription {
+  return {
+    fieldName: "Label",
+    snippet: buildSnippet(group.label, match.start, match.end),
   }
 }

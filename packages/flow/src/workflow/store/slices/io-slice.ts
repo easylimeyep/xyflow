@@ -1,5 +1,11 @@
 import { addEdge, type XYPosition } from "@xyflow/react"
 
+import {
+  assignCopiedGroupIds,
+  collectCopiedSelection,
+  instantiateCopiedGroups,
+} from "../../groups/group-copy"
+import { clearDanglingGroupIds } from "../../groups/group-geometry"
 import { refactorPlainVariableReferencesInGraph } from "../graph-refactors"
 import {
   domainToInternal,
@@ -40,14 +46,16 @@ export const createIoSlice: WorkflowSliceCreator = (set, get, api) => ({
     copyNodesToClipboard(
       get,
       set,
-      new Set(get().selectedNodeIds),
+      get().selectedNodeIds,
+      get().selectedGroupIds,
       "Failed to copy selected nodes."
     ),
   copyAllToClipboard: () =>
     copyNodesToClipboard(
       get,
       set,
-      new Set(get().graph.nodes.map((node) => node.id)),
+      get().graph.nodes.map((node) => node.id),
+      get().graph.groups.map((group) => group.id),
       "Failed to copy workflow."
     ),
   pasteFromClipboard: async (pasteAnchor = null) => {
@@ -91,15 +99,30 @@ export const createIoSlice: WorkflowSliceCreator = (set, get, api) => ({
       currentGraph.edges
     )
 
+    const { groups: pastedGroups, groupIdByNodeId } = instantiateCopiedGroups(
+      parsed.value.groups ?? [],
+      nodeIdMap,
+      anchor
+    )
+    const pastedNodes = assignCopiedGroupIds(
+      nextNodesWithRefactors,
+      groupIdByNodeId
+    )
+
     commitGraphState(set, {
       ...currentGraph,
-      nodes: [...currentGraph.nodes, ...nextNodesWithRefactors],
+      nodes: [...currentGraph.nodes, ...pastedNodes],
       edges: nextEdges,
+      groups: [...currentGraph.groups, ...pastedGroups],
     })
-    const pastedNodeIds = nextNodesWithRefactors.map((node) => node.id)
+    // Pasted whole groups are selected as groups, the rest as nodes.
+    const pastedNodeIds = pastedNodes
+      .filter((node) => !groupIdByNodeId.has(node.id))
+      .map((node) => node.id)
     projectSelectionWithoutHistory(api, set, pastedNodeIds)
     set({
       selectedNodeIds: pastedNodeIds,
+      selectedGroupIds: pastedGroups.map((group) => group.id),
       lastError: null,
     })
     get().hideGlobalValidation()
@@ -130,8 +153,8 @@ export const createIoSlice: WorkflowSliceCreator = (set, get, api) => ({
       return false
     }
 
-    const importedGraph = cloneGraphState(
-      domainToInternal(state.registry, mappedPayload)
+    const importedGraph = clearDanglingGroupIds(
+      cloneGraphState(domainToInternal(state.registry, mappedPayload))
     )
     const { nodes: nodesWithUniqueLabels, renames: labelRenames } =
       deduplicateNodeLabels(importedGraph.nodes, new Set<string>())
@@ -162,6 +185,7 @@ export const createIoSlice: WorkflowSliceCreator = (set, get, api) => ({
           nodes: normalizedNodes,
         },
         selectedNodeIds: [],
+        selectedGroupIds: [],
         nodeDragOriginGraph: null,
         lastError: null,
         validation: {
@@ -186,31 +210,42 @@ export const createIoSlice: WorkflowSliceCreator = (set, get, api) => ({
 })
 
 /**
- * Writes the given nodes, and the connections between them, to the clipboard
- * in the selection format `pasteFromClipboard` reads back. Returns `false`
- * without touching the clipboard when there is nothing to copy.
+ * Writes the given nodes and groups (a group brings all of its members), the
+ * connections between the copied nodes, and every group copied whole, to the
+ * clipboard in the selection format `pasteFromClipboard` reads back. Returns
+ * `false` without touching the clipboard when there is nothing to copy.
  */
 async function copyNodesToClipboard(
   get: Parameters<WorkflowSliceCreator>[1],
   set: Parameters<WorkflowSliceCreator>[0],
-  nodeIds: ReadonlySet<string>,
+  selectedNodeIds: Iterable<string>,
+  selectedGroupIds: Iterable<string>,
   failureMessage: string
 ): Promise<boolean> {
   const state = get()
-  const nodes = state.graph.nodes.filter((node) => nodeIds.has(node.id))
-  if (nodes.length === 0) {
+  const copied = collectCopiedSelection(
+    state.graph,
+    selectedNodeIds,
+    selectedGroupIds
+  )
+  const nodes = state.graph.nodes.filter((node) => copied.nodeIds.has(node.id))
+  if (nodes.length === 0 && copied.groups.length === 0) {
     return false
   }
 
   const connections = state.graph.edges
-    .filter((edge) => nodeIds.has(edge.source) && nodeIds.has(edge.target))
+    .filter(
+      (edge) =>
+        copied.nodeIds.has(edge.source) && copied.nodeIds.has(edge.target)
+    )
     .map(asDomainConnectionDTO)
   const payload = exportSelectionClipboardJson(
     nodes.map((node) => asDomainNodeDTO(state.registry, node)),
-    connections
+    connections,
+    copied.groups
   )
-  const copied = await writeTextToClipboard(payload)
-  if (!copied) {
+  const copiedToClipboard = await writeTextToClipboard(payload)
+  if (!copiedToClipboard) {
     set({
       lastError: createWorkflowError("CLIPBOARD_WRITE_FAILED", failureMessage),
     })

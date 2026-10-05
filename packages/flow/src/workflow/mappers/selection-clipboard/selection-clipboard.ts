@@ -4,8 +4,10 @@ import { decodeNodeConfig } from "../../node-registry/node-config-normalization"
 import type { NodeRegistry } from "../../node-registry/registry"
 import type {
   DomainWorkflowConnectionDTO,
+  DomainWorkflowGroupDTO,
   DomainWorkflowNodeDTO,
 } from "../../types/types"
+import { decodeDomainGroups } from "../domain-dto/domain-groups"
 import type { ParseResult } from "../parser/parser"
 import { asRecord, isNumber, isString } from "../utils/utils"
 
@@ -15,6 +17,12 @@ export interface WorkflowSelectionClipboardPayload {
   kind: typeof WORKFLOW_SELECTION_CLIPBOARD_KIND
   nodes: DomainWorkflowNodeDTO[]
   connections: DomainWorkflowConnectionDTO[]
+  /**
+   * Whole groups that were copied, with their rectangle and collapsed state.
+   * `nodeIds` reference copied nodes only. Absent in payloads written before
+   * groups existed.
+   */
+  groups?: DomainWorkflowGroupDTO[]
 }
 
 function toNodeDTO(
@@ -91,45 +99,58 @@ function toConnectionDTO(value: unknown): DomainWorkflowConnectionDTO | null {
   }
 }
 
-function createRelativeNodes(
-  nodes: DomainWorkflowNodeDTO[]
-): DomainWorkflowNodeDTO[] {
-  if (nodes.length === 0) {
-    return []
-  }
-
-  const anchor = nodes.reduce<XYPosition>(
-    (acc, node) => ({
-      x: Math.min(acc.x, node.position.x),
-      y: Math.min(acc.y, node.position.y),
+/**
+ * The top-left corner of everything copied — nodes and group rectangles — so
+ * positions in the payload are relative to it and paste can place the
+ * selection anywhere without changing its shape.
+ */
+function getSelectionAnchor(
+  nodes: DomainWorkflowNodeDTO[],
+  groups: DomainWorkflowGroupDTO[]
+): XYPosition {
+  const corners = [
+    ...nodes.map((node) => node.position),
+    ...groups.map((group) => ({ x: group.x, y: group.y })),
+  ]
+  return corners.reduce<XYPosition>(
+    (acc, corner) => ({
+      x: Math.min(acc.x, corner.x),
+      y: Math.min(acc.y, corner.y),
     }),
     { x: Number.POSITIVE_INFINITY, y: Number.POSITIVE_INFINITY }
   )
+}
 
-  return nodes.map((node) => ({
+export function exportSelectionClipboardJson(
+  selectedNodes: DomainWorkflowNodeDTO[],
+  selectedConnections: DomainWorkflowConnectionDTO[],
+  selectedGroups: DomainWorkflowGroupDTO[] = []
+): string {
+  const selectedNodeIds = new Set(selectedNodes.map((node) => node.id))
+  const anchor = getSelectionAnchor(selectedNodes, selectedGroups)
+  const normalizedNodes = selectedNodes.map((node) => ({
     ...node,
     position: {
       x: node.position.x - anchor.x,
       y: node.position.y - anchor.y,
     },
   }))
-}
-
-export function exportSelectionClipboardJson(
-  selectedNodes: DomainWorkflowNodeDTO[],
-  selectedConnections: DomainWorkflowConnectionDTO[]
-): string {
-  const selectedNodeIds = new Set(selectedNodes.map((node) => node.id))
-  const normalizedNodes = createRelativeNodes(selectedNodes)
   const normalizedConnections = selectedConnections.filter(
     (connection) =>
       selectedNodeIds.has(connection.sourceNodeId) &&
       selectedNodeIds.has(connection.targetNodeId)
   )
+  const normalizedGroups = selectedGroups.map((group) => ({
+    ...group,
+    x: group.x - anchor.x,
+    y: group.y - anchor.y,
+    nodeIds: group.nodeIds.filter((nodeId) => selectedNodeIds.has(nodeId)),
+  }))
   const payload: WorkflowSelectionClipboardPayload = {
     kind: WORKFLOW_SELECTION_CLIPBOARD_KIND,
     nodes: normalizedNodes,
     connections: normalizedConnections,
+    groups: normalizedGroups,
   }
 
   return JSON.stringify(payload, null, 2)
@@ -200,11 +221,17 @@ export function parseSelectionClipboardJson(
       }
     }
 
+    const groups = decodeDomainGroups(record.groups, nodeIds)
+    if (!groups.success) {
+      return { success: false, error: groups.error }
+    }
+
     return {
       success: true,
       value: {
         kind: WORKFLOW_SELECTION_CLIPBOARD_KIND,
         nodes: decodedNodes,
+        groups: groups.value,
         connections: connections.filter(
           (connection): connection is DomainWorkflowConnectionDTO =>
             connection !== null

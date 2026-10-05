@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it } from "vitest"
 
 import {
   getClipboardHotkeyAction,
+  getGroupHotkeyAction,
   getHistoryHotkeyAction,
   getNodeEditHotkeyAction,
   isEditableEventTarget,
@@ -168,6 +169,15 @@ describe("getNodeEditHotkeyAction", () => {
     expect(getNodeEditHotkeyAction(event)).toBe("delete")
   })
 
+  it("returns delete for the Delete key", () => {
+    const event = createKeyboardEvent("keydown", {
+      key: "Delete",
+      bubbles: true,
+    })
+
+    expect(getNodeEditHotkeyAction(event)).toBe("delete")
+  })
+
   it("ignores node edit shortcuts in editable targets", () => {
     const input = document.createElement("input")
     document.body.appendChild(input)
@@ -181,7 +191,56 @@ describe("getNodeEditHotkeyAction", () => {
   })
 })
 
+describe("getGroupHotkeyAction", () => {
+  it.each([
+    ["ctrl+g", { key: "g", ctrlKey: true }, "group"],
+    ["cmd+g", { key: "g", metaKey: true }, "group"],
+    ["ctrl+shift+g", { key: "G", ctrlKey: true, shiftKey: true }, "ungroup"],
+    ["cmd+shift+g", { key: "G", metaKey: true, shiftKey: true }, "ungroup"],
+  ] as const)("maps %s to %s", (_, init, action) => {
+    expect(getGroupHotkeyAction(createKeyboardEvent("keydown", init))).toBe(
+      action
+    )
+  })
+
+  it.each([
+    ["g without a modifier", { key: "g" }],
+    ["ctrl+alt+g", { key: "g", ctrlKey: true, altKey: true }],
+    ["ctrl+h", { key: "h", ctrlKey: true }],
+  ] as const)("ignores %s", (_, init) => {
+    expect(
+      getGroupHotkeyAction(createKeyboardEvent("keydown", init))
+    ).toBeNull()
+  })
+
+  it("ignores the shortcut in editable targets", () => {
+    const input = document.createElement("input")
+    document.body.appendChild(input)
+    const event = createKeyboardEvent("keydown", {
+      key: "g",
+      ctrlKey: true,
+      bubbles: true,
+    })
+    input.dispatchEvent(event)
+
+    expect(getGroupHotkeyAction(event)).toBeNull()
+  })
+})
+
 describe("letter hotkeys on a non-Latin layout", () => {
+  it.each([
+    ["cmd+g", "group", { key: "п", code: "KeyG", metaKey: true }],
+    [
+      "cmd+shift+g",
+      "ungroup",
+      { key: "П", code: "KeyG", metaKey: true, shiftKey: true },
+    ],
+  ] as const)("maps %s to %s", (_, action, init) => {
+    expect(getGroupHotkeyAction(createKeyboardEvent("keydown", init))).toBe(
+      action
+    )
+  })
+
   // On the Russian layout the physical C/V/Z/Y/D keys report Cyrillic `key`s.
   it.each([
     ["cmd+c", "copy", { key: "с", code: "KeyC", metaKey: true }],

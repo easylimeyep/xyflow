@@ -5,6 +5,12 @@ import {
   applyUpdateNodeConfigCommand,
   applyUpdateNodeLabelCommand,
 } from "../../graph-engine"
+import {
+  assignCopiedGroupIds,
+  collectCopiedSelection,
+  instantiateCopiedGroups,
+} from "../../groups/group-copy"
+import { resolveMembershipAfterDrag } from "../../groups/group-membership"
 import { refactorPlainVariableReferencesInGraph } from "../graph-refactors"
 import { createWorkflowNode } from "../../node-registry/node-factory"
 import { normalizeNodeConfig } from "../../node-registry/node-config-normalization"
@@ -29,18 +35,32 @@ export const createNodeCrudSlice: WorkflowSliceCreator = (set, get) => ({
       set({ lastError: result.error })
       return
     }
-    commitGraphState(set, result.nextGraph)
+    const addedNodeId = result.nextGraph.nodes.at(-1)?.id
+    commitGraphState(
+      set,
+      addedNodeId
+        ? resolveMembershipAfterDrag(result.nextGraph, [addedNodeId])
+        : result.nextGraph
+    )
     get().hideGlobalValidation()
     set({ lastError: null })
   },
   duplicateNodes: (nodeIds) => {
     const state = get()
     const currentGraph = state.graph
-    const targetNodeIds = normalizeTargetNodeIds(
+    // Without explicit ids this duplicates the selection, selected groups
+    // included; explicit ids (a node's own menu) never pull groups in on their
+    // own, though a group whose members are all listed still travels along.
+    const copied = collectCopiedSelection(
+      currentGraph,
       nodeIds ?? state.selectedNodeIds,
+      nodeIds ? [] : state.selectedGroupIds
+    )
+    const targetNodeIds = normalizeTargetNodeIds(
+      [...copied.nodeIds],
       currentGraph.nodes
     )
-    if (targetNodeIds.length === 0) {
+    if (targetNodeIds.length === 0 && copied.groups.length === 0) {
       return false
     }
 
@@ -89,19 +109,34 @@ export const createNodeCrudSlice: WorkflowSliceCreator = (set, get) => ({
       },
       currentGraph.edges
     )
-    const duplicatedNodeIds = duplicatedNodes.map((node) => node.id)
+    const { groups: duplicatedGroups, groupIdByNodeId } =
+      instantiateCopiedGroups(copied.groups, nodeIdMap, {
+        x: DUPLICATE_NODE_OFFSET,
+        y: DUPLICATE_NODE_OFFSET,
+      })
+    const groupedDuplicates = assignCopiedGroupIds(
+      duplicatedNodes,
+      groupIdByNodeId
+    )
+    // The copy is selected the way the original was: whole groups as groups,
+    // everything else as nodes.
+    const duplicatedNodeIds = groupedDuplicates
+      .filter((node) => !groupIdByNodeId.has(node.id))
+      .map((node) => node.id)
     const nextGraph = {
       ...currentGraph,
       nodes: projectSelectionToNodes(
-        [...currentGraph.nodes, ...duplicatedNodes],
+        [...currentGraph.nodes, ...groupedDuplicates],
         duplicatedNodeIds
       ),
       edges: duplicatedEdges,
+      groups: [...currentGraph.groups, ...duplicatedGroups],
     }
 
     commitGraphState(set, nextGraph)
     set((nextState) => ({
       selectedNodeIds: duplicatedNodeIds,
+      selectedGroupIds: duplicatedGroups.map((group) => group.id),
       lastError: null,
       ...buildExpressionSlicePatch(nextState, nextState.graph),
     }))

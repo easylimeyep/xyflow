@@ -1,6 +1,7 @@
 export { createConnectionSlice } from "./connection-slice"
 export { createExpressionSlice } from "./expression-slice"
 export { createGraphSlice } from "./graph-slice"
+export { createGroupSlice } from "./group-slice"
 export { createHistorySlice } from "./history-slice"
 export { createIntentSlice } from "./intent-slice"
 export { createLayoutSlice } from "./layout-slice"

@@ -5,7 +5,13 @@ import { createWorkflowNode } from "../node-registry/node-factory"
 import { createNodeRegistry } from "../node-registry/registry"
 import type { WorkflowNode } from "../types/types"
 import { buildSnippet, describeSearchMatch } from "./describe-match"
-import { buildSearchMatches } from "./matches"
+import {
+  buildSearchMatches as buildAllMatches,
+  isNodeSearchMatch,
+} from "./matches"
+
+const buildSearchMatches = (...args: Parameters<typeof buildAllMatches>) =>
+  buildAllMatches(...args).filter(isNodeSearchMatch)
 
 const registry = createNodeRegistry(builtinBaseDefinitions)
 

@@ -18,6 +18,15 @@ import {
   selectSearchTotal,
 } from "./search-selectors"
 import { createWorkflowStore } from "./store"
+import { isNodeSearchMatch, type SearchMatch } from "../search/matches"
+
+function nodeIdOf(match: SearchMatch | null | undefined) {
+  return isNodeSearchMatch(match) ? match.nodeId : undefined
+}
+
+function currentNodeId(store: ReturnType<typeof createWorkflowStore>) {
+  return nodeIdOf(selectCurrentSearchMatch(store.getState()))
+}
 
 const registry = createNodeRegistry(builtinBaseDefinitions)
 
@@ -36,6 +45,7 @@ function graph(nodes: WorkflowNode[]): WorkflowGraphState {
   return {
     nodes,
     edges: [],
+    groups: [],
     viewport: { x: 0, y: 0, zoom: 1 },
     document: { id: "doc", name: "Doc", version: 1, metadata: {} },
   }
@@ -80,8 +90,7 @@ describe("search slice", () => {
     expect(store.history.getState().pasts).toBe(past)
     store.getState().undo()
     expect(
-      store.getState().graph.nodes.find((node) => node.id === "c")
-        ?.data.label
+      store.getState().graph.nodes.find((node) => node.id === "c")?.data.label
     ).toBe("Inline")
   })
 
@@ -144,7 +153,7 @@ describe("search slice", () => {
     search("price")
     store.getState().searchNext()
     store.getState().searchNext()
-    expect(selectCurrentSearchMatch(store.getState())?.nodeId).toBe("b")
+    expect(currentNodeId(store)).toBe("b")
 
     store.getState().updateNodeConfig("c", {
       kind: "inlineExpression",
@@ -153,7 +162,7 @@ describe("search slice", () => {
     })
     store.getState().deleteNodes(["b"])
 
-    expect(selectCurrentSearchMatch(store.getState())?.nodeId).toBe("c")
+    expect(currentNodeId(store)).toBe("c")
     expect(selectSearchTotal(store.getState())).toBe(3)
   })
 
@@ -202,7 +211,7 @@ describe("search slice", () => {
 
     drag(false)
     expect(store.getState().nodeDragOriginGraph).toBeNull()
-    expect(selectSearchMatches(store.getState())[0]?.nodeId).toBe("b")
+    expect(nodeIdOf(selectSearchMatches(store.getState())[0])).toBe("b")
   })
 
   it("keeps a synced first match by identity when a match appears above it", () => {
@@ -268,7 +277,9 @@ describe("search slice", () => {
     search("price")
     store.getState().searchNext()
     const current = selectCurrentSearchMatch(store.getState())
-    expect(current?.fieldPath).toBe("conditions[second].left")
+    expect(isNodeSearchMatch(current) ? current.fieldPath : undefined).toBe(
+      "conditions[second].left"
+    )
 
     store.getState().updateNodeConfig("e", {
       kind: "evaluator",

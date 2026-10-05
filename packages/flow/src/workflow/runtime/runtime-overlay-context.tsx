@@ -13,6 +13,7 @@ import {
 
 import type {
   NodeRuntimeState,
+  NodeRuntimeStatus,
   WorkflowCanvasMode,
   WorkflowRuntimeOverlay,
 } from "../types"
@@ -189,6 +190,57 @@ export function useEdgeRuntimeState(edgeId: string): EdgeRuntimeState {
     cacheRef.current = next
     return next
   }, [store, edgeId])
+
+  return useSyncExternalStore(
+    store?.subscribe ?? noopSubscribe,
+    getSnapshot,
+    getSnapshot
+  )
+}
+
+/**
+ * Which status wins when several nodes are summarized as one: a failure shows
+ * over everything, then work still in progress, then finished work.
+ */
+const AGGREGATE_STATUS_PRECEDENCE: readonly NodeRuntimeStatus[] = [
+  "failed",
+  "running",
+  "waiting",
+  "done",
+  "skipped",
+]
+
+/** The single status that summarizes `statuses`, or `undefined` for none. */
+export function aggregateRuntimeStatus(
+  statuses: Iterable<NodeRuntimeStatus | undefined>
+): NodeRuntimeStatus | undefined {
+  let bestRank = AGGREGATE_STATUS_PRECEDENCE.length
+  for (const status of statuses) {
+    if (status === undefined) continue
+    const rank = AGGREGATE_STATUS_PRECEDENCE.indexOf(status)
+    if (rank !== -1 && rank < bestRank) bestRank = rank
+  }
+  return AGGREGATE_STATUS_PRECEDENCE[bestRank]
+}
+
+/**
+ * The aggregate runtime status of several nodes — what a collapsed group card
+ * shows for its hidden members. A string, so the card re-renders only when the
+ * summary itself changes.
+ */
+export function useAggregateRuntimeStatus(
+  nodeIds: readonly string[]
+): NodeRuntimeStatus | undefined {
+  const store = useContext(RuntimeObservationContext)
+  const getSnapshot = useCallback(
+    () =>
+      store
+        ? aggregateRuntimeStatus(
+            nodeIds.map((nodeId) => store.getNodeState(nodeId)?.status)
+          )
+        : undefined,
+    [store, nodeIds]
+  )
 
   return useSyncExternalStore(
     store?.subscribe ?? noopSubscribe,

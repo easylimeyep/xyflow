@@ -31,6 +31,17 @@ import {
 import { LayoutTemplate, Maximize2, ZoomIn, ZoomOut } from "lucide-react"
 
 import { WORKFLOW_NODE_KIND_MIME } from "../../dnd"
+import {
+  GROUP_CARD_NODE_TYPE,
+  GROUP_FRAME_NODE_TYPE,
+} from "../../groups/group-canvas-nodes"
+import { parseGroupFrameId } from "../../groups/group-canvas-ids"
+import {
+  GROUP_FRAME_HEADER_HEIGHT,
+  type Rect,
+} from "../../groups/group-geometry"
+import { getEstimatedNodeHeight } from "../../layout/node-size-estimate"
+import { DEFAULT_NODE_WIDTH } from "../../node-registry/node-factory"
 import { buildNodeTypes } from "../../node-registry/node-types-builder"
 import type { NodeKind } from "../../node-registry/registry"
 import {
@@ -41,6 +52,7 @@ import { workflowCanvasStyles } from "../../../styles/components/canvas"
 import type {
   WorkflowCanvasMode,
   WorkflowEdge,
+  WorkflowGroup,
   WorkflowNode,
 } from "../../types"
 
@@ -49,6 +61,8 @@ import { WorkflowEdgeComponent } from "../workflow-edge"
 import { WorkflowMiniMap } from "../workflow-minimap"
 import { SelectionToolbar, useSelectionToolbar } from "../selection-toolbar"
 import { isInteractiveEventTarget } from "../hotkeys"
+import { GroupCanvasProvider, GroupCard, GroupFrame } from "../workflow-groups"
+import { useGroupCanvasProjection } from "./use-group-canvas-projection"
 import { useNodeChangeRouter } from "./use-node-change-router"
 import { WORKFLOW_ELK_PADDING } from "../../layout"
 import { LARGE_GRAPH_MIN_NODES } from "../../large-graph"
@@ -68,9 +82,23 @@ export const MIN_READABLE_ZOOM = 0.8
 /** Centers the viewport on a node without selecting it. */
 export type RevealNode = (nodeId: string) => void
 
+const NO_GROUPS: readonly WorkflowGroup[] = []
+/** Where React Flow puts the toolbar of a selected node: 1000 + 1. */
+const GROUP_TOOLBAR_STYLE = { zIndex: 1001 } as const
+const NO_GROUP_IDS: readonly string[] = []
+const noop = () => {}
+
 interface WorkflowCanvasProps {
   nodes: WorkflowNode[]
   edges: WorkflowEdge[]
+  /** Node groups, drawn as frames (expanded) or cards (collapsed). */
+  groups?: readonly WorkflowGroup[]
+  selectedGroupIds?: readonly string[]
+  onSelectGroups?: (groupIds: string[]) => void
+  /** Commits a group resize the user finished. */
+  onResizeGroup?: (groupId: string, rect: Rect) => void
+  /** Collapses or expands a group in the workflow (edit mode). */
+  onSetGroupCollapsed?: (groupId: string, collapsed: boolean) => void
   viewport: { x: number; y: number; zoom: number }
   onNodesChange: (changes: NodeChange<WorkflowNode>[]) => void
   onEdgesChange: (changes: EdgeChange<WorkflowEdge>[]) => void
@@ -111,6 +139,11 @@ interface WorkflowCanvasProps {
 function WorkflowCanvasInner({
   nodes,
   edges,
+  groups = NO_GROUPS,
+  selectedGroupIds = NO_GROUP_IDS,
+  onSelectGroups = noop,
+  onResizeGroup = noop,
+  onSetGroupCollapsed = noop,
   viewport,
   onNodesChange,
   onEdgesChange,
@@ -147,6 +180,17 @@ function WorkflowCanvasInner({
     (state) => (state.transform[2] ?? 1) <= WORKFLOW_MIN_ZOOM
   )
   const nodesInitialized = useNodesInitialized()
+  const groupCanvas = useGroupCanvasProjection({
+    nodes,
+    edges,
+    groups,
+    selectedGroupIds,
+    mode,
+    onSelectGroups,
+    onSelectNodes,
+    onResizeGroup,
+    onSetGroupCollapsed,
+  })
   const [layoutPending, setLayoutPending] = useState(false)
   const shouldRunMeasuredInitialLayout =
     autoLayoutOnInit === "after-measure" && onMeasuredInitialAutoLayout != null
@@ -154,20 +198,31 @@ function WorkflowCanvasInner({
   const [initialLayoutPending, setInitialLayoutPending] = useState(
     shouldRunMeasuredInitialLayout && nodes.length > 0
   )
+  // Members hidden inside a collapsed group never mount, so they never report
+  // a size; the measured layout waits for the nodes that can.
   const allNodesMeasured =
     nodes.length === 0 ||
-    nodes.every(
-      (node) => node.measured?.width != null && node.measured.height != null
+    groupCanvas.visibleNodes.every(
+      (node) =>
+        node.hidden ||
+        (node.measured?.width != null && node.measured.height != null)
     )
   // The measured initial layout waits for every node to report its size, and
   // a culled node never mounts to report one.
   const shouldCullToViewport =
     nodes.length > LARGE_GRAPH_MIN_NODES && !initialLayoutPending
-  const selectionToolbar = useSelectionToolbar(nodes, isObserving)
+  const selectionToolbar = useSelectionToolbar(
+    nodes,
+    isObserving,
+    selectedGroupIds
+  )
   const onReactFlowNodesChange = useNodeChangeRouter({
     nodes,
+    groups,
     onStructuralChanges: onNodesChange,
     onSelectionChange: onSelectNodes,
+    onGroupResize: groupCanvas.onGroupResize,
+    onGroupResizeEnd: groupCanvas.onGroupResizeEnd,
   })
 
   // A host dialog that traps focus (react-aria `FocusScope contain`) hands
@@ -266,12 +321,16 @@ function WorkflowCanvasInner({
     edgeInteractionRef.current.edgeInsertPendingId = edgeInsertPendingId
   }, [edgeInsertPendingId, onDeleteEdge, onStartInsertFromEdge])
   const workflowNodeTypes = useMemo(
-    () => buildNodeTypes(definitions),
+    () => ({
+      ...buildNodeTypes(definitions),
+      [GROUP_FRAME_NODE_TYPE]: GroupFrame,
+      [GROUP_CARD_NODE_TYPE]: GroupCard,
+    }),
     [definitions]
   )
   const edgesWithType = useMemo(
     () =>
-      edges.map((edge) => {
+      groupCanvas.canvasEdges.map((edge) => {
         const typed = edge.type ? edge : { ...edge, type: "workflow" }
         if (!isObserving) {
           return typed
@@ -279,7 +338,7 @@ function WorkflowCanvasInner({
 
         return { ...typed, selectable: false, deletable: false }
       }),
-    [edges, isObserving]
+    [groupCanvas.canvasEdges, isObserving]
   )
   const edgeTypes = useMemo(
     () => ({
@@ -432,6 +491,7 @@ function WorkflowCanvasInner({
     },
     [reactFlow]
   )
+  const { expandGroupOf } = groupCanvas
   const revealNode = useCallback<RevealNode>(
     (nodeId) => {
       const node = reactFlow.getInternalNode(nodeId)
@@ -439,20 +499,34 @@ function WorkflowCanvasInner({
         return
       }
 
+      const isGroup = parseGroupFrameId(nodeId) !== null
+      // A node hidden in a collapsed group is shown first. It may never have
+      // rendered, so its size falls back to the box a compact node draws. A
+      // group itself is revealed as it stands: collapsed stays collapsed.
+      if (!isGroup) {
+        expandGroupOf(nodeId)
+      }
       const { x, y } = node.internals.positionAbsolute
-      const width = node.measured.width ?? node.width ?? 0
-      const height = node.measured.height ?? node.height ?? 0
+      const width = node.measured.width ?? node.width ?? DEFAULT_NODE_WIDTH
+      const height =
+        node.measured.height ??
+        node.height ??
+        getEstimatedNodeHeight(node.internals.userNode)
+      // A frame can be larger than the viewport; its header is what was found.
+      const centerY = isGroup
+        ? y + Math.min(height, GROUP_FRAME_HEADER_HEIGHT) / 2
+        : y + height / 2
       const zoom = Math.min(
         WORKFLOW_MAX_ZOOM,
         Math.max(WORKFLOW_MIN_ZOOM, reactFlow.getZoom(), MIN_READABLE_ZOOM)
       )
 
-      void reactFlow.setCenter(x + width / 2, y + height / 2, {
+      void reactFlow.setCenter(x + width / 2, centerY, {
         zoom,
         duration: WORKFLOW_MINIMAP_NAVIGATION_DURATION_MS,
       })
     },
-    [reactFlow]
+    [expandGroupOf, reactFlow]
   )
   useEffect(() => {
     if (!onRevealNodeChange) {
@@ -479,115 +553,138 @@ function WorkflowCanvasInner({
         data-workflow-canvas-focus-target=""
         onPointerDownCapture={onCanvasPointerDownCapture}
       >
-        <ReactFlow
-          nodes={nodes}
-          edges={edgesWithType}
-          nodeTypes={workflowNodeTypes}
-          edgeTypes={edgeTypes}
-          proOptions={{ hideAttribution: true }}
-          onlyRenderVisibleElements={shouldCullToViewport}
-          defaultViewport={viewport}
-          minZoom={WORKFLOW_MIN_ZOOM}
-          maxZoom={WORKFLOW_MAX_ZOOM}
-          nodesDraggable={!isObserving}
-          nodesConnectable={!isObserving}
-          deleteKeyCode={isObserving ? null : ["Backspace", "Delete"]}
-          onMoveEnd={(_, nextViewport) => onViewportChange(nextViewport)}
-          onNodesChange={onReactFlowNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={isObserving ? undefined : onConnect}
-          selectionMode={SelectionMode.Partial}
-          panOnDrag
-          panOnScroll
-          zoomOnPinch
-          zoomOnScroll={false}
-          isValidConnection={(connection) =>
-            validateConnection(registry, connection, nodes, edges).valid
-          }
-          onPaneClick={onPaneClick}
-          onDragOver={isObserving ? undefined : onDragOver}
-          onDrop={isObserving ? undefined : onDrop}
-          onMouseMove={onMouseMove}
-          onNodeDragStart={selectionToolbar.onDragStart}
-          onNodeDragStop={selectionToolbar.onDragStop}
-          onSelectionDragStart={selectionToolbar.onDragStart}
-          onSelectionDragStop={selectionToolbar.onDragStop}
-          connectionLineStyle={{ strokeWidth: 2, stroke: "var(--border)" }}
-        >
-          <NodeToolbar
-            nodeId={selectionToolbar.selectedNodeIds}
-            isVisible={selectionToolbar.isVisible}
-            position={Position.Top}
-            align="end"
+        <GroupCanvasProvider value={groupCanvas.groupContext}>
+          <ReactFlow
+            // Group frames and cards are derived canvas nodes beside the
+            // workflow nodes; every handler routes them by their id prefix.
+            nodes={groupCanvas.canvasNodes as WorkflowNode[]}
+            edges={edgesWithType}
+            nodeTypes={workflowNodeTypes}
+            edgeTypes={edgeTypes}
+            proOptions={{ hideAttribution: true }}
+            onlyRenderVisibleElements={shouldCullToViewport}
+            defaultViewport={viewport}
+            minZoom={WORKFLOW_MIN_ZOOM}
+            maxZoom={WORKFLOW_MAX_ZOOM}
+            nodesDraggable={!isObserving}
+            nodesConnectable={!isObserving}
+            // With a group selected, Delete goes through the editor's own
+            // command so the group, its members, and the selected nodes go in
+            // one step; React Flow would remove only the nodes.
+            deleteKeyCode={
+              isObserving || selectedGroupIds.length > 0
+                ? null
+                : ["Backspace", "Delete"]
+            }
+            onMoveEnd={(_, nextViewport) => onViewportChange(nextViewport)}
+            onNodesChange={onReactFlowNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={isObserving ? undefined : onConnect}
+            selectionMode={SelectionMode.Partial}
+            panOnDrag
+            panOnScroll
+            zoomOnPinch
+            zoomOnScroll={false}
+            isValidConnection={(connection) =>
+              validateConnection(registry, connection, nodes, edges).valid
+            }
+            onPaneClick={onPaneClick}
+            onDragOver={isObserving ? undefined : onDragOver}
+            onDrop={isObserving ? undefined : onDrop}
+            onMouseMove={onMouseMove}
+            onNodeClick={groupCanvas.onNodeClick}
+            onSelectionStart={groupCanvas.onSelectionStart}
+            onSelectionEnd={groupCanvas.onSelectionEnd}
+            onNodeDragStart={(event, node) => {
+              groupCanvas.onNodeDragStart(event, node)
+              selectionToolbar.onDragStart()
+            }}
+            onNodeDragStop={selectionToolbar.onDragStop}
+            onSelectionDragStart={selectionToolbar.onDragStart}
+            onSelectionDragStop={selectionToolbar.onDragStop}
+            connectionLineStyle={{ strokeWidth: 2, stroke: "var(--border)" }}
           >
-            <SelectionToolbar onAfterCommand={focusCanvas} />
-          </NodeToolbar>
-          <WorkflowMiniMap onClick={handleMiniMapClick} />
-          <Panel
-            ref={controlsRef}
-            className="react-flow__controls horizontal"
-            position="bottom-left"
-            data-testid="rf__controls"
-            aria-label="React Flow controls"
-          >
-            <button
-              ref={zoomInRef}
-              type="button"
-              className="react-flow__controls-button react-flow__controls-zoomin"
-              onClick={() => {
-                void reactFlow.zoomIn()
-              }}
-              aria-label="Zoom in"
-              title="Zoom in"
-              disabled={maxZoomReached}
+            <NodeToolbar
+              nodeId={selectionToolbar.selectedNodeIds}
+              isVisible={selectionToolbar.isVisible}
+              // React Flow stacks a toolbar just above the nodes it belongs
+              // to. A group frame sits beneath everything, which would put
+              // its toolbar under the pane, out of reach of the pointer.
+              style={
+                selectedGroupIds.length > 0 ? GROUP_TOOLBAR_STYLE : undefined
+              }
+              position={Position.Top}
+              align="end"
             >
-              <ZoomIn size={16} />
-            </button>
-            <button
-              ref={zoomOutRef}
-              type="button"
-              className="react-flow__controls-button react-flow__controls-zoomout"
-              onClick={() => {
-                void reactFlow.zoomOut()
-              }}
-              aria-label="Zoom out"
-              title="Zoom out"
-              disabled={minZoomReached}
+              <SelectionToolbar onAfterCommand={focusCanvas} />
+            </NodeToolbar>
+            <WorkflowMiniMap onClick={handleMiniMapClick} />
+            <Panel
+              ref={controlsRef}
+              className="react-flow__controls horizontal"
+              position="bottom-left"
+              data-testid="rf__controls"
+              aria-label="React Flow controls"
             >
-              <ZoomOut size={16} />
-            </button>
-            <button
-              ref={fitViewRef}
-              type="button"
-              className="react-flow__controls-button react-flow__controls-fitview"
-              onClick={() => {
-                void reactFlow.fitView({
-                  padding: WORKFLOW_ELK_PADDING,
-                  minZoom: WORKFLOW_MIN_ZOOM,
-                  maxZoom: WORKFLOW_MAX_ZOOM,
-                })
-              }}
-              aria-label="Fit view"
-              title="Fit view"
-            >
-              <Maximize2 size={16} />
-            </button>
-            <button
-              ref={autoLayoutRef}
-              type="button"
-              className="react-flow__controls-button react-flow__controls-auto-layout"
-              onClick={() => {
-                void handleAutoLayout()
-              }}
-              aria-label="Auto layout workflow"
-              title="Auto layout workflow"
-              disabled={layoutPending || initialLayoutPending}
-            >
-              <LayoutTemplate size={16} />
-            </button>
-          </Panel>
-          <Background />
-        </ReactFlow>
+              <button
+                ref={zoomInRef}
+                type="button"
+                className="react-flow__controls-button react-flow__controls-zoomin"
+                onClick={() => {
+                  void reactFlow.zoomIn()
+                }}
+                aria-label="Zoom in"
+                title="Zoom in"
+                disabled={maxZoomReached}
+              >
+                <ZoomIn size={16} />
+              </button>
+              <button
+                ref={zoomOutRef}
+                type="button"
+                className="react-flow__controls-button react-flow__controls-zoomout"
+                onClick={() => {
+                  void reactFlow.zoomOut()
+                }}
+                aria-label="Zoom out"
+                title="Zoom out"
+                disabled={minZoomReached}
+              >
+                <ZoomOut size={16} />
+              </button>
+              <button
+                ref={fitViewRef}
+                type="button"
+                className="react-flow__controls-button react-flow__controls-fitview"
+                onClick={() => {
+                  void reactFlow.fitView({
+                    padding: WORKFLOW_ELK_PADDING,
+                    minZoom: WORKFLOW_MIN_ZOOM,
+                    maxZoom: WORKFLOW_MAX_ZOOM,
+                  })
+                }}
+                aria-label="Fit view"
+                title="Fit view"
+              >
+                <Maximize2 size={16} />
+              </button>
+              <button
+                ref={autoLayoutRef}
+                type="button"
+                className="react-flow__controls-button react-flow__controls-auto-layout"
+                onClick={() => {
+                  void handleAutoLayout()
+                }}
+                aria-label="Auto layout workflow"
+                title="Auto layout workflow"
+                disabled={layoutPending || initialLayoutPending}
+              >
+                <LayoutTemplate size={16} />
+              </button>
+            </Panel>
+            <Background />
+          </ReactFlow>
+        </GroupCanvasProvider>
       </div>
       {initialLayoutPending ? (
         <div

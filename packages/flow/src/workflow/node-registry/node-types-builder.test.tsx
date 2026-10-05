@@ -141,6 +141,7 @@ describe("buildNodeTypes", () => {
         initialGraph={{
           nodes: [{ id: "test-node", position: { x: 0, y: 0 }, data }],
           edges: [],
+          groups: [],
           viewport: { x: 0, y: 0, zoom: 1 },
           document: { id: "doc", name: "Doc", version: 1, metadata: {} },
         }}
@@ -189,6 +190,7 @@ describe("buildNodeTypes", () => {
         initialGraph={{
           nodes: [{ id: "test-node", position: { x: 0, y: 0 }, data }],
           edges: [],
+          groups: [],
           viewport: { x: 0, y: 0, zoom: 1 },
           document: { id: "doc", name: "Doc", version: 1, metadata: {} },
         }}

@@ -18,3 +18,25 @@ export {
 } from "./commands"
 
 export { createNodeWithUniqueLabel } from "./node-labels"
+
+export {
+  applyDeleteGroupsCommand,
+  applyFitGroupCommand,
+  applyGroupNodesCommand,
+  applyMoveGroupCommand,
+  applyRecolorGroupCommand,
+  applyRenameGroupCommand,
+  applyResizeGroupCommand,
+  applySetGroupCollapsedCommand,
+  applyUngroupCommand,
+  createGroupId,
+  moveGroupBy,
+  type DeleteGroupsCommand,
+  type GroupCommand,
+  type GroupNodesCommand,
+  type MoveGroupCommand,
+  type RecolorGroupCommand,
+  type RenameGroupCommand,
+  type ResizeGroupCommand,
+  type SetGroupCollapsedCommand,
+} from "./group-commands"

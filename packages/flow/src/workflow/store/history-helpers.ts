@@ -14,7 +14,10 @@ import type { WorkflowStoreApi, WorkflowStoreSetState } from "./types"
  * commits and avoids re-rendering every node on the canvas.
  */
 export function cloneGraphState(graph: WorkflowGraphState): WorkflowGraphState {
-  return cloneDeep(graph)
+  const clone = cloneDeep(graph)
+  // A host graph built before groups existed has no `groups` at all; every
+  // reader inside the store relies on the list being there.
+  return clone.groups ? clone : { ...clone, groups: [] }
 }
 
 /**

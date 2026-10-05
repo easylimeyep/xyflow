@@ -43,39 +43,86 @@ function createInitialGraph(): WorkflowGraphState {
       },
     ],
     edges: [],
+    groups: [],
     viewport: { x: 0, y: 0, zoom: 1 },
     document: { id: "test", name: "Test", version: 1, metadata: {} },
   }
 }
 
-function SelectNodes({ nodeIds }: { nodeIds: string[] }) {
+/** The default graph with both nodes in group `g`. */
+function groupedGraph(collapsed = false): WorkflowGraphState {
+  const graph = createInitialGraph()
+  return {
+    ...graph,
+    nodes: graph.nodes.map((node) => ({
+      ...node,
+      data: { ...node.data, groupId: "g" },
+    })),
+    groups: [
+      {
+        id: "g",
+        label: "Group 1",
+        color: "blue",
+        x: -40,
+        y: -80,
+        width: 600,
+        height: 300,
+        collapsed,
+      },
+    ],
+  }
+}
+
+function SelectNodes({
+  nodeIds,
+  groupIds = NO_GROUPS,
+}: {
+  nodeIds: string[]
+  groupIds?: string[]
+}) {
   const setSelectedNodes = useWorkflowStore((state) => state.setSelectedNodes)
+  const setSelectedGroups = useWorkflowStore((state) => state.setSelectedGroups)
   useEffect(() => {
     setSelectedNodes(nodeIds)
-  }, [nodeIds, setSelectedNodes])
+    setSelectedGroups(groupIds)
+  }, [groupIds, nodeIds, setSelectedGroups, setSelectedNodes])
   return null
+}
+
+function toolbarButtonNames() {
+  const toolbar = screen.getByRole("group", { name: "Selection actions" })
+  return Array.from(toolbar.querySelectorAll("button")).map((button) =>
+    button.getAttribute("aria-label")
+  )
 }
 
 function GraphProbe() {
   const nodeCount = useWorkflowStore((state) => state.graph.nodes.length)
+  const groupCount = useWorkflowStore((state) => state.graph.groups.length)
   const selectedNodeIds = useWorkflowStore((state) => state.selectedNodeIds)
   return (
     <>
       <div data-testid="node-count">{nodeCount}</div>
+      <div data-testid="group-count">{groupCount}</div>
       <div data-testid="selected-node-ids">{selectedNodeIds.join(",")}</div>
     </>
   )
 }
 
 const SELECTED = ["node-1", "node-2"]
+const NO_GROUPS: string[] = []
 
-function renderToolbar() {
+function renderToolbar(
+  initialGraph: WorkflowGraphState = createInitialGraph(),
+  nodeIds: string[] = SELECTED,
+  groupIds: string[] = NO_GROUPS
+) {
   return render(
     <WorkflowStoreProvider
-      initialGraph={createInitialGraph()}
+      initialGraph={initialGraph}
       definitions={builtinBaseDefinitions}
     >
-      <SelectNodes nodeIds={SELECTED} />
+      <SelectNodes nodeIds={nodeIds} groupIds={groupIds} />
       <GraphProbe />
       <SelectionToolbar />
     </WorkflowStoreProvider>
@@ -98,14 +145,50 @@ describe("SelectionToolbar", () => {
     setClipboardAdapter(navigatorClipboardAdapter)
   })
 
-  it("renders named copy, duplicate and delete buttons in a group", () => {
+  it("renders the commands for ungrouped nodes in a group", () => {
     renderToolbar()
 
-    const toolbar = screen.getByRole("group", { name: "Selection actions" })
-    const names = Array.from(toolbar.querySelectorAll("button")).map((button) =>
-      button.getAttribute("aria-label")
-    )
-    expect(names).toEqual(["Copy", "Duplicate", "Delete"])
+    expect(toolbarButtonNames()).toEqual([
+      "Copy",
+      "Duplicate",
+      "Group",
+      "Delete",
+    ])
+  })
+
+  it("offers neither Group nor Ungroup for member nodes", () => {
+    renderToolbar(groupedGraph())
+
+    expect(toolbarButtonNames()).toEqual(["Copy", "Duplicate", "Delete"])
+  })
+
+  it("shows the group commands for one selected group", () => {
+    renderToolbar(groupedGraph(), [], ["g"])
+
+    expect(toolbarButtonNames()).toEqual([
+      "Copy",
+      "Duplicate",
+      "Collapse",
+      "Ungroup",
+      "Delete",
+    ])
+  })
+
+  it("reads Expand for a selected collapsed group", () => {
+    renderToolbar(groupedGraph(true), [], ["g"])
+
+    expect(toolbarButtonNames()).toContain("Expand")
+  })
+
+  it("groups the selected nodes", async () => {
+    const user = userEvent.setup()
+    renderToolbar()
+
+    await user.click(screen.getByRole("button", { name: "Group" }))
+
+    await waitFor(() => {
+      expect(screen.getByTestId("group-count").textContent).toBe("1")
+    })
   })
 
   it("renders delete with the destructive variant after a separator", () => {

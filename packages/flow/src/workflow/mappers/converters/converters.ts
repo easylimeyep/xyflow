@@ -1,12 +1,15 @@
 import { normalizeNodeConfig } from "../../node-registry/node-config-normalization"
 import { createWorkflowNode } from "../../node-registry/node-factory"
 import type { NodeKind, NodeRegistry } from "../../node-registry/registry"
+import { normalizeGroupColor } from "../../groups/group-colors"
 import type {
   DomainWorkflowConnectionDTO,
   DomainWorkflowDTO,
+  DomainWorkflowGroupDTO,
   DomainWorkflowNodeDTO,
   WorkflowEdge,
   WorkflowGraphState,
+  WorkflowGroup,
   WorkflowNode,
 } from "../../types/types"
 import { normalizeDomainMetadata, toJsonConfig } from "../utils/utils"
@@ -46,7 +49,50 @@ export function internalToDomain(
     metadata: normalizeDomainMetadata(graph.document.metadata),
     nodes,
     connections,
+    groups: toDomainGroups(graph),
     viewport: graph.viewport,
+  }
+}
+
+/**
+ * Turns per-node `data.groupId` into each group's `nodeIds`, sorted so the same
+ * membership always exports the same way: membership has no order.
+ */
+export function toDomainGroups(
+  graph: Pick<WorkflowGraphState, "nodes" | "groups">
+): DomainWorkflowGroupDTO[] {
+  const memberIdsByGroupId = new Map<string, string[]>()
+  graph.nodes.forEach((node) => {
+    const { groupId } = node.data
+    if (groupId === undefined) return
+    const memberIds = memberIdsByGroupId.get(groupId) ?? []
+    memberIds.push(node.id)
+    memberIdsByGroupId.set(groupId, memberIds)
+  })
+
+  return graph.groups.map((group) => ({
+    id: group.id,
+    label: group.label,
+    color: group.color,
+    x: group.x,
+    y: group.y,
+    width: group.width,
+    height: group.height,
+    collapsed: group.collapsed,
+    nodeIds: (memberIdsByGroupId.get(group.id) ?? []).sort(),
+  }))
+}
+
+function toInternalGroup(dto: DomainWorkflowGroupDTO): WorkflowGroup {
+  return {
+    id: dto.id,
+    label: dto.label,
+    color: normalizeGroupColor(dto.color),
+    x: dto.x,
+    y: dto.y,
+    width: dto.width,
+    height: dto.height,
+    collapsed: dto.collapsed,
   }
 }
 
@@ -54,6 +100,12 @@ export function domainToInternal(
   registry: NodeRegistry,
   dto: DomainWorkflowDTO
 ): WorkflowGraphState {
+  const domainGroups = dto.groups ?? []
+  const groupIdByNodeId = new Map<string, string>()
+  domainGroups.forEach((group) => {
+    group.nodeIds.forEach((nodeId) => groupIdByNodeId.set(nodeId, group.id))
+  })
+
   const nodes: WorkflowNode[] = dto.nodes.map(
     (nodeDto: DomainWorkflowNodeDTO) => {
       const baseNode = createWorkflowNode(
@@ -63,6 +115,7 @@ export function domainToInternal(
         nodeDto.label
       )
       baseNode.id = nodeDto.id
+      const groupId = groupIdByNodeId.get(nodeDto.id)
       baseNode.data = {
         kind: nodeDto.kind,
         label: nodeDto.label,
@@ -71,6 +124,7 @@ export function domainToInternal(
           nodeDto.kind as NodeKind,
           nodeDto.config
         ),
+        ...(groupId === undefined ? {} : { groupId }),
       }
 
       return baseNode
@@ -102,6 +156,7 @@ export function domainToInternal(
   return {
     nodes,
     edges,
+    groups: domainGroups.map(toInternalGroup),
     viewport: dto.viewport,
     document: {
       id: dto.id,

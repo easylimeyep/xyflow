@@ -1,5 +1,20 @@
 @import "@xyflow/react/dist/style.css" layer(components);
 
+/*
+ * Group color tokens: one base hue per color. Group surfaces mix it into
+ * --background and --foreground, so they follow the theme on their own.
+ */
+:root {
+  --color-group-gray: oklch(55.2% 0.016 285.938);
+  --color-group-blue: oklch(62.3% 0.214 259.815);
+  --color-group-green: oklch(69.6% 0.17 162.48);
+  --color-group-yellow: oklch(85.2% 0.199 91.936);
+  --color-group-orange: oklch(70.5% 0.213 47.604);
+  --color-group-red: oklch(63.7% 0.237 25.331);
+  --color-group-purple: oklch(60.6% 0.25 292.717);
+  --color-group-pink: oklch(65.6% 0.241 354.308);
+}
+
 .react-flow {
   --xy-background-color: var(--muted);
   --xy-minimap-background-color: var(--card);

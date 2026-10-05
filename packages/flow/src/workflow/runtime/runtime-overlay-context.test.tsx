@@ -5,6 +5,7 @@ import type { ReactNode } from "react"
 import { afterEach, describe, expect, it } from "vitest"
 
 import {
+  aggregateRuntimeStatus,
   RuntimeObservationProvider,
   useEdgeRuntimeState,
   useNodeRuntimeState,
@@ -113,5 +114,19 @@ describe("runtime observation context", () => {
     )
 
     expect(screen.getByTestId("mode").textContent).toBe("observe")
+  })
+})
+
+describe("aggregateRuntimeStatus", () => {
+  it.each([
+    [["done", "failed", "running"], "failed"],
+    [["done", "running"], "running"],
+    [["done", "waiting"], "waiting"],
+    [["skipped", "done"], "done"],
+    [[undefined, "skipped"], "skipped"],
+    [[undefined], undefined],
+    [[], undefined],
+  ] as const)("summarizes %j as %s", (statuses, expected) => {
+    expect(aggregateRuntimeStatus(statuses)).toBe(expected)
   })
 })

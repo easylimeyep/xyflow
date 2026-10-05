@@ -14,7 +14,10 @@ export const createLayoutSlice: WorkflowSliceCreator = (set, get, api) => ({
         currentGraph
       )
 
-      if (nextGraph.nodes === currentGraph.nodes) {
+      if (
+        nextGraph.nodes === currentGraph.nodes &&
+        nextGraph.groups === currentGraph.groups
+      ) {
         set({ lastError: null })
         return true
       }

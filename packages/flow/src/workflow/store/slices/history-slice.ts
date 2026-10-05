@@ -30,8 +30,18 @@ function syncAfterHistoryNavigation(
           ? state.graph
           : { ...state.graph, nodes: nextNodes }
 
+      // A group the navigation removed cannot stay selected.
+      const groupIds = new Set(nextGraph.groups.map((group) => group.id))
+      const selectedGroupIds = state.selectedGroupIds.filter((id) =>
+        groupIds.has(id)
+      )
+
       return {
         graph: nextGraph,
+        selectedGroupIds:
+          selectedGroupIds.length === state.selectedGroupIds.length
+            ? state.selectedGroupIds
+            : selectedGroupIds,
         nodeDragOriginGraph: null,
         lastError: null,
         ...buildExpressionSlicePatch(state, nextGraph),

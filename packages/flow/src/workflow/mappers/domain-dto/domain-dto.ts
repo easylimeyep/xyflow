@@ -6,6 +6,7 @@ import type {
   DomainWorkflowNodeDTO,
 } from "../../types/types"
 import { asRecord, isNumber, isString, isViewport } from "../utils/utils"
+import { decodeDomainGroups } from "./domain-groups"
 
 function toNodeDTO(
   registry: NodeRegistry,
@@ -121,6 +122,20 @@ export function toDomainDTO(
     }
   }
 
+  const nodeValues = nodes
+    .filter(
+      (node): node is { success: true; value: DomainWorkflowNodeDTO } =>
+        node.success
+    )
+    .map((node) => node.value)
+  const groups = decodeDomainGroups(
+    record.groups,
+    new Set(nodeValues.map((node) => node.id))
+  )
+  if (!groups.success) {
+    return { success: false, error: groups.error }
+  }
+
   return {
     success: true,
     value: {
@@ -128,16 +143,12 @@ export function toDomainDTO(
       name: record.name,
       version: record.version,
       metadata: record.metadata as DomainWorkflowDTO["metadata"],
-      nodes: nodes
-        .filter(
-          (node): node is { success: true; value: DomainWorkflowNodeDTO } =>
-            node.success
-        )
-        .map((node) => node.value),
+      nodes: nodeValues,
       connections: connections.filter(
         (connection): connection is DomainWorkflowConnectionDTO =>
           connection !== null
       ),
+      groups: groups.value,
       viewport,
     },
   }

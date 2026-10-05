@@ -81,6 +81,7 @@ const graph: WorkflowGraphState = {
     inline("b", 100, ["{{ other }}", "{{ price.total }}"]),
   ],
   edges: [],
+  groups: [],
   viewport: { x: 0, y: 0, zoom: 1 },
   document: { id: "doc", name: "Doc", version: 1, metadata: {} },
 }
@@ -291,5 +292,47 @@ describe("search results panel", () => {
     expect(screen.getByTestId("workflow-search-empty").textContent).toContain(
       "Type to find"
     )
+  })
+})
+
+describe("search results panel with groups", () => {
+  afterEach(() => {
+    cleanup()
+    revealSpy.mockClear()
+  })
+
+  it("lists a group label match as a group entry and reveals its frame", async () => {
+    render(
+      <WorkflowEditor
+        initialGraph={{
+          ...graph,
+          groups: [
+            {
+              id: "g",
+              label: "price checks",
+              color: "green",
+              x: 0,
+              y: -400,
+              width: 400,
+              height: 300,
+              collapsed: true,
+            },
+          ],
+        }}
+        definitions={builtinBaseDefinitions}
+      >
+        <WorkflowEditor.Body>
+          <WorkflowEditor.Canvas />
+          <WorkflowEditor.Search />
+        </WorkflowEditor.Body>
+      </WorkflowEditor>
+    )
+    await openPanel()
+
+    expect(rows().map(rowText)[0]).toEqual(["1", "Label", "price checks"])
+    const header = screen.getAllByRole("group")[0]!
+    expect(header.textContent).toContain("Group")
+    expect(header.textContent).toContain("price checks")
+    expect(revealSpy).toHaveBeenLastCalledWith("group-frame:g")
   })
 })

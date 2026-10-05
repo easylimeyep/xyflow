@@ -58,6 +58,11 @@ vi.mock("@xyflow/react", async (importOriginal) => ({
   useStore: (
     selector: (state: { transform: [number, number, number] }) => unknown
   ) => selector({ transform: [0, 0, 1] }),
+  useStoreApi: () => ({
+    subscribe: () => () => {},
+    getState: () => ({ nodesSelectionActive: false }),
+    setState: () => {},
+  }),
   useNodesInitialized: () => true,
 }))
 
@@ -78,6 +83,7 @@ const secondNode = {
 const graph: WorkflowGraphState = {
   nodes: [node, secondNode],
   edges: [],
+  groups: [],
   viewport: { x: 0, y: 0, zoom: 1 },
   document: { id: "doc", name: "Doc", version: 1, metadata: {} },
 }

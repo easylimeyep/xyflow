@@ -102,6 +102,7 @@ describe("WorkflowEditor package root", () => {
     const graphState: WorkflowGraphState = {
       nodes: [workflowNode],
       edges: [],
+      groups: [],
       viewport: workflowDto.viewport,
       document: {
         id: workflowDto.id,

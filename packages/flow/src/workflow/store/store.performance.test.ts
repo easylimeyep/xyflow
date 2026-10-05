@@ -57,6 +57,7 @@ function createRepresentativeGraph(nodeCount = 180): WorkflowGraphState {
   return {
     nodes,
     edges,
+    groups: [],
     viewport: { x: 0, y: 0, zoom: 1 },
     document: {
       id: "perf-doc",
@@ -125,6 +126,7 @@ describe("expression cache identity across a graph commit", () => {
             },
           },
         ],
+        groups: [],
         viewport: { x: 0, y: 0, zoom: 1 },
         document: {
           id: "identity-doc",

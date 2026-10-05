@@ -99,9 +99,15 @@ export const createSearchSlice: WorkflowSliceCreator = (set, get) => ({
   },
   selectCurrentSearchNode: () => {
     const current = selectCurrentSearchMatch(get())
-    if (current) {
-      get().setSelectedNode(current.nodeId)
+    if (!current) {
+      return
     }
+    if (current.target === "group") {
+      get().setSelectedNodes([])
+      get().setSelectedGroups([current.groupId])
+      return
+    }
+    get().setSelectedNode(current.nodeId)
   },
   setSearchCurrentMatch: (key) => {
     set((state) => {

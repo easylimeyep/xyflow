@@ -196,6 +196,20 @@ describe("WorkflowEdgeComponent", () => {
     ).toBeTruthy()
   })
 
+  it("offers no insert or delete on an edge drawn to a collapsed group", () => {
+    const proxyId = "group-proxy:edge-1"
+    render(
+      <svg>
+        <WorkflowEdgeComponent {...edgeProps} id={proxyId} />
+      </svg>
+    )
+
+    fireEvent.mouseEnter(screen.getByTestId(`workflow-edge-${proxyId}`))
+
+    expect(screen.queryByRole("button", { name: /Insert node/ })).toBeNull()
+    expect(screen.queryByRole("button", { name: /Delete edge/ })).toBeNull()
+  })
+
   it("drops the toolbar once the pointer leaves both the edge and the toolbar", () => {
     render(
       <svg>

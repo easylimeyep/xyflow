@@ -6,9 +6,11 @@ import { Fragment, type SyntheticEvent } from "react"
 import { selectionToolbarStyles } from "../../../styles/components/canvas"
 import { ActionTooltip } from "../action-tooltip"
 import {
-  SELECTION_COMMANDS,
+  getAvailableCommands,
+  getCommandPresentation,
   startsDestructiveGroup,
   useSelectionCommandActions,
+  useSelectionSummary,
 } from "../../selection-commands"
 
 // React Flow's own pan/drag listeners are native, so the `nodrag nopan`
@@ -30,9 +32,14 @@ export interface SelectionToolbarProps {
   onAfterCommand?: () => void
 }
 
-/** Icon buttons for the commands that act on the current node selection. */
+/**
+ * Icon buttons for the commands that apply to the current selection of nodes
+ * and groups.
+ */
 export function SelectionToolbar({ onAfterCommand }: SelectionToolbarProps) {
   const actions = useSelectionCommandActions()
+  const selection = useSelectionSummary()
+  const commands = getAvailableCommands(selection)
   const styles = selectionToolbarStyles()
 
   return (
@@ -46,24 +53,27 @@ export function SelectionToolbar({ onAfterCommand }: SelectionToolbarProps) {
       onClick={stopCanvasPropagation}
       onDoubleClick={stopCanvasPropagation}
     >
-      {SELECTION_COMMANDS.map((command, index) => {
-        const Icon = command.icon
+      {commands.map((command, index) => {
+        const { label, icon: Icon } = getCommandPresentation(command, selection)
 
         return (
           <Fragment key={command.id}>
-            {startsDestructiveGroup(SELECTION_COMMANDS, index) ? (
+            {startsDestructiveGroup(commands, index) ? (
               <span className={styles.separator()} aria-hidden="true" />
             ) : null}
-            <ActionTooltip label={command.label} shortcut={[command.shortcut]}>
+            <ActionTooltip
+              label={label}
+              shortcut={command.shortcut ? [command.shortcut] : undefined}
+            >
               <Button
                 size="icon-sm"
                 variant={command.destructive ? "destructive" : "ghost"}
                 className={styles.button({
                   destructive: command.destructive,
                 })}
-                aria-label={command.label}
+                aria-label={label}
                 onPress={() => {
-                  command.run(actions)
+                  command.run(actions, selection)
                   onAfterCommand?.()
                 }}
               >

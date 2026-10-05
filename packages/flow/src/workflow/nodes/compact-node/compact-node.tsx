@@ -24,6 +24,7 @@ import {
   selectNodeRegistry,
   selectNodeSearchStatus,
   useWorkflowShallowStore,
+  useWorkflowStore,
 } from "../../store"
 import type { WorkflowNode, WorkflowNodeData } from "../../types"
 import { useBaseNodeData } from "../shared/use-base-node-data"
@@ -41,10 +42,14 @@ export const COMPACT_NODE_MAX_ZOOM = 0.4
  */
 const VIEWPORT_MARGIN_RATIO = 0.5
 
-function isOutsideViewport(state: ReactFlowState, nodeId: string): boolean {
+function isOutsideViewport(
+  state: ReactFlowState,
+  nodeId: string,
+  isLargeGraph: boolean
+): boolean {
   // A small graph keeps every node in full: mounting them all is cheap, and
   // panning never reveals a compact card.
-  if (state.nodeLookup.size <= LARGE_GRAPH_MIN_NODES) {
+  if (!isLargeGraph) {
     return false
   }
 
@@ -76,10 +81,16 @@ function isOutsideViewport(state: ReactFlowState, nodeId: string): boolean {
  * threshold — is what freezes the page on a large graph.
  */
 export function useIsCompactNode(nodeId: string): boolean {
+  // Counted on the workflow's own nodes, as the canvas counts them when it
+  // decides to cull: React Flow's lookup also holds the group frames, and the
+  // two would disagree near the threshold.
+  const isLargeGraph = useWorkflowStore(
+    (state) => state.graph.nodes.length > LARGE_GRAPH_MIN_NODES
+  )
   return useStore(
     (state: ReactFlowState) =>
       (state.transform[2] ?? 1) < COMPACT_NODE_MAX_ZOOM ||
-      isOutsideViewport(state, nodeId)
+      isOutsideViewport(state, nodeId, isLargeGraph)
   )
 }
 

@@ -20,6 +20,7 @@ export const DEFAULT_VIEWPORT: Viewport = { x: 0, y: 0, zoom: 1 }
 export const initialWorkflowGraph: WorkflowGraphState = {
   nodes: [],
   edges: [],
+  groups: [],
   viewport: DEFAULT_VIEWPORT,
   document: {
     id: "workflow-local",

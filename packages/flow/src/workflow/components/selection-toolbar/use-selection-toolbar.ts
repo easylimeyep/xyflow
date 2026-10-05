@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react"
 
+import { toGroupFrameId } from "../../groups/group-canvas-ids"
 import type { WorkflowNode } from "../../types"
 
 /**
@@ -9,7 +10,10 @@ import type { WorkflowNode } from "../../types"
 export const MIN_NODES_FOR_SELECTION_TOOLBAR = 2
 
 export interface SelectionToolbarState {
-  /** Ids of the selected nodes, in canvas order. */
+  /**
+   * Canvas node ids the toolbar is anchored to: the selected nodes, in canvas
+   * order, then the frames of the selected groups.
+   */
   selectedNodeIds: string[]
   isVisible: boolean
   /** Wire to React Flow's node and selection drag start events. */
@@ -25,7 +29,8 @@ export interface SelectionToolbarState {
  */
 export function useSelectionToolbar(
   nodes: readonly WorkflowNode[],
-  isObserving: boolean
+  isObserving: boolean,
+  selectedGroupIds: readonly string[] = []
 ): SelectionToolbarState {
   const [isDragging, setIsDragging] = useState(false)
   const [wasObserving, setWasObserving] = useState(isObserving)
@@ -37,17 +42,27 @@ export function useSelectionToolbar(
     setWasObserving(isObserving)
     setIsDragging(false)
   }
-  const selectedNodeIds = useMemo(
+  const selectedWorkflowNodeIds = useMemo(
     () => nodes.filter((node) => node.selected).map((node) => node.id),
     [nodes]
+  )
+  const selectedNodeIds = useMemo(
+    () =>
+      selectedGroupIds.length === 0
+        ? selectedWorkflowNodeIds
+        : [...selectedWorkflowNodeIds, ...selectedGroupIds.map(toGroupFrameId)],
+    [selectedGroupIds, selectedWorkflowNodeIds]
   )
   const onDragStart = useCallback(() => setIsDragging(true), [])
   const onDragStop = useCallback(() => setIsDragging(false), [])
 
   return {
     selectedNodeIds,
+    // A selected group has no other place for its commands, so one group is
+    // enough to show the toolbar.
     isVisible:
-      selectedNodeIds.length >= MIN_NODES_FOR_SELECTION_TOOLBAR &&
+      (selectedWorkflowNodeIds.length >= MIN_NODES_FOR_SELECTION_TOOLBAR ||
+        selectedGroupIds.length > 0) &&
       !isObserving &&
       !isDragging,
     onDragStart,

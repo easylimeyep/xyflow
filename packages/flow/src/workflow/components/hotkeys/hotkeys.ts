@@ -1,6 +1,7 @@
 export type HistoryHotkeyAction = "undo" | "redo"
 export type ClipboardHotkeyAction = "copy" | "paste"
 export type NodeEditHotkeyAction = "duplicate" | "delete"
+export type GroupHotkeyAction = "group" | "ungroup"
 
 const LATIN_LETTER = /^[a-z]$/
 
@@ -129,7 +130,8 @@ export function getNodeEditHotkeyAction(
     return "duplicate"
   }
 
-  if (!hasModifier && event.key.toLowerCase() === "backspace") {
+  const key = event.key.toLowerCase()
+  if (!hasModifier && (key === "backspace" || key === "delete")) {
     return "delete"
   }
 
@@ -153,6 +155,53 @@ export function createNodeEditHotkeyHandler(
     }
 
     onDelete()
+  }
+}
+
+/**
+ * `Mod+G` groups the selection, `Mod+Shift+G` ungroups the selected group.
+ * The physical key decides on non-Latin layouts, as for every letter hotkey.
+ */
+export function getGroupHotkeyAction(
+  event: KeyboardEvent
+): GroupHotkeyAction | null {
+  if (event.defaultPrevented || event.altKey) {
+    return null
+  }
+
+  const hasModifier = event.metaKey || event.ctrlKey
+  if (!hasModifier || isEditableEventTarget(event.target)) {
+    return null
+  }
+
+  if (!isLetterHotkey(event, "g")) {
+    return null
+  }
+
+  return event.shiftKey ? "ungroup" : "group"
+}
+
+/**
+ * Runs the group hotkeys. The browser's own `Mod+G` (find next) never runs on
+ * the editor, even when the command does not apply to the selection.
+ */
+export function createGroupHotkeyHandler(
+  onGroup: () => void,
+  onUngroup: () => void
+): (event: KeyboardEvent) => void {
+  return (event: KeyboardEvent) => {
+    const action = getGroupHotkeyAction(event)
+    if (!action) {
+      return
+    }
+
+    event.preventDefault()
+    if (action === "group") {
+      onGroup()
+      return
+    }
+
+    onUngroup()
   }
 }
 

@@ -4,7 +4,15 @@ import { builtinBaseDefinitions } from "../node-registry/builtin-base-definition
 import { createWorkflowNode } from "../node-registry/node-factory"
 import { createNodeRegistry } from "../node-registry/registry"
 import type { WorkflowNode } from "../types/types"
-import { buildSearchMatches, reconcileCurrentMatch } from "./matches"
+import {
+  buildSearchMatches as buildAllMatches,
+  isNodeSearchMatch,
+  reconcileCurrentMatch,
+} from "./matches"
+
+/** These cases search nodes only; narrowing keeps `nodeId` in reach. */
+const buildSearchMatches = (...args: Parameters<typeof buildAllMatches>) =>
+  buildAllMatches(...args).filter(isNodeSearchMatch)
 
 const registry = createNodeRegistry(builtinBaseDefinitions)
 

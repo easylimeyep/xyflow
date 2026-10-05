@@ -13,6 +13,7 @@ import {
   Virtualizer,
 } from "@flow/ui/components/list-box"
 import { ToggleGroup, ToggleGroupItem } from "@flow/ui/components/toggle-group"
+import { Group as GroupIcon } from "lucide-react"
 
 import {
   SEARCH_RESULT_HEADING_SIZE,
@@ -20,7 +21,11 @@ import {
   searchResultsPanelStyles,
 } from "../../../styles/components/panels"
 import type { NodeRegistry } from "../../node-registry/registry"
-import { describeSearchMatch } from "../../search/describe-match"
+import {
+  describeGroupSearchMatch,
+  describeSearchMatch,
+  type SearchMatchDescription,
+} from "../../search/describe-match"
 import {
   SEARCH_MATCH_SOURCES,
   type SearchMatch,
@@ -35,7 +40,7 @@ import {
   type WorkflowStoreState,
 } from "../../store"
 import type { SearchSourceFilter } from "../../store/types"
-import type { WorkflowNode } from "../../types/types"
+import type { WorkflowGroup, WorkflowNode } from "../../types/types"
 
 const SOURCE_LABELS: Record<SearchMatchSource, string> = {
   label: "Labels",
@@ -43,37 +48,60 @@ const SOURCE_LABELS: Record<SearchMatchSource, string> = {
   "variable-reference": "References",
 }
 
+/** What a results section stands for: a node, or a group's label. */
+type ResultTarget =
+  | { kind: "node"; node: WorkflowNode }
+  | { kind: "group"; group: WorkflowGroup }
+
 interface ResultRow {
   id: string
   /** One-based position in the match set: the `N` of the counter. */
   position: number
   match: SearchMatch
-  node: WorkflowNode
+  target: ResultTarget
 }
 
 interface ResultGroup {
   id: string
-  node: WorkflowNode
+  target: ResultTarget
   rows: ResultRow[]
 }
 
-/** Matches grouped by node, groups in order of each node's first match. */
+function targetLabel(target: ResultTarget): string {
+  return target.kind === "node" ? target.node.data.label : target.group.label
+}
+
+/**
+ * Matches grouped by node (or by group, for group labels), sections in order
+ * of each target's first match.
+ */
 function groupMatches(
   matches: readonly SearchMatch[],
-  nodes: readonly WorkflowNode[]
+  nodes: readonly WorkflowNode[],
+  groups: readonly WorkflowGroup[]
 ): ResultGroup[] {
   const nodesById = new Map(nodes.map((node) => [node.id, node]))
-  const groups = new Map<string, ResultGroup>()
+  const groupsById = new Map(groups.map((group) => [group.id, group]))
+  const sections = new Map<string, ResultGroup>()
   matches.forEach((match, index) => {
-    const node = nodesById.get(match.nodeId)
-    if (!node) {
-      return
+    let id: string
+    let target: ResultTarget
+    if (match.target === "group") {
+      const group = groupsById.get(match.groupId)
+      if (!group) return
+      id = `group:${group.id}`
+      target = { kind: "group", group }
+    } else {
+      const node = nodesById.get(match.nodeId)
+      if (!node) return
+      id = node.id
+      target = { kind: "node", node }
     }
-    const group = groups.get(node.id) ?? { id: node.id, node, rows: [] }
-    group.rows.push({ id: match.key, position: index + 1, match, node })
-    groups.set(node.id, group)
+    const section = sections.get(id) ?? { id, target, rows: [] }
+    section.rows.push({ id: match.key, position: index + 1, match, target })
+    sections.set(id, section)
   })
-  return [...groups.values()]
+  return [...sections.values()]
 }
 
 function selectPanelView(state: WorkflowStoreState) {
@@ -85,6 +113,7 @@ function selectPanelView(state: WorkflowStoreState) {
     sourceCounts: selectSearchSourceCounts(state),
     hiddenByFilters: selectSearchHiddenByFilters(state),
     nodes: state.graph.nodes,
+    groups: state.graph.groups,
     registry: state.registry,
     setSearchCurrentMatch: state.setSearchCurrentMatch,
     setSearchSources: state.setSearchSources,
@@ -118,13 +147,17 @@ export function SearchResultsPanel({
     sourceCounts,
     hiddenByFilters,
     nodes,
+    groups,
     registry,
     setSearchCurrentMatch,
     setSearchSources,
     resetSearchSources,
   } = useWorkflowShallowStore(selectPanelView)
   const styles = searchResultsPanelStyles()
-  const groups = useMemo(() => groupMatches(matches, nodes), [matches, nodes])
+  const sections = useMemo(
+    () => groupMatches(matches, nodes, groups),
+    [groups, matches, nodes]
+  )
   // An instance rather than the class, so the current row's position can be
   // read back for scrolling without the list holding focus.
   const layout = useMemo(
@@ -201,7 +234,7 @@ export function SearchResultsPanel({
             ref={listRef}
             aria-label="Search results"
             className={styles.list()}
-            items={groups}
+            items={sections}
             selectionMode="single"
             disallowEmptySelection
             selectedKeys={currentKey ? [currentKey] : []}
@@ -252,18 +285,35 @@ function SearchResultHeader({
   registry: NodeRegistry
 }) {
   const styles = searchResultsPanelStyles()
-  const definition = registry.get(group.node.data.kind)
-  const Icon = definition?.icon
+  const { target } = group
+  const definition =
+    target.kind === "node" ? registry.get(target.node.data.kind) : undefined
+  const Icon = target.kind === "group" ? GroupIcon : definition?.icon
+  const kindTitle = target.kind === "group" ? "Group" : definition?.title
   return (
     <ListBoxHeader className={styles.groupHeader()}>
       {Icon ? <Icon className={styles.groupIcon()} aria-hidden /> : null}
-      <span className={styles.groupLabel()}>{group.node.data.label}</span>
-      {definition ? (
-        <span className={styles.groupKind()}>{definition.title}</span>
+      <span className={styles.groupLabel()}>{targetLabel(target)}</span>
+      {kindTitle ? (
+        <span className={styles.groupKind()}>{kindTitle}</span>
       ) : null}
       <span className={styles.groupCount()}>{group.rows.length}</span>
     </ListBoxHeader>
   )
+}
+
+function describeRow(
+  registry: NodeRegistry,
+  row: ResultRow
+): SearchMatchDescription {
+  const { match, target } = row
+  if (target.kind === "group" && match.target === "group") {
+    return describeGroupSearchMatch(target.group, match)
+  }
+  if (target.kind === "node" && match.target === "node") {
+    return describeSearchMatch(registry, target.node, match)
+  }
+  throw new Error(`Search result ${row.id} does not match its section.`)
 }
 
 function SearchResultRow({
@@ -274,15 +324,11 @@ function SearchResultRow({
   registry: NodeRegistry
 }) {
   const styles = searchResultsPanelStyles()
-  const { fieldName, snippet } = describeSearchMatch(
-    registry,
-    row.node,
-    row.match
-  )
+  const { fieldName, snippet } = describeRow(registry, row)
   return (
     <ListBoxItem
       id={row.id}
-      textValue={`${row.node.data.label}, ${fieldName}, ${snippet.before}${snippet.hit}${snippet.after}`}
+      textValue={`${targetLabel(row.target)}, ${fieldName}, ${snippet.before}${snippet.hit}${snippet.after}`}
       className={styles.row()}
       data-testid="workflow-search-result"
     >

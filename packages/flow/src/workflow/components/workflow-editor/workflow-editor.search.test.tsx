@@ -72,6 +72,7 @@ const graph: WorkflowGraphState = {
     inline("c", 200, ["{{ other }}"]),
   ],
   edges: [],
+  groups: [],
   viewport: { x: 0, y: 0, zoom: 1 },
   document: { id: "doc", name: "Doc", version: 1, metadata: {} },
 }

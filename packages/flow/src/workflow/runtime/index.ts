@@ -1,5 +1,7 @@
 export {
   RuntimeObservationProvider,
+  aggregateRuntimeStatus,
+  useAggregateRuntimeStatus,
   useEdgeRuntimeState,
   useNodeRuntimeState,
   useRuntimeMode,

@@ -1,6 +1,9 @@
+import { toGroupFrameId } from "../groups/group-canvas-ids"
 import type { NodeRegistry } from "../node-registry/registry"
 import {
   buildSearchMatches,
+  isGroupSearchMatch,
+  isNodeSearchMatch,
   reconcileCurrentMatch,
   SEARCH_MATCH_SOURCES,
   type SearchMatch,
@@ -8,7 +11,7 @@ import {
   type SearchMatchSource,
   type SearchSortTuple,
 } from "../search/matches"
-import type { WorkflowNode } from "../types/types"
+import type { WorkflowGroup, WorkflowNode } from "../types/types"
 import type { SearchSourceFilter, WorkflowStoreState } from "./types"
 
 export type NodeSearchStatus = "none" | "match" | "current"
@@ -23,8 +26,14 @@ export type FieldSearchStatus = NodeSearchStatus
  */
 export const SEARCH_TITLE_FIELD = ":title"
 
-/** The field a match is marked on, or `undefined` when it has none. */
+/**
+ * The field a node match is marked on, or `undefined` when it has none. A
+ * group match has no node field at all.
+ */
 export function searchMatchFieldKey(match: SearchMatch): string | undefined {
+  if (!isNodeSearchMatch(match)) {
+    return undefined
+  }
   return match.source === "label" ? SEARCH_TITLE_FIELD : match.fieldPath
 }
 
@@ -45,6 +54,7 @@ export interface FieldSearchStatusOptions {
 // keyed by the full list, so toggling a source never rescans the graph.
 interface FullIndexCache {
   nodes: readonly WorkflowNode[]
+  groups: readonly WorkflowGroup[]
   query: string
   options: SearchMatchOptions
   matches: SearchMatch[]
@@ -57,6 +67,7 @@ interface MatchIndexCache {
   /** The matches the enabled sources let through, in canvas order. */
   matches: SearchMatch[]
   matchedNodeIds: ReadonlySet<string>
+  matchedGroupIds: ReadonlySet<string>
   /** Per node, the field keys holding at least one match. */
   fieldKeysByNode: ReadonlyMap<string, ReadonlySet<string>>
   /** Every match the query and options yield, before the source filter. */
@@ -93,7 +104,7 @@ function fullIndexFor(state: WorkflowStoreState): FullIndexCache | null {
     return null
   }
 
-  const nodes = state.graph.nodes
+  const { nodes, groups } = state.graph
   const cached = fullIndexCaches.get(state.registry)
   if (
     cached &&
@@ -102,14 +113,24 @@ function fullIndexFor(state: WorkflowStoreState): FullIndexCache | null {
   ) {
     // A drag rewrites positions every frame; the order it would produce is
     // settled once the drag ends and `nodeDragOriginGraph` clears.
-    if (cached.nodes === nodes || state.nodeDragOriginGraph) {
+    if (
+      (cached.nodes === nodes && cached.groups === groups) ||
+      state.nodeDragOriginGraph
+    ) {
       return cached
     }
   }
 
-  const matches = buildSearchMatches(nodes, state.registry, query, options)
+  const matches = buildSearchMatches(
+    nodes,
+    state.registry,
+    query,
+    options,
+    groups
+  )
   const next: FullIndexCache = {
     nodes,
+    groups,
     query,
     options,
     matches,
@@ -137,7 +158,12 @@ function matchIndexFor(state: WorkflowStoreState): MatchIndexCache | null {
   const next: MatchIndexCache = {
     sources,
     matches,
-    matchedNodeIds: new Set(matches.map((match) => match.nodeId)),
+    matchedNodeIds: new Set(
+      matches.filter(isNodeSearchMatch).map((match) => match.nodeId)
+    ),
+    matchedGroupIds: new Set(
+      matches.filter(isGroupSearchMatch).map((match) => match.groupId)
+    ),
     fieldKeysByNode: indexFieldKeys(matches),
     full,
   }
@@ -163,7 +189,7 @@ function indexFieldKeys(
   const byNode = new Map<string, Set<string>>()
   matches.forEach((match) => {
     const fieldKey = searchMatchFieldKey(match)
-    if (fieldKey === undefined) {
+    if (fieldKey === undefined || !isNodeSearchMatch(match)) {
       return
     }
     const keys = byNode.get(match.nodeId) ?? new Set<string>()
@@ -259,9 +285,42 @@ export function selectNodeSearchStatus(
   if (!index || !index.matchedNodeIds.has(nodeId)) {
     return "none"
   }
-  return selectCurrentSearchMatch(state)?.nodeId === nodeId
+  return currentNodeIdOf(selectCurrentSearchMatch(state)) === nodeId
     ? "current"
     : "match"
+}
+
+/** A group's place in the search: whether its label matches the query. */
+export function selectGroupSearchStatus(
+  state: WorkflowStoreState,
+  groupId: string
+): NodeSearchStatus {
+  const index = matchIndexFor(state)
+  if (!index || !index.matchedGroupIds.has(groupId)) {
+    return "none"
+  }
+  const current = selectCurrentSearchMatch(state)
+  return isGroupSearchMatch(current) && current.groupId === groupId
+    ? "current"
+    : "match"
+}
+
+function currentNodeIdOf(match: SearchMatch | null): string | undefined {
+  return isNodeSearchMatch(match) ? match.nodeId : undefined
+}
+
+/**
+ * The canvas node to reveal for the current match: the node holding it, or
+ * the frame (or card) of the group whose label it is in.
+ */
+export function selectCurrentSearchRevealId(
+  state: WorkflowStoreState
+): string | null {
+  const current = selectCurrentSearchMatch(state)
+  if (isGroupSearchMatch(current)) {
+    return toGroupFrameId(current.groupId)
+  }
+  return current?.nodeId ?? null
 }
 
 /**
@@ -281,7 +340,9 @@ export function selectFieldSearchStatus(
 
   const current = selectCurrentSearchMatch(state)
   const currentFieldKey =
-    current?.nodeId === nodeId ? searchMatchFieldKey(current) : undefined
+    current && currentNodeIdOf(current) === nodeId
+      ? searchMatchFieldKey(current)
+      : undefined
   if (
     currentFieldKey !== undefined &&
     coversSearchFieldKey(currentFieldKey, fieldKey, includeChildren)
@@ -312,7 +373,7 @@ export function selectNodeHasCurrentField(
     fieldKey === SEARCH_TITLE_FIELD
 ): boolean {
   const current = selectCurrentSearchMatch(state)
-  if (current?.nodeId !== nodeId) {
+  if (!current || currentNodeIdOf(current) !== nodeId) {
     return false
   }
   const fieldKey = searchMatchFieldKey(current)

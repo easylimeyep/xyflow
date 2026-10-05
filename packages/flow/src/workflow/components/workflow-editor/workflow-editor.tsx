@@ -46,11 +46,16 @@ import type {
   WorkflowValidationSnapshot,
 } from "../../types"
 import { RuntimeObservationProvider } from "../../runtime"
+import {
+  SELECTION_COMMANDS,
+  selectSelectionSummary,
+} from "../../selection-commands"
 import { workflowEditorStyles } from "../../../styles/components/editor-shell"
 import { EditorToolbar } from "../editor-toolbar"
 import {
   createClipboardHotkeyHandler,
   createHistoryHotkeyHandler,
+  createGroupHotkeyHandler,
   createNodeEditHotkeyHandler,
   isEscapeHotkey,
   isSearchHotkey,
@@ -241,6 +246,34 @@ function useNodeEditHotkeys(
   }, [enabled, onDelete, onDuplicate])
 }
 
+/**
+ * `Mod+G` / `Mod+Shift+G`, each only when its command applies to the
+ * selection — the same rule the toolbar and the context menus follow.
+ */
+function useGroupHotkeys(enabled: boolean): void {
+  const storeApi = useWorkflowStoreApi()
+  useEffect(() => {
+    if (!enabled) {
+      return
+    }
+
+    const runIfAvailable = (commandId: "group" | "ungroup") => {
+      const state = storeApi.getState()
+      const selection = selectSelectionSummary(state)
+      const command = SELECTION_COMMANDS.find((c) => c.id === commandId)
+      if (command?.isAvailable(selection)) {
+        command.run(state, selection)
+      }
+    }
+    const handler = createGroupHotkeyHandler(
+      () => runIfAvailable("group"),
+      () => runIfAvailable("ungroup")
+    )
+    window.addEventListener("keydown", handler)
+    return () => window.removeEventListener("keydown", handler)
+  }, [enabled, storeApi])
+}
+
 function WorkflowEditorLayoutProvider({
   anchorRefs,
   autoLayoutOnInit,
@@ -265,7 +298,7 @@ function WorkflowEditorLayoutProvider({
     copySelectionToClipboard,
     pasteFromClipboard,
     duplicateNodes,
-    deleteNodes,
+    deleteSelection,
     cancelQuickAdd,
     cancelEdgeInsert,
   } = useWorkflowShallowStore((state: WorkflowStoreState) => ({
@@ -274,7 +307,7 @@ function WorkflowEditorLayoutProvider({
     copySelectionToClipboard: state.copySelectionToClipboard,
     pasteFromClipboard: state.pasteFromClipboard,
     duplicateNodes: state.duplicateNodes,
-    deleteNodes: state.deleteNodes,
+    deleteSelection: state.deleteSelection,
     cancelQuickAdd: state.cancelQuickAdd,
     cancelEdgeInsert: state.cancelEdgeInsert,
   }))
@@ -292,7 +325,8 @@ function WorkflowEditorLayoutProvider({
     pasteSelectionNearPointer,
     editingEnabled
   )
-  useNodeEditHotkeys(duplicateNodes, deleteNodes, editingEnabled)
+  useNodeEditHotkeys(duplicateNodes, deleteSelection, editingEnabled)
+  useGroupHotkeys(editingEnabled)
   useCancelInsertHotkey(() => {
     cancelQuickAdd()
     cancelEdgeInsert()
@@ -787,19 +821,23 @@ export function WorkflowEditorCanvas({
   const [initialViewport] = useState(() =>
     selectViewport(workflowStoreApi.getState())
   )
-  const { nodes, edges, edgeInsertPending } = useWorkflowShallowStore(
-    (state: WorkflowStoreState) => ({
+  const { nodes, edges, groups, selectedGroupIds, edgeInsertPending } =
+    useWorkflowShallowStore((state: WorkflowStoreState) => ({
       nodes: selectPresentNodes(state),
       edges: selectPresentEdges(state),
+      groups: state.graph.groups,
+      selectedGroupIds: state.selectedGroupIds,
       edgeInsertPending: selectEdgeInsertPending(state),
-    })
-  )
+    }))
   const {
     onNodesChange,
     onEdgesChange,
     onConnect,
     setViewport,
     setSelectedNodes,
+    setSelectedGroups,
+    resizeGroup,
+    setGroupCollapsed,
     addNode,
     autoLayout,
     measuredInitialAutoLayout,
@@ -812,6 +850,9 @@ export function WorkflowEditorCanvas({
     onConnect: state.onConnect,
     setViewport: state.setViewport,
     setSelectedNodes: state.setSelectedNodes,
+    setSelectedGroups: state.setSelectedGroups,
+    resizeGroup: state.resizeGroup,
+    setGroupCollapsed: state.setGroupCollapsed,
     addNode: state.addNode,
     autoLayout: state.autoLayout,
     measuredInitialAutoLayout: state.measuredInitialAutoLayout,
@@ -821,9 +862,10 @@ export function WorkflowEditorCanvas({
   }))
   const handlePaneClick = useCallback(() => {
     setSelectedNodes([])
+    setSelectedGroups([])
     cancelQuickAdd()
     cancelEdgeInsert()
-  }, [cancelEdgeInsert, cancelQuickAdd, setSelectedNodes])
+  }, [cancelEdgeInsert, cancelQuickAdd, setSelectedGroups, setSelectedNodes])
   const handleDeleteEdge = useCallback(
     (edgeId: string) => {
       onEdgesChange([{ id: edgeId, type: "remove" }])
@@ -874,6 +916,11 @@ export function WorkflowEditorCanvas({
       <WorkflowCanvas
         nodes={nodes}
         edges={edges}
+        groups={groups}
+        selectedGroupIds={selectedGroupIds}
+        onSelectGroups={setSelectedGroups}
+        onResizeGroup={resizeGroup}
+        onSetGroupCollapsed={setGroupCollapsed}
         viewport={initialViewport}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}

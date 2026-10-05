@@ -24,6 +24,13 @@ import {
   WORKFLOW_ELK_PORT_CONSTRAINTS,
   workflowElkLayoutOptions,
 } from "./elk-options"
+import {
+  applyBlockPositions,
+  collectCollapsedBlocks,
+  fitExpandedGroups,
+  remapEdgesToBlocks,
+  type ElkGroupBlock,
+} from "./elk-groups"
 import { getEstimatedNodeHeight } from "./node-size-estimate"
 
 export interface ElkPort {
@@ -107,12 +114,40 @@ function toElkPorts(node: WorkflowNode, ports: WorkflowLayoutPorts): ElkPort[] {
   return elkPorts
 }
 
+function toElkBlock(block: ElkGroupBlock): ElkNode {
+  return {
+    id: block.id,
+    width: block.width,
+    height: block.height,
+    layoutOptions: {
+      "org.eclipse.elk.portConstraints": WORKFLOW_ELK_PORT_CONSTRAINTS,
+    },
+    ports: [
+      {
+        id: getElkPortId(block.id, "target", null),
+        properties: { side: "WEST" },
+      },
+      {
+        id: getElkPortId(block.id, "source", null),
+        properties: { side: "EAST" },
+      },
+    ],
+  }
+}
+
+/**
+ * Builds the ELK graph for `nodes` and `edges`. A collapsed group is passed as
+ * a block in `blocks` (its members left out of `nodes`): one node with a
+ * single input and output port, which `edges` may target by the block id.
+ */
 export function buildElkGraph(
   registry: NodeRegistry,
   nodes: WorkflowNode[],
-  edges: WorkflowEdge[]
+  edges: WorkflowEdge[],
+  blocks: readonly ElkGroupBlock[] = []
 ): ElkGraph {
   const nodePorts = new Map<string, WorkflowLayoutPorts>()
+  const blockIds = new Set(blocks.map((block) => block.id))
 
   const children = nodes.map((node) => {
     const ports = resolveWorkflowLayoutPorts(registry, node)
@@ -132,21 +167,26 @@ export function buildElkGraph(
   const elkEdges = edges.map((edge) => {
     const sourcePorts = nodePorts.get(edge.source)
     const targetPorts = nodePorts.get(edge.target)
+    const isSourceBlock = blockIds.has(edge.source)
+    const isTargetBlock = blockIds.has(edge.target)
 
-    const sourceHandleId = edge.sourceHandle ?? null
-    const targetHandleId = edge.targetHandle ?? null
+    const sourceHandleId = isSourceBlock ? null : (edge.sourceHandle ?? null)
+    const targetHandleId = isTargetBlock ? null : (edge.targetHandle ?? null)
 
     const sourcePortId = getElkPortId(edge.source, "source", sourceHandleId)
     const targetPortId = getElkPortId(edge.target, "target", targetHandleId)
 
     if (
-      !sourcePorts ||
-      !sourcePorts.outputHandles.some((handle) => handle.id === sourceHandleId)
+      !isSourceBlock &&
+      (!sourcePorts ||
+        !sourcePorts.outputHandles.some(
+          (handle) => handle.id === sourceHandleId
+        ))
     ) {
       throw new Error(`Missing ELK source port for edge ${edge.id}`)
     }
 
-    if (!targetPorts || !targetPorts.hasTargetPort) {
+    if (!isTargetBlock && (!targetPorts || !targetPorts.hasTargetPort)) {
       throw new Error(`Missing ELK target port for edge ${edge.id}`)
     }
 
@@ -160,7 +200,7 @@ export function buildElkGraph(
   return {
     id: "workflow-root",
     layoutOptions: { ...workflowElkLayoutOptions },
-    children,
+    children: [...children, ...blocks.map(toElkBlock)],
     edges: elkEdges,
   }
 }
@@ -413,20 +453,59 @@ export function applyEvaluatorShortcutClearance(
   return didChange ? nextNodes : nodes
 }
 
+/**
+ * Lays the workflow out with ELK. Each collapsed group is one block the size
+ * of its card, and its hidden members move with it; afterwards every
+ * non-empty expanded group is fitted around its members.
+ */
 export async function computeWorkflowAutoLayout(
   registry: NodeRegistry,
   graph: WorkflowGraphState,
   engine?: ElkLayoutEngine
 ): Promise<WorkflowGraphState> {
-  const elkGraph = buildElkGraph(registry, graph.nodes, graph.edges)
+  const blocks = collectCollapsedBlocks(graph)
+  const hiddenIds = new Set(blocks.flatMap((block) => [...block.memberIds]))
+  const layoutNodes =
+    hiddenIds.size === 0
+      ? graph.nodes
+      : graph.nodes.filter((node) => !hiddenIds.has(node.id))
+  const elkGraph = buildElkGraph(
+    registry,
+    layoutNodes,
+    remapEdgesToBlocks(graph.edges, blocks),
+    blocks
+  )
   const layoutEngine = engine ?? defaultElkLayoutEngine
   const layoutedGraph = await layoutEngine.layout(elkGraph)
 
-  return {
+  // Hidden members keep their place inside the block, so the clearance pass
+  // only sees the nodes the layout placed.
+  const visibleEdges =
+    hiddenIds.size === 0
+      ? graph.edges
+      : graph.edges.filter(
+          (edge) => !hiddenIds.has(edge.source) && !hiddenIds.has(edge.target)
+        )
+  const laidOut: WorkflowGraphState = {
     ...graph,
     nodes: applyEvaluatorShortcutClearance(
       applyElkLayout(graph.nodes, layoutedGraph),
-      graph.edges
+      visibleEdges
     ),
+  }
+  const withBlocks = applyBlockPositions(
+    laidOut,
+    blocks,
+    new Map(
+      (layoutedGraph.children ?? []).map((child) => [
+        child.id,
+        { x: child.x ?? 0, y: child.y ?? 0 },
+      ])
+    )
+  )
+
+  return {
+    ...withBlocks,
+    groups: fitExpandedGroups(withBlocks.nodes, withBlocks.groups),
   }
 }

@@ -10,6 +10,7 @@ import { Plus, Trash2 } from "lucide-react"
 import { useState } from "react"
 
 import { workflowEdgeStyles } from "../../../styles/components/canvas"
+import { isGroupProxyEdge } from "../../groups/group-canvas-edges"
 import { useEdgeRuntimeState, useRuntimeMode } from "../../runtime"
 import type { WorkflowEdge } from "../../types"
 
@@ -49,7 +50,9 @@ export function WorkflowEdgeComponent({
   const [isHovered, setIsHovered] = useState(false)
   const [isToolbarHovered, setIsToolbarHovered] = useState(false)
   const runtime = useEdgeRuntimeState(id)
-  const interactive = useRuntimeMode() === "edit"
+  // An edge drawn to a collapsed group's card stands in for real edges; there
+  // is nothing on it to insert into or delete.
+  const interactive = useRuntimeMode() === "edit" && !isGroupProxyEdge({ id })
   const hasTraversal = runtime.traversed || runtime.active
   const [edgePath, labelX, labelY] = getBezierPath({
     sourceX,

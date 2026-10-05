@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import {
   createClipboardHotkeyHandler,
+  createGroupHotkeyHandler,
   createHistoryHotkeyHandler,
   createNodeEditHotkeyHandler,
 } from "./hotkeys"
@@ -308,5 +309,49 @@ describe("createNodeEditHotkeyHandler integration", () => {
     window.removeEventListener("keydown", handler)
     expect(onDuplicate).not.toHaveBeenCalled()
     expect(onDelete).not.toHaveBeenCalled()
+  })
+})
+
+describe("createGroupHotkeyHandler integration", () => {
+  beforeEach(() => {
+    document.body.innerHTML = ""
+  })
+
+  it("groups with Mod+G and ungroups with Mod+Shift+G, suppressing the browser", () => {
+    const store = createWorkflowStore({
+      definitions: builtinBaseDefinitions,
+      initialGraph: createKeywordSampleGraph(builtinBaseDefinitions),
+    })
+    const nodeIds = store.getState().graph.nodes.map((node) => node.id)
+    store.getState().setSelectedNodes(nodeIds)
+    const handler = createGroupHotkeyHandler(
+      () => store.getState().groupNodes(),
+      () => store.getState().ungroup()
+    )
+    window.addEventListener("keydown", handler)
+
+    const groupEvent = new KeyboardEvent("keydown", {
+      key: "п",
+      code: "KeyG",
+      ctrlKey: true,
+      bubbles: true,
+      cancelable: true,
+    })
+    window.dispatchEvent(groupEvent)
+    expect(groupEvent.defaultPrevented).toBe(true)
+    expect(store.getState().graph.groups).toHaveLength(1)
+
+    const ungroupEvent = new KeyboardEvent("keydown", {
+      key: "G",
+      ctrlKey: true,
+      shiftKey: true,
+      bubbles: true,
+      cancelable: true,
+    })
+    window.dispatchEvent(ungroupEvent)
+    window.removeEventListener("keydown", handler)
+
+    expect(ungroupEvent.defaultPrevented).toBe(true)
+    expect(store.getState().graph.groups).toHaveLength(0)
   })
 })
