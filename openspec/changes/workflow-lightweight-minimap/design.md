@@ -23,27 +23,37 @@ See proposal.md (Why) for the per-frame cost this removes. Constraints that shap
 
 ## Decisions
 
-### 1. Two layers with two subscriptions
+### 1. Pan moves only compositor transforms
+
+A first version (one SVG with a `viewBox` and an `evenodd` mask path, both re-rendered by React on each frame) removed the per-node selectors, yet on a pan trace it still doubled the paint events and added about 0.75 ms per pointer move. Its JavaScript was only about 0.08 ms of that. The rest was Blink repainting the whole SVG, including the 509-node path, every time the mask or the `viewBox` changed, plus extra hit testing. So the viewport no longer changes anything that has to be painted:
 
 ```
 WorkflowMiniMap (Panel .react-flow__minimap)
   |
-  +-- useStore(s => s.nodes)                       ref compare, O(1) per frame
-  |     -> useMemo: read nodeLookup for positionAbsolute + measured,
-  |        skip hidden / unmeasured, split frames vs nodes,
-  |        build two path strings + bounds          O(n), only when nodes change
-  |     -> <MiniMapNodeLayer framesD nodesD/>      memo; untouched on pan
+  +-- useStore(geometry selector)        cached on s.nodes: O(1) per frame,
+  |     -> nodesD, framesD, bounds       O(n) rebuild only when nodes change
+  |     -> nodes frame = framing of the node bounds alone
+  |     -> <div nodes-layer>              own compositing layer
+  |          <svg viewBox=nodes frame>    painted only when nodes change
+  |            <MiniMapNodeLayer/>
   |
-  +-- useStore(s => ({ transform, width, height }), shallow)
-        -> viewBB, viewBox = union(bounds, viewBB) + offset
-        -> <svg viewBox> + <path class="react-flow__minimap-mask" evenodd>
+  +-- store.subscribe (no React render)
+        -> view = framing of union(bounds, viewport), as React Flow does
+        -> nodes-layer.style.transform = translate + scale mapping the
+           nodes frame into the view frame          (compositor only)
+        -> viewport-frame.style.transform / size     (compositor; size
+           changes only when the zoom or the framing scale changes)
 ```
 
-The viewBox is computed the same way as React Flow's `MiniMap`: scale the union to the element box, center it, add `offsetScale * viewScale` padding. Mini map framing therefore stays identical.
+The viewport rectangle is an HTML element on its own layer: a `border` in `var(--primary)` and a large `box-shadow` spread in the mask color for the dimmed area. The panel's `overflow: hidden` clips the shadow. The border is offset by half its width so it straddles the viewport edge, as an SVG stroke does.
+
+The framing still follows React Flow's `MiniMap`: the union of the nodes and the viewport, scaled to the element box, centered, and padded by `offsetScale * viewScale`. The node layer is rendered at the framing of the nodes alone, and the union framing is always at least as large, so the layer is only ever scaled down. That keeps it sharp.
+
+*Alternative:* the first version (React re-renders the `viewBox` and an SVG mask path). Rejected after measuring, as described above.
+
+*Alternative:* the first version with the nodes moved to a second SVG on its own layer. Measured: no gain, because the `viewBox` of that SVG still changes whenever the union framing changes.
 
 *Alternative:* keep `MiniMap` and pass a custom `nodeComponent`. Rejected: the cost is in `MiniMap`'s own per-node subscriptions and its root selector, and `nodeComponent` cannot remove them.
-
-*Alternative:* one selector returning the node path and the viewBox together. Rejected: the viewport part changes every frame, so the node path would be recomputed or at least compared every frame.
 
 ### 2. All nodes in one `<path>`, frames in a second one
 
@@ -55,7 +65,7 @@ Group frames (nodes of the frame type from `workflow-node-groups`, recognized by
 
 ### 3. Drag panning through `XYMinimap`, added as a direct dependency
 
-`XYMinimap` is attached to the `<svg>` once `panZoom` exists. It is created with `getTransform: () => store.getState().transform` and `getViewScale` read from a ref that is updated each render. It is updated with `pannable: true` and `zoomable: false`, plus `translateExtent`, `width`, and `height` from the store. Clicks go through `instance.pointer(event)` into the canvas's existing `handleMiniMapClick`, which keeps `setCenter` at the current zoom and never selects a node.
+`XYMinimap` is attached to the mini map's surface element once `panZoom` exists. It is created with `getTransform: () => store.getState().transform` and `getViewScale` read from a ref that the per-frame subscription updates. It is updated with `pannable: true` and `zoomable: false`, plus `translateExtent`, `width`, and `height` from the store. With no single SVG `viewBox` left, a click's flow position is computed from the current view frame: the frame origin plus the offset of the pointer within the surface, times flow units per pixel. The click then goes to the canvas's existing `handleMiniMapClick`, which keeps `setCenter` at the current zoom and never selects a node.
 
 `@xyflow/system` is pinned to the exact version `@xyflow/react@12.10.1` resolves (`0.0.75`), so a single copy stays installed. Upgrading `@xyflow/react` means upgrading `@xyflow/system` with it. A comment next to the dependency, or the upgrade checklist, records that.
 
@@ -63,7 +73,9 @@ Group frames (nodes of the frame type from `workflow-node-groups`, recognized by
 
 ### 4. Placement and styling
 
-The component renders inside `<ReactFlow>` in place of `<MiniMap>`, wrapped in React Flow's `Panel` with the `react-flow__minimap` class and `position="bottom-left"` semantics. The existing CSS keeps positioning and clipping it. Sizes default to React Flow's 200×150. The mask keeps the `react-flow__minimap-mask` class with `stroke: var(--primary)` and `strokeWidth: 2` passed as the same CSS custom properties React Flow uses (`--xy-minimap-mask-stroke-color-props` and `--xy-minimap-mask-stroke-width-props`), so nothing in `style.css` changes. New styles (the frame slot, the svg) go in a `tv` definition under `styles/components/canvas/`.
+The component renders inside `<ReactFlow>` in place of `<MiniMap>`, wrapped in React Flow's `Panel` with the `react-flow__minimap` class. The existing CSS keeps positioning and clipping it, so nothing in `style.css` changes. Sizes default to React Flow's 200×150. The node path keeps `react-flow__minimap-node`, so `--xy-minimap-node-*` theming applies. The viewport frame takes its dimmed color from `--xy-minimap-mask-background-color`, as React Flow's mask does, and its border from `var(--primary)` at 2px. All classes are composed through a `tv` definition under `styles/components/canvas/`.
+
+The transform math (view frame, node-layer transform, viewport-frame box, pointer-to-flow mapping) is a pure helper in the component folder, so it can be unit-tested without React or a browser.
 
 The component lives in its own folder (`components/workflow-minimap/`) with an `index.ts`, following the pattern of `workflow-edge` and `selection-toolbar`. The path-building function is a pure helper in that folder, so it can be unit-tested without React.
 
@@ -71,9 +83,24 @@ The component lives in its own folder (`components/workflow-minimap/`) with an `
 
 - [A dimension change reaches `nodeLookup` without a new `nodes` array, so the mini map shows stale sizes] → The workflow store applies every dimension change, which replaces the array. A test renders the mini map, delivers a dimension change, and checks the path. If this ever breaks, add `nodeLookup.size` or a cheap version counter to the selector.
 - [`@xyflow/system` version drifts from `@xyflow/react`'s, and two copies get installed] → Exact pin matching the resolved version. Note it in the change's tasks for future upgrades.
-- [Visual drift from React Flow's mini map: corner radius, stroke, padding] → The viewBox math and the radius are taken from React Flow's implementation. Compare screenshots before and after in light and dark mode.
+- [Visual drift from React Flow's mini map: corner radius, stroke, padding] → The framing math and the radius are taken from React Flow's implementation, and the border straddles the viewport edge like an SVG stroke. Compare screenshots before and after in light and dark mode.
+- [The node layer is a scaled bitmap while panning at a framing larger than the nodes] → It is only ever scaled down, and it repaints at its own framing whenever the nodes change.
+- [Per-frame DOM writes outside React drift from React's render] → The subscription owns only `transform`, `width`, and `height` on two elements React renders without those styles. It re-applies on subscribe and whenever the node frame changes.
 - [`workflow-node-groups` lands with a frame representation other than the one assumed] → The frame check is a single predicate. Whichever change lands second updates it. The groups change already lists the mini map in its manual check.
-- [jsdom cannot run the d3 gestures] → Unit tests cover path building, the selector boundaries (no node-layer render on a transform update), and click routing with a mocked `XYMinimap`. Drag panning and the visual result are checked in the browser against the 509-node story, using the same pan benchmark as the culling work.
+- [jsdom cannot run the d3 gestures or compositing] → Unit tests cover path building and the transform math; component tests cover the selector boundaries (no geometry rebuild or node-layer render on a transform update), the transforms written on a pan, and click routing with a mocked `XYMinimap`. Drag panning and the visual result are checked in the browser against the 509-node story, using the same pan benchmark as the culling work.
+
+## Measurements
+
+Pan trace on the 509-node story: headed Chromium, 4 drag gestures of 60 pointer moves each, renderer main thread, calm machine. Each line compares the minimap shown with the minimap hidden (`display: none`), interleaved, with the first warm-up pair dropped.
+
+| Version | Zoom | Paint events (shown / hidden) | `BeginMainFrame` ms (shown / hidden) |
+|---|---|---|---|
+| React Flow `MiniMap` (interleaved median task time, 6 runs) | 0.1 | n/a | +190 ms of task time over a gesture set |
+| First version (SVG `viewBox` + mask path) | 0.1 | ~750 / 328 | 1549–1640 / 1450–1472 |
+| Compositor transforms (this design) | 0.1 | 328 / 328 | 1419–1426 / 1417 |
+| Compositor transforms (this design) | 0.9 | 3650 / 3646–3650 | 703–716 / 694–700 |
+
+With this design the minimap adds no paint events while panning, and its main-thread overhead (2–16 ms over 240 pointer moves) is within run-to-run noise.
 
 ## Migration Plan
 
