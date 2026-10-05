@@ -41,6 +41,7 @@
   },
   "exports": {
     ".": "./src/index.tsx",
+    "./testing": "./src/testing/index.ts",
     "./style.css": "./src/style.css"
   }
 }

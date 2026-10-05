@@ -8,6 +8,10 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react"
+import {
+  appendExpressionText,
+  blurExpressionEditor,
+} from "@flow/expression-editor/testing"
 import type { NodeProps } from "@xyflow/react"
 import { useEffect } from "react"
 import { afterEach, describe, expect, it, vi } from "vitest"
@@ -22,9 +26,6 @@ import {
   type WorkflowStoreState,
 } from "../../store"
 import type { WorkflowNode } from "../../types"
-// `flow` does not depend on CodeMirror itself; reach the instance the
-// expression editor renders with, so the view found below is the same one.
-import { EditorView } from "../../../../../expression-editor/node_modules/@codemirror/view"
 
 const flowState = {
   transform: [0, 0, 1] as [number, number, number],
@@ -107,11 +108,8 @@ describe("editing a node that goes compact", () => {
       return element!
     })
     fireEvent.pointerDown(preview)
-    const view = EditorView.findFromDOM(
-      container.querySelector<HTMLElement>(".cm-editor")!
-    )!
     act(() => {
-      view.dispatch({ changes: { from: 1, insert: "b" } })
+      appendExpressionText(container, "b")
     })
 
     // Zoomed out while editing: the node holds its full view...
@@ -121,7 +119,7 @@ describe("editing a node that goes compact", () => {
 
     // ...until focus leaves it, and the swap must not drop the edit.
     act(() => {
-      view.contentDOM.blur()
+      blurExpressionEditor(container)
     })
 
     expect(screen.getByTestId("workflow-node-compact")).toBeTruthy()
