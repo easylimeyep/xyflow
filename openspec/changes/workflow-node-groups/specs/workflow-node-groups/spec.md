@@ -6,7 +6,7 @@ Lets users gather related workflow nodes into a named, colored frame on the canv
 
 ### Requirement: A group is a named, colored frame with no connections
 
-A node group SHALL have an id, a label, a color, a rectangle (position and size), a collapsed flag, and a set of member nodes. A group SHALL NOT expose connectable ports, SHALL NOT be a source or target of any connection, and SHALL NOT be treated as a workflow node by validation, the node config panel, expression variable scopes, canvas search, or node counts. Groups SHALL NOT affect workflow execution.
+A node group SHALL have an id, a label, a color, a rectangle (position and size), a collapsed flag, and a set of member nodes. A group SHALL NOT expose connectable ports, SHALL NOT be a source or target of any connection, and SHALL NOT be treated as a workflow node by validation, the node config panel, expression variable scopes, or node counts. Canvas search SHALL treat a group only as described in "Canvas search finds groups by label". Groups SHALL NOT affect workflow execution.
 
 #### Scenario: Group cannot be connected
 
@@ -40,7 +40,8 @@ A group SHALL own its rectangle. Member nodes SHALL keep absolute positions. Whe
 #### Scenario: Frame grows to follow a member
 
 - **WHEN** a member node is dragged past the right edge of its group frame
-- **THEN** the frame MUST grow so that it encloses the member
+- **THEN** the frame MUST grow so that it encloses the member while the drag is in progress
+- **AND** the move and the growth MUST commit as one history step when the drag ends
 
 #### Scenario: Frame does not shrink on its own
 
@@ -61,6 +62,13 @@ In edit mode the user SHALL be able to resize an expanded group by dragging its 
 - **WHEN** the user drags a frame edge inward past a member node
 - **THEN** the frame MUST stop at the member bounds plus padding
 
+#### Scenario: Resizing from the left edge does not move members
+
+- **WHEN** the user drags the left edge of a group frame
+- **THEN** only the frame's left edge MUST move
+- **AND** member nodes MUST keep their positions
+- **AND** the frame's right edge MUST stay fixed, including when the minimum size is reached
+
 #### Scenario: Fit to contents
 
 - **WHEN** the user runs "Fit to contents" on a group whose frame is larger than its members
@@ -68,12 +76,17 @@ In edit mode the user SHALL be able to resize an expanded group by dragging its 
 
 ### Requirement: Grouping the selection
 
-The editor SHALL let the user create a group from two or more selected nodes through `Mod+G`, the selection toolbar, and the node context menu. Grouping SHALL be available only when every selected node is ungrouped and no group is selected. A new group SHALL enclose the selected nodes, get a default label unique among existing groups and the default color, be expanded, and become selected.
+The editor SHALL let the user create a group from one or more selected nodes through `Mod+G`, the selection toolbar (shown for two or more selected nodes), and the node context menu. Grouping SHALL be available only when every selected node is ungrouped and no group is selected. A new group SHALL enclose the selected nodes, get a default label unique among existing groups and the default color, be expanded, and become selected.
 
 #### Scenario: Group selection with hotkey
 
 - **WHEN** two ungrouped nodes are selected and the user presses `Mod+G`
 - **THEN** a new group containing exactly those nodes MUST be created and selected
+
+#### Scenario: Group a single node
+
+- **WHEN** one ungrouped node is selected and the user chooses "Group" in its context menu
+- **THEN** a new group containing only that node MUST be created and selected
 
 #### Scenario: Group offered in the selection toolbar
 
@@ -89,6 +102,11 @@ The editor SHALL let the user create a group from two or more selected nodes thr
 
 - **WHEN** the user presses `Mod+G` or `Mod+Shift+G` on the canvas
 - **THEN** the browser's own action for that shortcut MUST NOT run
+
+#### Scenario: Shortcut on a non-Latin layout
+
+- **WHEN** a Russian keyboard layout is active, two ungrouped nodes are selected, and the user presses `Mod` with the physical `G` key
+- **THEN** a new group containing those nodes MUST be created
 
 ### Requirement: Selecting groups
 
@@ -125,6 +143,18 @@ When exactly one group is selected in edit mode, the editor SHALL show a toolbar
 - **WHEN** two member nodes of a group are selected
 - **THEN** the toolbar MUST NOT offer "Group" or "Ungroup"
 
+#### Scenario: Group context menu
+
+- **WHEN** the user right-clicks a group header or a collapsed group card in edit mode
+- **THEN** the group MUST be selected
+- **AND** a context menu with the same commands as the group toolbar MUST open
+
+#### Scenario: Keyboard access to a group
+
+- **WHEN** the user moves focus to a group header with `Tab` and presses `Enter`
+- **THEN** the group MUST be selected
+- **AND** the header MUST expose the group label and member count to assistive technology
+
 ### Requirement: Ungrouping
 
 Ungrouping a group SHALL remove the group and leave its member nodes in place with no group. It SHALL be available from the group toolbar and through `Mod+Shift+G` for a selected group.
@@ -144,6 +174,11 @@ Deleting a selected group SHALL remove the group together with all of its member
 - **WHEN** the user selects a group with three members and presses Delete
 - **THEN** the group and its three member nodes MUST be removed
 
+#### Scenario: Delete with a group and one of its members selected
+
+- **WHEN** a group and one of its members are selected together and the user presses Delete
+- **THEN** the group and all of its member nodes MUST be removed in one history step
+
 ### Requirement: Moving a group
 
 Dragging a group by its header, or dragging a collapsed group card, SHALL move the group rectangle and all of its members by the same offset.
@@ -158,6 +193,17 @@ Dragging a group by its header, or dragging a collapsed group card, SHALL move t
 
 - **WHEN** the user drags a collapsed group card by (dx, dy)
 - **THEN** every hidden member MUST move by (dx, dy)
+
+#### Scenario: Group and its member selected together
+
+- **WHEN** a group and one of its members are both selected and the user drags the group header by (dx, dy)
+- **THEN** that member MUST move by exactly (dx, dy), not twice
+
+#### Scenario: Group dragged together with a free node
+
+- **WHEN** a group and an ungrouped node are selected and dragged together
+- **THEN** the group and the node MUST move by the same offset
+- **AND** the node MUST join a group if its center ends up inside that group's frame, following the joining rule
 
 ### Requirement: Joining and leaving a group
 
@@ -238,6 +284,37 @@ A collapsed group card SHALL show an error indicator when any member has visible
 - **WHEN** the user reveals a search result that is a member of a collapsed group
 - **THEN** the group MUST be expanded and the node MUST be centered in the viewport
 
+### Requirement: Canvas search finds groups by label
+
+Canvas search SHALL match the query against each group's label, using the same matching options as node labels. Group label matches SHALL be governed by the labels source filter and counted with it. A group SHALL be ordered among nodes by its frame position, before nodes at the same position. The results panel SHALL list a group match as a group entry showing the group label. The matched label SHALL be marked in the frame header or on the collapsed card. Revealing a group match SHALL center the group header without expanding a collapsed group and SHALL NOT change the selection or create history entries. Members of a collapsed group SHALL remain searchable.
+
+#### Scenario: Search finds a group by its label
+
+- **WHEN** the user searches for "parse" and a group is labeled "Parse response"
+- **THEN** the group MUST be listed among the matches and counted in the total
+- **AND** the label in the group header MUST be marked
+
+#### Scenario: Labels filter covers group labels
+
+- **WHEN** the labels source filter is disabled
+- **THEN** group label matches MUST NOT be listed, counted, or reachable with next and previous
+
+#### Scenario: Revealing a collapsed group keeps it collapsed
+
+- **WHEN** the current match is the label of a collapsed group
+- **THEN** the viewport MUST be centered on the group card
+- **AND** the group MUST stay collapsed
+
+#### Scenario: Group precedes its members
+
+- **WHEN** both a group label and a member node label match the query
+- **THEN** the group match MUST come before the member's match
+
+#### Scenario: Renamed group updates the match set
+
+- **WHEN** search is open and a matching group is renamed so that it no longer matches
+- **THEN** the group MUST no longer be listed among the matches
+
 ### Requirement: Renaming and recoloring a group
 
 The user SHALL be able to rename a group by double-clicking its header and to change its color by choosing from a fixed palette of color tokens. An empty label after trimming SHALL be rejected and the previous label kept. The frame and card SHALL render each color token legibly in light and dark themes.
@@ -270,6 +347,11 @@ In edit mode, creating, ungrouping, deleting, renaming, recoloring, moving, resi
 
 - **WHEN** the user drags a group header and then undoes
 - **THEN** the group rectangle and all members MUST return to their previous positions in one step
+
+#### Scenario: Undo moving an empty group
+
+- **WHEN** the user drags the header of a group with no members and then undoes
+- **THEN** the group rectangle MUST return to its previous position
 
 #### Scenario: Undo deleting a group
 

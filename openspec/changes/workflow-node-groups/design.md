@@ -62,10 +62,10 @@ Membership is stored on the node as `node.data.groupId?: string`.
 - `getMemberBounds(members)` — uses `measured` size, falling back to `DEFAULT_NODE_WIDTH` and `getEstimatedNodeHeight(node)` so a frame matches what an unmeasured compact node draws.
 - `growToFit(group, members)` — expands the rectangle to enclose members plus `GROUP_FRAME_PADDING` and `GROUP_FRAME_HEADER_HEIGHT`; never shrinks.
 - `fitToContents(group, members)` — exact fit for non-empty groups.
-- `clampResize(group, members, nextRect)` — minimum is member bounds plus padding, or `GROUP_MIN_WIDTH × GROUP_MIN_HEIGHT` for an empty group.
+- `clampResize(group, members, nextRect)` — minimum is member bounds plus padding, or `GROUP_MIN_WIDTH × GROUP_MIN_HEIGHT` for an empty group. The edge opposite the one being dragged stays fixed: when the left or top edge hits the minimum, `x` / `y` are clamped so the right / bottom edge does not move.
 - `getCollapsedCardRect(group)` — fixed size at the group's `x, y`.
 
-`growToFit` runs inside the commit that moves members, so a drag that pushes a member outward is still one history step.
+`growToFit` runs inside the commit that moves members, so a drag that pushes a member outward is still one history step. While a member is being dragged, `previewGroupGrowth` grows the frame from its pre-drag rectangle (`nodeDragOriginGraph.groups`) to enclose the members whose center is still inside it, so the frame follows the member instead of jumping on drop, and a member dragged out is not followed. These mid-drag writes go through the existing transient drag path (recorded with history suppressed), so the drag stays one step; on drop `resolveMembershipAfterDrag` judges containment against the pre-drag rectangles.
 
 ### D3. Frames and cards are derived React Flow nodes
 
@@ -98,12 +98,20 @@ Proxies between the same pair of endpoints are merged into one. Branch handles c
 
 `use-node-change-router` intercepts ids with the `group-frame:` prefix before the existing channels:
 
-- `position` while dragging → translate the group rectangle and its members by the delta through the existing drag path (`nodeDragOriginGraph`), so the drag is one history step.
-- `dimensions` from the resizer → `clampResize`, committed on resize end.
+- `position` with `dragging` set → translate the group rectangle and its members by the delta through the existing drag path (`nodeDragOriginGraph`), so the drag is one history step.
+- Resize → `clampResize`, committed on resize end. `NodeResizer` dragged by the left or top edge emits a `position` change **without** `dragging` together with a `dimensions` change with `resizing: true`. The router treats a frame `position` change as part of a resize whenever the same batch has a `resizing` dimensions change or `dragging` is unset. It never translates members for such a change.
 - `select` → the selection slice's `selectedGroupIds`.
 - `remove` → ignored (Delete goes through commands, D8).
 
-Box selection: React Flow selects the frame node in `Partial` mode as soon as the box touches it. The router drops a frame `select` change unless the frame rectangle is fully inside the current user selection rectangle (`userSelectionRect` from the React Flow store); member nodes keep the existing Partial behavior.
+Drag-commit check: the "nothing moved, nothing to undo" shortcut in `graph-slice.ts` (`haveNodePositionsChanged`) compares nodes only. It is extended to compare group rectangles as well, otherwise dragging an empty group would never reach history.
+
+Mixed drags: React Flow drags every selected React Flow node. When a frame is dragged together with selected nodes, the router drops the React Flow position changes for members of the dragged groups (they move only through the group translation, never twice). Selected non-members move by React Flow's own changes as usual.
+
+Selection (revised after the spike, task 4.1): group nodes are `selectable: false` and `focusable: false` in React Flow, so the router never sees a frame `select` change. Filtering React Flow's frame selection does not work: during a box selection React Flow emits the select changes before it stores the new `userSelectionRect`, and it remembers the frame as selected, so a dropped change is never re-sent. The canvas owns group selection instead (`useGroupCanvasProjection`): a header or card click selects the group (a modifier click toggles it), `onSelectionEnd` selects the groups whose frame or card lies fully inside the last box (remembered through a React Flow store subscription), and a plain node click or a new box clears selected groups. React Flow still drags a frame whose `selected` prop is set, so mixed drags work.
+
+Selected frames: React Flow adds 1000 to a selected node's z-index; a selected frame's `zIndex` takes that lift back so it stays beneath nodes and edges. Two consequences, found by the e2e (task 8.2):
+- `NodeToolbar` stacks just above the nodes it belongs to, so the group toolbar would sit under the pane; the canvas passes it an explicit z-index while a group is selected.
+- After a box selection React Flow keeps its multi-selection overlay (`nodesSelectionActive`); once no workflow node is selected (the box was just grouped) the overlay would cover the group header and swallow its clicks, so the canvas turns it off.
 
 ### D6. Membership after drag and insertion is a pure function
 
@@ -112,7 +120,7 @@ Box selection: React Flow selects the frame node in `Partial` mode as soon as th
 2. If one is found, the node joins that group; otherwise, if the node was a member and its center is outside its frame, it leaves.
 3. `growToFit` the group the node now belongs to.
 
-It does not run when a group is dragged by its header or card. Collapsed cards are never targets. The same resolver runs for one node added from the palette or by quick-add at its insertion position.
+It does not run for the dragged groups or their members when a group is dragged by its header or card. In a mixed drag (groups plus selected non-member nodes), it still runs for the non-member nodes. Collapsed cards are never targets. The same resolver runs for one node added from the palette or by quick-add at its insertion position.
 
 ### D7. Collapse state: graph value plus observe-mode override
 
@@ -134,14 +142,20 @@ New graph-engine commands, following the `applyXCommand` pattern: `applyGroupNod
 
 | Selection | Commands |
 |---|---|
-| ≥ 2 nodes, none grouped, no groups | Copy, Duplicate, Group, Delete |
+| ≥ 1 node, none grouped, no groups | Copy, Duplicate, Group, Delete |
 | any grouped node, no groups | Copy, Duplicate, Delete |
 | exactly one group | Copy, Duplicate, Collapse/Expand, Ungroup, Delete |
 | groups + nodes, or several groups | Copy, Duplicate, Delete |
 
-The node context menu uses the same rules for its node. The canvas shows a second `NodeToolbar` anchored to the frame node when groups are selected.
+A single node can be grouped: the selection toolbar still appears only for two or more nodes, so a one-node group comes from the node context menu or `Mod+G`.
 
-Hotkeys: `Mod+G` and `Mod+Shift+G` in `components/hotkeys/hotkeys.ts`, with `preventDefault`, gated on the same availability rules.
+The node context menu uses the same rules for its node. A right-click on a group header or a collapsed card opens a group context menu that renders the same commands as the group toolbar, selecting the group first if it was not selected. The canvas shows a second `NodeToolbar` anchored to the frame node when groups are selected.
+
+Delete: frames are `deletable: false`, so React Flow's `deleteKeyCode` never removes a group. The editor's delete path (the `delete` node-edit hotkey and the toolbar command) calls `deleteGroups(selectedGroupIds)` together with `deleteNodes` for the selected nodes, in one commit. When a group and some of its members are selected together, the group wins: the whole group with all members is deleted.
+
+Hotkeys: `Mod+G` and `Mod+Shift+G` in `components/hotkeys/hotkeys.ts` through `isLetterHotkey`, so they work on non-Latin layouts, with `preventDefault`, gated on the same availability rules.
+
+Accessibility: the frame header and the collapsed card are focusable and carry `aria-label` with the group label and member count. `Enter` on a focused header or card selects the group.
 
 ### D9. Auto-layout with groups
 
@@ -155,7 +169,7 @@ In `buildElkGraph`, each collapsed group replaces its members with one ELK node 
 
 `mappers/backend-export/backend-groups.ts` owns:
 - `toBackendGroups(groups, backendIdByDomainId)` — maps `nodeIds` to numeric ids, sorted ascending.
-- `attachBackendGroups(dto, backendGroups)` — currently returns `{ ...dto, groups }`.
+- `attachBackendGroups(dto, backendGroups)` — returns `{ ...dto, groups }`. The backend accepts the top-level `groups` key (confirmed).
 
 `BackendWorkflowDTO` gains `groups: BackendWorkflowGroupDTO[]` with `{ id, label, color, x, y, width, height, collapsed, nodeIds }`. Export ordering, numbering, and validation never read groups. Sorting `nodeIds` (here and in the domain export) keeps output deterministic for diffs and snapshot tests; membership has no order.
 
@@ -165,10 +179,35 @@ In `buildElkGraph`, each collapsed group replaces its members with one ELK node 
 - `internalToDomain` builds sorted `nodeIds` from `data.groupId`; `domainToInternal` sets `data.groupId` from `nodeIds`.
 - The clipboard payload gains optional `groups` with rectangle and collapsed state; paste assigns new ids.
 
+### D13. Canvas search matches group labels
+
+Today every `SearchMatch` points at a node. A group has no kind, fields, or variables, so a group label match is a new match target, not a new source:
+
+`SearchMatch` (`search/matches.ts`) today requires `nodeId`. It becomes a union on a `target` discriminant, and node-only consumers (field marks, node status selectors) narrow on `target === "node"`:
+
+```ts
+type SearchMatch =
+  | (NodeSearchMatchFields & { target: "node"; nodeId: string })   // today's shape
+  | { target: "group"; groupId: string; source: "label"; key: string;
+      occurrence: number; start: number; end: number; sortTuple: SearchSortTuple }
+```
+
+- Filter: group label matches fall under the existing `labels` source filter and count toward it.
+- Order: a group sorts by its rectangle's `x, y` together with nodes. At equal positions the group comes before nodes, so a group precedes its members.
+- Results panel: a group row shows a group icon, the group label, and "Group" in place of the kind title. It is a single-match entry with no nested field rows.
+- Marking: the label in the frame header or on the collapsed card is marked as a match or the current match.
+- Reveal: centers the group header (the frame can be larger than the viewport) with the same minimum readable zoom rule. A collapsed group is **not** expanded; its card is centered.
+- Hidden members stay searchable while their group is collapsed; revealing one expands the group (D7).
+- Cache: the full index in `search-selectors.ts` is keyed by `nodes` and `groups`; current-match reconciliation keeps a group match by `groupId` and occurrence.
+
+### Spike outcome (task 4.1)
+
+Checked in the running app (Playwright, Chromium) on a pasted graph with a group: the frame paints beneath nodes and edges (an edge inside the frame is hit first), a press on the frame body reaches the pane and pans, a header click selects the group and shows the group toolbar, a box that crosses the frame does not select it while a box that encloses it does, dragging the header moves the members and undoes in one step, resizing from the left edge leaves members and the right edge in place and stops at the members, inline rename works, and collapsing shows the card with a proxy edge. The derived-node approach stays; the `ViewportPortal` fallback is not needed. One fix came out of it: the selected-frame z-index lift above.
+
 ## Risks / Trade-offs
 
 - [Frames stacking above edges or nodes] → Spike first (task 4.1). The `ViewportPortal` fallback is isolated to the canvas layer.
-- [Box-select filtering depends on React Flow's internal `userSelectionRect`] → Covered by a router test; if the field changes, fall back to comparing the frame with the selected nodes' bounds.
+- [Box-select enclosure reads React Flow's `userSelectionRect` through a store subscription] → If the field changes, compare the frames with the selected nodes' bounds instead.
 - [Proxy edges lose which branch handle an edge left from] → Accepted for v1; the expanded view is one click away.
 - [A stored rectangle can enclose foreign nodes after manual moves] → Membership is explicit (`groupId`), never inferred from overlap, so foreign nodes are only drawn over, not captured.
 - [ELK places members of an expanded group apart and the fitted frame stretches over foreign nodes] → Accepted for v1; hierarchical ELK can come later without changing the data model.
@@ -177,4 +216,4 @@ In `buildElkGraph`, each collapsed group replaces its members with one ELK node 
 
 ## Migration Plan
 
-Additive. Old domain JSON without `groups` still imports. The backend must tolerate the new top-level `groups` key; if it cannot, `attachBackendGroups` moves it into `metadata.groups` (D11). Rollback means removing the UI entry points; stored groups stay inert.
+Additive. Old domain JSON without `groups` still imports. The backend accepts the new top-level `groups` key. Rollback means removing the UI entry points; stored groups stay inert.
