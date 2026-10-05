@@ -1,80 +1,133 @@
 ## Purpose
 
-Lets users visually group related workflow nodes into a named, colored frame on the canvas without affecting how the workflow executes.
+Lets users gather related workflow nodes into a named, colored frame on the canvas that can be moved, resized, copied, and collapsed as one piece, without affecting how the workflow executes.
 
 ## ADDED Requirements
 
 ### Requirement: A group is a named, colored frame with no connections
 
-A node group SHALL have an id, a label, a color, and a set of member nodes. A group SHALL NOT expose ports, SHALL NOT be a source or target of any connection, and SHALL NOT be treated as a workflow node by validation, the node config panel, expression variable scopes, or node counts.
+A node group SHALL have an id, a label, a color, a rectangle (position and size), a collapsed flag, and a set of member nodes. A group SHALL NOT expose connectable ports, SHALL NOT be a source or target of any connection, and SHALL NOT be treated as a workflow node by validation, the node config panel, expression variable scopes, canvas search, or node counts. Groups SHALL NOT affect workflow execution.
 
 #### Scenario: Group cannot be connected
 
-- **WHEN** a user drags a connection over a group frame
+- **WHEN** a user drags a connection over a group frame or a collapsed group card
 - **THEN** no connection to or from the group MUST be created
 
 #### Scenario: Group is not a workflow node
 
 - **WHEN** a workflow contains a group
-- **THEN** workflow validation MUST NOT report errors for the group
+- **THEN** workflow validation MUST NOT report errors for the group itself
 - **AND** selecting the group MUST NOT open the node config panel
 
 ### Requirement: Group membership rules
 
-A node SHALL belong to at most one group. Groups SHALL NOT be nested. A group SHALL always have at least one member; when its last member leaves or is deleted, the group SHALL be removed.
+A node SHALL belong to at most one group. Groups SHALL NOT be nested. A group MAY have no members; removing or deleting its last member SHALL keep the group.
 
-#### Scenario: Grouping a node that is already in another group moves it
-
-- **WHEN** the user groups a selection that includes a node from group A
-- **THEN** that node MUST be a member of the new group only
-- **AND** group A MUST keep its remaining members
-
-#### Scenario: Deleting the last member removes the group
+#### Scenario: Deleting the last member keeps the group
 
 - **WHEN** the only member node of a group is deleted
-- **THEN** the group MUST no longer exist
+- **THEN** the group MUST still exist with no members and the same rectangle
 
-#### Scenario: Group cannot be a member of a group
+#### Scenario: Dragging out every member keeps the group
 
-- **WHEN** the user groups a selection that contains a group frame
-- **THEN** the resulting group's members MUST be nodes only (the selected group's members join the new group and the selected group is removed)
+- **WHEN** the user drags every member out of a group one by one
+- **THEN** the group MUST still exist with no members
 
-### Requirement: Group frame auto-fits its members
+### Requirement: Group frame geometry
 
-A group's frame SHALL be derived from the bounds of its member nodes plus a fixed padding and a header area. A group SHALL NOT store its own position or size. The frame SHALL be drawn behind nodes and edges.
+A group SHALL own its rectangle. Member nodes SHALL keep absolute positions. When a member is moved so that it no longer fits inside the frame, the frame SHALL grow to enclose it. The frame SHALL NOT shrink on its own. The frame SHALL be drawn behind nodes and edges, and its body SHALL NOT block panning, box selection, or clicks on edges and nodes beneath it.
 
-#### Scenario: Frame follows a moved member
+#### Scenario: Frame grows to follow a member
 
-- **WHEN** a member node is dragged within its group
-- **THEN** the frame MUST resize to enclose all members, including the moved one
+- **WHEN** a member node is dragged past the right edge of its group frame
+- **THEN** the frame MUST grow so that it encloses the member
 
-#### Scenario: Frame follows auto-layout
+#### Scenario: Frame does not shrink on its own
 
-- **WHEN** auto-layout repositions nodes
-- **THEN** each group frame MUST enclose its members at their new positions
+- **WHEN** a member near the frame edge is dragged toward the center of the frame
+- **THEN** the frame rectangle MUST stay unchanged
+
+#### Scenario: Panning through a frame body
+
+- **WHEN** the user starts a drag on the body of a group frame, away from its header and member nodes
+- **THEN** the canvas MUST pan as it does on an empty area
+
+### Requirement: Resizing a group
+
+In edit mode the user SHALL be able to resize an expanded group by dragging its edges and corners. A non-empty group SHALL NOT be resized smaller than the bounds of its members plus the frame padding and header. An empty group SHALL NOT be resized smaller than a minimum size. A "Fit to contents" action SHALL resize a non-empty group to exactly enclose its members.
+
+#### Scenario: Resize stops at members
+
+- **WHEN** the user drags a frame edge inward past a member node
+- **THEN** the frame MUST stop at the member bounds plus padding
+
+#### Scenario: Fit to contents
+
+- **WHEN** the user runs "Fit to contents" on a group whose frame is larger than its members
+- **THEN** the frame MUST enclose its members with the standard padding and header and no extra space
 
 ### Requirement: Grouping the selection
 
-The editor SHALL let the user create a group from the current node selection through a hotkey (`Mod+G`) and through the node context menu. A new group SHALL get a default label unique among existing groups and the default color, and SHALL become selected.
+The editor SHALL let the user create a group from two or more selected nodes through `Mod+G`, the selection toolbar, and the node context menu. Grouping SHALL be available only when every selected node is ungrouped and no group is selected. A new group SHALL enclose the selected nodes, get a default label unique among existing groups and the default color, be expanded, and become selected.
 
 #### Scenario: Group selection with hotkey
 
-- **WHEN** two or more nodes are selected and the user presses `Mod+G`
-- **THEN** a new group containing exactly the selected nodes MUST be created
+- **WHEN** two ungrouped nodes are selected and the user presses `Mod+G`
+- **THEN** a new group containing exactly those nodes MUST be created and selected
 
-#### Scenario: Group a single node from the context menu
+#### Scenario: Group offered in the selection toolbar
 
-- **WHEN** the user opens the context menu on one node and chooses "Group"
-- **THEN** a new group containing that node MUST be created
+- **WHEN** two or more ungrouped nodes are selected
+- **THEN** the selection toolbar MUST offer "Group" and MUST NOT offer "Ungroup"
 
-#### Scenario: Nothing selected
+#### Scenario: Selection includes a grouped node
 
-- **WHEN** no node is selected and the user presses `Mod+G`
-- **THEN** no group MUST be created
+- **WHEN** the selection contains a node that already belongs to a group
+- **THEN** "Group" MUST NOT be offered and `Mod+G` MUST NOT create a group
+
+#### Scenario: Browser shortcut is suppressed
+
+- **WHEN** the user presses `Mod+G` or `Mod+Shift+G` on the canvas
+- **THEN** the browser's own action for that shortcut MUST NOT run
+
+### Requirement: Selecting groups
+
+Clicking a group header SHALL select the group. Clicking a member node SHALL select the node and not the group. A box selection SHALL select a group only when the box encloses the whole frame; otherwise it SHALL select the nodes it touches as it does today. Groups and nodes SHALL be selectable together with a modifier click.
+
+#### Scenario: Header click selects the group
+
+- **WHEN** the user clicks a group header
+- **THEN** the group MUST be selected and its member nodes MUST NOT be selected
+
+#### Scenario: Box touching a frame selects only nodes
+
+- **WHEN** a box selection crosses part of a group frame
+- **THEN** the group MUST NOT be selected
+- **AND** the member nodes the box touches MUST be selected
+
+#### Scenario: Box enclosing a frame selects the group
+
+- **WHEN** a box selection encloses a whole group frame
+- **THEN** the group MUST be selected
+
+### Requirement: Group toolbar and commands
+
+When exactly one group is selected in edit mode, the editor SHALL show a toolbar for it with Copy, Duplicate, Collapse or Expand, Ungroup, and Delete. When groups and ungrouped nodes are selected together, the toolbar SHALL offer Copy, Duplicate, and Delete, which act on whole groups and the selected nodes. When only member nodes of groups are selected, neither "Group" nor "Ungroup" SHALL be offered.
+
+#### Scenario: Selected group toolbar
+
+- **WHEN** one group is selected
+- **THEN** the toolbar MUST offer Copy, Duplicate, Collapse (or Expand), Ungroup, and Delete
+- **AND** it MUST NOT offer "Group"
+
+#### Scenario: Member nodes selected
+
+- **WHEN** two member nodes of a group are selected
+- **THEN** the toolbar MUST NOT offer "Group" or "Ungroup"
 
 ### Requirement: Ungrouping
 
-The editor SHALL let the user ungroup a group from the group header and through the node context menu of any member (`Mod+Shift+G` for a selected group). Ungrouping SHALL remove the group and leave its member nodes in place.
+Ungrouping a group SHALL remove the group and leave its member nodes in place with no group. It SHALL be available from the group toolbar and through `Mod+Shift+G` for a selected group.
 
 #### Scenario: Ungroup keeps nodes
 
@@ -82,38 +135,112 @@ The editor SHALL let the user ungroup a group from the group header and through 
 - **THEN** the group MUST be removed
 - **AND** the three nodes MUST remain at the same positions with no group
 
+### Requirement: Deleting a group
+
+Deleting a selected group SHALL remove the group together with all of its member nodes and their edges.
+
+#### Scenario: Delete removes group and members
+
+- **WHEN** the user selects a group with three members and presses Delete
+- **THEN** the group and its three member nodes MUST be removed
+
 ### Requirement: Moving a group
 
-Dragging a group by its header SHALL move all of its members by the same offset.
+Dragging a group by its header, or dragging a collapsed group card, SHALL move the group rectangle and all of its members by the same offset.
 
 #### Scenario: Drag header moves members
 
 - **WHEN** the user drags a group header by (dx, dy)
-- **THEN** every member node MUST move by (dx, dy)
+- **THEN** the group rectangle and every member node MUST move by (dx, dy)
 - **AND** non-member nodes MUST NOT move
 
-### Requirement: Joining and leaving a group by dragging
+#### Scenario: Drag a collapsed card
 
-When a node drag ends, membership SHALL be resolved from the node's center: if the center lies inside the frame of another group (computed without the dragged node), the node SHALL join that group; if the node was in a group and its center lies outside that group's frame computed from the remaining members, the node SHALL leave the group. A group's only member SHALL NOT leave by dragging.
+- **WHEN** the user drags a collapsed group card by (dx, dy)
+- **THEN** every hidden member MUST move by (dx, dy)
+
+### Requirement: Joining and leaving a group
+
+When a node drag ends, membership SHALL be resolved from the node's center. If the center lies inside an expanded group frame, the node SHALL become a member of that group; if several frames contain the center, the smallest frame SHALL win. If the node was a member and its center lies outside its group frame, the node SHALL leave the group. A node added from the node palette or by quick-add with its center inside an expanded frame SHALL join that group. Dropping onto a collapsed group card SHALL NOT change membership.
 
 #### Scenario: Drop a node onto a group
 
-- **WHEN** an ungrouped node is dropped with its center inside a group's frame
+- **WHEN** an ungrouped node is dropped with its center inside a group frame
 - **THEN** the node MUST become a member of that group
 
 #### Scenario: Drag a node out of its group
 
-- **WHEN** a member node is dropped with its center outside the frame of the group's other members
+- **WHEN** a member node is dropped with its center outside its group frame
 - **THEN** the node MUST no longer be a member of that group
 
-#### Scenario: Move a node from one group to another
+#### Scenario: Move a node between groups
 
 - **WHEN** a member of group A is dropped with its center inside group B's frame
 - **THEN** the node MUST be a member of group B only
 
+#### Scenario: Add from the palette into a group
+
+- **WHEN** the user drops a node kind from the node palette inside a group frame
+- **THEN** the new node MUST be a member of that group
+
+#### Scenario: Drop onto a collapsed card
+
+- **WHEN** an ungrouped node is dropped onto a collapsed group card
+- **THEN** the node MUST stay ungrouped
+
+### Requirement: Collapsing a group
+
+A group SHALL be collapsible into a compact card showing its label, color, and member count. While collapsed, members and the edges between members SHALL be hidden; each edge between a member and a non-member SHALL be drawn between the card and the non-member. These card edges SHALL NOT be selectable, deletable, or usable for inserting a node. Expanding SHALL restore the frame with its previous rectangle. Collapsing SHALL deselect any selected members.
+
+#### Scenario: Collapse hides members
+
+- **WHEN** the user collapses a group with three members
+- **THEN** the three members MUST NOT be visible
+- **AND** a card with the group label and member count 3 MUST be visible
+
+#### Scenario: Boundary edges attach to the card
+
+- **WHEN** a group is collapsed and a non-member node is connected to one of its members
+- **THEN** an edge MUST be drawn between the non-member and the card
+
+#### Scenario: Expand restores the frame
+
+- **WHEN** a collapsed group is expanded
+- **THEN** its frame MUST have the same rectangle as before it was collapsed
+- **AND** its members MUST be visible at their positions
+
+### Requirement: Collapsed state in edit and observe modes
+
+In edit mode, collapsing and expanding SHALL change the workflow: the state SHALL be saved with the workflow and SHALL be undoable. In observe mode, the viewer SHALL be able to collapse and expand groups as a local view override that SHALL NOT change the workflow, SHALL NOT enter history, and SHALL NOT be exported.
+
+#### Scenario: Collapse in edit mode is undoable
+
+- **WHEN** the user collapses a group in edit mode and then undoes
+- **THEN** the group MUST be expanded
+
+#### Scenario: Expand in observe mode does not change the workflow
+
+- **WHEN** a viewer expands a saved-collapsed group in observe mode
+- **THEN** the group MUST be shown expanded
+- **AND** the exported workflow MUST still mark the group as collapsed
+
+### Requirement: Collapsed group summarizes its members
+
+A collapsed group card SHALL show an error indicator when any member has visible validation errors, and in observe mode SHALL show the aggregate runtime status of its members. Revealing a node inside a collapsed group (for example from canvas search) SHALL expand the group before centering the node.
+
+#### Scenario: Validation error on a hidden member
+
+- **WHEN** a member of a collapsed group has a validation error
+- **THEN** the card MUST show an error indicator
+
+#### Scenario: Search reveals a hidden member
+
+- **WHEN** the user reveals a search result that is a member of a collapsed group
+- **THEN** the group MUST be expanded and the node MUST be centered in the viewport
+
 ### Requirement: Renaming and recoloring a group
 
-The user SHALL be able to rename a group by double-clicking its header and to change its color by choosing from a fixed palette of color tokens. An empty label after trimming SHALL be rejected and the previous label kept. The frame SHALL render each color token legibly in light and dark themes.
+The user SHALL be able to rename a group by double-clicking its header and to change its color by choosing from a fixed palette of color tokens. An empty label after trimming SHALL be rejected and the previous label kept. The frame and card SHALL render each color token legibly in light and dark themes.
 
 #### Scenario: Rename by double-click
 
@@ -132,7 +259,7 @@ The user SHALL be able to rename a group by double-clicking its header and to ch
 
 ### Requirement: Group edits are undoable
 
-Creating, ungrouping, renaming, recoloring, moving a group, and membership changes from dragging SHALL each commit as one history step.
+In edit mode, creating, ungrouping, deleting, renaming, recoloring, moving, resizing, fitting, collapsing, and expanding a group, and membership changes from dragging, SHALL each commit as one history step.
 
 #### Scenario: Undo grouping
 
@@ -142,25 +269,44 @@ Creating, ungrouping, renaming, recoloring, moving a group, and membership chang
 #### Scenario: Undo moving a group
 
 - **WHEN** the user drags a group header and then undoes
-- **THEN** all members MUST return to their previous positions in one step
+- **THEN** the group rectangle and all members MUST return to their previous positions in one step
 
-### Requirement: Groups survive copy, paste, and duplicate of whole groups
+#### Scenario: Undo deleting a group
 
-When copied or duplicated nodes include every member of a group, the pasted or duplicated nodes SHALL form a new group with a new id, the same label, and the same color. Pasted or duplicated nodes whose group was only partially copied SHALL be ungrouped.
+- **WHEN** the user deletes a group and then undoes
+- **THEN** the group and all of its member nodes and edges MUST be restored in one step
 
-#### Scenario: Duplicate a whole group
+### Requirement: Copy, paste, and duplicate of groups
 
-- **WHEN** all members of group A are duplicated
-- **THEN** the duplicates MUST form a new group with A's label and color and a different id
+Copying or duplicating a selected group SHALL copy the group with all of its members. Copying or duplicating nodes that include every member of a group SHALL also copy the group. The copy SHALL get a new id, the same label, color, size, and collapsed state, and SHALL be offset together with its members. Pasted or duplicated nodes whose group was only partially copied SHALL be ungrouped. Copying an empty selected group SHALL copy the empty group.
+
+#### Scenario: Duplicate a selected group
+
+- **WHEN** the user selects group A and duplicates it
+- **THEN** a new group with A's label, color, size, and collapsed state and a different id MUST appear with copies of all members
 
 #### Scenario: Paste part of a group
 
 - **WHEN** two of three members of a group are copied and pasted
 - **THEN** the pasted nodes MUST NOT belong to any group
 
+### Requirement: Auto-layout with groups
+
+Auto-layout SHALL treat each collapsed group as a single block the size of its card and move its hidden members by the same offset as the block. After layout, every non-empty expanded group frame SHALL be fitted to its members. Empty groups SHALL keep their rectangles.
+
+#### Scenario: Frames follow auto-layout
+
+- **WHEN** auto-layout repositions nodes
+- **THEN** each non-empty expanded group frame MUST enclose its members at their new positions
+
+#### Scenario: Collapsed group stays together
+
+- **WHEN** auto-layout runs with a collapsed group
+- **THEN** the relative positions of the group's members MUST be unchanged
+
 ### Requirement: Groups are read-only in observe mode
 
-In observe mode, group frames SHALL be rendered but SHALL NOT be draggable, renamable, recolorable, or ungroupable.
+In observe mode, groups SHALL be rendered with their labels and colors but SHALL NOT be draggable, resizable, renamable, recolorable, ungroupable, or deletable. Collapsing and expanding SHALL follow the observe-mode override rule.
 
 #### Scenario: Observe mode frame
 
