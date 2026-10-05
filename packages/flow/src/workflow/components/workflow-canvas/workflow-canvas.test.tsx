@@ -142,6 +142,27 @@ vi.mock("../workflow-edge", () => {
   }
 })
 
+vi.mock("../workflow-minimap", () => ({
+  WorkflowMiniMap: ({
+    onClick,
+  }: {
+    onClick?: (event: MouseEvent, position: { x: number; y: number }) => void
+  }) => (
+    <div data-testid="rf-minimap">
+      <button
+        type="button"
+        data-testid="rf-minimap-click"
+        onClick={(event) => onClick?.(event, { x: 420, y: 240 })}
+      />
+      <button
+        type="button"
+        data-testid="rf-minimap-node-click"
+        onClick={(event) => onClick?.(event, { x: 320, y: 180 })}
+      />
+    </div>
+  ),
+}))
+
 vi.mock("@xyflow/react", () => {
   return {
     ReactFlowProvider: ({ children }: { children: ReactNode }) => (
@@ -198,42 +219,6 @@ vi.mock("@xyflow/react", () => {
     }) => (
       <div className={className} data-position={position} {...props}>
         {children}
-      </div>
-    ),
-    MiniMap: ({
-      onClick,
-      pannable,
-      zoomable,
-      maskStrokeColor,
-      maskStrokeWidth,
-    }: {
-      onClick?: (event: MouseEvent, position: { x: number; y: number }) => void
-      pannable?: boolean
-      zoomable?: boolean
-      maskStrokeColor?: string
-      maskStrokeWidth?: number
-    }) => (
-      <div data-testid="rf-minimap">
-        <span data-testid="rf-minimap-pannable">
-          {String(Boolean(pannable))}
-        </span>
-        <span data-testid="rf-minimap-zoomable">{String(zoomable)}</span>
-        <span data-testid="rf-minimap-mask-stroke-color">
-          {maskStrokeColor}
-        </span>
-        <span data-testid="rf-minimap-mask-stroke-width">
-          {String(maskStrokeWidth)}
-        </span>
-        <button
-          type="button"
-          data-testid="rf-minimap-click"
-          onClick={(event) => onClick?.(event, { x: 420, y: 240 })}
-        />
-        <button
-          type="button"
-          data-testid="rf-minimap-node-click"
-          onClick={(event) => onClick?.(event, { x: 320, y: 180 })}
-        />
       </div>
     ),
     useReactFlow: () => ({
@@ -531,7 +516,7 @@ describe("WorkflowCanvas", () => {
     expect(screen.getByTestId("rf-max-zoom").textContent).toBe("4")
   })
 
-  it("configures mini map navigation, viewport styling, and click centering", () => {
+  it("centers the viewport on a mini map click without selecting a node", () => {
     const onSelectNodes = vi.fn()
 
     render(
@@ -553,15 +538,6 @@ describe("WorkflowCanvas", () => {
         onAutoLayout={vi.fn(async () => true)}
       />,
       { wrapper: CanvasStoreWrapper }
-    )
-
-    expect(screen.getByTestId("rf-minimap-pannable").textContent).toBe("true")
-    expect(screen.getByTestId("rf-minimap-zoomable").textContent).toBe("false")
-    expect(screen.getByTestId("rf-minimap-mask-stroke-color").textContent).toBe(
-      "var(--primary)"
-    )
-    expect(screen.getByTestId("rf-minimap-mask-stroke-width").textContent).toBe(
-      "2"
     )
 
     fireEvent.click(screen.getByTestId("rf-minimap-click"))

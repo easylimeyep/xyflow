@@ -19,6 +19,7 @@
     "@flow/expression-editor": "workspace:*",
     "@flow/ui": "workspace:*",
     "@xyflow/react": "^12.10.1",
+    "@xyflow/system": "0.0.75",
     "elkjs": "^0.11.0",
     "es-toolkit": "^1.45.1",
     "lucide-react": "^1.16.0",

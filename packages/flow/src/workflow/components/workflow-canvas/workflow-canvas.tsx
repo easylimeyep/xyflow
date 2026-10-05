@@ -12,7 +12,6 @@ import {
 import { useEventCallback } from "@flow/ui/hooks/use-event-callback"
 import {
   Background,
-  MiniMap,
   NodeToolbar,
   Panel,
   Position,
@@ -47,6 +46,7 @@ import type {
 
 import { validateConnection } from "../../validation"
 import { WorkflowEdgeComponent } from "../workflow-edge"
+import { WorkflowMiniMap } from "../workflow-minimap"
 import { SelectionToolbar, useSelectionToolbar } from "../selection-toolbar"
 import { isInteractiveEventTarget } from "../hotkeys"
 import { useNodeChangeRouter } from "./use-node-change-router"
@@ -58,7 +58,6 @@ import { useWorkflowEditorAnchorRef } from "../../tour/anchors"
 const WORKFLOW_MIN_ZOOM = 0.1
 const WORKFLOW_MAX_ZOOM = 4
 const WORKFLOW_MINIMAP_NAVIGATION_DURATION_MS = 200
-const WORKFLOW_MINIMAP_MASK_STROKE_WIDTH = 2
 /**
  * The lowest zoom at which a revealed node is comfortably readable. Revealing
  * raises the zoom to this level when the user is further out, and never lowers
@@ -523,13 +522,7 @@ function WorkflowCanvasInner({
           >
             <SelectionToolbar onAfterCommand={focusCanvas} />
           </NodeToolbar>
-          <MiniMap
-            pannable
-            zoomable={false}
-            onClick={handleMiniMapClick}
-            maskStrokeColor="var(--primary)"
-            maskStrokeWidth={WORKFLOW_MINIMAP_MASK_STROKE_WIDTH}
-          />
+          <WorkflowMiniMap onClick={handleMiniMapClick} />
           <Panel
             ref={controlsRef}
             className="react-flow__controls horizontal"
