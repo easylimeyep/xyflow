@@ -17,6 +17,7 @@ import type {
   GroupCanvasNode,
   GroupCanvasNodeData,
 } from "../../groups/group-canvas-nodes"
+import { defaultElkLayoutEngine } from "../../layout"
 import { builtinBaseDefinitions } from "../../node-registry/builtin-base-definitions"
 import { RuntimeObservationProvider } from "../../runtime"
 import {
@@ -143,6 +144,7 @@ describe("GroupFrame", () => {
   afterEach(() => {
     cleanup()
     storeApi = null
+    vi.restoreAllMocks()
   })
 
   it("shows the label and member count and describes itself", () => {
@@ -191,24 +193,43 @@ describe("GroupFrame", () => {
     expect(store().graph.groups[0]?.color).toBe("green")
   })
 
-  it("fits the frame to its members", async () => {
+  it("arranges the members and fits the frame", async () => {
     const user = userEvent.setup()
     renderInEditor(<GroupFrame {...nodeProps()} />)
 
-    await user.click(screen.getByRole("button", { name: "Fit to contents" }))
+    await user.click(screen.getByRole("button", { name: "Arrange" }))
 
-    expect(store().graph.groups[0]?.width).toBeLessThan(2000)
+    await waitFor(() =>
+      expect(store().graph.groups[0]?.width).toBeLessThan(2000)
+    )
   })
 
-  it("cannot fit an empty group", () => {
+  it("disables Arrange while the layout runs", async () => {
+    const user = userEvent.setup()
+    let finish: () => void = () => {}
+    vi.spyOn(defaultElkLayoutEngine, "layout").mockImplementationOnce(
+      (elkGraph) =>
+        new Promise((resolve) => {
+          finish = () => resolve({ children: elkGraph.children })
+        })
+    )
+    renderInEditor(<GroupFrame {...nodeProps()} />)
+    const button = screen.getByRole("button", { name: "Arrange" })
+
+    await user.click(button)
+    expect(button.hasAttribute("disabled")).toBe(true)
+
+    await act(async () => finish())
+    await waitFor(() => expect(button.hasAttribute("disabled")).toBe(false))
+  })
+
+  it("cannot arrange an empty group", () => {
     renderInEditor(<GroupFrame {...nodeProps({ memberIds: [] })} />, {
       initialGraph: graph([]),
     })
 
     expect(
-      screen
-        .getByRole("button", { name: "Fit to contents" })
-        .hasAttribute("disabled")
+      screen.getByRole("button", { name: "Arrange" }).hasAttribute("disabled")
     ).toBe(true)
   })
 
@@ -254,7 +275,7 @@ describe("GroupFrame", () => {
     })
 
     expect(screen.queryByRole("button", { name: "Group color" })).toBeNull()
-    expect(screen.queryByRole("button", { name: "Fit to contents" })).toBeNull()
+    expect(screen.queryByRole("button", { name: "Arrange" })).toBeNull()
     expect(screen.getByRole("button", { name: "Collapse group" })).toBeTruthy()
 
     await user.dblClick(screen.getByTestId("workflow-group-title"))

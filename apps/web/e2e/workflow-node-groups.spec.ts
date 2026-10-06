@@ -107,12 +107,9 @@ async function clickEmptyPane(page: Page) {
   await page.mouse.click(pane.x + 450, pane.y + pane.height - 30)
 }
 
-test("groups a selection and edits, collapses, and deletes the group", async ({
-  page,
-}) => {
-  await pasteSelection(page)
-
-  // Group the two setters with Mod+G. The paste left all three selected.
+/** Groups the two pasted setters with Mod+G; "Done" stays outside. */
+async function groupSetters(page: Page) {
+  // The paste left all three selected.
   await clickEmptyPane(page)
   await expect(page.locator(".react-flow__node.selected")).toHaveCount(0)
   // A box selection over the two setters; "Done" sits far to the right.
@@ -130,6 +127,13 @@ test("groups a selection and edits, collapses, and deletes the group", async ({
   await expect(
     page.getByRole("group", { name: "Group Group 1, 2 nodes" })
   ).toBeVisible()
+}
+
+test("groups a selection and edits, collapses, and deletes the group", async ({
+  page,
+}) => {
+  await pasteSelection(page)
+  await groupSetters(page)
 
   // Rename inline.
   await header(page).dblclick({ position: { x: 30, y: 15 } })
@@ -207,5 +211,53 @@ test("groups a selection and edits, collapses, and deletes the group", async ({
   await expect(page.getByTestId("workflow-node")).toHaveCount(4)
   await expect(frame(page).getByTestId("workflow-group-title")).toHaveText(
     "Pricing"
+  )
+})
+
+test("arranges a group along its edges and undoes in one step", async ({
+  page,
+}, testInfo) => {
+  await pasteSelection(page)
+  await groupSetters(page)
+  // The setters are stacked: Total sits below Price.
+  const priceBefore = await box(nodeByLabel(page, "Price"))
+  const totalBefore = await box(nodeByLabel(page, "Total"))
+  const doneBefore = await box(nodeByLabel(page, "Done"))
+  expect(totalBefore.y).toBeGreaterThan(priceBefore.y + priceBefore.height)
+  await page.screenshot({ path: testInfo.outputPath("arrange-before.png") })
+
+  await frame(page).getByRole("button", { name: "Arrange" }).click()
+
+  // Price → Total is laid out left to right, and the setters' bounds keep
+  // their top-left corner.
+  await expect
+    .poll(async () => (await box(nodeByLabel(page, "Total"))).x)
+    .toBeGreaterThan(priceBefore.x + priceBefore.width)
+  const price = await box(nodeByLabel(page, "Price"))
+  const total = await box(nodeByLabel(page, "Total"))
+  expect(Math.min(price.x, total.x)).toBeCloseTo(
+    Math.min(priceBefore.x, totalBefore.x),
+    0
+  )
+  expect(Math.min(price.y, total.y)).toBeCloseTo(
+    Math.min(priceBefore.y, totalBefore.y),
+    0
+  )
+  expect(Math.abs(total.y - price.y)).toBeLessThan(priceBefore.height)
+  // The frame wraps both setters; "Done" outside the group did not move.
+  const fitted = await box(frame(page))
+  expect(fitted.x).toBeLessThan(price.x)
+  expect(fitted.x + fitted.width).toBeGreaterThan(total.x + total.width)
+  expect(await box(nodeByLabel(page, "Done"))).toEqual(doneBefore)
+  await page.screenshot({ path: testInfo.outputPath("arrange-after.png") })
+
+  await clickEmptyPane(page)
+  await page.keyboard.press("ControlOrMeta+z")
+  await expect
+    .poll(async () => (await box(nodeByLabel(page, "Total"))).y)
+    .toBeCloseTo(totalBefore.y, 0)
+  expect((await box(nodeByLabel(page, "Total"))).x).toBeCloseTo(
+    totalBefore.x,
+    0
   )
 })

@@ -2,7 +2,7 @@
 
 import { Button } from "@flow/ui/components/button"
 import { NodeResizer, type NodeProps } from "@xyflow/react"
-import { Shrink } from "lucide-react"
+import { LayoutGrid } from "lucide-react"
 import { useState, type KeyboardEvent } from "react"
 
 import { groupFrameStyles } from "../../../styles/components/canvas"
@@ -29,9 +29,8 @@ export function GroupFrame({ data, selected }: NodeProps<GroupCanvasNode>) {
   const [isRenaming, setIsRenaming] = useState(false)
   const renameGroup = useWorkflowStore((state) => state.renameGroup)
   const recolorGroup = useWorkflowStore((state) => state.recolorGroup)
-  const fitGroupToContents = useWorkflowStore(
-    (state) => state.fitGroupToContents
-  )
+  const arrangeGroup = useWorkflowStore((state) => state.arrangeGroup)
+  const [isArranging, setIsArranging] = useState(false)
   const selectGroupOnly = useSelectGroupOnly()
   const searchState = useGroupSearchStatus(groupId)
   const styles = groupFrameStyles({
@@ -112,15 +111,20 @@ export function GroupFrame({ data, selected }: NodeProps<GroupCanvasNode>) {
                     color={color}
                     onChange={(next) => recolorGroup(groupId, next)}
                   />
-                  <ActionTooltip label="Fit to contents">
+                  <ActionTooltip label="Arrange">
                     <Button
                       size="icon-xs"
                       variant="ghost"
-                      aria-label="Fit to contents"
-                      isDisabled={memberIds.length === 0}
-                      onPress={() => fitGroupToContents(groupId)}
+                      aria-label="Arrange"
+                      isDisabled={memberIds.length === 0 || isArranging}
+                      onPress={() => {
+                        setIsArranging(true)
+                        void arrangeGroup(groupId).finally(() =>
+                          setIsArranging(false)
+                        )
+                      }}
                     >
-                      <Shrink />
+                      <LayoutGrid />
                     </Button>
                   </ActionTooltip>
                 </>

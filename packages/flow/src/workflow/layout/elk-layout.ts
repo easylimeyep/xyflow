@@ -74,7 +74,7 @@ export interface ElkLayoutEngine {
   layout: (graph: ElkGraph) => Promise<ElkLayoutGraph>
 }
 
-const defaultElkLayoutEngine: ElkLayoutEngine = new ELK()
+export const defaultElkLayoutEngine: ElkLayoutEngine = new ELK()
 const EVALUATOR_SHORTCUT_CLEARANCE = 80
 const EVALUATOR_TRUE_HANDLE_RATIO = 0.34
 const EVALUATOR_FALSE_HANDLE_RATIO = 0.72

@@ -1,6 +1,5 @@
 import {
   applyDeleteGroupsCommand,
-  applyFitGroupCommand,
   applyGroupNodesCommand,
   applyRecolorGroupCommand,
   applyRenameGroupCommand,
@@ -9,6 +8,8 @@ import {
   applyUngroupCommand,
   type GraphEngineResult,
 } from "../../graph-engine"
+import { computeGroupArrangeLayout, rebaseGroupArrange } from "../../layout"
+import { createWorkflowError } from "../../types/errors"
 import { normalizeSelectionIds } from "../helpers"
 import {
   commitGraphState,
@@ -132,8 +133,42 @@ export const createGroupSlice: WorkflowSliceCreator = (set, get, api) => ({
       applyResizeGroupCommand(get().graph, { groupId, rect })
     )
   },
-  fitGroupToContents: (groupId) => {
-    commitResult(get, set, applyFitGroupCommand(get().graph, { groupId }))
+  arrangeGroup: async (groupId) => {
+    const startGraph = get().graph
+
+    try {
+      const nextGraph = await computeGroupArrangeLayout(
+        get().registry,
+        startGraph,
+        groupId
+      )
+      if (nextGraph === startGraph) {
+        set({ lastError: null })
+        return true
+      }
+      // Edits made while the layout ran are kept; one that changed what the
+      // layout was computed from (a member moved, joined, or left) wins.
+      const currentGraph = get().graph
+      const rebased = rebaseGroupArrange(
+        startGraph,
+        nextGraph,
+        currentGraph,
+        groupId
+      )
+      set({ lastError: null })
+      if (!rebased) {
+        return false
+      }
+      if (rebased !== currentGraph) {
+        commitGraphState(set, rebased)
+      }
+      return true
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to arrange the group."
+      set({ lastError: createWorkflowError("AUTO_LAYOUT_FAILED", message) })
+      return false
+    }
   },
   setGroupCollapsed: (groupId, collapsed) => {
     const changed = commitResult(

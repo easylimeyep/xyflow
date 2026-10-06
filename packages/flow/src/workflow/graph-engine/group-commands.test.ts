@@ -14,7 +14,6 @@ import type {
 
 import {
   applyDeleteGroupsCommand,
-  applyFitGroupCommand,
   applyGroupNodesCommand,
   applyMoveGroupCommand,
   applyRecolorGroupCommand,
@@ -263,21 +262,6 @@ describe("applyResizeGroupCommand", () => {
       })
     )
     expect(result.nextGraph.groups[0]?.width).toBe(GROUP_MIN_WIDTH)
-  })
-})
-
-describe("applyFitGroupCommand", () => {
-  it("fits the frame exactly around its members", () => {
-    const result = success(
-      applyFitGroupCommand(
-        graph([node("a", 100, 100, "g1")], [group({ x: -500, width: 2000 })]),
-        { groupId: "g1" }
-      )
-    )
-    expect(result.nextGraph.groups[0]).toMatchObject({
-      x: 100 - GROUP_FRAME_PADDING,
-      width: 100 + 2 * GROUP_FRAME_PADDING,
-    })
   })
 })
 

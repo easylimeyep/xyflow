@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { toGroupFrameId } from "../groups/group-canvas-ids"
 import { GROUP_FRAME_PADDING } from "../groups/group-geometry"
@@ -12,6 +12,7 @@ import type {
   WorkflowNode,
 } from "../types/types"
 
+import { defaultElkLayoutEngine } from "../layout"
 import { createWorkflowStore } from "./store"
 
 /** A measured 100 × 50 result node, so its center is (x + 50, y + 25). */
@@ -152,7 +153,6 @@ describe("group store actions", () => {
       (s: Store) =>
         s.getState().resizeGroup("g", { x: 0, y: 0, width: 600, height: 500 }),
     ],
-    ["fit", (s: Store) => s.getState().fitGroupToContents("g")],
     ["collapse", (s: Store) => s.getState().setGroupCollapsed("g", true)],
   ])("%s commits exactly one history step", (_name, act) => {
     const store = createStore([node("a", 100, 100, "g")], [group("g")])
@@ -634,5 +634,159 @@ describe("selection of groups", () => {
     expect(store.getState().selectedGroupIds).toEqual([id])
     store.getState().undo()
     expect(store.getState().selectedGroupIds).toEqual([])
+  })
+})
+
+/** A measured 200 × 120 node with an output port, so edges can be laid out. */
+function linkable(id: string, x: number, y: number, groupId?: string) {
+  const base: WorkflowNode = {
+    id,
+    type: "setVariable",
+    position: { x, y },
+    measured: { width: 200, height: 120 },
+    data: {
+      kind: "setVariable",
+      label: id,
+      config: {
+        variableName: id,
+        variableType: "value",
+        valueExpression: "",
+        clear: false,
+      },
+      ...(groupId ? { groupId } : {}),
+    },
+  }
+  return base
+}
+
+function link(source: string, target: string): WorkflowEdge {
+  return {
+    id: `${source}-${target}`,
+    source,
+    target,
+    sourceHandle: null,
+    targetHandle: null,
+    data: { sourceKind: "setVariable", targetKind: "setVariable" },
+  }
+}
+
+describe("arranging a group", () => {
+  afterEach(() => vi.restoreAllMocks())
+
+  function chainStore() {
+    return createStore(
+      [
+        linkable("a", 700, 400, "g"),
+        linkable("b", 300, 900, "g"),
+        linkable("c", 100, 500, "g"),
+      ],
+      [group("g", { x: 0, y: 0, width: 2000, height: 2000 })],
+      [link("a", "b"), link("b", "c")]
+    )
+  }
+
+  it("lays members out and fits the frame in one undo step", async () => {
+    const store = chainStore()
+    const original = store.getState().graph
+    const before = pasts(store)
+
+    expect(await store.getState().arrangeGroup("g")).toBe(true)
+
+    const { nodes, groups } = store.getState().graph
+    const x = (id: string) => nodes.find((n) => n.id === id)!.position.x
+    expect(x("a")).toBeLessThan(x("b"))
+    expect(x("b")).toBeLessThan(x("c"))
+    expect(groups[0]!.width).toBeLessThan(2000)
+    expect(pasts(store)).toBe(before + 1)
+
+    store.getState().undo()
+    expect(store.getState().graph.nodes.map((n) => n.position)).toEqual(
+      original.nodes.map((n) => n.position)
+    )
+    expect(store.getState().graph.groups).toEqual(original.groups)
+  })
+
+  it("drops the result when a member changes while the layout runs", async () => {
+    const store = chainStore()
+    store.setState({
+      lastError: { code: "AUTO_LAYOUT_FAILED", message: "earlier" },
+    })
+    const pending = store.getState().arrangeGroup("g")
+    store.getState().deleteNodes(["c"])
+    const edited = store.getState().graph
+
+    expect(await pending).toBe(false)
+    expect(store.getState().graph).toBe(edited)
+    expect(store.getState().lastError).toBeNull()
+  })
+
+  it("keeps the arrangement and the selection when selection changes while the layout runs", async () => {
+    const store = chainStore()
+    const pending = store.getState().arrangeGroup("g")
+    store.getState().setSelectedNodes(["a"])
+    store.getState().renameGroup("g", "Edited")
+
+    expect(await pending).toBe(true)
+    const { nodes, groups } = store.getState().graph
+    const x = (id: string) => nodes.find((n) => n.id === id)!.position.x
+    expect(x("a")).toBeLessThan(x("b"))
+    expect(nodes.find((n) => n.id === "a")?.selected).toBe(true)
+    expect(store.getState().selectedNodeIds).toEqual(["a"])
+    expect(groups[0]).toMatchObject({ label: "Edited" })
+    expect(groups[0]!.width).toBeLessThan(2000)
+  })
+
+  it("arranges two groups started together", async () => {
+    const store = createStore(
+      [
+        linkable("a", 0, 600, "g1"),
+        linkable("b", 0, 0, "g1"),
+        linkable("c", 3000, 600, "g2"),
+        linkable("d", 3000, 0, "g2"),
+      ],
+      [
+        group("g1", { x: -100, y: -100, width: 1500, height: 1500 }),
+        group("g2", { x: 2900, y: -100, width: 1500, height: 1500 }),
+      ],
+      [link("a", "b"), link("c", "d")]
+    )
+
+    const results = await Promise.all([
+      store.getState().arrangeGroup("g1"),
+      store.getState().arrangeGroup("g2"),
+    ])
+
+    expect(results).toEqual([true, true])
+    const { nodes } = store.getState().graph
+    const pos = (id: string) => nodes.find((n) => n.id === id)!.position
+    expect(pos("a").x).toBeLessThan(pos("b").x)
+    expect(pos("c").x).toBeLessThan(pos("d").x)
+  })
+
+  it("reports a layout failure and leaves the graph unchanged", async () => {
+    const store = chainStore()
+    const original = store.getState().graph
+    const before = pasts(store)
+    const spy = vi
+      .spyOn(defaultElkLayoutEngine, "layout")
+      .mockRejectedValueOnce(new Error("boom"))
+
+    expect(await store.getState().arrangeGroup("g")).toBe(false)
+    expect(store.getState().graph).toBe(original)
+    expect(store.getState().lastError?.code).toBe("AUTO_LAYOUT_FAILED")
+    expect(pasts(store)).toBe(before)
+  })
+
+  it.each([
+    ["collapsed", [linkable("a", 100, 100, "g")], { collapsed: true }],
+    ["empty", [], {}],
+  ])("does nothing for a %s group", async (_name, nodes, rect) => {
+    const store = createStore(nodes, [group("g", rect)])
+    const original = store.getState().graph
+    const before = pasts(store)
+
+    expect(await store.getState().arrangeGroup("g")).toBe(true)
+    expect(store.getState().graph).toBe(original)
+    expect(pasts(store)).toBe(before)
   })
 })

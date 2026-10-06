@@ -261,13 +261,6 @@ export function applyResizeGroupCommand(
   )
 }
 
-export function applyFitGroupCommand(
-  graph: WorkflowGraphState,
-  command: GroupCommand
-): GraphEngineResult {
-  return updateGroup(graph, command.groupId, fitToContents)
-}
-
 /** Collapsing also deselects the members, which are about to be hidden. */
 export function applySetGroupCollapsedCommand(
   graph: WorkflowGraphState,

@@ -259,7 +259,13 @@ export interface WorkflowStoreGroupCommands {
   renameGroup: (groupId: string, label: string) => boolean
   recolorGroup: (groupId: string, color: WorkflowGroup["color"]) => void
   resizeGroup: (groupId: string, rect: Rect) => void
-  fitGroupToContents: (groupId: string) => void
+  /**
+   * Lays out the group's members with ELK and fits the frame around them, in
+   * one undo step. Edits made while the layout runs are kept. Resolves
+   * `false` on a layout failure (in `lastError`) or when a member moved,
+   * joined, or left meanwhile, so the result was dropped.
+   */
+  arrangeGroup: (groupId: string) => Promise<boolean>
   setGroupCollapsed: (groupId: string, collapsed: boolean) => void
   setSelectedGroups: (groupIds: string[]) => void
 }

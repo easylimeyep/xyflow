@@ -21,7 +21,6 @@ export { createNodeWithUniqueLabel } from "./node-labels"
 
 export {
   applyDeleteGroupsCommand,
-  applyFitGroupCommand,
   applyGroupNodesCommand,
   applyMoveGroupCommand,
   applyRecolorGroupCommand,
