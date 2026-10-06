@@ -2,9 +2,11 @@
 
 import { Button } from "@flow/ui/components/button"
 import { Popover, PopoverTrigger } from "@flow/ui/components/popover"
-import { Palette } from "lucide-react"
 
-import { groupColorPickerStyles } from "../../../styles/components/canvas"
+import {
+  groupColorPickerStyles,
+  groupToolbarStyles,
+} from "../../../styles/components/canvas"
 import { normalizeGroupColor } from "../../groups/group-colors"
 import {
   WORKFLOW_GROUP_COLORS,
@@ -22,12 +24,18 @@ interface GroupColorPickerProps {
 export function GroupColorPicker({ color, onChange }: GroupColorPickerProps) {
   const current = normalizeGroupColor(color)
   const styles = groupColorPickerStyles()
+  const toolbar = groupToolbarStyles()
 
   return (
     <PopoverTrigger>
       <ActionTooltip label="Group color">
-        <Button size="icon-xs" variant="ghost" aria-label="Group color">
-          <Palette />
+        <Button
+          size="icon"
+          variant="ghost"
+          className={toolbar.button()}
+          aria-label="Group color"
+        >
+          <span className={toolbar.swatchDot()} aria-hidden="true" />
         </Button>
       </ActionTooltip>
       <Popover placement="bottom end" className="w-auto">

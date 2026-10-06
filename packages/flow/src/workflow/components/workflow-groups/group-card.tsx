@@ -4,7 +4,10 @@ import { Handle, Position, type NodeProps } from "@xyflow/react"
 import { CircleAlert } from "lucide-react"
 import { useState, type KeyboardEvent } from "react"
 
-import { groupCardStyles } from "../../../styles/components/canvas"
+import {
+  groupCardStyles,
+  groupToolbarStyles,
+} from "../../../styles/components/canvas"
 import {
   GROUP_CARD_SOURCE_HANDLE,
   GROUP_CARD_TARGET_HANDLE,
@@ -95,7 +98,9 @@ export function GroupCard({ data, selected }: NodeProps<GroupCanvasNode>) {
           {memberIds.length}
         </span>
         <div className={styles.actions()}>
-          <GroupCollapseButton groupId={groupId} collapsed />
+          <div className={groupToolbarStyles().dock()}>
+            <GroupCollapseButton groupId={groupId} collapsed />
+          </div>
         </div>
         <Handle
           type="source"

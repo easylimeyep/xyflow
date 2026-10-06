@@ -3,6 +3,7 @@
 import { Button } from "@flow/ui/components/button"
 import { ChevronDown, ChevronRight } from "lucide-react"
 
+import { groupToolbarStyles } from "../../../styles/components/canvas"
 import { ActionTooltip } from "../action-tooltip"
 import { useGroupCanvas } from "./group-canvas-context"
 
@@ -19,17 +20,19 @@ export function GroupCollapseButton({
   const { setCollapsed } = useGroupCanvas()
   const label = collapsed ? "Expand group" : "Collapse group"
   const Icon = collapsed ? ChevronRight : ChevronDown
+  const styles = groupToolbarStyles()
 
   return (
     <ActionTooltip label={label}>
       <Button
-        size="icon-xs"
+        size="icon"
         variant="ghost"
+        className={styles.button()}
         aria-label={label}
         aria-expanded={!collapsed}
         onPress={() => setCollapsed(groupId, !collapsed)}
       >
-        <Icon />
+        <Icon className={styles.icon()} />
       </Button>
     </ActionTooltip>
   )

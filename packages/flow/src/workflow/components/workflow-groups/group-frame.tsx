@@ -5,7 +5,10 @@ import { NodeResizer, type NodeProps } from "@xyflow/react"
 import { LayoutGrid } from "lucide-react"
 import { useState, type KeyboardEvent } from "react"
 
-import { groupFrameStyles } from "../../../styles/components/canvas"
+import {
+  groupFrameStyles,
+  groupToolbarStyles,
+} from "../../../styles/components/canvas"
 import type { GroupCanvasNode } from "../../groups/group-canvas-nodes"
 import { normalizeGroupColor } from "../../groups/group-colors"
 import { GROUP_MIN_HEIGHT, GROUP_MIN_WIDTH } from "../../groups/group-geometry"
@@ -39,6 +42,7 @@ export function GroupFrame({ data, selected }: NodeProps<GroupCanvasNode>) {
     editable,
     searchState,
   })
+  const toolbar = groupToolbarStyles()
 
   const onHeaderKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.target !== event.currentTarget) return
@@ -105,31 +109,35 @@ export function GroupFrame({ data, selected }: NodeProps<GroupCanvasNode>) {
               {memberIds.length}
             </span>
             <div className={styles.actions()}>
-              {editable ? (
-                <>
-                  <GroupColorPicker
-                    color={color}
-                    onChange={(next) => recolorGroup(groupId, next)}
-                  />
-                  <ActionTooltip label="Arrange">
-                    <Button
-                      size="icon-xs"
-                      variant="ghost"
-                      aria-label="Arrange"
-                      isDisabled={memberIds.length === 0 || isArranging}
-                      onPress={() => {
-                        setIsArranging(true)
-                        void arrangeGroup(groupId).finally(() =>
-                          setIsArranging(false)
-                        )
-                      }}
-                    >
-                      <LayoutGrid />
-                    </Button>
-                  </ActionTooltip>
-                </>
-              ) : null}
-              <GroupCollapseButton groupId={groupId} collapsed={collapsed} />
+              <div className={toolbar.dock()}>
+                {editable ? (
+                  <>
+                    <GroupColorPicker
+                      color={color}
+                      onChange={(next) => recolorGroup(groupId, next)}
+                    />
+                    <ActionTooltip label="Arrange">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className={toolbar.button()}
+                        aria-label="Arrange"
+                        isDisabled={memberIds.length === 0 || isArranging}
+                        onPress={() => {
+                          setIsArranging(true)
+                          void arrangeGroup(groupId).finally(() =>
+                            setIsArranging(false)
+                          )
+                        }}
+                      >
+                        <LayoutGrid className={toolbar.icon()} />
+                      </Button>
+                    </ActionTooltip>
+                    <span className={toolbar.divider()} aria-hidden="true" />
+                  </>
+                ) : null}
+                <GroupCollapseButton groupId={groupId} collapsed={collapsed} />
+              </div>
             </div>
           </div>
         </div>

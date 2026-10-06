@@ -56,7 +56,7 @@ export const groupFrameStyles = tv({
     title: "min-w-0 truncate text-sm font-semibold",
     count:
       "shrink-0 rounded-full bg-background/60 px-1.5 text-[11px] font-medium tabular-nums",
-    actions: "nodrag nopan ml-auto flex shrink-0 items-center gap-0.5",
+    actions: "nodrag nopan ml-auto flex shrink-0 items-center",
     renameInput:
       "nodrag nopan h-7 min-w-0 flex-1 rounded-md border bg-background px-2 text-sm font-semibold text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring",
     resizeLine: "pointer-events-auto",
@@ -135,6 +135,35 @@ export const groupCardStyles = tv({
     hasError: false,
     runtimeStatus: "none",
     searchState: "none",
+  },
+})
+
+/**
+ * The header's action dock: a capsule lifted off the tinted header, its
+ * buttons inked and hovered in the group's own color. Reads --group-color
+ * from the frame or card it sits in.
+ */
+export const groupToolbarStyles = tv({
+  slots: {
+    dock: [
+      "flex items-center gap-0.5 rounded-lg p-0.5 shadow-xs ring-1 backdrop-blur-sm",
+      "bg-[color-mix(in_oklab,var(--group-color)_6%,var(--background))]/80",
+      "ring-[color-mix(in_oklab,var(--group-color)_30%,var(--background))]",
+    ],
+    button: [
+      "size-7 rounded-md text-[color-mix(in_oklab,var(--group-color)_55%,var(--foreground))]",
+      "hover:bg-[color-mix(in_oklab,var(--group-color)_22%,var(--background))] hover:text-foreground",
+      "aria-expanded:bg-transparent aria-expanded:text-[color-mix(in_oklab,var(--group-color)_55%,var(--foreground))]",
+      "dark:hover:bg-[color-mix(in_oklab,var(--group-color)_28%,var(--background))]",
+      "data-[pressed]:bg-[color-mix(in_oklab,var(--group-color)_30%,var(--background))]",
+    ],
+    icon: "size-4",
+    divider:
+      "mx-0.5 h-4 w-px bg-[color-mix(in_oklab,var(--group-color)_30%,var(--background))]",
+    // The color button shows the group's current color instead of a generic
+    // palette glyph, so the setting is readable without opening the popover.
+    swatchDot:
+      "size-3.5 rounded-full bg-(--group-color) ring-2 ring-background shadow-[0_0_0_3px_color-mix(in_oklab,var(--group-color)_35%,transparent)]",
   },
 })
 
