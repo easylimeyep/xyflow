@@ -37,6 +37,8 @@ describe("WORKFLOW_EDITOR_TOUR", () => {
         expect(step.media.src).toMatch(/^tour\/[\w-]+\.mp4$/)
         expect(step.media.poster).toMatch(/^tour\/[\w-]+\.jpg$/)
         expect(step.media.alt).not.toBe("")
+        expect(step.media.width).toBeGreaterThan(0)
+        expect(step.media.height).toBeGreaterThan(0)
       }
 
       if (step.anchor.type === "editor") {

@@ -10,6 +10,8 @@ export const WORKFLOW_EDITOR_TOUR = [
     media: {
       src: "tour/workflow-palette.mp4",
       poster: "tour/workflow-palette.jpg",
+      width: 690,
+      height: 716,
       alt: "Dragging a node from the palette onto the canvas",
     },
   },
@@ -36,6 +38,8 @@ export const WORKFLOW_EDITOR_TOUR = [
     media: {
       src: "tour/workflow-canvas.mp4",
       poster: "tour/workflow-canvas.jpg",
+      width: 790,
+      height: 392,
       alt: "Connecting two nodes by dragging from an output handle",
     },
   },
@@ -48,6 +52,8 @@ export const WORKFLOW_EDITOR_TOUR = [
     media: {
       src: "tour/workflow-selection.mp4",
       poster: "tour/workflow-selection.jpg",
+      width: 880,
+      height: 328,
       alt: "Holding Shift and dragging a box to select two nodes",
     },
   },
@@ -60,6 +66,8 @@ export const WORKFLOW_EDITOR_TOUR = [
     media: {
       src: "tour/workflow-copy-paste.mp4",
       poster: "tour/workflow-copy-paste.jpg",
+      width: 658,
+      height: 442,
       alt: "Copying a node with Ctrl+C and pasting it under the cursor with Ctrl+V",
     },
   },
@@ -72,6 +80,8 @@ export const WORKFLOW_EDITOR_TOUR = [
     media: {
       src: "tour/workflow-group.mp4",
       poster: "tour/workflow-group.jpg",
+      width: 880,
+      height: 366,
       alt: "Grouping two selected nodes from the toolbar, then ungrouping them with Ctrl+Shift+G",
     },
   },
@@ -84,6 +94,8 @@ export const WORKFLOW_EDITOR_TOUR = [
     media: {
       src: "tour/workflow-search.mp4",
       poster: "tour/workflow-search.jpg",
+      width: 958,
+      height: 560,
       alt: "Searching for a variable, stepping through matches and opening the full list of matches",
     },
   },
@@ -103,6 +115,8 @@ export const WORKFLOW_EDITOR_TOUR = [
     media: {
       src: "tour/workflow-auto-layout.mp4",
       poster: "tour/workflow-auto-layout.jpg",
+      width: 958,
+      height: 728,
       alt: "A tangled workflow snapping into a tidy row after Auto layout",
     },
   },
