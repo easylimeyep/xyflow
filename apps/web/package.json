@@ -12,7 +12,8 @@
     "typecheck": "next typegen && tsc --noEmit",
     "test:e2e": "playwright test",
     "test:e2e:smoke": "playwright test \".*\\\\.smoke\\\\.spec\\\\.ts$\" --project=chromium",
-    "test:e2e:ui": "playwright test --ui"
+    "test:e2e:ui": "playwright test --ui",
+    "record:tour": "playwright test -c playwright.record.config.ts"
   },
   "dependencies": {
     "@rc-component/tour": "^2.4.0",
