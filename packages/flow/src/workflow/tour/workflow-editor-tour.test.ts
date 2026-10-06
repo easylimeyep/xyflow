@@ -33,6 +33,12 @@ describe("WORKFLOW_EDITOR_TOUR", () => {
       expect(step.title).not.toBe("")
       expect(step.body).not.toBe("")
 
+      if (step.media) {
+        expect(step.media.src).toMatch(/^tour\/[\w-]+\.mp4$/)
+        expect(step.media.poster).toMatch(/^tour\/[\w-]+\.jpg$/)
+        expect(step.media.alt).not.toBe("")
+      }
+
       if (step.anchor.type === "editor") {
         expect(editorAnchors.has(step.anchor.id)).toBe(true)
       } else {

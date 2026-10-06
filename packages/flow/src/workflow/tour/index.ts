@@ -5,5 +5,6 @@ export type {
   WorkflowEditorAnchorElements,
   WorkflowEditorAnchorRefs,
   WorkflowTourAnchor,
+  WorkflowTourMedia,
   WorkflowTourStep,
 } from "./types"

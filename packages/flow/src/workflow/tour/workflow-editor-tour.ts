@@ -7,6 +7,11 @@ export const WORKFLOW_EDITOR_TOUR = [
     title: "Node palette",
     body: "Choose building blocks and add them to the workflow canvas.",
     placement: "left",
+    media: {
+      src: "tour/workflow-palette.mp4",
+      poster: "tour/workflow-palette.jpg",
+      alt: "Dragging a node from the palette onto the canvas",
+    },
   },
   {
     id: "workflow-palette-evaluator",
@@ -26,8 +31,61 @@ export const WORKFLOW_EDITOR_TOUR = [
     id: "workflow-canvas",
     anchor: { type: "editor", id: "canvas" },
     title: "Workflow canvas",
-    body: "Arrange nodes and connect paths. Drag the canvas to pan, and hold Shift while dragging to select multiple nodes.",
+    body: "Connect nodes by dragging from an output handle to another node. Drag the canvas to pan.",
     placement: "top",
+    media: {
+      src: "tour/workflow-canvas.mp4",
+      poster: "tour/workflow-canvas.jpg",
+      alt: "Connecting two nodes by dragging from an output handle",
+    },
+  },
+  {
+    id: "workflow-selection",
+    anchor: { type: "editor", id: "canvas" },
+    title: "Select several nodes",
+    body: "Hold Shift and drag across the canvas to select several nodes, then move, copy, group or delete them together.",
+    placement: "top",
+    media: {
+      src: "tour/workflow-selection.mp4",
+      poster: "tour/workflow-selection.jpg",
+      alt: "Holding Shift and dragging a box to select two nodes",
+    },
+  },
+  {
+    id: "workflow-copy-paste",
+    anchor: { type: "editor", id: "canvas" },
+    title: "Copy and paste",
+    body: "Select nodes and press Ctrl+C, then Ctrl+V to paste them where your cursor is. Ctrl+D duplicates in place; with several nodes selected, the toolbar has Copy and Duplicate too.",
+    placement: "top",
+    media: {
+      src: "tour/workflow-copy-paste.mp4",
+      poster: "tour/workflow-copy-paste.jpg",
+      alt: "Copying a node with Ctrl+C and pasting it under the cursor with Ctrl+V",
+    },
+  },
+  {
+    id: "workflow-group",
+    anchor: { type: "editor", id: "canvas" },
+    title: "Group nodes",
+    body: "Select nodes and press Group in the toolbar (Ctrl+G) to frame them together. Select a group and press Ctrl+Shift+G to ungroup.",
+    placement: "top",
+    media: {
+      src: "tour/workflow-group.mp4",
+      poster: "tour/workflow-group.jpg",
+      alt: "Grouping two selected nodes from the toolbar, then ungrouping them with Ctrl+Shift+G",
+    },
+  },
+  {
+    id: "workflow-search",
+    anchor: { type: "editor", id: "toolbar" },
+    title: "Search the workflow",
+    body: "Press Ctrl+F to find labels, variables and their references. Enter steps through matches; click the counter to see them all and jump to any one.",
+    placement: "bottom",
+    media: {
+      src: "tour/workflow-search.mp4",
+      poster: "tour/workflow-search.jpg",
+      alt: "Searching for a variable, stepping through matches and opening the full list of matches",
+    },
   },
   {
     id: "workflow-zoom-in",
@@ -42,6 +100,11 @@ export const WORKFLOW_EDITOR_TOUR = [
     title: "Auto layout",
     body: "Clean up node positions and fit the workflow into a readable layout.",
     placement: "top",
+    media: {
+      src: "tour/workflow-auto-layout.mp4",
+      poster: "tour/workflow-auto-layout.jpg",
+      alt: "A tangled workflow snapping into a tidy row after Auto layout",
+    },
   },
   {
     id: "workflow-config-panel",
