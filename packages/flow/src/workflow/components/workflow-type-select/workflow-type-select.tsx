@@ -9,6 +9,7 @@ import {
 import { Brackets, Type } from "lucide-react"
 import { tv } from "tailwind-variants"
 
+import { nodeControlStyles } from "../../../styles/components/nodes"
 import {
   WORKFLOW_VARIABLE_TYPES,
   type WorkflowVariableType,
@@ -36,7 +37,8 @@ const TYPE_META = {
 
 const workflowTypeSelectStyles = tv({
   slots: {
-    root: "shrink-0",
+    // Only ever drawn inside a node, so it carries the drag opt-out itself.
+    root: ["shrink-0", nodeControlStyles()],
     trigger: [
       "shrink-0 justify-center gap-0 p-0 text-foreground",
       // Hide SelectTrigger's trailing chevron (its last svg child).

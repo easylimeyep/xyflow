@@ -86,6 +86,7 @@ export function SetterView({
               </label>
               <SearchFieldMark nodeId={nodeId} fieldKey="variableName">
                 <Input
+                  className={styles.control()}
                   id={variableLabelId}
                   ref={variableLabelField.inputRef}
                   value={variableLabelField.shownValue}
@@ -140,6 +141,7 @@ export function SetterView({
               <FieldLabel htmlFor={clearId}>Clear</FieldLabel>
               <div>
                 <Checkbox
+                  className={styles.control()}
                   id={clearId}
                   isSelected={clearFromStore}
                   onChange={(checked) => {

@@ -5,7 +5,10 @@ import {
   type ExpressionVariableOption,
 } from "@flow/expression-editor"
 
-import { searchFieldStyles } from "../../../styles/components/nodes"
+import {
+  nodeControlStyles,
+  searchFieldStyles,
+} from "../../../styles/components/nodes"
 import type { FieldSearchStatus } from "../../store"
 
 interface ExpressionInputProps {
@@ -27,10 +30,15 @@ export function ExpressionInput({
   searchState = "none",
 }: ExpressionInputProps) {
   // Always wrapped, whatever the state: toggling a wrapper in and out would
-  // remount the editor and drop focus the moment a search marks it.
+  // remount the editor and drop focus the moment a search marks it. The
+  // wrapper is also the editor's node-drag opt-out: CodeMirror's DOM is not
+  // ours to mark.
   return (
     <div
-      className={searchFieldStyles({ searchState })}
+      className={searchFieldStyles({
+        searchState,
+        class: nodeControlStyles(),
+      })}
       data-field-search-state={searchState === "none" ? undefined : searchState}
     >
       <ExpressionEditor

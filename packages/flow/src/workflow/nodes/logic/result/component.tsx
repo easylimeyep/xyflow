@@ -63,7 +63,7 @@ export function ResultNode({ id, data, selected }: NodeProps) {
                 })
               }
             >
-              <SelectTrigger>
+              <SelectTrigger className={styles.control()}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

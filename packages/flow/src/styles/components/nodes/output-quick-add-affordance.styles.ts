@@ -1,5 +1,7 @@
 import { tv } from "tailwind-variants"
 
+import { nodeControlStyles } from "./node-control.styles"
+
 export const outputQuickAddAffordanceStyles = tv({
   slots: {
     container: "absolute -translate-y-1/2",
@@ -8,7 +10,7 @@ export const outputQuickAddAffordanceStyles = tv({
     quickAddRoot:
       "absolute top-0.25 left-1.5 flex -translate-y-1/2 items-center",
     quickAddLine: "h-[2px] w-10 bg-border",
-    quickAddButton: "",
+    quickAddButton: nodeControlStyles(),
     icon: "",
   },
   variants: {

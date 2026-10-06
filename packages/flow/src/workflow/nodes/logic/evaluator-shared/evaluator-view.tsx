@@ -192,6 +192,7 @@ export function EvaluatorView({
             <Label className={styles.label()}>Label</Label>
             <SearchFieldMark nodeId={nodeId} fieldKey="label">
               <Input
+                className={styles.control()}
                 ref={resultLabelField.inputRef}
                 value={resultLabelField.shownValue}
                 placeholder="conditionMatched"

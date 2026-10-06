@@ -228,6 +228,7 @@ function ArrayOperandPopover({
       label={label}
       placeholder={placeholder}
       previewLimit={ARRAY_PREVIEW_LIMIT}
+      className={styles.control()}
       popoverClassName={styles.arrayOperandPopover()}
       renderEntry={renderEntry}
       getEntryMeta={getEntryMeta}

@@ -106,6 +106,7 @@ export function ExtractorNode({ id, data, selected }: NodeProps) {
               <Label className={styles.label()}>Label</Label>
               <SearchFieldMark nodeId={id} fieldKey="extractExpression">
                 <Input
+                  className={styles.control()}
                   ref={variableLabelField.inputRef}
                   value={variableLabelField.shownValue}
                   placeholder="myVar"
@@ -143,6 +144,7 @@ export function ExtractorNode({ id, data, selected }: NodeProps) {
           <div className={styles.fieldGroup()}>
             <Label className={styles.label()}>Token Number</Label>
             <Input
+              className={styles.control()}
               type="number"
               min={1}
               step={1}
@@ -185,6 +187,7 @@ export function ExtractorNode({ id, data, selected }: NodeProps) {
               <FieldLabel htmlFor={unlimitedId}>Unlimited</FieldLabel>
               <div>
                 <Checkbox
+                  className={styles.control()}
                   id={unlimitedId}
                   isSelected={unlimitedFromStore}
                   onChange={(checked) => {

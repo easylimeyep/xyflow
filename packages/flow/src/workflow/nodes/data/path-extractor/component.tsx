@@ -84,6 +84,7 @@ export function PathExtractorNode({ id, data, selected }: NodeProps) {
           <div className={styles.fieldGroup()}>
             <Label className={styles.label()}>Path</Label>
             <Input
+              className={styles.control()}
               value={shownPath}
               placeholder="user.address.city"
               onFocus={() => {
@@ -120,7 +121,11 @@ export function PathExtractorNode({ id, data, selected }: NodeProps) {
                 })
               }}
             >
-              <SelectTrigger aria-label="Expected out" size="sm">
+              <SelectTrigger
+                aria-label="Expected out"
+                size="sm"
+                className={styles.control()}
+              >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

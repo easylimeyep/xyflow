@@ -4,9 +4,12 @@ import type { NodeProps } from "@xyflow/react"
 import { Checkbox } from "@flow/ui/components/checkbox"
 import { Field, FieldLabel } from "@flow/ui/components/field"
 
+import { setVariableNodeStyles } from "../../../../styles/components/nodes"
 import { useBaseNodeData } from "../../shared"
 import { useNodeStoreData } from "../../shared/use-node-store-data"
 import { SetterView } from "../setter-shared/setter-view"
+
+const styles = setVariableNodeStyles()
 
 export function JsonSetterNode({ id, data, selected }: NodeProps) {
   const { config } = useBaseNodeData(data)
@@ -25,6 +28,7 @@ export function JsonSetterNode({ id, data, selected }: NodeProps) {
           <FieldLabel htmlFor={appendInputId}>Append input</FieldLabel>
           <div>
             <Checkbox
+              className={styles.control()}
               id={appendInputId}
               isSelected={config.appendInput === true}
               onChange={(checked) => {
