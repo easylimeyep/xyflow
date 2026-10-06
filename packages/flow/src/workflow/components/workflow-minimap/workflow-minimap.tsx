@@ -172,6 +172,7 @@ export function WorkflowMiniMap({ onClick }: WorkflowMiniMapProps) {
       className={styles.root()}
       data-testid="rf__minimap"
     >
+      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions -- click-to-pan is a pointer shortcut; the keyboard pans the canvas itself. */}
       <div
         ref={surfaceRef}
         className={styles.surface()}

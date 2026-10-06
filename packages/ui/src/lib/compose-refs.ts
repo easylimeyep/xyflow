@@ -37,7 +37,7 @@ function composeRefs<T>(...refs: PossibleRef<T>[]): React.RefCallback<T> {
     // using the cleanup functionality added in React 19.
     if (hasCleanup) {
       return () => {
-        for (let i = 0; i < cleanups.length; i++) {
+        for (let i = 0; i < cleanups.length; i += 1) {
           const cleanup = cleanups[i]
           if (typeof cleanup === "function") {
             cleanup()

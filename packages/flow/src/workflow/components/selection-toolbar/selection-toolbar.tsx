@@ -43,6 +43,8 @@ export function SelectionToolbar({ onAfterCommand }: SelectionToolbarProps) {
   const styles = selectionToolbarStyles()
 
   return (
+    // The handlers only stop presses from reaching the canvas; the actions are buttons.
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions
     <div
       role="group"
       aria-label="Selection actions"

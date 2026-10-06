@@ -179,6 +179,8 @@ function SelectInput({ className, ...props }: SearchFieldProps) {
   return (
     <SearchField
       {...props}
+      // The search field is what the opened select is for.
+      // eslint-disable-next-line jsx-a11y/no-autofocus
       autoFocus
       data-slot="select-input-wrapper"
       className={cn("p-1 pb-0", className)}

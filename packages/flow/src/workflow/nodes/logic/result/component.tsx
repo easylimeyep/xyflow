@@ -51,7 +51,7 @@ export function ResultNode({ id, data, selected }: NodeProps) {
       >
         <div className={styles.root()}>
           <div className={styles.fieldGroup()}>
-            <label className={styles.label()}>Category</label>
+            <span className={styles.label()}>Category</span>
             <Select
               aria-label="Category"
               selectedKey={category}

@@ -1,6 +1,7 @@
 import js from "@eslint/js"
 import pluginNext from "@next/eslint-plugin-next"
 import eslintConfigPrettier from "eslint-config-prettier"
+import pluginJsxA11y from "eslint-plugin-jsx-a11y"
 import pluginReact from "eslint-plugin-react"
 import pluginReactHooks from "eslint-plugin-react-hooks"
 import globals from "globals"
@@ -48,4 +49,5 @@ export const nextJsConfig = [
       "react/prop-types": "off",
     },
   },
+  pluginJsxA11y.flatConfigs.recommended,
 ]

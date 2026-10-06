@@ -222,6 +222,7 @@ describe("SelectionToolbar", () => {
         definitions={builtinBaseDefinitions}
       >
         <SelectNodes nodeIds={SELECTED} />
+        {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- stands in for the canvas. */}
         <div onPointerDown={onCanvasPointerDown} onClick={onCanvasClick}>
           <SelectionToolbar />
         </div>

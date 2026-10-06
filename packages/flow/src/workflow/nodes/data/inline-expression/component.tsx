@@ -32,6 +32,9 @@ export function InlineExpressionNode({
   const isCaseSensitiveFromStore = config.caseSensitive === true
   const isInteractive = draggable || selectable || isConnectable
   const styles = inlineExpressionNodeStyles()
+  const rootToggleId = `${id}-root`
+  const caseSensitiveToggleId = `${id}-case-sensitive`
+  const repeatableToggleId = `${id}-repeatable`
 
   const { fieldRegistry, ...searchMarks } = useNodeSearchMarks(id)
   return (
@@ -45,8 +48,9 @@ export function InlineExpressionNode({
         showTarget={!isRootFromStore}
         validationMessages={nodeValidationMessages}
         headerAccessory={
-          <label className={styles.rootToggleWrap()}>
+          <div className={styles.rootToggleWrap()}>
             <Checkbox
+              id={rootToggleId}
               isSelected={isRootFromStore}
               className={styles.rootToggle()}
               onChange={(checked) => {
@@ -57,15 +61,18 @@ export function InlineExpressionNode({
                 })
               }}
             />
-            <span className={styles.rootToggleLabel()}>Root</span>
-          </label>
+            <label htmlFor={rootToggleId} className={styles.rootToggleLabel()}>
+              Root
+            </label>
+          </div>
         }
       >
         <div className={styles.editField()}>
           <div className={styles.fieldHeader()}>
             <Label className={styles.label()}>Tokens</Label>
-            <label className={styles.rootToggleWrap()}>
+            <div className={styles.rootToggleWrap()}>
               <Checkbox
+                id={caseSensitiveToggleId}
                 isSelected={isCaseSensitiveFromStore}
                 className={styles.rootToggle()}
                 onChange={(checked) => {
@@ -76,8 +83,13 @@ export function InlineExpressionNode({
                   })
                 }}
               />
-              <span className={styles.rootToggleLabel()}>Case sensitive</span>
-            </label>
+              <label
+                htmlFor={caseSensitiveToggleId}
+                className={styles.rootToggleLabel()}
+              >
+                Case sensitive
+              </label>
+            </div>
           </div>
           <KeywordExpressionListInput
             nodeId={id}
@@ -95,8 +107,9 @@ export function InlineExpressionNode({
           <p className={styles.helperText()}>
             Press Enter or blur to commit one history step.
           </p>
-          <label className={styles.rootToggleWrap()}>
+          <div className={styles.rootToggleWrap()}>
             <Checkbox
+              id={repeatableToggleId}
               isSelected={isRepeatableFromStore}
               className={styles.rootToggle()}
               onChange={(checked) => {
@@ -107,8 +120,13 @@ export function InlineExpressionNode({
                 })
               }}
             />
-            <span className={styles.rootToggleLabel()}>Repeatable</span>
-          </label>
+            <label
+              htmlFor={repeatableToggleId}
+              className={styles.rootToggleLabel()}
+            >
+              Repeatable
+            </label>
+          </div>
         </div>
       </NodeShell>
     </SearchFieldRegistryProvider>

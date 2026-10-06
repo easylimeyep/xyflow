@@ -79,7 +79,7 @@ export function mapExpressionFields(
       let nestedIndex = 0
       const nextValue = refactorConfigValue(key, value, (template, path) => {
         const fieldPath = path ?? `${key}#${nestedIndex}`
-        nestedIndex++
+        nestedIndex += 1
         return rewrite({ fieldPath, template })
       })
       if (nextValue !== value) {

@@ -49,6 +49,7 @@ export function GroupRenameInput({
   return (
     <Input
       // Focus is the whole point of entering rename mode.
+      // eslint-disable-next-line jsx-a11y/no-autofocus -- the user asked for it.
       autoFocus
       aria-label="Group name"
       className={className}

@@ -544,6 +544,8 @@ function WorkflowEditorShell({
   }
 
   return (
+    // Catches the editor's hotkeys as they bubble up from anything inside it.
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions
     <div
       ref={rootRef}
       className={styles.root()}

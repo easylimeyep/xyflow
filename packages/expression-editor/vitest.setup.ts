@@ -10,7 +10,7 @@ if (typeof globalThis.CSS.escape !== "function") {
   globalThis.CSS.escape = (value: string): string => {
     const string = String(value)
     let result = ""
-    for (let i = 0; i < string.length; i++) {
+    for (let i = 0; i < string.length; i += 1) {
       const char = string.charAt(i)
       const codeUnit = string.charCodeAt(i)
       if (codeUnit === 0x0000) {

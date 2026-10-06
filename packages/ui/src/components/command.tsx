@@ -104,6 +104,8 @@ function CommandDialog({
 function CommandInput({ className, ...props }: InputProps) {
   return (
     <SearchField
+      // The search field is what the opened palette is for.
+      // eslint-disable-next-line jsx-a11y/no-autofocus
       autoFocus
       aria-label={props.placeholder || "Search"}
       data-slot="command-input-wrapper"

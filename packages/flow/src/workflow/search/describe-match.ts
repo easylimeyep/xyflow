@@ -106,6 +106,10 @@ function fieldNameOf(
       return match.fieldPath
         ? describeReferenceField(registry, node, match.fieldPath)
         : "Expression"
+    default: {
+      const unhandled: never = match.source
+      return unhandled
+    }
   }
 }
 
@@ -122,6 +126,10 @@ function searchedTextOf(
       return locateVariableDefinition(registry, node)?.name ?? ""
     case "variable-reference":
       return templatesOf(registry, node).get(match.fieldPath ?? "") ?? ""
+    default: {
+      const unhandled: never = match.source
+      return unhandled
+    }
   }
 }
 

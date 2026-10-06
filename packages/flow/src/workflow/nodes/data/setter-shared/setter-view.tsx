@@ -59,6 +59,7 @@ export function SetterView({
   const clearFromStore = config.clear === true
 
   const clearId = `${nodeId}-clear`
+  const variableLabelId = `${nodeId}-variable-label`
   const variableLabelField = useVariableIdentifierField({
     value: variableName,
     onCommit: (nextName) => {
@@ -80,9 +81,12 @@ export function SetterView({
         <div className={styles.root()}>
           <div className={styles.labelTypeRow()}>
             <div className={styles.labelTypeField()}>
-              <label className={styles.label()}>Label</label>
+              <label htmlFor={variableLabelId} className={styles.label()}>
+                Label
+              </label>
               <SearchFieldMark nodeId={nodeId} fieldKey="variableName">
                 <Input
+                  id={variableLabelId}
                   ref={variableLabelField.inputRef}
                   value={variableLabelField.shownValue}
                   placeholder="myVar"
@@ -102,7 +106,7 @@ export function SetterView({
             </div>
 
             <div className={styles.labelTypeSelectField()}>
-              <label className={styles.label()}>Type</label>
+              <span className={styles.label()}>Type</span>
               <WorkflowTypeSelect
                 ariaLabel="Variable type"
                 value={variableTypeFromStore}
@@ -114,7 +118,7 @@ export function SetterView({
           </div>
 
           <div className={styles.inlineEditField()}>
-            <label className={styles.label()}>Value expression</label>
+            <span className={styles.label()}>Value expression</span>
             <SearchMarkedExpressionInput
               nodeId={nodeId}
               fieldKey="valueExpression"

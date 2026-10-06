@@ -204,10 +204,11 @@ function collectNodeMatches(
   forEachExpressionField(registry, node, ({ fieldPath, template }) => {
     push(
       "variable-reference",
-      fieldIndex++,
+      fieldIndex,
       findReferenceOccurrences(template, needle, options),
       fieldPath
     )
+    fieldIndex += 1
   })
 
   return matches
@@ -280,7 +281,7 @@ export function compareSortTuples(
   a: SearchSortTuple,
   b: SearchSortTuple
 ): number {
-  for (let index = 0; index < a.length; index++) {
+  for (let index = 0; index < a.length; index += 1) {
     const left = a[index]!
     const right = b[index]!
     if (left === right) continue

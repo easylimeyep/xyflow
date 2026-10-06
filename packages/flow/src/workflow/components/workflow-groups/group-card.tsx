@@ -54,9 +54,11 @@ export function GroupCard({ data, selected }: NodeProps<GroupCanvasNode>) {
 
   return (
     <GroupContextMenu groupId={groupId} selected={selected} enabled={editable}>
+      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- the card is a node: focusable like xyflow's `role="group"` nodes, with Enter to select. */}
       <div
         className={styles.root()}
         role="group"
+        // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- see above.
         tabIndex={0}
         aria-label={describeGroup(label, memberIds.length, { collapsed: true })}
         data-testid="workflow-group-card"

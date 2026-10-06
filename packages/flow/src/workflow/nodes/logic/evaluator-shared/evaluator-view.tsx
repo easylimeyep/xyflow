@@ -85,6 +85,7 @@ export function EvaluatorView({
   const logicalOperator =
     (config.logicalOperator as "and" | "or" | undefined) ?? "and"
   const isCaseSensitiveFromStore = config.caseSensitive === true
+  const caseSensitiveToggleId = `${nodeId}-case-sensitive`
   const resultLabel = asText(config.label).trim()
 
   const updateConfig = useCallback(
@@ -209,16 +210,22 @@ export function EvaluatorView({
             ) : null}
           </div>
 
-          <label className={styles.optionToggleWrap()}>
+          <div className={styles.optionToggleWrap()}>
             <Checkbox
+              id={caseSensitiveToggleId}
               isSelected={isCaseSensitiveFromStore}
               className={styles.optionToggle()}
               onChange={(checked) =>
                 updateConfig("caseSensitive", checked === true)
               }
             />
-            <span className={styles.optionToggleLabel()}>Case sensitive</span>
-          </label>
+            <label
+              htmlFor={caseSensitiveToggleId}
+              className={styles.optionToggleLabel()}
+            >
+              Case sensitive
+            </label>
+          </div>
 
           <div className={styles.conditionList()}>
             <Sortable

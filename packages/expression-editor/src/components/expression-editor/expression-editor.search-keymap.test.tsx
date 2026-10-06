@@ -20,6 +20,7 @@ describe("ExpressionEditor Mod+F", () => {
     (_, modifier) => {
       const onHostKeyDown = vi.fn((event: KeyboardEvent) => event)
       const { container } = render(
+        // eslint-disable-next-line jsx-a11y/no-static-element-interactions -- stands in for the host.
         <div onKeyDown={(event) => onHostKeyDown(event.nativeEvent)}>
           <ExpressionEditor
             value="{{ price }}"

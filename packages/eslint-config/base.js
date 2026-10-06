@@ -33,6 +33,12 @@ export const config = [
     },
   },
   {
+    rules: {
+      "no-plusplus": "error",
+      "default-case": "error",
+    },
+  },
+  {
     plugins: {
       onlyWarn,
     },

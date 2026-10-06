@@ -72,9 +72,11 @@ export function GroupFrame({ data, selected }: NodeProps<GroupCanvasNode>) {
         enabled={editable}
       >
         <div className={styles.header()}>
+          {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- the bar is the group's drag handle and holds its own buttons, so it cannot be a <button>; Enter selects and F2 renames, like xyflow's focusable `role="group"` nodes. */}
           <div
             className={styles.bar()}
             role="group"
+            // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- see above.
             tabIndex={0}
             aria-label={describeGroup(label, memberIds.length)}
             onKeyDown={onHeaderKeyDown}
