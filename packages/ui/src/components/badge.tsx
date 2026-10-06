@@ -1,3 +1,4 @@
+import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@flow/ui/lib/utils"
@@ -25,15 +26,17 @@ const badgeVariants = cva(
   }
 )
 
-function Badge({
-  className,
-  variant = "default",
-  render,
-  ...props
-}: React.ComponentProps<"span"> &
+type BadgeProps = React.ComponentPropsWithoutRef<"span"> &
   VariantProps<typeof badgeVariants> & {
     render?: (props: React.HTMLAttributes<HTMLElement>) => React.ReactNode
-  }) {
+  }
+
+// `forwardRef` so the ref survives React 18, which drops `ref` from the props
+// of a plain function component.
+const Badge = React.forwardRef<HTMLSpanElement, BadgeProps>(function Badge(
+  { className, variant = "default", render, ...props },
+  ref
+) {
   if (render) {
     const renderProps = {
       "data-slot": "badge",
@@ -47,12 +50,14 @@ function Badge({
 
   return (
     <span
+      ref={ref}
       data-slot="badge"
       data-variant={variant}
       className={cn(badgeVariants({ variant }), className)}
       {...props}
     />
   )
-}
+})
 
 export { Badge, badgeVariants }
+export type { BadgeProps }

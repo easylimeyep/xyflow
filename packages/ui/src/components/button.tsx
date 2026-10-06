@@ -1,6 +1,6 @@
 "use client"
 
-import type * as React from "react"
+import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import {
   Button as ButtonPrimitive,
@@ -46,18 +46,21 @@ const buttonVariants = cva(
   }
 )
 
-function Button({
-  className,
-  variant = "default",
-  size = "default",
-  ...props
-}: Omit<ButtonPrimitiveProps, "className"> &
-  React.RefAttributes<HTMLButtonElement> &
+// `forwardRef` rather than `ref` as a prop: React 18 strips `ref` from a
+// plain function component, and hosts on React 18 need it to reach the DOM
+// (tooltip triggers, focus management).
+type ButtonProps = Omit<ButtonPrimitiveProps, "className"> &
   VariantProps<typeof buttonVariants> & {
     className?: string
-  }) {
+  }
+
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function Button(
+  { className, variant = "default", size = "default", ...props },
+  ref
+) {
   return (
     <ButtonPrimitive
+      ref={ref}
       data-slot="button"
       data-variant={variant}
       data-size={size}
@@ -65,26 +68,30 @@ function Button({
       {...props}
     />
   )
-}
+})
 
-function LinkButton({
-  className,
-  variant = "default",
-  size = "default",
-  ...props
-}: Omit<LinkPrimitiveProps, "className"> &
+type LinkButtonProps = Omit<LinkPrimitiveProps, "className"> &
   VariantProps<typeof buttonVariants> & {
     className?: string
-  }) {
-  return (
-    <LinkPrimitive
-      data-slot="button"
-      data-variant={variant}
-      data-size={size}
-      className={cn(buttonVariants({ variant, size, className }))}
-      {...props}
-    />
-  )
-}
+  }
+
+const LinkButton = React.forwardRef<HTMLAnchorElement, LinkButtonProps>(
+  function LinkButton(
+    { className, variant = "default", size = "default", ...props },
+    ref
+  ) {
+    return (
+      <LinkPrimitive
+        ref={ref}
+        data-slot="button"
+        data-variant={variant}
+        data-size={size}
+        className={cn(buttonVariants({ variant, size, className }))}
+        {...props}
+      />
+    )
+  }
+)
 
 export { Button, LinkButton, buttonVariants }
+export type { ButtonProps, LinkButtonProps }

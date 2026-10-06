@@ -1,5 +1,6 @@
 "use client"
 
+import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import {
   ToggleButton as TogglePrimitive,
@@ -30,19 +31,23 @@ const toggleVariants = cva(
   }
 )
 
-function Toggle({
-  className,
-  variant = "default",
-  size = "default",
-  ...props
-}: ToggleButtonProps & VariantProps<typeof toggleVariants>) {
+type ToggleProps = ToggleButtonProps & VariantProps<typeof toggleVariants>
+
+// `forwardRef` so the ref survives React 18, which drops `ref` from the props
+// of a plain function component.
+const Toggle = React.forwardRef<HTMLButtonElement, ToggleProps>(function Toggle(
+  { className, variant = "default", size = "default", ...props },
+  ref
+) {
   return (
     <TogglePrimitive
+      ref={ref}
       data-slot="toggle"
       className={cn(toggleVariants({ variant, size, className }))}
       {...props}
     />
   )
-}
+})
 
 export { Toggle, toggleVariants }
+export type { ToggleProps }

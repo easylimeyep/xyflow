@@ -76,30 +76,38 @@ function SelectValue<T extends object>({
   )
 }
 
-function SelectTrigger({
-  className,
-  size = "default",
-  children,
-  ...props
-}: Omit<React.ComponentProps<typeof ButtonPrimitive>, "children"> & {
+type SelectTriggerProps = Omit<
+  React.ComponentPropsWithoutRef<typeof ButtonPrimitive>,
+  "children"
+> & {
   children?: React.ReactNode
   size?: "sm" | "default"
-}) {
-  return (
-    <ButtonPrimitive
-      data-slot="select-trigger"
-      data-size={size}
-      className={cn(
-        "flex w-full items-center justify-between gap-1.5 rounded-md border border-input bg-input/20 px-2 py-1.5 text-xs/relaxed whitespace-nowrap transition-colors outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20 data-placeholder:text-muted-foreground data-[size=default]:h-7 data-[size=sm]:h-6 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 dark:bg-input/30 dark:hover:bg-input/50 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-3.5",
-        className
-      )}
-      {...props}
-    >
-      {children}
-      <ChevronDownIcon className="pointer-events-none size-3.5 text-muted-foreground" />
-    </ButtonPrimitive>
-  )
 }
+
+// `forwardRef` so the ref survives React 18, which drops `ref` from the props
+// of a plain function component.
+const SelectTrigger = React.forwardRef<HTMLButtonElement, SelectTriggerProps>(
+  function SelectTrigger(
+    { className, size = "default", children, ...props },
+    ref
+  ) {
+    return (
+      <ButtonPrimitive
+        ref={ref}
+        data-slot="select-trigger"
+        data-size={size}
+        className={cn(
+          "flex w-full items-center justify-between gap-1.5 rounded-md border border-input bg-input/20 px-2 py-1.5 text-xs/relaxed whitespace-nowrap transition-colors outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20 data-placeholder:text-muted-foreground data-[size=default]:h-7 data-[size=sm]:h-6 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 dark:bg-input/30 dark:hover:bg-input/50 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-3.5",
+          className
+        )}
+        {...props}
+      >
+        {children}
+        <ChevronDownIcon className="pointer-events-none size-3.5 text-muted-foreground" />
+      </ButtonPrimitive>
+    )
+  }
+)
 
 function SelectContent({
   className,

@@ -8,13 +8,15 @@ import {
 
 import { cn } from "@flow/ui/lib/utils"
 
-function Input({
-  className,
-  type,
-  ...props
-}: React.ComponentProps<typeof InputPrimitive>) {
+// `forwardRef` so the ref survives React 18, which drops `ref` from the props
+// of a plain function component.
+const Input = React.forwardRef<
+  HTMLInputElement,
+  React.ComponentPropsWithoutRef<typeof InputPrimitive>
+>(function Input({ className, type, ...props }, ref) {
   return (
     <InputPrimitive
+      ref={ref}
       type={type}
       data-slot="input"
       className={composeRenderProps(className, (className) =>
@@ -26,6 +28,6 @@ function Input({
       {...props}
     />
   )
-}
+})
 
 export { Input }

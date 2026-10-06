@@ -19,15 +19,24 @@ import { cn } from "@flow/ui/lib/utils"
 type ListBoxProps<T extends object> = Omit<
   ListBoxPrimitiveProps<T>,
   "className"
-> &
-  React.RefAttributes<HTMLDivElement> & {
-    className?: string
-  }
+> & {
+  className?: string
+}
 
-/** A standalone list of options, for results or pickers outside a popover. */
-function ListBox<T extends object>({ className, ...props }: ListBoxProps<T>) {
+/**
+ * A standalone list of options, for results or pickers outside a popover.
+ *
+ * `forwardRef` so the ref survives React 18, which drops `ref` from the props
+ * of a plain function component; the cast restores the item type parameter
+ * that `forwardRef` erases.
+ */
+const ListBox = React.forwardRef(function ListBox<T extends object>(
+  { className, ...props }: ListBoxProps<T>,
+  ref: React.ForwardedRef<HTMLDivElement>
+) {
   return (
     <ListBoxPrimitive
+      ref={ref}
       data-slot="list-box"
       className={cn(
         "overflow-x-hidden overflow-y-auto outline-hidden",
@@ -36,7 +45,9 @@ function ListBox<T extends object>({ className, ...props }: ListBoxProps<T>) {
       {...props}
     />
   )
-}
+}) as <T extends object>(
+  props: ListBoxProps<T> & React.RefAttributes<HTMLDivElement>
+) => React.ReactElement
 
 type ListBoxSectionProps<T extends object> = Omit<
   ListBoxSectionPrimitiveProps<T>,
