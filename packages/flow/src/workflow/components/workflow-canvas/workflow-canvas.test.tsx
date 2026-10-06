@@ -1507,6 +1507,28 @@ describe("WorkflowCanvas focus", () => {
     expect(document.activeElement).toBe(nodeField)
   })
 
+  it("keeps a shift+press from extending the page text selection", () => {
+    renderCanvas()
+
+    const isNotCancelled = fireEvent.mouseDown(
+      screen.getByTestId("rf-selection-mode"),
+      { shiftKey: true }
+    )
+
+    expect(isNotCancelled).toBe(false)
+  })
+
+  it("leaves a plain press and a shift+press in a node field alone", () => {
+    const focusTarget = renderCanvas()
+    const nodeField = document.createElement("input")
+    focusTarget.append(nodeField)
+
+    expect(fireEvent.mouseDown(screen.getByTestId("rf-selection-mode"))).toBe(
+      true
+    )
+    expect(fireEvent.mouseDown(nodeField, { shiftKey: true })).toBe(true)
+  })
+
   it("ignores presses from overlays portaled outside the canvas box", () => {
     const configField = appendOutsideInput()
     render(

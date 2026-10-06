@@ -250,6 +250,24 @@ function WorkflowCanvasInner({
     },
     [initialLayoutPending]
   )
+  // Shift+press is how nodes join a multi-selection, but the browser also
+  // reads it as "extend the text selection to here", painting every text
+  // between the old anchor and the press (headers, side panels). Canvas
+  // focus is set by hand above, so cancelling the press default is safe.
+  const onCanvasMouseDownCapture = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      if (!event.shiftKey || isInteractiveEventTarget(event.target)) {
+        return
+      }
+      if (
+        event.target instanceof Node &&
+        event.currentTarget.contains(event.target)
+      ) {
+        event.preventDefault()
+      }
+    },
+    []
+  )
   const focusCanvas = useCallback(() => {
     canvasRef.current?.focus({ preventScroll: true })
   }, [])
@@ -552,6 +570,7 @@ function WorkflowCanvasInner({
         tabIndex={-1}
         data-workflow-canvas-focus-target=""
         onPointerDownCapture={onCanvasPointerDownCapture}
+        onMouseDownCapture={onCanvasMouseDownCapture}
       >
         <GroupCanvasProvider value={groupCanvas.groupContext}>
           <ReactFlow
