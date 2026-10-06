@@ -2,6 +2,7 @@
 
 import { useMemo, useRef, useState } from "react"
 import Tour, { type TourProps } from "@rc-component/tour"
+import { getPlacements } from "@rc-component/tour/es/placements"
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -14,13 +15,53 @@ import {
   builtinDefinitions,
   type WorkflowEditorAnchorElements,
   type WorkflowTourAnchor,
+  type WorkflowTourStep,
 } from "@flow/flow"
 import { Button } from "@flow/ui/components/button"
 
 import { ExampleFrame } from "./example-frame"
+import { TourMedia } from "./tour-media"
 
 type RcTourStep = NonNullable<TourProps["steps"]>[number]
 const tourPopupClassName = "fixed w-max max-w-[calc(100vw-2rem)]"
+// The canvas fills the editor, so there is no room "above" it: dock the panel
+// inside its top edge, clear of the toolbar.
+const CANVAS_PANEL_PLACEMENT = "canvasTop"
+const CANVAS_PANEL_OFFSET_Y = 72
+const PANEL_OVERFLOW = {
+  adjustX: true,
+  adjustY: true,
+  shiftX: true,
+  shiftY: true,
+}
+// rc-tour aligns without overflow handling, so panels near an edge would leave
+// the viewport (and Chrome pauses offscreen autoplay clips). Flip, then shift.
+const tourPlacements: TourProps["builtinPlacements"] = {
+  ...Object.fromEntries(
+    Object.entries(getPlacements()).map(([name, align]) => [
+      name,
+      { ...align, overflow: PANEL_OVERFLOW },
+    ])
+  ),
+  [CANVAS_PANEL_PLACEMENT]: {
+    points: ["tc", "tc"],
+    offset: [0, CANVAS_PANEL_OFFSET_Y],
+    overflow: PANEL_OVERFLOW,
+  },
+}
+
+function resolveTourPlacement(step: WorkflowTourStep) {
+  const isCanvasStep =
+    step.anchor.type === "editor" && step.anchor.id === "canvas"
+  // Custom keys are valid builtinPlacements but outside rc-tour's union type.
+  return (
+    isCanvasStep ? CANVAS_PANEL_PLACEMENT : step.placement
+  ) as RcTourStep["placement"]
+}
+
+const workflowTourSteps: readonly WorkflowTourStep[] = WORKFLOW_EDITOR_TOUR
+const tourPanelClassName =
+  "rounded-lg border border-gray-200 bg-white p-4 text-gray-950 shadow-xl"
 
 function resolveWorkflowTourAnchor(
   anchor: WorkflowTourAnchor,
@@ -33,16 +74,39 @@ function resolveWorkflowTourAnchor(
   return anchors[anchor.id] ?? null
 }
 
-const renderTourPanel: NonNullable<TourProps["renderPanel"]> = (
-  step,
-  current
-) => {
+function renderTourPanel(
+  step: Parameters<NonNullable<TourProps["renderPanel"]>>[0],
+  current: number,
+  mediaBaseUrl: string | undefined
+) {
   const isFirstStep = current === 0
   const isLastStep = current === (step.total ?? 1) - 1
+  const media =
+    mediaBaseUrl === undefined ? undefined : workflowTourSteps[current]?.media
 
   return (
-    <div className="w-[min(20rem,calc(100vw-2rem))] rounded-lg border border-gray-200 bg-white p-4 text-gray-950 shadow-xl">
-      <div className="flex items-start justify-between gap-4">
+    <div
+      className={
+        media
+          ? `w-[min(28rem,calc(100vw-2rem))] ${tourPanelClassName}`
+          : `w-[min(20rem,calc(100vw-2rem))] ${tourPanelClassName}`
+      }
+    >
+      {media && mediaBaseUrl !== undefined && (
+        <TourMedia
+          // Remount per clip so every step starts its loop from the beginning.
+          key={media.src}
+          media={media}
+          baseUrl={mediaBaseUrl}
+        />
+      )}
+      <div
+        className={
+          media
+            ? "mt-3 flex items-start justify-between gap-4"
+            : "flex items-start justify-between gap-4"
+        }
+      >
         <div>
           <div className="text-sm font-semibold">{step.title}</div>
           <div className="mt-2 text-sm leading-5 text-gray-600">
@@ -90,7 +154,15 @@ const renderTourPanel: NonNullable<TourProps["renderPanel"]> = (
   )
 }
 
-export function TourAnchorsExample() {
+type TourAnchorsExampleProps = {
+  /**
+   * Where the host serves the recorded tour clips. Step media paths are
+   * relative ("tour/..."); without a base URL the tour shows text only.
+   */
+  mediaBaseUrl?: string
+}
+
+export function TourAnchorsExample({ mediaBaseUrl }: TourAnchorsExampleProps) {
   const anchorRefs = useRef<WorkflowEditorAnchorElements>({})
   const [open, setOpen] = useState(false)
   const [current, setCurrent] = useState(0)
@@ -100,7 +172,7 @@ export function TourAnchorsExample() {
         className: tourPopupClassName,
         title: step.title,
         description: step.body,
-        placement: step.placement,
+        placement: resolveTourPlacement(step),
         target: (() =>
           resolveWorkflowTourAnchor(
             step.anchor,
@@ -144,7 +216,10 @@ export function TourAnchorsExample() {
         onChange={setCurrent}
         onClose={closeTour}
         onFinish={closeTour}
-        renderPanel={renderTourPanel}
+        builtinPlacements={tourPlacements}
+        renderPanel={(step, current) =>
+          renderTourPanel(step, current, mediaBaseUrl)
+        }
         mask={{ color: "rgba(15, 23, 42, 0.32)" }}
         arrow={false}
         zIndex={80}
