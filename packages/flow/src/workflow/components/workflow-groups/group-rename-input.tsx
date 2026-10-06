@@ -2,6 +2,8 @@
 
 import { useState, type KeyboardEvent } from "react"
 
+import { Input } from "@flow/ui/components/input"
+
 interface GroupRenameInputProps {
   label: string
   className: string
@@ -45,7 +47,7 @@ export function GroupRenameInput({
   }
 
   return (
-    <input
+    <Input
       // Focus is the whole point of entering rename mode.
       autoFocus
       aria-label="Group name"

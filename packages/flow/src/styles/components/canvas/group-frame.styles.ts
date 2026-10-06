@@ -58,7 +58,7 @@ export const groupFrameStyles = tv({
       "shrink-0 rounded-full bg-background/60 px-1.5 text-[11px] font-medium tabular-nums",
     actions: "nodrag nopan ml-auto flex shrink-0 items-center",
     renameInput:
-      "nodrag nopan h-7 min-w-0 flex-1 rounded-md border bg-background px-2 text-sm font-semibold text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring",
+      "nodrag nopan flex-1 bg-background font-semibold text-foreground md:text-sm dark:bg-background",
     resizeLine: "pointer-events-auto",
     resizeHandle: "pointer-events-auto",
   },
