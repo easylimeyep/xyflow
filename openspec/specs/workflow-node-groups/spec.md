@@ -36,7 +36,7 @@ A node SHALL belong to at most one group. Groups SHALL NOT be nested. A group MA
 
 ### Requirement: Group frame geometry
 
-A group SHALL own its rectangle. Member nodes SHALL keep absolute positions. When a member is moved so that it no longer fits inside the frame, the frame SHALL grow to enclose it. The frame SHALL NOT shrink on its own. The frame SHALL be drawn behind nodes and edges, and its body SHALL NOT block panning, box selection, or clicks on edges and nodes beneath it.
+A group SHALL own its rectangle. Member nodes SHALL keep absolute positions. When a member is moved so that it no longer fits inside the frame, the frame SHALL grow to enclose it. The frame SHALL NOT shrink on its own. The frame SHALL be drawn behind nodes and edges, so it SHALL NOT block clicks or drags on the edges and nodes above it. The frame's body SHALL take the pointer as a node does. A box selection SHALL still be able to start on it.
 
 #### Scenario: Frame grows to follow a member
 
@@ -49,10 +49,24 @@ A group SHALL own its rectangle. Member nodes SHALL keep absolute positions. Whe
 - **WHEN** a member near the frame edge is dragged toward the center of the frame
 - **THEN** the frame rectangle MUST stay unchanged
 
+#### Scenario: Content above a frame keeps its behavior
+
+- **WHEN** the user clicks or drags a member node, or clicks an edge, inside a group frame
+- **THEN** that node or edge MUST be handled as it is outside a frame
+- **AND** the group MUST NOT be selected or moved
+
+#### Scenario: Box selection from a frame body
+
+- **WHEN** the user holds the box selection key and drags starting on the body of a group frame
+- **THEN** a box selection MUST start
+- **AND** the group MUST NOT move
+
 #### Scenario: Panning through a frame body
 
-- **WHEN** the user starts a drag on the body of a group frame, away from its header and member nodes
+- **WHEN** the canvas is in observe mode and the user drags starting on the body of a group frame
 - **THEN** the canvas MUST pan as it does on an empty area
+- **WHEN** the canvas is in edit mode and the user drags starting on the body of a group frame
+- **THEN** the canvas MUST NOT pan and the group MUST move instead
 
 ### Requirement: Resizing a group
 
@@ -111,12 +125,24 @@ The editor SHALL let the user create a group from one or more selected nodes thr
 
 ### Requirement: Selecting groups
 
-Clicking a group header SHALL select the group. Clicking a member node SHALL select the node and not the group. A box selection SHALL select a group only when the box encloses the whole frame; otherwise it SHALL select the nodes it touches as it does today. Groups and nodes SHALL be selectable together with a modifier click.
+Clicking a group header or the empty area of an expanded group frame SHALL select the group. Clicking a member node SHALL select the node and not the group. A box selection SHALL select a group only when the box encloses the whole frame; otherwise it SHALL select the nodes it touches as it does today. Groups and nodes SHALL be selectable together with a modifier click.
 
 #### Scenario: Header click selects the group
 
 - **WHEN** the user clicks a group header
 - **THEN** the group MUST be selected and its member nodes MUST NOT be selected
+
+#### Scenario: Body click selects the group
+
+- **WHEN** the user clicks the empty area inside an expanded group frame, away from its header, member nodes, and edges
+- **THEN** the group MUST be selected
+- **AND** no node MUST be selected and no other group MUST be selected
+
+#### Scenario: Modifier body click toggles the group
+
+- **WHEN** a node is selected and the user clicks the empty area of an unselected expanded group frame while holding Ctrl or Cmd
+- **THEN** the group MUST be added to the selection
+- **AND** the node MUST stay selected
 
 #### Scenario: Box touching a frame selects only nodes
 
@@ -182,13 +208,19 @@ Deleting a selected group SHALL remove the group together with all of its member
 
 ### Requirement: Moving a group
 
-Dragging a group by its header, or dragging a collapsed group card, SHALL move the group rectangle and all of its members by the same offset.
+Dragging a group by its header or by the empty area of its expanded frame, or dragging a collapsed group card, SHALL move the group rectangle and all of its members by the same offset.
 
 #### Scenario: Drag header moves members
 
 - **WHEN** the user drags a group header by (dx, dy)
 - **THEN** the group rectangle and every member node MUST move by (dx, dy)
 - **AND** non-member nodes MUST NOT move
+
+#### Scenario: Drag body moves members
+
+- **WHEN** in edit mode the user drags the empty area inside an expanded group frame by (dx, dy)
+- **THEN** the group rectangle and every member node MUST move by (dx, dy)
+- **AND** the canvas MUST NOT pan
 
 #### Scenario: Drag a collapsed card
 

@@ -82,7 +82,9 @@ describe("group canvas nodes", () => {
       draggable: true,
       data: { groupId: "g", label: "G", memberIds: ["a"], collapsed: false },
     })
-    expect(frame?.dragHandle).toBeDefined()
+    // The whole frame drags and takes the pointer, not just its header.
+    expect(frame?.dragHandle).toBeUndefined()
+    expect(frame?.style?.pointerEvents).toBeUndefined()
   })
 
   it("draws a collapsed group as a card at its corner", () => {

@@ -37,17 +37,17 @@ const surface = {
 
 export const groupFrameStyles = tv({
   slots: {
-    // The frame body lets every pointer event through: panning, box
-    // selection, and clicks on edges and nodes beneath it all work as on an
-    // empty canvas. Only the header bar and the resize handles take the pointer.
-    root: "pointer-events-none relative flex size-full flex-col rounded-2xl",
+    // The whole frame takes the pointer like a node: a click selects the
+    // group and a drag moves it. Shift+drag still starts a box selection, and
+    // nodes and edges drawn above the frame keep their own pointer events.
+    root: "relative flex size-full cursor-grab flex-col rounded-2xl active:cursor-grabbing",
     // A colored band behind the bar. Its bottom padding runs under the
     // content panel (pulled up by the negative margin), so the header color
     // shows around the panel's rounded top corners.
     header: ["-mb-3 shrink-0 rounded-t-2xl pb-3", surface.header],
-    // The bar is GROUP_FRAME_HEADER_HEIGHT tall and is the only part of the
-    // frame that takes the pointer: it drags, selects, and holds the actions.
-    bar: "workflow-group-drag-handle pointer-events-auto flex h-10 cursor-grab items-center gap-2 rounded-t-2xl px-3 outline-none focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing",
+    // The bar is GROUP_FRAME_HEADER_HEIGHT tall. It is the group's focus
+    // target and holds its title, context menu, and actions.
+    bar: "flex h-10 items-center gap-2 rounded-t-2xl px-3 outline-none focus-visible:ring-2 focus-visible:ring-ring",
     inner: [
       "relative min-h-0 flex-1 rounded-2xl border shadow-sm",
       surface.inner,
@@ -59,8 +59,6 @@ export const groupFrameStyles = tv({
     actions: "nodrag nopan ml-auto flex shrink-0 items-center",
     renameInput:
       "nodrag nopan flex-1 bg-background font-semibold text-foreground md:text-sm dark:bg-background",
-    resizeLine: "pointer-events-auto",
-    resizeHandle: "pointer-events-auto",
   },
   variants: {
     color: colorVariants,
@@ -68,7 +66,7 @@ export const groupFrameStyles = tv({
       true: { root: "ring-4 ring-ring/40" },
     },
     editable: {
-      false: { bar: "cursor-default active:cursor-default" },
+      false: { root: "cursor-default active:cursor-default" },
     },
     searchState: {
       none: {},

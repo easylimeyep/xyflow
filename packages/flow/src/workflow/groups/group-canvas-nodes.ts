@@ -7,8 +7,6 @@ import { getCollapsedCardRect } from "./group-geometry"
 
 export const GROUP_FRAME_NODE_TYPE = "groupFrame"
 export const GROUP_CARD_NODE_TYPE = "groupCard"
-/** The frame header is the only part of an expanded frame that drags it. */
-export const GROUP_FRAME_DRAG_HANDLE_CLASS = "workflow-group-drag-handle"
 /**
  * Frames sit beneath nodes and edges: a negative z-index puts them under the
  * edge layer, which React Flow paints before the nodes.
@@ -41,9 +39,9 @@ export type CollapsedOverride = ReadonlyMap<string, boolean>
 
 /**
  * React Flow never selects, focuses, connects, or deletes a group node: the
- * canvas owns group selection (header clicks, a box that encloses the whole
- * frame), the header and card are the focus targets, and Delete goes through
- * the editor's commands.
+ * canvas owns group selection (clicks on the frame or card, a box that
+ * encloses the whole frame), the header and card are the focus targets, and
+ * Delete goes through the editor's commands.
  */
 const NOT_SELECTABLE_BY_REACT_FLOW = {
   selectable: false,
@@ -51,8 +49,6 @@ const NOT_SELECTABLE_BY_REACT_FLOW = {
   connectable: false,
   deletable: false,
 } as const
-
-const FRAME_STYLE = { pointerEvents: "none" } as const
 
 export function isGroupEffectivelyCollapsed(
   group: WorkflowGroup,
@@ -130,10 +126,10 @@ function buildGroupCanvasNode(
       : GROUP_FRAME_Z_INDEX,
     data,
     selected,
+    // The whole frame takes the pointer like a node: a click selects the
+    // group and a drag moves it. Nodes and edges are drawn above it and still
+    // get their own pointer events first.
     draggable: editable,
-    dragHandle: `.${GROUP_FRAME_DRAG_HANDLE_CLASS}`,
-    // The frame body must not catch the pointer; its header opts back in.
-    style: FRAME_STYLE,
     ...NOT_SELECTABLE_BY_REACT_FLOW,
   }
 }

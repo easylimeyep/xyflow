@@ -23,9 +23,9 @@ import { useSelectGroupOnly } from "./use-select-group"
 import { useGroupSearchStatus } from "./use-group-search-status"
 
 /**
- * An expanded group: a tinted frame drawn beneath nodes and edges. Only its
- * header bar takes the pointer — it drags, selects, renames, and holds the group's
- * actions; the body lets everything through to the canvas.
+ * An expanded group: a tinted frame drawn beneath nodes and edges. The whole
+ * frame selects and drags the group like a node; the header bar renames it
+ * and holds its actions.
  */
 export function GroupFrame({ data, selected }: NodeProps<GroupCanvasNode>) {
   const { groupId, label, color, memberIds, collapsed, editable } = data
@@ -62,8 +62,6 @@ export function GroupFrame({ data, selected }: NodeProps<GroupCanvasNode>) {
           isVisible={selected}
           minWidth={GROUP_MIN_WIDTH}
           minHeight={GROUP_MIN_HEIGHT}
-          lineClassName={styles.resizeLine()}
-          handleClassName={styles.resizeHandle()}
         />
       ) : null}
       <GroupContextMenu
@@ -72,7 +70,7 @@ export function GroupFrame({ data, selected }: NodeProps<GroupCanvasNode>) {
         enabled={editable}
       >
         <div className={styles.header()}>
-          {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- the bar is the group's drag handle and holds its own buttons, so it cannot be a <button>; Enter selects and F2 renames, like xyflow's focusable `role="group"` nodes. */}
+          {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- the bar is the group's focus target and holds its own buttons, so it cannot be a <button>; Enter selects and F2 renames, like xyflow's focusable `role="group"` nodes. */}
           <div
             className={styles.bar()}
             role="group"
