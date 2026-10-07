@@ -16,20 +16,6 @@ export const WORKFLOW_EDITOR_TOUR = [
     },
   },
   {
-    id: "workflow-palette-evaluator",
-    anchor: { type: "paletteItem", kind: "evaluator" },
-    title: "Evaluator node",
-    body: "Split workflow logic by checking a condition and following the matching path.",
-    placement: "left",
-  },
-  {
-    id: "workflow-palette-set-variable",
-    anchor: { type: "paletteItem", kind: "setVariable" },
-    title: "Set variable node",
-    body: "Store a value that later workflow steps can reuse.",
-    placement: "left",
-  },
-  {
     id: "workflow-canvas",
     anchor: { type: "editor", id: "canvas" },
     title: "Workflow canvas",
