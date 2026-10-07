@@ -75,8 +75,8 @@ async function pasteSelection(page: Page) {
 
 const frame = (page: Page) =>
   page.locator('.react-flow__node[data-id^="group-frame:"]')
-const header = (page: Page) =>
-  frame(page).locator(".workflow-group-drag-handle")
+// The header bar is the frame's focusable `role="group"`, named after the group.
+const header = (page: Page) => frame(page).getByRole("group")
 const nodeByLabel = (page: Page, label: string) =>
   page
     .getByTestId("workflow-node")

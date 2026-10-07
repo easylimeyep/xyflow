@@ -59,6 +59,11 @@ export const groupFrameStyles = tv({
     actions: "nodrag nopan ml-auto flex shrink-0 items-center",
     renameInput:
       "nodrag nopan flex-1 bg-background font-semibold text-foreground md:text-sm dark:bg-background",
+    // The resize lines and handles come before the header and the content
+    // panel, which take the pointer to drag the group. Lifted above them, a
+    // press on an edge resizes instead of moving the group.
+    resizeLine: "z-10",
+    resizeHandle: "z-10",
   },
   variants: {
     color: colorVariants,

@@ -62,6 +62,8 @@ export function GroupFrame({ data, selected }: NodeProps<GroupCanvasNode>) {
           isVisible={selected}
           minWidth={GROUP_MIN_WIDTH}
           minHeight={GROUP_MIN_HEIGHT}
+          lineClassName={styles.resizeLine()}
+          handleClassName={styles.resizeHandle()}
         />
       ) : null}
       <GroupContextMenu
