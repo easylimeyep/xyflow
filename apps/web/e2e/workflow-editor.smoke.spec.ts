@@ -14,6 +14,9 @@ test("workflow editor smoke surface supports basic browser actions", async ({
   ).toBeVisible()
   await expect(page.getByLabel("Workflow config panel")).toBeVisible()
 
+  // Count only once the starting graph has rendered: the canvas region shows
+  // before React Flow mounts its nodes.
+  await expect(page.getByTestId("workflow-node").first()).toBeVisible()
   const initialNodeCount = await page.getByTestId("workflow-node").count()
 
   await page.getByRole("button", { name: "Add Setter node" }).click()
