@@ -44,11 +44,13 @@ export function NodeContextMenu({
           ensureNodeContextTarget()
         }
       }}
+      menu={
+        <ContextMenu className="w-auto min-w-40">
+          <SelectionCommandMenuItems />
+        </ContextMenu>
+      }
     >
       <NodeComponent {...props} />
-      <ContextMenu className="w-auto min-w-40">
-        <SelectionCommandMenuItems />
-      </ContextMenu>
     </ContextMenuTrigger>
   )
 }

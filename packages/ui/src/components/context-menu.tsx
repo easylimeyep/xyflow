@@ -3,6 +3,7 @@
 import * as React from "react"
 import { cva } from "class-variance-authority"
 import {
+  Button as ButtonPrimitive,
   composeRenderProps,
   Header as HeaderPrimitive,
   MenuItem as MenuItemPrimitive,
@@ -63,12 +64,25 @@ function ContextMenu({
   )
 }
 
+/**
+ * Opens `menu` at the pointer on a right click anywhere in `children`.
+ *
+ * `MenuTrigger` hands its trigger props, `id` included, to every pressable
+ * element it wraps, and react-aria then merges their ids into one. The target
+ * is usually a whole region full of its own controls, so it is rendered beside
+ * the trigger, not inside it: a hidden button takes the trigger props instead.
+ */
 function ContextMenuTrigger({
   children,
+  menu,
   className,
   onOpenChange,
   ...props
-}: Omit<MenuTriggerProps, "trigger" | "isOpen" | "defaultOpen"> & {
+}: Omit<MenuTriggerProps, "trigger" | "isOpen" | "defaultOpen" | "children"> & {
+  /** The right-click target. */
+  children?: React.ReactNode
+  /** The `ContextMenu` to open. */
+  menu: React.ReactNode
   className?: string
 }) {
   const [position, setPosition] = React.useState<{
@@ -78,46 +92,47 @@ function ContextMenuTrigger({
   const positionRef = React.useRef<HTMLDivElement>(null)
 
   return (
-    <MenuTriggerPrimitive
-      data-slot="context-menu"
-      {...props}
-      isOpen={!!position}
-      onOpenChange={(isOpen) => {
-        if (!isOpen) {
-          setPosition(null)
-          onOpenChange?.(false)
+    <div
+      data-slot="context-menu-trigger"
+      className={cn("contents select-none", className)}
+      onContextMenu={(e) => {
+        e.preventDefault()
+        const wasOpen = position !== null
+        setPosition({
+          y: e.clientY,
+          x: e.clientX,
+        })
+        if (!wasOpen) {
+          onOpenChange?.(true)
         }
       }}
     >
-      {position &&
-        createPortal(
-          // Position the popover at the pointer.
-          <div
-            data-slot="context-menu-anchor"
-            ref={positionRef}
-            style={{
-              position: "fixed",
-              top: position.y,
-              left: position.x,
-            }}
-          />,
-          document.body
-        )}
-      <div
-        data-slot="context-menu-trigger"
-        className={cn("contents select-none", className)}
-        onContextMenu={(e) => {
-          e.preventDefault()
-          const wasOpen = position !== null
-          setPosition({
-            y: e.clientY,
-            x: e.clientX,
-          })
-          if (!wasOpen) {
-            onOpenChange?.(true)
+      <MenuTriggerPrimitive
+        {...props}
+        isOpen={!!position}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) {
+            setPosition(null)
+            onOpenChange?.(false)
           }
         }}
       >
+        {/* Takes the trigger props; the menu opens from onContextMenu. */}
+        <ButtonPrimitive className="hidden" />
+        {position &&
+          createPortal(
+            // Position the popover at the pointer.
+            <div
+              data-slot="context-menu-anchor"
+              ref={positionRef}
+              style={{
+                position: "fixed",
+                top: position.y,
+                left: position.x,
+              }}
+            />,
+            document.body
+          )}
         <PopoverContext.Consumer>
           {(ctx) => (
             <PopoverContext.Provider
@@ -128,12 +143,13 @@ function ContextMenuTrigger({
                 style: undefined,
               }}
             >
-              {children}
+              {menu}
             </PopoverContext.Provider>
           )}
         </PopoverContext.Consumer>
-      </div>
-    </MenuTriggerPrimitive>
+      </MenuTriggerPrimitive>
+      {children}
+    </div>
   )
 }
 

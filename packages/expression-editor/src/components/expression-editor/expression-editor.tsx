@@ -354,6 +354,11 @@ export function ExpressionEditor({
           <Command>
             <CommandInput placeholder="Search variables..." />
             <CommandList
+              // Without its own onClose, a menu closes the nearest root
+              // trigger state: inside a popover (an array operand's values),
+              // that is the enclosing popover. Picking closes the picker only,
+              // and keeps editing, as insertVariable does.
+              onClose={() => setPickerOpen(false)}
               renderEmptyState={() => (
                 <CommandEmpty>No variables available.</CommandEmpty>
               )}

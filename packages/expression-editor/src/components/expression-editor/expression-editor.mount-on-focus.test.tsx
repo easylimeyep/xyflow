@@ -9,6 +9,8 @@ import {
   waitFor,
 } from "@testing-library/react"
 import { EditorView } from "@codemirror/view"
+import { Button } from "@flow/ui/components/button"
+import { Popover, PopoverTrigger } from "@flow/ui/components/popover"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import type { ExpressionVariableOption } from "../../types"
@@ -182,6 +184,40 @@ describe("ExpressionEditor mountOnFocus", () => {
     // Give CodeMirror's delayed blur report a chance to run.
     await new Promise((resolve) => setTimeout(resolve, 30))
     expect(container.querySelector(".cm-editor")).not.toBeNull()
+  })
+
+  it("keeps an enclosing popover open when a variable is picked", async () => {
+    const onOuterOpenChange = vi.fn()
+    const onCommit = vi.fn()
+    render(
+      <PopoverTrigger isOpen onOpenChange={onOuterOpenChange}>
+        <Button>Values</Button>
+        <Popover>
+          <ExpressionEditor
+            value=""
+            variables={variables}
+            onCommit={onCommit}
+            mountOnFocus
+          />
+        </Popover>
+      </PopoverTrigger>
+    )
+    fireEvent.pointerDown(screen.getByRole("textbox"))
+    const view = getEditorView(document.body)
+
+    act(() => {
+      view.dispatch({
+        changes: { from: 0, insert: "{{}}" },
+        selection: { anchor: 2 },
+      })
+    })
+    fireEvent.click(await screen.findByText("price"))
+
+    expect(onCommit).toHaveBeenCalledWith(
+      "{{ price }}",
+      expect.objectContaining({ reason: "variable-insert" })
+    )
+    expect(onOuterOpenChange).not.toHaveBeenCalledWith(false)
   })
 
   it("commits a picked variable and keeps editing", async () => {

@@ -42,11 +42,13 @@ export function GroupContextMenu({
           selectGroupOnly(groupId)
         }
       }}
+      menu={
+        <ContextMenu className="w-auto min-w-40">
+          <SelectionCommandMenuItems />
+        </ContextMenu>
+      }
     >
       {children}
-      <ContextMenu className="w-auto min-w-40">
-        <SelectionCommandMenuItems />
-      </ContextMenu>
     </ContextMenuTrigger>
   )
 }
