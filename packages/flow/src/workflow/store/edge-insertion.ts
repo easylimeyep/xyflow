@@ -118,7 +118,6 @@ export function computeEdgeInsertion(
     insertedToTarget,
     nextNodes,
     nextEdgesBase,
-    currentGraph,
     nextNode.id
   )
 }
@@ -220,7 +219,6 @@ function tryFallbackSingleEdge(
   insertedToTarget: ConnectionLike,
   nextNodes: WorkflowNode[],
   nextEdgesBase: WorkflowEdge[],
-  currentGraph: WorkflowGraphState,
   insertedNodeId: string
 ): EdgeInsertionResult {
   const sourceValidation = validateConnection(

@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@flow/ui/components/select"
-import { useCallback, useRef, useState } from "react"
+import { useCallback, useState } from "react"
 
 import { setVariableNodeStyles } from "../../../../styles/components/nodes"
 import type { PathExtractorOutputType } from "../../../types/types"

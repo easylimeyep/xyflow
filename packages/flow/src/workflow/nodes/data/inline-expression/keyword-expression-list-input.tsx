@@ -143,7 +143,7 @@ export function KeywordExpressionListInput({
 
   return (
     <div className={styles.tokenList()}>
-      {rows.map((rowValue, index) => {
+      {rows.map((_rowValue, index) => {
         const canDelete = isInteractive && value.length > 0
         const committedRowValue = committedRows[index] ?? ""
 

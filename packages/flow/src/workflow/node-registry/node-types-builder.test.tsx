@@ -7,7 +7,6 @@ import { useEffect } from "react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { defineNode } from "./define-node"
-import type { NodeDefinition } from "./define-node"
 import { buildNodeTypes } from "./node-types-builder"
 import type { WorkflowNodeData } from "../types/types"
 import {

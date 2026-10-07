@@ -767,9 +767,9 @@ describe("arranging a group", () => {
     const store = chainStore()
     const original = store.getState().graph
     const before = pasts(store)
-    const spy = vi
-      .spyOn(defaultElkLayoutEngine, "layout")
-      .mockRejectedValueOnce(new Error("boom"))
+    vi.spyOn(defaultElkLayoutEngine, "layout").mockRejectedValueOnce(
+      new Error("boom")
+    )
 
     expect(await store.getState().arrangeGroup("g")).toBe(false)
     expect(store.getState().graph).toBe(original)
