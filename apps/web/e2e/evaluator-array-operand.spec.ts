@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test"
 
+import { pasteWorkflow } from "./helpers/paste-workflow"
+
 /** Keyword → Setter (`city`) → Evaluator whose left operand is an array. */
 const WORKFLOW = {
   id: "workflow-local",
@@ -73,14 +75,7 @@ const WORKFLOW = {
 test("array operand rows take variables from the picker and commit on close", async ({
   page,
 }) => {
-  await page.goto("/")
-  await page.getByRole("button", { name: "Import JSON" }).click()
-  await page
-    .getByPlaceholder("Paste domain workflow JSON")
-    .fill(JSON.stringify(WORKFLOW))
-  await page.getByRole("button", { name: "Apply Import" }).click()
-  await expect(page.getByText("Workflow imported.")).toBeVisible()
-  await page.getByRole("button", { name: "Close Import" }).click()
+  await pasteWorkflow(page, WORKFLOW)
   // The palette overlays the right side of the canvas, where the evaluator sits.
   await page.getByRole("button", { name: "Hide node palette" }).click()
 
@@ -94,7 +89,10 @@ test("array operand rows take variables from the picker and commit on close", as
   await trigger.click()
   await page.getByRole("button", { name: "Add value" }).click()
   const newRow = page.getByRole("group", { name: "Left array value 3" })
-  await newRow.locator(".cm-content").click()
+  // The row shows a lightweight preview until pressed; the press mounts the
+  // real editor, which takes focus.
+  await newRow.getByRole("textbox").click()
+  await expect(newRow.locator(".cm-content")).toBeFocused()
   await page.keyboard.type("{{")
   await page.getByText("city", { exact: true }).click()
 

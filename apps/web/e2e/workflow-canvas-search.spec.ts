@@ -1,5 +1,7 @@
 import { expect, test, type Page } from "@playwright/test"
 
+import { nodeByLabel, pasteWorkflow } from "./helpers/paste-workflow"
+
 /**
  * A setter defines `price` at the top; two nodes far below and to the right
  * reference it, so reaching them has to move the viewport. "Setter" and the
@@ -93,15 +95,11 @@ const WORKFLOW = {
   ],
 }
 
-async function importWorkflow(page: Page) {
-  await page.goto("/")
-  await page.getByRole("button", { name: "Import JSON" }).click()
-  await page
-    .getByPlaceholder("Paste domain workflow JSON")
-    .fill(JSON.stringify(WORKFLOW))
-  await page.getByRole("button", { name: "Apply Import" }).click()
-  await expect(page.getByText("Workflow imported.")).toBeVisible()
-  await page.getByRole("button", { name: "Close Import" }).click()
+/** The workflow node labelled `label` while it holds a search mark. */
+function searchMarked(page: Page, label: string, state: "current" | "match") {
+  return nodeByLabel(page, label).locator(
+    `[data-node-id][data-search-state="${state}"]`
+  )
 }
 
 function viewportTransform(page: Page) {
@@ -113,9 +111,9 @@ function viewportTransform(page: Page) {
 test("canvas search steps through variable occurrences without selecting", async ({
   page,
 }) => {
-  await importWorkflow(page)
+  await pasteWorkflow(page, WORKFLOW)
 
-  const keyword = page.locator('.react-flow__node[data-id="keyword-1"]')
+  const keyword = nodeByLabel(page, "Keyword")
   await keyword.getByText("Keyword").first().click()
   await expect(page.locator(".react-flow__node.selected")).toHaveCount(1)
   await expect(keyword).toHaveClass(/selected/)
@@ -127,17 +125,13 @@ test("canvas search steps through variable occurrences without selecting", async
   await input.fill("price")
   const counter = page.getByTestId("workflow-search-counter")
   await expect(counter).toHaveText("1 / 3")
-  await expect(
-    page.locator('[data-node-id="setter-1"][data-search-state="current"]')
-  ).toBeVisible()
+  await expect(searchMarked(page, "Setter", "current")).toBeVisible()
   await expect(page.locator('[data-search-state="match"]')).toHaveCount(2)
 
   const before = await viewportTransform(page)
   await input.press("Enter")
   await expect(counter).toHaveText("2 / 3")
-  await expect(
-    page.locator('[data-node-id="inline-1"][data-search-state="current"]')
-  ).toHaveCount(1)
+  await expect(searchMarked(page, "Message", "current")).toHaveCount(1)
   await expect.poll(() => viewportTransform(page)).not.toBe(before)
 
   await input.press("Enter")
@@ -177,7 +171,7 @@ test("Mod+F outside the editor is left to the browser", async ({ page }) => {
 })
 
 test("Mod+F opens search after clicking the empty canvas", async ({ page }) => {
-  await importWorkflow(page)
+  await pasteWorkflow(page, WORKFLOW)
 
   await page.locator(".react-flow__pane").click({ position: { x: 40, y: 40 } })
   await page.keyboard.press("ControlOrMeta+f")
@@ -192,21 +186,14 @@ test("the strong mark moves between fields of one node", async ({ page }) => {
       node.id === "setter-1" ? { ...node, label: "Price setter" } : node
     ),
   }
-  await page.goto("/")
-  await page.getByRole("button", { name: "Import JSON" }).click()
-  await page
-    .getByPlaceholder("Paste domain workflow JSON")
-    .fill(JSON.stringify(workflow))
-  await page.getByRole("button", { name: "Apply Import" }).click()
-  await expect(page.getByText("Workflow imported.")).toBeVisible()
-  await page.getByRole("button", { name: "Close Import" }).click()
+  await pasteWorkflow(page, workflow)
 
   await page.locator(".react-flow__pane").click({ position: { x: 40, y: 40 } })
   await page.keyboard.press("ControlOrMeta+f")
   const input = page.getByLabel("Search nodes and variables")
   await input.fill("price")
 
-  const setter = page.locator('[data-node-id="setter-1"]')
+  const setter = nodeByLabel(page, "Price setter").locator("[data-node-id]")
   const currentField = setter.locator('[data-field-search-state="current"]')
   await expect(page.getByTestId("workflow-search-counter")).toHaveText("1 / 4")
   await expect(currentField).toHaveText("Price setter")
@@ -226,17 +213,6 @@ test("the strong mark moves between fields of one node", async ({ page }) => {
   await expect(page.locator("[data-field-search-state]")).toHaveCount(0)
 })
 
-async function importGraph(page: Page, workflow: unknown) {
-  await page.goto("/")
-  await page.getByRole("button", { name: "Import JSON" }).click()
-  await page
-    .getByPlaceholder("Paste domain workflow JSON")
-    .fill(JSON.stringify(workflow))
-  await page.getByRole("button", { name: "Apply Import" }).click()
-  await expect(page.getByText("Workflow imported.")).toBeVisible()
-  await page.getByRole("button", { name: "Close Import" }).click()
-}
-
 async function openSearch(page: Page, query: string) {
   await page.locator(".react-flow__pane").click({ position: { x: 40, y: 40 } })
   await page.keyboard.press("ControlOrMeta+f")
@@ -248,7 +224,7 @@ async function openSearch(page: Page, query: string) {
 test("the results panel lists matches and jumps to a picked one", async ({
   page,
 }) => {
-  await importWorkflow(page)
+  await pasteWorkflow(page, WORKFLOW)
   const input = await openSearch(page, "price")
   const counter = page.getByTestId("workflow-search-counter")
 
@@ -260,9 +236,7 @@ test("the results panel lists matches and jumps to a picked one", async ({
   const before = await viewportTransform(page)
   await results.nth(2).click()
   await expect(counter).toHaveText("3 / 3")
-  await expect(
-    page.locator('[data-node-id="evaluator-1"][data-search-state="current"]')
-  ).toHaveCount(1)
+  await expect(searchMarked(page, "Evaluator", "current")).toHaveCount(1)
   await expect.poll(() => viewportTransform(page)).not.toBe(before)
   await expect(page.locator(".react-flow__node.selected")).toHaveCount(0)
 
@@ -292,7 +266,7 @@ test("source filters and whole word narrow the match set everywhere", async ({
         : node
     ),
   }
-  await importGraph(page, workflow)
+  await pasteWorkflow(page, workflow)
   await openSearch(page, "price")
   const counter = page.getByTestId("workflow-search-counter")
   await expect(counter).toHaveText("1 / 4")
@@ -305,7 +279,7 @@ test("source filters and whole word narrow the match set everywhere", async ({
   await expect(counter).toHaveText("1 / 2")
   await expect(page.getByTestId("workflow-search-filtered")).toBeVisible()
   await expect(
-    page.locator('[data-node-id="setter-1"][data-search-state]')
+    nodeByLabel(page, "Setter").locator("[data-node-id][data-search-state]")
   ).toHaveCount(0)
 
   await page.getByRole("button", { name: /^References/ }).click()
@@ -333,7 +307,7 @@ test("the results panel scrolls the current match into view", async ({
       caseSensitive: false,
     },
   }))
-  await importGraph(page, { ...WORKFLOW, nodes, connections: [] })
+  await pasteWorkflow(page, { ...WORKFLOW, nodes, connections: [] })
   const input = await openSearch(page, "price")
   const counter = page.getByTestId("workflow-search-counter")
   await expect(counter).toHaveText("1 / 30")
