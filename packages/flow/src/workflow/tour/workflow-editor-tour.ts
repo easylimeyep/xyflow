@@ -38,7 +38,7 @@ export const WORKFLOW_EDITOR_TOUR = [
     media: {
       src: "tour/workflow-selection.mp4",
       poster: "tour/workflow-selection.jpg",
-      width: 880,
+      width: 496,
       height: 328,
       alt: "Holding Shift and dragging a box to select two nodes",
     },
