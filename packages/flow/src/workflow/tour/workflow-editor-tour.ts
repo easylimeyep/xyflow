@@ -72,6 +72,20 @@ export const WORKFLOW_EDITOR_TOUR = [
     },
   },
   {
+    id: "workflow-undo-redo",
+    anchor: { type: "editor", id: "toolbar" },
+    title: "Undo and redo",
+    body: "Made a mistake? Press Ctrl+Z to undo the last change and Ctrl+Shift+Z to redo it, or use the arrows in the toolbar.",
+    placement: "bottom",
+    media: {
+      src: "tour/workflow-undo-redo.mp4",
+      poster: "tour/workflow-undo-redo.jpg",
+      width: 958,
+      height: 380,
+      alt: "Deleting a node, restoring it with Ctrl+Z, removing it again with Ctrl+Shift+Z and bringing it back with the toolbar's Undo button",
+    },
+  },
+  {
     id: "workflow-search",
     anchor: { type: "editor", id: "toolbar" },
     title: "Search the workflow",
