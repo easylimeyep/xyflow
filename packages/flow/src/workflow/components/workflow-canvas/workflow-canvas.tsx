@@ -19,7 +19,6 @@ import {
   ReactFlowProvider,
   SelectionMode,
   useReactFlow,
-  useNodesInitialized,
   useStore,
   type Connection,
   type EdgeChange,
@@ -179,7 +178,6 @@ function WorkflowCanvasInner({
   const minZoomReached = useStore(
     (state) => (state.transform[2] ?? 1) <= WORKFLOW_MIN_ZOOM
   )
-  const nodesInitialized = useNodesInitialized()
   const groupCanvas = useGroupCanvasProjection({
     nodes,
     edges,
@@ -195,11 +193,18 @@ function WorkflowCanvasInner({
   const shouldRunMeasuredInitialLayout =
     autoLayoutOnInit === "after-measure" && onMeasuredInitialAutoLayout != null
   const initialLayoutAttemptedRef = useRef(false)
+  // The initial layout runs once per mount, so its result belongs to the
+  // mounted canvas, not to the effect run that started it: a re-run of that
+  // effect (StrictMode's mount replay, a changed dependency) must not drop it.
+  const mountedRef = useRef(false)
   const [initialLayoutPending, setInitialLayoutPending] = useState(
     shouldRunMeasuredInitialLayout && nodes.length > 0
   )
   // Members hidden inside a collapsed group never mount, so they never report
-  // a size; the measured layout waits for the nodes that can.
+  // a size; the measured layout waits for the nodes that can. Only workflow
+  // nodes count: group frames and cards are rebuilt from the groups and never
+  // carry a measured size, which is why React Flow's `useNodesInitialized`
+  // would never report them ready.
   const allNodesMeasured =
     nodes.length === 0 ||
     groupCanvas.visibleNodes.every(
@@ -439,6 +444,12 @@ function WorkflowCanvasInner({
     }
   }, [refitOnResize, reactFlow])
   useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+    }
+  }, [])
+  useEffect(() => {
     if (!shouldRunMeasuredInitialLayout) {
       setInitialLayoutPending(false)
       return
@@ -454,18 +465,17 @@ function WorkflowCanvasInner({
       return
     }
 
-    if (!nodesInitialized || !allNodesMeasured) {
+    if (!allNodesMeasured) {
       setInitialLayoutPending(true)
       return
     }
 
-    let cancelled = false
     initialLayoutAttemptedRef.current = true
     setInitialLayoutPending(true)
 
     void onMeasuredInitialAutoLayout?.()
       .then((didLayout) => {
-        if (cancelled) {
+        if (!mountedRef.current) {
           return
         }
 
@@ -482,18 +492,13 @@ function WorkflowCanvasInner({
         setInitialLayoutPending(false)
       })
       .catch(() => {
-        if (!cancelled) {
+        if (mountedRef.current) {
           setInitialLayoutPending(false)
         }
       })
-
-    return () => {
-      cancelled = true
-    }
   }, [
     allNodesMeasured,
     nodes.length,
-    nodesInitialized,
     onMeasuredInitialAutoLayout,
     reactFlow,
     shouldRunMeasuredInitialLayout,

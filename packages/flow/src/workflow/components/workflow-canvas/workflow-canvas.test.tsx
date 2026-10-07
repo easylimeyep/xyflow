@@ -121,7 +121,6 @@ const getInternalNodeSpy = vi.fn((nodeId: string) =>
       }
     : undefined
 )
-const nodesInitializedMock = vi.fn(() => true)
 
 vi.mock("../workflow-edge", () => {
   return {
@@ -259,7 +258,6 @@ vi.mock("@xyflow/react", async (importOriginal) => {
       getState: () => ({ nodesSelectionActive: false }),
       setState: () => {},
     }),
-    useNodesInitialized: () => nodesInitializedMock(),
     ReactFlow: ({
       children,
       nodes,
@@ -463,8 +461,6 @@ describe("WorkflowCanvas", () => {
     zoomOutSpy.mockReset()
     setCenterSpy.mockReset()
     getViewportSpy.mockClear()
-    nodesInitializedMock.mockReset()
-    nodesInitializedMock.mockReturnValue(true)
     vi.unstubAllGlobals()
     vi.useRealTimers()
   })
@@ -857,6 +853,67 @@ describe("WorkflowCanvas", () => {
 
     expect(screen.queryByRole("status")).toBeNull()
     expect(onMeasuredInitialAutoLayout).not.toHaveBeenCalled()
+  })
+
+  it("clears the measured initial layout loader when the canvas re-runs its initialization during the layout", async () => {
+    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+      callback(performance.now())
+      return 1
+    })
+    vi.stubGlobal("cancelAnimationFrame", vi.fn())
+    const measuredNodes = initialWorkflowGraph.nodes.map((node) => ({
+      ...node,
+      measured: { width: 260, height: 116 },
+    }))
+    // The layout settles only when the test says so, as a slow ELK run would.
+    let finishLayout: (didLayout: boolean) => void = () => {}
+    const onMeasuredInitialAutoLayout = vi.fn(
+      () =>
+        new Promise<boolean>((resolve) => {
+          finishLayout = resolve
+        })
+    )
+    const renderCanvas = (layout: () => Promise<boolean>) => (
+      <WorkflowCanvas
+        nodes={measuredNodes}
+        edges={initialWorkflowGraph.edges}
+        viewport={initialWorkflowGraph.viewport}
+        onNodesChange={vi.fn()}
+        onEdgesChange={vi.fn()}
+        onConnect={vi.fn()}
+        onViewportChange={vi.fn()}
+        onSelectNodes={vi.fn()}
+        onPaneClick={vi.fn()}
+        onAddNodeAt={vi.fn()}
+        onStartInsertFromEdge={vi.fn()}
+        onDeleteEdge={vi.fn()}
+        onPointerFlowPosition={vi.fn()}
+        edgeInsertPendingId={null}
+        autoLayoutOnInit="after-measure"
+        onMeasuredInitialAutoLayout={layout}
+      />
+    )
+
+    const view = render(renderCanvas(onMeasuredInitialAutoLayout), {
+      wrapper: CanvasStoreWrapper,
+    })
+    expect(screen.getByRole("status").textContent).toContain(
+      "Preparing measured layout"
+    )
+
+    // The nodes are measured at mount, so the layout has already started. A
+    // new callback re-runs the initialization effect (as StrictMode's mount
+    // replay does) while the layout is still computing.
+    view.rerender(renderCanvas(() => onMeasuredInitialAutoLayout()))
+    await act(async () => {
+      finishLayout(true)
+    })
+
+    await waitFor(() => {
+      expect(screen.queryByRole("status")).toBeNull()
+    })
+    expect(onMeasuredInitialAutoLayout).toHaveBeenCalledTimes(1)
+    expect(fitViewSpy).toHaveBeenCalledTimes(1)
   })
 
   it("uses shared connection validation for preview checks", () => {
@@ -1583,8 +1640,6 @@ describe("WorkflowCanvas viewport culling", () => {
   afterEach(() => {
     cleanup()
     reactFlowRenderSpy.mockClear()
-    nodesInitializedMock.mockReset()
-    nodesInitializedMock.mockReturnValue(true)
   })
 
   function createMeasuredNodes(count: number) {
@@ -1717,6 +1772,55 @@ describe("WorkflowCanvas groups", () => {
     }
     return lastCall.nodes
   }
+
+  it("runs the measured initial layout without waiting for the group frame", async () => {
+    const measured = { width: 260, height: 116 }
+    const member = {
+      ...fixtureSource,
+      measured,
+      data: { ...fixtureSource.data, groupId: "g" },
+    }
+    const onMeasuredInitialAutoLayout = vi.fn(async () => true)
+
+    render(
+      <WorkflowCanvas
+        nodes={[member, { ...fixtureTarget, measured }]}
+        edges={[]}
+        groups={[
+          {
+            id: "g",
+            label: "Parse",
+            color: "green",
+            x: -40,
+            y: 0,
+            width: 400,
+            height: 300,
+            collapsed: false,
+          },
+        ]}
+        viewport={initialWorkflowGraph.viewport}
+        onNodesChange={vi.fn()}
+        onEdgesChange={vi.fn()}
+        onConnect={vi.fn()}
+        onViewportChange={vi.fn()}
+        onSelectNodes={vi.fn()}
+        onPaneClick={vi.fn()}
+        onAddNodeAt={vi.fn()}
+        onStartInsertFromEdge={vi.fn()}
+        onDeleteEdge={vi.fn()}
+        onPointerFlowPosition={vi.fn()}
+        edgeInsertPendingId={null}
+        autoLayoutOnInit="after-measure"
+        onMeasuredInitialAutoLayout={onMeasuredInitialAutoLayout}
+      />,
+      { wrapper: CanvasStoreWrapper }
+    )
+
+    await waitFor(() => {
+      expect(screen.queryByRole("status")).toBeNull()
+    })
+    expect(onMeasuredInitialAutoLayout).toHaveBeenCalledTimes(1)
+  })
 
   it("passes a frame for an expanded group ahead of the nodes", () => {
     const nodes = renderWithGroup(false)

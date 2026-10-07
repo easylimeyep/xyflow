@@ -63,7 +63,6 @@ vi.mock("@xyflow/react", async (importOriginal) => ({
     getState: () => ({ nodesSelectionActive: false }),
     setState: () => {},
   }),
-  useNodesInitialized: () => true,
 }))
 
 const registry = createNodeRegistry(builtinBaseDefinitions)
