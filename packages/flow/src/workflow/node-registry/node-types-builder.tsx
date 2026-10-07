@@ -1,7 +1,7 @@
 "use client"
 
 import type { NodeProps, NodeTypes } from "@xyflow/react"
-import { useDeferredValue, useState } from "react"
+import { useState } from "react"
 
 import {
   CompactNode,
@@ -15,6 +15,7 @@ import {
 } from "../components/workflow-search/search-field-mark"
 import { useBaseNodeData } from "../nodes/shared/use-base-node-data"
 import type { NodeDefinition } from "./define-node"
+import { useDeferredValueWithInitial } from "./use-deferred-value-with-initial"
 
 export function buildNodeTypes(
   definitions: readonly NodeDefinition[]
@@ -50,7 +51,10 @@ export function buildNodeTypes(
           // Every node mounts compact first: before the pane is measured there
           // is no viewport to cull against, and a large graph opened at a
           // readable zoom would otherwise mount every full view at once.
-          const isCompact = useDeferredValue(useIsCompactNode(props.id), true)
+          const isCompact = useDeferredValueWithInitial(
+            useIsCompactNode(props.id),
+            true
+          )
           // Fields commit on blur, so a node being edited keeps its full view
           // even when zoomed out; swapping it would drop the pending edit.
           const [hasFocusWithin, setHasFocusWithin] = useState(false)
