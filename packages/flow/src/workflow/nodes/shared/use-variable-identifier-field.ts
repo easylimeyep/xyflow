@@ -1,9 +1,10 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import type { KeyboardEvent, RefObject } from "react"
+import type { KeyboardEvent } from "react"
 
 import { isValidJsIdentifier } from "../../expression/variable-name/variable-name"
+import type { ElementRefObject } from "../../types/element-ref"
 
 interface UseVariableIdentifierFieldOptions {
   value: string
@@ -16,7 +17,7 @@ interface UseVariableIdentifierFieldOptions {
 interface UseVariableIdentifierFieldResult {
   shownValue: string
   errorText: string | null
-  inputRef: RefObject<HTMLInputElement | null>
+  inputRef: ElementRefObject<HTMLInputElement>
   onFocus: () => void
   onChange: (nextValue: string) => void
   onBlur: () => void

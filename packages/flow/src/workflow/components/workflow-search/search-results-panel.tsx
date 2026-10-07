@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, type KeyboardEvent, type RefObject } from "react"
+import { useEffect, useMemo, type KeyboardEvent } from "react"
 
 import { Button } from "@flow/ui/components/button"
 import {
@@ -40,6 +40,7 @@ import {
   type WorkflowStoreState,
 } from "../../store"
 import type { SearchSourceFilter } from "../../store/types"
+import type { ElementRefObject } from "../../types/element-ref"
 import type { WorkflowGroup, WorkflowNode } from "../../types/types"
 
 const SOURCE_LABELS: Record<SearchMatchSource, string> = {
@@ -124,9 +125,9 @@ function selectPanelView(state: WorkflowStoreState) {
 export interface SearchResultsPanelProps {
   id: string
   /** Where `Escape` inside the panel hands focus back to. */
-  inputRef: RefObject<HTMLInputElement | null>
+  inputRef: ElementRefObject<HTMLInputElement>
   /** The scrolling list element, so the bar can move focus into it. */
-  listRef: RefObject<HTMLDivElement | null>
+  listRef: ElementRefObject<HTMLDivElement>
 }
 
 /**
